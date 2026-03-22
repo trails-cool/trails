@@ -8,7 +8,7 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const session = getSession(params.id);
+  const session = await getSession(params.id);
   if (!session) {
     throw data({ error: "Session not found" }, { status: 404 });
   }
