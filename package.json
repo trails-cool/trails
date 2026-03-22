@@ -2,6 +2,7 @@
   "name": "trails.cool",
   "private": true,
   "description": "Collaborative route planning + federated activity sharing for outdoor enthusiasts",
+  "type": "module",
   "license": "MIT",
   "packageManager": "pnpm@10.6.5",
   "engines": {

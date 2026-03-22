@@ -316,9 +316,28 @@ services:
     image: dxflrs/garage:v1.0
     volumes: ["media:/var/lib/garage"]
 
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    depends_on: [journal]
+
 volumes:
   pgdata:
   media:
+  caddy_data:
+```
+
+Caddy is the reverse proxy for all instances. It provides automatic HTTPS
+via Let's Encrypt with zero configuration beyond the Caddyfile:
+
+```
+# Caddyfile (self-hosted example)
+bob.trails.xyz {
+    reverse_proxy journal:3000
+}
 ```
 
 ### With Self-Hosted Planner (Advanced)

@@ -6,5 +6,13 @@ export default tseslint.config(
   { ignores: ["**/build/", "**/dist/", "**/.react-router/", "**/node_modules/"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
   prettier,
 );

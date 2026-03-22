@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_args: Route.MetaArgs) {
   return [
     { title: "trails.cool" },
     { name: "description", content: "Your outdoor activity journal" },
