@@ -59,11 +59,19 @@ The session owner (initiator) SHALL be able to manually close a session.
 - **THEN** all connected participants are notified, the session triggers auto-save if a callback exists, and the session becomes inaccessible
 
 ### Requirement: User presence
-The Planner SHALL display presence indicators showing which users are currently connected to a session.
+The Planner SHALL display presence indicators showing which users are currently connected to a session, including live cursors on the map.
 
 #### Scenario: Show connected users
 - **WHEN** multiple users are connected to a session
 - **THEN** each user sees a list of other connected users with assigned colors
+
+#### Scenario: Live map cursors
+- **WHEN** a user moves their mouse over the map
+- **THEN** other participants see a labeled cursor at that position on their map, colored to match the user's assigned color
+
+#### Scenario: Cursor disappears on leave
+- **WHEN** a user disconnects from the session
+- **THEN** their cursor disappears from all other participants' maps within 5 seconds
 
 ### Requirement: No user data collection
 The Planner SHALL NOT collect, store, or track any personal user data. Sessions are anonymous by default.
