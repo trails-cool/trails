@@ -1,0 +1,84 @@
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - journal
+      - planner
+
+  journal:
+    image: ghcr.io/trails-cool/journal:latest
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-trails.cool}
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
+      S3_ENDPOINT: http://garage:3900
+      S3_BUCKET: trails-media
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  planner:
+    image: ghcr.io/trails-cool/planner:latest
+    restart: unless-stopped
+    environment:
+      BROUTER_URL: http://brouter:17777
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      brouter:
+        condition: service_started
+
+  brouter:
+    image: ghcr.io/trails-cool/brouter:latest
+    restart: unless-stopped
+    volumes:
+      - brouter_segments:/data/segments
+      - brouter_profiles:/data/profiles
+    # Segments can be pulled from:
+    # - https://brouter.de/brouter/segments4/ (official, weekly updates)
+    # - A trails.cool CDN mirror (later)
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trails
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trails}
+      POSTGRES_DB: trails
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trails"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  garage:
+    image: dxflrs/garage:v1.0
+    restart: unless-stopped
+    volumes:
+      - garage_data:/var/lib/garage
+      - ./garage.toml:/etc/garage.toml:ro
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:
+  brouter_segments:
+  brouter_profiles:
+  garage_data:

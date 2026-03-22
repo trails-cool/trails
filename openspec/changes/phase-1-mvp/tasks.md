@@ -19,14 +19,14 @@
 
 ## 3. Infrastructure
 
-- [ ] 3.1 Create Terraform config for Hetzner CX21 with Docker installed
-- [ ] 3.2 Create Docker Compose for all services (Journal, Planner, BRouter, PostgreSQL+PostGIS, Garage)
-- [ ] 3.3 Create BRouter Dockerfile with segment volume mount
-- [ ] 3.4 Create segment download script (Germany: E5_N45, E5_N50, E10_N45, E10_N50)
-- [ ] 3.5 Configure DNS for trails.cool and planner.trails.cool with TLS (Caddy)
+- [x] 3.1 Create Terraform config for Hetzner CX21 with Docker installed
+- [x] 3.2 Create Docker Compose for all services (Journal, Planner, BRouter, PostgreSQL+PostGIS, Garage)
+- [x] 3.3 Create BRouter Dockerfile with segment volume mount
+- [x] 3.4 Create segment download script (Germany: E5_N45, E5_N50, E10_N45, E10_N50)
+- [x] 3.5 Configure DNS for trails.cool and planner.trails.cool with TLS (Caddy)
 - [x] 3.6 Set up GitHub Actions CI pipeline (build, typecheck, lint, unit tests, e2e)
-- [ ] 3.7 Set up GitHub Actions CD pipeline (build Docker images, push to ghcr.io, deploy to Hetzner)
-- [ ] 3.8 Set up PostgreSQL backup cron (daily pg_dump to Hetzner Storage Box)
+- [x] 3.7 Set up GitHub Actions CD pipeline (build Docker images, push to ghcr.io, deploy to Hetzner)
+- [x] 3.8 Set up PostgreSQL backup cron (daily pg_dump to Hetzner Storage Box)
 
 ## 4. Planner — Session Management
 

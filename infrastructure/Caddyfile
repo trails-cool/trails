@@ -1,0 +1,7 @@
+{$DOMAIN:trails.cool} {
+	reverse_proxy journal:3000
+}
+
+planner.{$DOMAIN:trails.cool} {
+	reverse_proxy planner:3001
+}
