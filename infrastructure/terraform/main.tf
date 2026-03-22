@@ -74,6 +74,20 @@ resource "hcloud_firewall_attachment" "trails" {
   server_ids  = [hcloud_server.trails.id]
 }
 
+# Reverse DNS
+
+resource "hcloud_rdns" "trails_ipv4" {
+  server_id  = hcloud_server.trails.id
+  ip_address = hcloud_server.trails.ipv4_address
+  dns_ptr    = "trails.cool"
+}
+
+resource "hcloud_rdns" "trails_ipv6" {
+  server_id  = hcloud_server.trails.id
+  ip_address = hcloud_server.trails.ipv6_address
+  dns_ptr    = "trails.cool"
+}
+
 # DNS
 
 resource "hcloud_zone_rrset" "root_a" {
