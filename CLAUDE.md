@@ -106,7 +106,12 @@ pnpm test:e2e:ui      # Run E2E tests with Playwright UI
 ### Opening a PR
 - Create a feature branch: `git checkout -b <descriptive-name>`
 - Keep PRs focused — one logical change per PR
-- PRs auto-merge when CI is green (use `gh pr merge --auto --squash`)
+- Add the `automerge` label to auto-merge when CI passes:
+  ```bash
+  gh pr create --title "..." --body "..."
+  gh api repos/trails-cool/trails/issues/<PR_NUMBER>/labels -f "labels[]=automerge"
+  ```
+- PRs with `automerge` label squash-merge and delete the branch automatically
 - Use squash merges to keep main history clean
 
 ### Stacking PRs (for fast local iteration)
