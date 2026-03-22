@@ -94,6 +94,39 @@ pnpm test:e2e:ui      # Run E2E tests with Playwright UI
 - **Single domain**: Each instance uses one domain for both web UI and ActivityPub handles.
 - **Simple permissions**: View + Edit only. No fine-grained permissions.
 
+## Git Workflow
+
+**All changes go through pull requests.** Do not push directly to main.
+
+### Before opening a PR
+1. Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` — all must pass
+2. Check for open PRs: `gh pr list` — avoid conflicts with in-flight work
+3. Pull latest main: `git pull origin main --rebase`
+
+### Opening a PR
+- Create a feature branch: `git checkout -b <descriptive-name>`
+- Keep PRs focused — one logical change per PR
+- PRs auto-merge when CI is green (use `gh pr merge --auto --squash`)
+- Use squash merges to keep main history clean
+
+### Stacking PRs (for fast local iteration)
+When working on sequential tasks, stack branches locally:
+```
+main → feature-a → feature-b → feature-c
+```
+- Each branch gets its own PR
+- Set the base branch correctly: `gh pr create --base feature-a`
+- When feature-a merges, rebase feature-b onto main
+- This keeps you unblocked while PRs are in CI
+
+### After merging
+- Update main: `git checkout main && git pull`
+- Delete merged branches: `git branch -d <branch>`
+- Check if stacked PRs need rebasing
+
+### Emergency override
+Admins can bypass the PR workflow when necessary (e.g., CI is broken and needs a hotfix). Document the reason in the commit message.
+
 ## OpenSpec Workflow
 
 Specs live in `openspec/`. Use these slash commands:
