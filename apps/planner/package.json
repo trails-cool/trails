@@ -4,14 +4,31 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "echo 'TODO: setup planner dev'",
-    "build": "echo 'TODO: setup planner build'"
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@trails-cool/ui": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "@trails-cool/map": "workspace:*",
     "@trails-cool/gpx": "workspace:*",
-    "@trails-cool/i18n": "workspace:*"
+    "@trails-cool/i18n": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "catalog:",
+    "@react-router/node": "catalog:",
+    "@react-router/serve": "catalog:",
+    "isbot": "^5.1.0"
+  },
+  "devDependencies": {
+    "@react-router/dev": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
   }
 }

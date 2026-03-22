@@ -1,12 +1,12 @@
 ## 1. Monorepo Toolchain Setup
 
-- [ ] 1.1 Install pnpm and Turborepo, configure workspaces
-- [ ] 1.2 Set up TypeScript config (base tsconfig, per-package extends)
-- [ ] 1.3 Set up Tailwind CSS (shared config, content paths for monorepo)
-- [ ] 1.4 Set up ESLint and Prettier (shared config)
-- [ ] 1.5 Scaffold Planner app with React Router 7 (`apps/planner`)
-- [ ] 1.6 Scaffold Journal app with React Router 7 (`apps/journal`)
-- [ ] 1.7 Verify `turbo dev` starts both apps and `turbo build` succeeds
+- [x] 1.1 Install pnpm and Turborepo, configure workspaces
+- [x] 1.2 Set up TypeScript config (base tsconfig, per-package extends)
+- [x] 1.3 Set up Tailwind CSS (shared config, content paths for monorepo)
+- [x] 1.4 Set up ESLint and Prettier (shared config)
+- [x] 1.5 Scaffold Planner app with React Router 7 (`apps/planner`)
+- [x] 1.6 Scaffold Journal app with React Router 7 (`apps/journal`)
+- [x] 1.7 Verify `turbo dev` starts both apps and `turbo build` succeeds
 
 ## 2. Shared Packages
 

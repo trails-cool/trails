@@ -13,5 +13,24 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@react-router/dev": "^7.13.1",
+    "@react-router/node": "^7.13.1",
+    "@react-router/serve": "^7.13.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "^7.13.1",
+    "tailwindcss": "^4.2.2",
+    "turbo": "^2.8.20",
+    "typescript-eslint": "^8.57.1",
+    "vite": "catalog:"
   }
 }
