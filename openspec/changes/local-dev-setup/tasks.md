@@ -2,7 +2,7 @@
 
 - [x] 1.1 Add BRouter service to docker-compose.dev.yml with segment volume
 - [x] 1.2 Add BRouter profiles volume (included in BRouter Dockerfile)
-- [ ] 1.3 Verify PostgreSQL + BRouter start with `docker compose -f docker-compose.dev.yml up -d` (needs Docker)
+- [x] 1.3 Verify PostgreSQL + BRouter start with `docker compose -f docker-compose.dev.yml up -d`
 
 ## 2. Segment Download
 
@@ -12,7 +12,7 @@
 ## 3. Database Setup
 
 - [x] 3.1 Add `pnpm db:push` script that runs `drizzle-kit push` against local PostgreSQL
-- [ ] 3.2 Verify planner and journal schemas are created
+- [x] 3.2 Verify planner and journal schemas are created
 
 ## 4. Dev Orchestration
 
@@ -23,4 +23,4 @@
 ## 5. Documentation & Verification
 
 - [x] 5.1 Update README.md with local dev prerequisites (Docker, pnpm) and setup instructions
-- [ ] 5.2 Test full flow: start dev stack → create session → compute route with Berlin waypoints
+- [x] 5.2 Test full flow: start dev stack → create session → compute route with Berlin waypoints
