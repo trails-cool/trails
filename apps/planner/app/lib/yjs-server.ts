@@ -1,8 +1,10 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import * as Y from "yjs";
 import type { IncomingMessage, Server } from "node:http";
+import { saveSessionState, loadSessionState, touchSession } from "./sessions";
 
 const docs = new Map<string, Y.Doc>();
+const sessionClients = new Map<string, Set<WebSocket>>();
 
 export function getOrCreateDoc(sessionId: string): Y.Doc {
   let doc = docs.get(sessionId);
@@ -13,11 +15,25 @@ export function getOrCreateDoc(sessionId: string): Y.Doc {
   return doc;
 }
 
+export async function getOrLoadDoc(sessionId: string): Promise<Y.Doc> {
+  let doc = docs.get(sessionId);
+  if (!doc) {
+    doc = new Y.Doc();
+    const savedState = await loadSessionState(sessionId);
+    if (savedState) {
+      Y.applyUpdate(doc, savedState);
+    }
+    docs.set(sessionId, doc);
+  }
+  return doc;
+}
+
 export function deleteDoc(sessionId: string): boolean {
   const doc = docs.get(sessionId);
   if (doc) {
     doc.destroy();
     docs.delete(sessionId);
+    sessionClients.delete(sessionId);
     return true;
   }
   return false;
@@ -25,6 +41,28 @@ export function deleteDoc(sessionId: string): boolean {
 
 export function getDocCount(): number {
   return docs.size;
+}
+
+export function getClientCount(sessionId: string): number {
+  return sessionClients.get(sessionId)?.size ?? 0;
+}
+
+// Debounced persistence — save at most every 5 seconds per session
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function debouncedSave(sessionId: string): void {
+  if (saveTimers.has(sessionId)) return;
+  saveTimers.set(
+    sessionId,
+    setTimeout(async () => {
+      saveTimers.delete(sessionId);
+      try {
+        await saveSessionState(sessionId);
+      } catch (_e) {
+        // Log but don't crash on save failure
+      }
+    }, 5000),
+  );
 }
 
 export function setupYjsWebSocket(server: Server): WebSocketServer {
@@ -44,12 +82,20 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
     });
   });
 
-  wss.on("connection", (ws: WebSocket, _request: IncomingMessage, sessionId: string) => {
-    const doc = getOrCreateDoc(sessionId);
+  wss.on("connection", async (ws: WebSocket, _request: IncomingMessage, sessionId: string) => {
+    const doc = await getOrLoadDoc(sessionId);
+
+    // Track clients per session
+    if (!sessionClients.has(sessionId)) {
+      sessionClients.set(sessionId, new Set());
+    }
+    sessionClients.get(sessionId)!.add(ws);
 
     // Send current state to new client
     const state = Y.encodeStateAsUpdate(doc);
     ws.send(state);
+
+    await touchSession(sessionId);
 
     // Listen for updates from this client
     ws.on("message", (data: Buffer) => {
@@ -58,19 +104,31 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
         Y.applyUpdate(doc, update);
 
         // Broadcast to all other clients in this session
-        for (const client of wss.clients) {
-          if (client !== ws && client.readyState === ws.OPEN) {
-            client.send(data);
+        const clients = sessionClients.get(sessionId);
+        if (clients) {
+          for (const client of clients) {
+            if (client !== ws && client.readyState === ws.OPEN) {
+              client.send(data);
+            }
           }
         }
+
+        // Persist state (debounced)
+        debouncedSave(sessionId);
       } catch (_e) {
         // Ignore malformed updates
       }
     });
 
     ws.on("close", () => {
-      // Clean up empty sessions
-      // (In production, this would check participant count)
+      const clients = sessionClients.get(sessionId);
+      if (clients) {
+        clients.delete(ws);
+        if (clients.size === 0) {
+          // Last client left — save immediately
+          saveSessionState(sessionId).catch(() => {});
+        }
+      }
     });
   });
 

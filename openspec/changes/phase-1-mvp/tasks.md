@@ -31,12 +31,12 @@
 ## 4. Planner — Session Management
 
 - [x] 4.1 Set up Yjs with y-websocket in Planner backend (WebSocket endpoint at /sync)
-- [ ] 4.2 Implement Yjs persistence to PostgreSQL (planner schema, sessions table)
+- [x] 4.2 Implement Yjs persistence to PostgreSQL (planner schema, sessions table)
 - [x] 4.3 Implement session creation endpoint (POST /api/sessions → returns session ID)
 - [x] 4.4 Implement session creation with initial GPX (parse GPX → Yjs document with waypoints)
 - [x] 4.5 Implement session join page (GET /session/:id → connect to Yjs document)
-- [ ] 4.6 Implement session expiry (garbage collection cron, configurable TTL)
-- [ ] 4.7 Implement manual session close (owner action, notify participants)
+- [x] 4.6 Implement session expiry (garbage collection cron, configurable TTL)
+- [x] 4.7 Implement manual session close (owner action, notify participants)
 - [ ] 4.8 Implement user presence display (Yjs awareness, colors, names)
 
 ## 5. Planner — BRouter Integration

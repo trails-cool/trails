@@ -15,7 +15,7 @@ export async function action({ request }: Route.ActionArgs) {
     gpx?: string;
   };
 
-  const session = createSession({ callbackUrl, callbackToken });
+  const session = await createSession({ callbackUrl, callbackToken });
 
   if (gpx) {
     try {
@@ -36,5 +36,6 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export async function loader(_args: Route.LoaderArgs) {
-  return data({ sessions: listSessions() });
+  const sessions = await listSessions();
+  return data({ sessions });
 }
