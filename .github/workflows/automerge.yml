@@ -24,6 +24,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MERGE_LABELS: "automerge"
-          MERGE_METHOD: "squash"
+          MERGE_METHOD: "merge"
           MERGE_DELETE_BRANCH: "true"
           UPDATE_METHOD: "rebase"
