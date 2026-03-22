@@ -1,0 +1,220 @@
+import { useEffect, useState, useCallback } from "react";
+import { MapContainer, TileLayer, LayersControl, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
+import L from "leaflet";
+import * as Y from "yjs";
+import type { YjsState } from "~/lib/use-yjs";
+import { baseLayers } from "@trails-cool/map";
+import "leaflet/dist/leaflet.css";
+
+// Fix Leaflet default icon paths in bundled environment
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
+
+interface WaypointData {
+  lat: number;
+  lon: number;
+  name?: string;
+}
+
+function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
+  return waypoints.toArray().map((yMap) => ({
+    lat: yMap.get("lat") as number,
+    lon: yMap.get("lon") as number,
+    name: yMap.get("name") as string | undefined,
+  }));
+}
+
+interface PlannerMapProps {
+  yjs: YjsState;
+  onRouteRequest?: (waypoints: WaypointData[]) => void;
+}
+
+function MapClickHandler({ onAdd }: { onAdd: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onAdd(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
+  const map = useMap();
+  const [cursors, setCursors] = useState<Map<number, { lat: number; lng: number; color: string; name: string }>>(new Map());
+
+  useEffect(() => {
+    const localId = awareness.clientID;
+
+    const handleMouseMove = (e: L.LeafletMouseEvent) => {
+      awareness.setLocalStateField("cursor", {
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+      });
+    };
+
+    const handleMouseOut = () => {
+      awareness.setLocalStateField("cursor", null);
+    };
+
+    map.on("mousemove", handleMouseMove);
+    map.on("mouseout", handleMouseOut);
+
+    const updateCursors = () => {
+      const states = awareness.getStates();
+      const newCursors = new Map<number, { lat: number; lng: number; color: string; name: string }>();
+      states.forEach((state, clientId) => {
+        if (clientId !== localId && state.cursor && state.user) {
+          newCursors.set(clientId, {
+            lat: state.cursor.lat,
+            lng: state.cursor.lng,
+            color: state.user.color,
+            name: state.user.name,
+          });
+        }
+      });
+      setCursors(newCursors);
+    };
+
+    awareness.on("change", updateCursors);
+
+    return () => {
+      map.off("mousemove", handleMouseMove);
+      map.off("mouseout", handleMouseOut);
+      awareness.off("change", updateCursors);
+    };
+  }, [map, awareness]);
+
+  return (
+    <>
+      {Array.from(cursors.entries()).map(([clientId, cursor]) => (
+        <Marker
+          key={clientId}
+          position={[cursor.lat, cursor.lng]}
+          icon={L.divIcon({
+            className: "cursor-marker",
+            html: `<div style="background:${cursor.color};color:white;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;transform:translate(10px,-50%)">${cursor.name}</div>`,
+            iconSize: [0, 0],
+          })}
+        />
+      ))}
+    </>
+  );
+}
+
+export function PlannerMap({ yjs, onRouteRequest }: PlannerMapProps) {
+  const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
+  const [routeGeoJson, setRouteGeoJson] = useState<L.LatLngExpression[] | null>(null);
+
+  // Sync waypoints from Yjs
+  useEffect(() => {
+    const update = () => {
+      const wps = getWaypointsFromYjs(yjs.waypoints);
+      setWaypoints(wps);
+      if (wps.length >= 2 && onRouteRequest) {
+        onRouteRequest(wps);
+      }
+    };
+
+    yjs.waypoints.observe(update);
+    update();
+
+    return () => {
+      yjs.waypoints.unobserve(update);
+    };
+  }, [yjs.waypoints, onRouteRequest]);
+
+  // Sync route data from Yjs
+  useEffect(() => {
+    const update = () => {
+      const geojson = yjs.routeData.get("geojson") as string | undefined;
+      if (geojson) {
+        try {
+          const parsed = JSON.parse(geojson);
+          const coords = parsed.features?.[0]?.geometry?.coordinates;
+          if (coords) {
+            setRouteGeoJson(coords.map((c: number[]) => [c[1], c[0]] as L.LatLngExpression));
+          }
+        } catch {
+          // Invalid GeoJSON
+        }
+      } else {
+        setRouteGeoJson(null);
+      }
+    };
+
+    yjs.routeData.observe(update);
+    update();
+
+    return () => {
+      yjs.routeData.unobserve(update);
+    };
+  }, [yjs.routeData]);
+
+  const addWaypoint = useCallback(
+    (lat: number, lng: number) => {
+      const yMap = new Y.Map();
+      yMap.set("lat", lat);
+      yMap.set("lon", lng);
+      yjs.waypoints.push([yMap]);
+    },
+    [yjs.waypoints],
+  );
+
+  const moveWaypoint = useCallback(
+    (index: number, lat: number, lng: number) => {
+      const yMap = yjs.waypoints.get(index);
+      if (yMap) {
+        yjs.doc.transact(() => {
+          yMap.set("lat", lat);
+          yMap.set("lon", lng);
+        });
+      }
+    },
+    [yjs.waypoints, yjs.doc],
+  );
+
+  const deleteWaypoint = useCallback(
+    (index: number) => {
+      yjs.waypoints.delete(index, 1);
+    },
+    [yjs.waypoints],
+  );
+
+  return (
+    <MapContainer center={[50.1, 10.0]} zoom={6} className="h-full w-full">
+      <LayersControl position="topright">
+        {baseLayers.map((layer, i) => (
+          <LayersControl.BaseLayer key={layer.name} checked={i === 0} name={layer.name}>
+            <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} />
+          </LayersControl.BaseLayer>
+        ))}
+      </LayersControl>
+
+      <MapClickHandler onAdd={addWaypoint} />
+      <CursorTracker awareness={yjs.awareness} />
+
+      {waypoints.map((wp, i) => (
+        <Marker
+          key={i}
+          position={[wp.lat, wp.lon]}
+          draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const { lat, lng } = e.target.getLatLng();
+              moveWaypoint(i, lat, lng);
+            },
+            contextmenu: (e) => {
+              L.DomEvent.preventDefault(e as unknown as Event);
+              deleteWaypoint(i);
+            },
+          }}
+        />
+      ))}
+
+      {routeGeoJson && <Polyline positions={routeGeoJson} color="#2563eb" weight={4} opacity={0.8} />}
+    </MapContainer>
+  );
+}
