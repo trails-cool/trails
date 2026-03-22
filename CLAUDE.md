@@ -127,6 +127,12 @@ main → feature-a → feature-b → feature-c
 - When feature-a merges, rebase feature-b onto main
 - This keeps you unblocked while PRs are in CI
 
+### Important: Do not push to a branch after its PR auto-merges
+With the `automerge` label, PRs squash-merge as soon as CI passes. If you
+push additional commits to the branch after that, those commits are orphaned
+— they won't be on main. Always check `gh pr view <number> --json state`
+before pushing to an existing PR branch.
+
 ### After merging
 - Update main: `git checkout main && git pull`
 - Delete merged branches: `git branch -d <branch>`
