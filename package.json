@@ -16,7 +16,11 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "db:push": "drizzle-kit push --config packages/db/drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config packages/db/drizzle.config.ts",
+    "dev:services": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:full": "./scripts/dev.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -35,7 +35,7 @@ packages/
 
 ## Getting Started
 
-Prerequisites: Node.js 20+, pnpm
+Prerequisites: Node.js 20+, pnpm, Docker
 
 ```bash
 # Clone
@@ -45,8 +45,29 @@ cd trails
 # Install dependencies
 pnpm install
 
-# Start development
+# Start development (apps only, no database or routing)
 pnpm dev
+
+# Start full stack (PostgreSQL + BRouter + apps)
+pnpm dev:full
+```
+
+### Full Local Dev Setup
+
+`pnpm dev:full` starts everything needed to test the Planner end-to-end:
+
+1. **PostgreSQL + PostGIS** on port 5432 (via Docker)
+2. **BRouter** routing engine on port 17777 (via Docker)
+3. **Database schema** pushed automatically via Drizzle
+4. **BRouter segment** downloaded for Berlin area (~124MB, cached)
+5. **Journal** on http://localhost:3000
+6. **Planner** on http://localhost:3001
+
+Other useful commands:
+```bash
+pnpm dev:services     # Start Docker services only (DB + BRouter)
+pnpm db:push          # Push database schema changes
+pnpm db:studio        # Open Drizzle Studio (DB browser)
 ```
 
 ## Development Tools

@@ -15,5 +15,13 @@ services:
       timeout: 5s
       retries: 5
 
+  brouter:
+    build: docker/brouter
+    ports:
+      - "17777:17777"
+    volumes:
+      - brouter_segments:/data/segments
+
 volumes:
   pgdata:
+  brouter_segments:
