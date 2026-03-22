@@ -62,6 +62,10 @@ pnpm test             # Run unit tests (vitest)
 pnpm test:watch       # Run unit tests in watch mode
 pnpm test:e2e         # Run E2E tests (playwright, requires dev servers)
 pnpm test:e2e:ui      # Run E2E tests with Playwright UI
+pnpm dev:full         # Start full stack (Docker + DB + BRouter + apps)
+pnpm dev:services     # Start Docker services only (PostgreSQL + BRouter)
+pnpm db:push          # Push Drizzle schema to local PostgreSQL
+pnpm db:studio        # Open Drizzle Studio (DB browser)
 ```
 
 ## Testing Strategy

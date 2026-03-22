@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgis/postgis:16-3.4
+    image: imresamu/postgis:16-3.4  # multi-arch (amd64 + arm64)
     ports:
       - "5432:5432"
     environment:
@@ -15,5 +15,13 @@ services:
       timeout: 5s
       retries: 5
 
+  brouter:
+    build: docker/brouter
+    ports:
+      - "17777:17777"
+    volumes:
+      - brouter_segments:/data/segments
+
 volumes:
   pgdata:
+  brouter_segments:
