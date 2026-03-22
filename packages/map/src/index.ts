@@ -1,5 +1,6 @@
-/**
- * Map rendering utilities for trails.cool
- * Leaflet wrappers, tile layer configs, overlay management
- */
-export {};
+export { MapView } from "./MapView";
+export type { MapViewProps } from "./MapView";
+export { RouteLayer } from "./RouteLayer";
+export type { RouteLayerProps } from "./RouteLayer";
+export { baseLayers } from "./layers";
+export type { TileLayerConfig } from "./layers";

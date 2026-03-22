@@ -10,12 +10,12 @@
 
 ## 2. Shared Packages
 
-- [ ] 2.1 Implement `@trails-cool/types` — Route, Activity, Waypoint, RouteVersion, RouteMetadata interfaces
-- [ ] 2.2 Implement `@trails-cool/gpx` — GPX parser (XML → waypoints/tracks/elevation) and GPX generator (waypoints/tracks → XML)
-- [ ] 2.3 Implement `@trails-cool/map` — MapView React component (Leaflet + OSM), RouteLayer component (GeoJSON polyline), layer switcher (OSM/OpenTopoMap/CyclOSM)
-- [ ] 2.4 Implement `@trails-cool/ui` — Button, Input, Card, Layout components with Tailwind styling
-- [ ] 2.5 Implement `@trails-cool/i18n` — react-i18next config, English + German translation files, LanguageSwitcher component
-- [ ] 2.6 Verify all packages are importable from both apps
+- [x] 2.1 Implement `@trails-cool/types` — Route, Activity, Waypoint, RouteVersion, RouteMetadata interfaces
+- [x] 2.2 Implement `@trails-cool/gpx` — GPX parser (XML → waypoints/tracks/elevation) and GPX generator (waypoints/tracks → XML)
+- [x] 2.3 Implement `@trails-cool/map` — MapView React component (Leaflet + OSM), RouteLayer component (GeoJSON polyline), layer switcher (OSM/OpenTopoMap/CyclOSM)
+- [x] 2.4 Implement `@trails-cool/ui` — Button, Input, Card, Layout components with Tailwind styling
+- [x] 2.5 Implement `@trails-cool/i18n` — react-i18next config, English + German translation files, LanguageSwitcher component
+- [x] 2.6 Verify all packages are importable from both apps
 
 ## 3. Infrastructure
 

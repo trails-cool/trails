@@ -2,6 +2,12 @@
   "name": "@trails-cool/gpx",
   "version": "0.0.1",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "main": "./src/index.ts",
-  "types": "./src/index.ts"
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@trails-cool/types": "workspace:*"
+  }
 }

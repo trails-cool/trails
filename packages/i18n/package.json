@@ -2,6 +2,15 @@
   "name": "@trails-cool/i18n",
   "version": "0.0.1",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./locales/*": "./src/locales/*"
+  },
   "main": "./src/index.ts",
-  "types": "./src/index.ts"
+  "types": "./src/index.ts",
+  "peerDependencies": {
+    "react": ">=18",
+    "i18next": ">=23",
+    "react-i18next": ">=14"
+  }
 }

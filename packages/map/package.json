@@ -2,6 +2,15 @@
   "name": "@trails-cool/map",
   "version": "0.0.1",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "main": "./src/index.ts",
-  "types": "./src/index.ts"
+  "types": "./src/index.ts",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "leaflet": ">=1.9",
+    "react-leaflet": ">=5"
+  }
 }

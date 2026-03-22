@@ -1,4 +1,3 @@
-/**
- * GPX parsing, generation, and validation for trails.cool
- */
-export {};
+export { parseGpx } from "./parse";
+export { generateGpx } from "./generate";
+export type { GpxData, TrackPoint, ElevationProfile } from "./types";
