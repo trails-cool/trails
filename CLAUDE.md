@@ -108,8 +108,7 @@ pnpm test:e2e:ui      # Run E2E tests with Playwright UI
 - Keep PRs focused — one logical change per PR
 - Add the `automerge` label to auto-merge when CI passes:
   ```bash
-  gh pr create --title "..." --body "..."
-  gh api repos/trails-cool/trails/issues/<PR_NUMBER>/labels -f "labels[]=automerge"
+  gh pr create --title "..." --body "..." --label automerge
   ```
 - PRs with `automerge` label squash-merge and delete the branch automatically
 - Use squash merges to keep main history clean
