@@ -46,7 +46,7 @@ cd trails
 pnpm install
 
 # Start development
-turbo dev
+pnpm dev
 ```
 
 ## Development Tools

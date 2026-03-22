@@ -54,10 +54,10 @@ docker/brouter/     — BRouter Docker image
 
 ```bash
 pnpm install          # Install dependencies
-turbo dev             # Start both apps in dev mode
-turbo build           # Build all packages and apps
-turbo typecheck       # Type-check all packages
-turbo lint            # Lint all packages
+pnpm dev              # Start both apps in dev mode
+pnpm build            # Build all packages and apps
+pnpm typecheck        # Type-check all packages
+pnpm lint             # Lint all packages
 pnpm test             # Run unit tests (vitest)
 pnpm test:watch       # Run unit tests in watch mode
 pnpm test:e2e         # Run E2E tests (playwright, requires dev servers)
