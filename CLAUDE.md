@@ -58,8 +58,20 @@ turbo dev             # Start both apps in dev mode
 turbo build           # Build all packages and apps
 turbo typecheck       # Type-check all packages
 turbo lint            # Lint all packages
-turbo test            # Run tests
+pnpm test             # Run unit tests (vitest)
+pnpm test:watch       # Run unit tests in watch mode
+pnpm test:e2e         # Run E2E tests (playwright, requires dev servers)
+pnpm test:e2e:ui      # Run E2E tests with Playwright UI
 ```
+
+## Testing Strategy
+
+- **Unit tests** (Vitest + jsdom): For packages, components, utilities, and app logic.
+  Place test files next to source: `foo.ts` → `foo.test.ts`.
+  Uses `@testing-library/react` for component tests.
+- **E2E tests** (Playwright): For browser behavior across both apps.
+  Tests live in `e2e/` at repo root. Scoped per app via `testMatch` in `playwright.config.ts`.
+  Playwright auto-starts dev servers if not already running.
 
 ## Code Conventions
 
