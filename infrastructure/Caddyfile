@@ -2,6 +2,10 @@
 	reverse_proxy journal:3000
 }
 
+www.{$DOMAIN:trails.cool} {
+	redir https://{$DOMAIN:trails.cool}{uri} permanent
+}
+
 planner.{$DOMAIN:trails.cool} {
 	reverse_proxy planner:3001
 }
