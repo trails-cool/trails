@@ -3,9 +3,9 @@ FROM eclipse-temurin:11-jre-jammy
 WORKDIR /brouter
 
 # Download latest BRouter release
-ARG BROUTER_VERSION=1.7.7
+ARG BROUTER_VERSION=1.7.8
 RUN apt-get update && apt-get install -y --no-install-recommends wget unzip \
-    && wget -q "https://github.com/abrensch/brouter/releases/download/${BROUTER_VERSION}/brouter-${BROUTER_VERSION}.zip" \
+    && wget -q "https://github.com/abrensch/brouter/releases/download/v${BROUTER_VERSION}/brouter-${BROUTER_VERSION}.zip" \
     && unzip "brouter-${BROUTER_VERSION}.zip" \
     && rm "brouter-${BROUTER_VERSION}.zip" \
     && apt-get purge -y wget unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
