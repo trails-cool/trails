@@ -1,0 +1,40 @@
+import { data } from "react-router";
+import type { Route } from "./+types/api.sessions";
+import { createSession, initializeSessionWithWaypoints, listSessions } from "~/lib/sessions";
+import { parseGpx } from "@trails-cool/gpx";
+
+export async function action({ request }: Route.ActionArgs) {
+  if (request.method !== "POST") {
+    return data({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  const body = await request.json();
+  const { callbackUrl, callbackToken, gpx } = body as {
+    callbackUrl?: string;
+    callbackToken?: string;
+    gpx?: string;
+  };
+
+  const session = createSession({ callbackUrl, callbackToken });
+
+  if (gpx) {
+    try {
+      const gpxData = parseGpx(gpx);
+      initializeSessionWithWaypoints(session.id, gpxData.waypoints);
+    } catch (_e) {
+      // Continue with empty session if GPX is invalid
+    }
+  }
+
+  return data(
+    {
+      sessionId: session.id,
+      url: `/session/${session.id}`,
+    },
+    { status: 201 },
+  );
+}
+
+export async function loader(_args: Route.LoaderArgs) {
+  return data({ sessions: listSessions() });
+}

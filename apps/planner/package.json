@@ -6,28 +6,32 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
-    "start": "react-router-serve ./build/server/index.js",
+    "start": "node server.ts",
     "typecheck": "react-router typegen && tsc",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@trails-cool/ui": "workspace:*",
-    "@trails-cool/types": "workspace:*",
-    "@trails-cool/map": "workspace:*",
+    "@react-router/node": "catalog:",
+    "@react-router/serve": "catalog:",
     "@trails-cool/gpx": "workspace:*",
     "@trails-cool/i18n": "workspace:*",
+    "@trails-cool/map": "workspace:*",
+    "@trails-cool/types": "workspace:*",
+    "@trails-cool/ui": "workspace:*",
+    "isbot": "^5.1.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router": "catalog:",
-    "@react-router/node": "catalog:",
-    "@react-router/serve": "catalog:",
-    "isbot": "^5.1.0"
+    "ws": "^8.20.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.30"
   },
   "devDependencies": {
     "@react-router/dev": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/ws": "^8.18.1",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"

@@ -5,9 +5,13 @@
     "**/*.tsx",
     ".react-router/types/**/*"
   ],
+  "exclude": ["build", "node_modules", "server.ts"],
   "compilerOptions": {
     "rootDirs": [".", "./.react-router/types"],
-    "outDir": "build",
-    "types": ["vite/client"]
+    "noEmit": true,
+    "types": ["vite/client"],
+    "paths": {
+      "~/*": ["./app/*"]
+    }
   }
 }
