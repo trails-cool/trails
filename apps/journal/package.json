@@ -1,0 +1,17 @@
+{
+  "name": "@trails-cool/journal",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'TODO: setup journal dev'",
+    "build": "echo 'TODO: setup journal build'"
+  },
+  "dependencies": {
+    "@trails-cool/ui": "workspace:*",
+    "@trails-cool/types": "workspace:*",
+    "@trails-cool/map": "workspace:*",
+    "@trails-cool/gpx": "workspace:*",
+    "@trails-cool/i18n": "workspace:*"
+  }
+}

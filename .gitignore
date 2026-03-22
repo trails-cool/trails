@@ -1,0 +1,10 @@
+node_modules/
+.turbo/
+build/
+dist/
+.react-router/
+.env
+.env.local
+.DS_Store
+*.log
+.crit.json
