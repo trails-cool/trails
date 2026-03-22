@@ -37,12 +37,11 @@
 - [x] 4.5 Implement session join page (GET /session/:id → connect to Yjs document)
 - [x] 4.6 Implement session expiry (garbage collection cron, configurable TTL)
 - [x] 4.7 Implement manual session close (owner action, notify participants)
-- [ ] 4.8 Implement user presence display (Yjs awareness, colors, names)
 
 ## 5. Planner — BRouter Integration
 
-- [ ] 5.1 Implement BRouter HTTP proxy endpoint (POST /api/route → forward to BRouter)
-- [ ] 5.2 Implement rate limiting middleware (60 requests/session/hour)
+- [x] 5.1 Implement BRouter HTTP proxy endpoint (POST /api/route → forward to BRouter)
+- [x] 5.2 Implement rate limiting middleware (60 requests/session/hour)
 - [ ] 5.3 Implement routing host election via Yjs awareness (host/participant roles)
 - [ ] 5.4 Implement routing host failover (detect disconnect, elect new host by join timestamp)
 - [ ] 5.5 Implement route computation trigger (host watches waypoint changes, debounce 500ms, call BRouter)
@@ -51,7 +50,8 @@
 
 ## 6. Planner — Map UI
 
-- [ ] 6.1 Integrate MapView component in Planner with full-screen layout
+- [ ] 6.1 Integrate MapView component in Planner with full-screen layout and client-side Yjs connection
+- [ ] 6.1a Implement user presence display (Yjs awareness, colors, names, live map cursors)
 - [ ] 6.2 Implement waypoint add (click map → add to Y.Array)
 - [ ] 6.3 Implement waypoint drag (move marker → update Y.Array)
 - [ ] 6.4 Implement waypoint delete (right-click → remove from Y.Array)
