@@ -19,3 +19,6 @@ catalog:
   drizzle-kit: ^0.31.0
   drizzle-postgis: ^1.1.0
   postgres: ^3.4.0
+
+overrides:
+  esbuild: ">=0.25.0"
