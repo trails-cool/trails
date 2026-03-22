@@ -42,21 +42,21 @@
 
 - [x] 5.1 Implement BRouter HTTP proxy endpoint (POST /api/route → forward to BRouter)
 - [x] 5.2 Implement rate limiting middleware (60 requests/session/hour)
-- [ ] 5.3 Implement routing host election via Yjs awareness (host/participant roles)
-- [ ] 5.4 Implement routing host failover (detect disconnect, elect new host by join timestamp)
-- [ ] 5.5 Implement route computation trigger (host watches waypoint changes, debounce 500ms, call BRouter)
-- [ ] 5.6 Implement route broadcast (host stores GeoJSON result in Y.Map, syncs to all)
+- [x] 5.3 Implement routing host election via Yjs awareness (host/participant roles)
+- [x] 5.4 Implement routing host failover (detect disconnect, elect new host by join timestamp)
+- [x] 5.5 Implement route computation trigger (host watches waypoint changes, debounce 500ms, call BRouter)
+- [x] 5.6 Implement route broadcast (host stores GeoJSON result in Y.Map, syncs to all)
 - [ ] 5.7 Implement profile selection (sync profile choice via Y.Map, trigger recompute)
 
 ## 6. Planner — Map UI
 
-- [ ] 6.1 Integrate MapView component in Planner with full-screen layout and client-side Yjs connection
-- [ ] 6.1a Implement user presence display (Yjs awareness, colors, names, live map cursors)
-- [ ] 6.2 Implement waypoint add (click map → add to Y.Array)
-- [ ] 6.3 Implement waypoint drag (move marker → update Y.Array)
-- [ ] 6.4 Implement waypoint delete (right-click → remove from Y.Array)
-- [ ] 6.5 Implement waypoint list sidebar (draggable reorder, synced with Y.Array)
-- [ ] 6.6 Implement route polyline display (render GeoJSON from Y.Map)
+- [x] 6.1 Integrate MapView component in Planner with full-screen layout and client-side Yjs connection
+- [x] 6.1a Implement user presence display (Yjs awareness, colors, names, live map cursors)
+- [x] 6.2 Implement waypoint add (click map → add to Y.Array)
+- [x] 6.3 Implement waypoint drag (move marker → update Y.Array)
+- [x] 6.4 Implement waypoint delete (right-click → remove from Y.Array)
+- [x] 6.5 Implement waypoint list sidebar (draggable reorder, synced with Y.Array)
+- [x] 6.6 Implement route polyline display (render GeoJSON from Y.Map)
 - [ ] 6.7 Implement elevation profile chart (parse elevation from route GeoJSON, render chart)
 - [ ] 6.8 Implement profile selector UI (dropdown, synced via Y.Map)
 - [ ] 6.9 Implement GPX export button (generate GPX from current waypoints and route)
