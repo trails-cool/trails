@@ -30,4 +30,5 @@ jobs:
           MERGE_LABELS: "automerge"
           MERGE_METHOD: "merge"
           MERGE_DELETE_BRANCH: "true"
+          MERGE_READY_STATE: "clean"
           UPDATE_METHOD: "rebase"
