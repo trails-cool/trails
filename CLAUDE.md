@@ -73,6 +73,8 @@ pnpm test:e2e:ui      # Run E2E tests with Playwright UI
   Tests live in `e2e/` at repo root. Scoped per app via `testMatch` in `playwright.config.ts`.
   Playwright auto-starts dev servers if not already running.
 
+**Important**: Write tests alongside implementation, not as an afterthought. When implementing a package or utility, add a co-located `*.test.ts` file. When implementing a user-facing feature, add or update E2E tests. Run `pnpm test` and `pnpm test:e2e` before committing.
+
 ## Code Conventions
 
 - All user-facing strings must use i18n (`useTranslation()` hook, never hardcode strings)
