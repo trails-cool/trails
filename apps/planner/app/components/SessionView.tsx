@@ -1,0 +1,62 @@
+import { Suspense, lazy } from "react";
+import { useYjs } from "~/lib/use-yjs";
+import { useRouting } from "~/lib/use-routing";
+
+const PlannerMap = lazy(() =>
+  import("~/components/PlannerMap").then((m) => ({ default: m.PlannerMap })),
+);
+const WaypointSidebar = lazy(() =>
+  import("~/components/WaypointSidebar").then((m) => ({ default: m.WaypointSidebar })),
+);
+
+export function SessionView({ sessionId }: { sessionId: string }) {
+  const yjs = useYjs(sessionId);
+  const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
+
+  if (!yjs) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-gray-500">Connecting...</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <header className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
+        <h1 className="text-lg font-semibold text-gray-900">trails.cool Planner</h1>
+        <div className="flex items-center gap-3">
+          {computing && (
+            <span className="text-xs text-blue-600">Computing route...</span>
+          )}
+          {isHost && (
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
+              Host
+            </span>
+          )}
+          <span className="text-sm text-gray-500">
+            {yjs.connected ? "Connected" : "Connecting..."} · {sessionId.slice(0, 8)}
+          </span>
+        </div>
+      </header>
+      <div className="flex flex-1 overflow-hidden">
+        <main className="flex-1">
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">
+                Loading map...
+              </div>
+            }
+          >
+            <PlannerMap yjs={yjs} onRouteRequest={requestRoute} />
+          </Suspense>
+        </main>
+        <aside className="w-72 border-l border-gray-200 bg-white">
+          <Suspense fallback={null}>
+            <WaypointSidebar yjs={yjs} routeStats={routeStats} />
+          </Suspense>
+        </aside>
+      </div>
+    </>
+  );
+}
