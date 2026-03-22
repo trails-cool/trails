@@ -84,12 +84,36 @@ resource "hcloud_zone_rrset" "root_a" {
   records = [{ value = hcloud_server.trails.ipv4_address }]
 }
 
+resource "hcloud_zone_rrset" "root_aaaa" {
+  zone = "trails.cool"
+  name = "@"
+  type = "AAAA"
+  ttl  = 300
+  records = [{ value = hcloud_server.trails.ipv6_address }]
+}
+
 resource "hcloud_zone_rrset" "planner_a" {
   zone = "trails.cool"
   name = "planner"
   type = "A"
   ttl  = 300
   records = [{ value = hcloud_server.trails.ipv4_address }]
+}
+
+resource "hcloud_zone_rrset" "planner_aaaa" {
+  zone = "trails.cool"
+  name = "planner"
+  type = "AAAA"
+  ttl  = 300
+  records = [{ value = hcloud_server.trails.ipv6_address }]
+}
+
+resource "hcloud_zone_rrset" "www_cname" {
+  zone = "trails.cool"
+  name = "www"
+  type = "CNAME"
+  ttl  = 300
+  records = [{ value = "trails.cool." }]
 }
 
 # Outputs
