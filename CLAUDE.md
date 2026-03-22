@@ -114,8 +114,7 @@ pnpm db:studio        # Open Drizzle Studio (DB browser)
   ```bash
   gh pr create --title "..." --body "..." --label automerge
   ```
-- PRs with `automerge` label squash-merge and delete the branch automatically
-- Use squash merges to keep main history clean
+- PRs with `automerge` label merge and delete the branch automatically
 
 ### Stacking PRs (for fast local iteration)
 When working on sequential tasks, stack branches locally:
