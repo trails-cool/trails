@@ -4,7 +4,7 @@ terraform {
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "~> 1.45"
+      version = "~> 1.60"
     }
   }
 }
@@ -20,7 +20,7 @@ resource "hcloud_ssh_key" "deploy" {
 
 resource "hcloud_server" "trails" {
   name        = "trails-cool"
-  server_type = "cx22"
+  server_type = "cx23"
   image       = "ubuntu-24.04"
   location    = "fsn1"
   ssh_keys    = [hcloud_ssh_key.deploy.id]
@@ -74,6 +74,34 @@ resource "hcloud_firewall_attachment" "trails" {
   server_ids  = [hcloud_server.trails.id]
 }
 
+# DNS
+
+resource "hcloud_zone_rrset" "root_a" {
+  zone = "trails.cool"
+  name = "@"
+  type = "A"
+  ttl  = 300
+  records = [{ value = hcloud_server.trails.ipv4_address }]
+}
+
+resource "hcloud_zone_rrset" "planner_a" {
+  zone = "trails.cool"
+  name = "planner"
+  type = "A"
+  ttl  = 300
+  records = [{ value = hcloud_server.trails.ipv4_address }]
+}
+
+# Outputs
+
 output "server_ip" {
   value = hcloud_server.trails.ipv4_address
+}
+
+output "domain" {
+  value = "trails.cool"
+}
+
+output "planner_domain" {
+  value = "planner.trails.cool"
 }
