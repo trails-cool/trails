@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState, useCallback } from "react";
 import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
@@ -17,6 +17,11 @@ const ElevationChart = lazy(() =>
 export function SessionView({ sessionId }: { sessionId: string }) {
   const yjs = useYjs(sessionId);
   const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
+  const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
+
+  const handleElevationHover = useCallback((pos: [number, number] | null) => {
+    setHighlightPosition(pos);
+  }, []);
 
   if (!yjs) {
     return (
@@ -58,11 +63,11 @@ export function SessionView({ sessionId }: { sessionId: string }) {
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
-            <ElevationChart yjs={yjs} />
+            <ElevationChart yjs={yjs} onHover={handleElevationHover} />
           </Suspense>
         </main>
         <aside className="w-72 border-l border-gray-200 bg-white">
