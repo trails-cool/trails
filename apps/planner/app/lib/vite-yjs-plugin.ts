@@ -16,7 +16,8 @@ const messageAwareness = 1;
 export function yjsDevPlugin(): Plugin {
   const docs = new Map<string, Y.Doc>();
   const awarenessMap = new Map<string, awarenessProtocol.Awareness>();
-  const conns = new Map<WebSocket, { docName: string; awarenessIds: Set<number> }>();
+  // Map each WebSocket to its doc name and the awareness client IDs it owns
+  const conns = new Map<WebSocket, { docName: string; clientIds: Set<number> }>();
 
   function getDoc(docName: string): { doc: Y.Doc; awareness: awarenessProtocol.Awareness } {
     let doc = docs.get(docName);
@@ -27,6 +28,21 @@ export function yjsDevPlugin(): Plugin {
       awareness = new awarenessProtocol.Awareness(doc);
       awarenessMap.set(docName, awareness);
 
+      // Broadcast doc updates to all connections in this room
+      doc.on("update", (update: Uint8Array, origin: unknown) => {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageSync);
+        syncProtocol.writeUpdate(encoder, update);
+        const message = encoding.toUint8Array(encoder);
+
+        for (const [ws, meta] of conns) {
+          // Don't send back to the origin connection
+          if (meta.docName === docName && ws !== origin && ws.readyState === ws.OPEN) {
+            ws.send(message);
+          }
+        }
+      });
+
       awareness.on("update", ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
         const changedClients = added.concat(updated, removed);
         const encoder = encoding.createEncoder();
@@ -35,7 +51,7 @@ export function yjsDevPlugin(): Plugin {
         const message = encoding.toUint8Array(encoder);
 
         for (const [ws, meta] of conns) {
-          if (meta.docName === docName) {
+          if (meta.docName === docName && ws.readyState === ws.OPEN) {
             ws.send(message);
           }
         }
@@ -63,6 +79,20 @@ export function yjsDevPlugin(): Plugin {
       case messageAwareness: {
         const update = decoding.readVarUint8Array(decoder);
         awarenessProtocol.applyAwarenessUpdate(awareness, update, ws);
+
+        // Track which client IDs this WebSocket is responsible for
+        // by checking what was added/updated in this awareness update
+        const meta = conns.get(ws);
+        if (meta) {
+          awareness.getStates().forEach((_state, clientId) => {
+            // The awareness meta stores which "origin" (ws) last updated each client
+            const awarenessClientMeta = awareness.meta.get(clientId);
+            if (awarenessClientMeta) {
+              // If this client ID was just updated from this connection, track it
+              meta.clientIds.add(clientId);
+            }
+          });
+        }
         break;
       }
     }
@@ -81,7 +111,7 @@ export function yjsDevPlugin(): Plugin {
 
         wss.handleUpgrade(request, socket, head, (ws) => {
           const { doc, awareness } = getDoc(docName);
-          conns.set(ws, { docName, awarenessIds: new Set() });
+          conns.set(ws, { docName, clientIds: new Set() });
 
           // Send sync step 1
           const encoder = encoding.createEncoder();
@@ -89,7 +119,7 @@ export function yjsDevPlugin(): Plugin {
           syncProtocol.writeSyncStep1(encoder, doc);
           ws.send(encoding.toUint8Array(encoder));
 
-          // Send awareness states
+          // Send current awareness states
           const awarenessStates = awareness.getStates();
           if (awarenessStates.size > 0) {
             const awarenessEncoder = encoding.createEncoder();
@@ -107,8 +137,13 @@ export function yjsDevPlugin(): Plugin {
 
           ws.on("close", () => {
             const meta = conns.get(ws);
-            if (meta) {
-              awarenessProtocol.removeAwarenessStates(awareness, Array.from(meta.awarenessIds), null);
+            if (meta && meta.clientIds.size > 0) {
+              // Immediately remove awareness states for all clients on this connection
+              awarenessProtocol.removeAwarenessStates(
+                awareness,
+                Array.from(meta.clientIds),
+                null,
+              );
             }
             conns.delete(ws);
           });

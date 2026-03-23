@@ -1,17 +1,25 @@
 import { useEffect, useState, useCallback } from "react";
-import { MapContainer, TileLayer, LayersControl, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, Marker, Polyline, CircleMarker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { baseLayers } from "@trails-cool/map";
 import "leaflet/dist/leaflet.css";
 
-// Fix Leaflet default icon paths in bundled environment
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import shadowUrl from "leaflet/dist/images/marker-shadow.png";
-
-L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
+function waypointIcon(index: number): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width:24px;height:24px;border-radius:50%;
+      background:#2563eb;color:white;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:600;
+      border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      transform:translate(-12px,-12px);
+    ">${index + 1}</div>`,
+    iconSize: [0, 0],
+  });
+}
 
 interface WaypointData {
   lat: number;
@@ -30,6 +38,7 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
 interface PlannerMapProps {
   yjs: YjsState;
   onRouteRequest?: (waypoints: WaypointData[]) => void;
+  highlightPosition?: [number, number] | null;
 }
 
 function MapClickHandler({ onAdd }: { onAdd: (lat: number, lng: number) => void }) {
@@ -94,7 +103,7 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
           key={clientId}
           position={[cursor.lat, cursor.lng]}
           icon={L.divIcon({
-            className: "cursor-marker",
+            className: "",
             html: `<div style="background:${cursor.color};color:white;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;transform:translate(10px,-50%)">${cursor.name}</div>`,
             iconSize: [0, 0],
           })}
@@ -104,7 +113,7 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
   );
 }
 
-export function PlannerMap({ yjs, onRouteRequest }: PlannerMapProps) {
+export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMapProps) {
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const [routeGeoJson, setRouteGeoJson] = useState<L.LatLngExpression[] | null>(null);
 
@@ -118,11 +127,11 @@ export function PlannerMap({ yjs, onRouteRequest }: PlannerMapProps) {
       }
     };
 
-    yjs.waypoints.observe(update);
+    yjs.waypoints.observeDeep(update);
     update();
 
     return () => {
-      yjs.waypoints.unobserve(update);
+      yjs.waypoints.unobserveDeep(update);
     };
   }, [yjs.waypoints, onRouteRequest]);
 
@@ -201,6 +210,7 @@ export function PlannerMap({ yjs, onRouteRequest }: PlannerMapProps) {
           key={i}
           position={[wp.lat, wp.lon]}
           draggable
+          icon={waypointIcon(i)}
           eventHandlers={{
             dragend: (e) => {
               const { lat, lng } = e.target.getLatLng();
@@ -215,6 +225,14 @@ export function PlannerMap({ yjs, onRouteRequest }: PlannerMapProps) {
       ))}
 
       {routeGeoJson && <Polyline positions={routeGeoJson} color="#2563eb" weight={4} opacity={0.8} />}
+
+      {highlightPosition && (
+        <CircleMarker
+          center={highlightPosition}
+          radius={6}
+          pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, weight: 2 }}
+        />
+      )}
     </MapContainer>
   );
 }

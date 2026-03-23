@@ -30,9 +30,9 @@ export function WaypointSidebar({ yjs, routeStats }: WaypointSidebarProps) {
 
   useEffect(() => {
     const update = () => setWaypoints(getWaypointsFromYjs(yjs.waypoints));
-    yjs.waypoints.observe(update);
+    yjs.waypoints.observeDeep(update);
     update();
-    return () => yjs.waypoints.unobserve(update);
+    return () => yjs.waypoints.unobserveDeep(update);
   }, [yjs.waypoints]);
 
   const deleteWaypoint = useCallback(

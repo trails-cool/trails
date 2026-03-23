@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import type { YjsState } from "./use-yjs";
+import { electHost } from "./host-election";
 
 interface RouteStats {
   distance?: number;
@@ -31,17 +32,11 @@ export function useRouting(yjs: YjsState | null) {
     if (!yjs) return;
 
     const checkHost = () => {
-      const states = yjs.awareness.getStates();
+      const states = yjs.awareness.getStates() as Map<number, Record<string, unknown>>;
       const localId = yjs.awareness.clientID;
-
-      let lowestId = Infinity;
-      states.forEach((_state, clientId) => {
-        if (clientId < lowestId) lowestId = clientId;
-      });
-
-      const amHost = localId === lowestId;
+      const { isHost: amHost, role } = electHost(states, localId);
       setIsHost(amHost);
-      yjs.awareness.setLocalStateField("role", amHost ? "host" : "participant");
+      yjs.awareness.setLocalStateField("role", role);
     };
 
     yjs.awareness.on("change", checkHost);

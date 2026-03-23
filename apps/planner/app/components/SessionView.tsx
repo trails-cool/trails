@@ -1,8 +1,9 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState, useCallback } from "react";
 import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
+import { YjsDebugPanel } from "~/components/YjsDebugPanel";
 
 const PlannerMap = lazy(() =>
   import("~/components/PlannerMap").then((m) => ({ default: m.PlannerMap })),
@@ -17,6 +18,11 @@ const ElevationChart = lazy(() =>
 export function SessionView({ sessionId }: { sessionId: string }) {
   const yjs = useYjs(sessionId);
   const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
+  const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
+
+  const handleElevationHover = useCallback((pos: [number, number] | null) => {
+    setHighlightPosition(pos);
+  }, []);
 
   if (!yjs) {
     return (
@@ -50,7 +56,14 @@ export function SessionView({ sessionId }: { sessionId: string }) {
       </header>
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex flex-col">
-          <div className="flex-1">
+          <div className="relative flex-1">
+            {computing && (
+              <div className="absolute inset-x-0 top-0 z-[1000]">
+                <div className="h-1 w-full overflow-hidden bg-blue-100">
+                  <div className="h-full w-1/3 animate-[slide_1s_ease-in-out_infinite] bg-blue-500" />
+                </div>
+              </div>
+            )}
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">
@@ -58,11 +71,11 @@ export function SessionView({ sessionId }: { sessionId: string }) {
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
-            <ElevationChart yjs={yjs} />
+            <ElevationChart yjs={yjs} onHover={handleElevationHover} />
           </Suspense>
         </main>
         <aside className="w-72 border-l border-gray-200 bg-white">
@@ -71,6 +84,7 @@ export function SessionView({ sessionId }: { sessionId: string }) {
           </Suspense>
         </aside>
       </div>
+      <YjsDebugPanel yjs={yjs} />
     </>
   );
 }
