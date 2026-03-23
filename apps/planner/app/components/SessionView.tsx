@@ -3,6 +3,7 @@ import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
+import { YjsDebugPanel } from "~/components/YjsDebugPanel";
 
 const PlannerMap = lazy(() =>
   import("~/components/PlannerMap").then((m) => ({ default: m.PlannerMap })),
@@ -83,6 +84,7 @@ export function SessionView({ sessionId }: { sessionId: string }) {
           </Suspense>
         </aside>
       </div>
+      <YjsDebugPanel yjs={yjs} />
     </>
   );
 }

@@ -127,11 +127,11 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
       }
     };
 
-    yjs.waypoints.observe(update);
+    yjs.waypoints.observeDeep(update);
     update();
 
     return () => {
-      yjs.waypoints.unobserve(update);
+      yjs.waypoints.unobserveDeep(update);
     };
   }, [yjs.waypoints, onRouteRequest]);
 

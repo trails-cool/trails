@@ -16,6 +16,17 @@ function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
+function getOrCreateUserIdentity(): { color: string; name: string } {
+  try {
+    const stored = localStorage.getItem("trails:user");
+    if (stored) return JSON.parse(stored);
+  } catch { /* localStorage unavailable */ }
+
+  const identity = { color: randomItem(COLORS), name: randomItem(NAMES) };
+  try { localStorage.setItem("trails:user", JSON.stringify(identity)); } catch { /* localStorage unavailable */ }
+  return identity;
+}
+
 export interface YjsState {
   doc: Y.Doc;
   provider: WebsocketProvider;
@@ -41,8 +52,8 @@ export function useYjs(sessionId: string): YjsState | null {
     const waypoints = doc.getArray<Y.Map<unknown>>("waypoints");
     const routeData = doc.getMap("routeData");
 
-    const color = randomItem(COLORS);
-    const name = randomItem(NAMES);
+    // Use persistent identity
+    const { color, name } = getOrCreateUserIdentity();
     provider.awareness.setLocalStateField("user", { color, name });
 
     const updateState = (connected: boolean) => {
@@ -60,7 +71,6 @@ export function useYjs(sessionId: string): YjsState | null {
       updateState(status === "connected");
     });
 
-    // Set initial state (even before connection)
     updateState(false);
 
     return () => {
