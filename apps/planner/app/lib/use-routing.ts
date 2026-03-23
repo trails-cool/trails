@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as Y from "yjs";
 import type { YjsState } from "./use-yjs";
 
 interface RouteStats {
@@ -10,6 +11,13 @@ interface RouteStats {
 interface WaypointData {
   lat: number;
   lon: number;
+}
+
+function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
+  return waypoints.toArray().map((yMap) => ({
+    lat: yMap.get("lat") as number,
+    lon: yMap.get("lon") as number,
+  }));
 }
 
 export function useRouting(yjs: YjsState | null) {
@@ -26,7 +34,6 @@ export function useRouting(yjs: YjsState | null) {
       const states = yjs.awareness.getStates();
       const localId = yjs.awareness.clientID;
 
-      // Find the client with the lowest ID (longest connected approximation)
       let lowestId = Infinity;
       states.forEach((_state, clientId) => {
         if (clientId < lowestId) lowestId = clientId;
@@ -64,7 +71,6 @@ export function useRouting(yjs: YjsState | null) {
 
         const geojson = await response.json();
 
-        // Extract stats from BRouter response
         const props = geojson.features?.[0]?.properties;
         if (props) {
           setRouteStats({
@@ -76,10 +82,9 @@ export function useRouting(yjs: YjsState | null) {
           });
         }
 
-        // Store route in Yjs for all participants
         yjs.routeData.set("geojson", JSON.stringify(geojson));
       } catch {
-        // Route computation failed — don't crash
+        // Route computation failed
       } finally {
         setComputing(false);
       }
@@ -95,6 +100,28 @@ export function useRouting(yjs: YjsState | null) {
     },
     [isHost, computeRoute],
   );
+
+  // Watch for profile changes and trigger recompute
+  useEffect(() => {
+    if (!yjs || !isHost) return;
+
+    const onProfileChange = () => {
+      const wps = getWaypointsFromYjs(yjs.waypoints);
+      if (wps.length >= 2) {
+        requestRoute(wps);
+      }
+    };
+
+    // Observe routeData for profile changes
+    const observer = (event: Y.YMapEvent<unknown>) => {
+      if (event.keysChanged.has("profile")) {
+        onProfileChange();
+      }
+    };
+
+    yjs.routeData.observe(observer);
+    return () => yjs.routeData.unobserve(observer);
+  }, [yjs, isHost, requestRoute]);
 
   return { isHost, computing, routeStats, requestRoute };
 }

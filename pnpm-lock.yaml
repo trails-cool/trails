@@ -255,6 +255,9 @@ importers:
       isbot:
         specifier: ^5.1.0
         version: 5.1.36
+      lib0:
+        specifier: ^0.2.117
+        version: 0.2.117
       react:
         specifier: 'catalog:'
         version: 19.2.4
@@ -267,6 +270,9 @@ importers:
       ws:
         specifier: ^8.20.0
         version: 8.20.0
+      y-protocols:
+        specifier: ^1.0.7
+        version: 1.0.7(yjs@13.6.30)
       y-websocket:
         specifier: ^3.0.0
         version: 3.0.0(yjs@13.6.30)

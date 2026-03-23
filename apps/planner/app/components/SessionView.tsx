@@ -1,12 +1,17 @@
 import { Suspense, lazy } from "react";
 import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
+import { ProfileSelector } from "~/components/ProfileSelector";
+import { ExportButton } from "~/components/ExportButton";
 
 const PlannerMap = lazy(() =>
   import("~/components/PlannerMap").then((m) => ({ default: m.PlannerMap })),
 );
 const WaypointSidebar = lazy(() =>
   import("~/components/WaypointSidebar").then((m) => ({ default: m.WaypointSidebar })),
+);
+const ElevationChart = lazy(() =>
+  import("~/components/ElevationChart").then((m) => ({ default: m.ElevationChart })),
 );
 
 export function SessionView({ sessionId }: { sessionId: string }) {
@@ -24,8 +29,12 @@ export function SessionView({ sessionId }: { sessionId: string }) {
   return (
     <>
       <header className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
-        <h1 className="text-lg font-semibold text-gray-900">trails.cool Planner</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-gray-900">trails.cool Planner</h1>
+          <ProfileSelector yjs={yjs} />
+        </div>
         <div className="flex items-center gap-3">
+          <ExportButton yjs={yjs} />
           {computing && (
             <span className="text-xs text-blue-600">Computing route...</span>
           )}
@@ -40,15 +49,20 @@ export function SessionView({ sessionId }: { sessionId: string }) {
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1">
-          <Suspense
-            fallback={
-              <div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">
-                Loading map...
-              </div>
-            }
-          >
-            <PlannerMap yjs={yjs} onRouteRequest={requestRoute} />
+        <main className="flex-1 flex flex-col">
+          <div className="flex-1">
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">
+                  Loading map...
+                </div>
+              }
+            >
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} />
+            </Suspense>
+          </div>
+          <Suspense fallback={null}>
+            <ElevationChart yjs={yjs} />
           </Suspense>
         </main>
         <aside className="w-72 border-l border-gray-200 bg-white">

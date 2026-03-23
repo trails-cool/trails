@@ -46,7 +46,7 @@
 - [x] 5.4 Implement routing host failover (detect disconnect, elect new host by join timestamp)
 - [x] 5.5 Implement route computation trigger (host watches waypoint changes, debounce 500ms, call BRouter)
 - [x] 5.6 Implement route broadcast (host stores GeoJSON result in Y.Map, syncs to all)
-- [ ] 5.7 Implement profile selection (sync profile choice via Y.Map, trigger recompute)
+- [x] 5.7 Implement profile selection (sync profile choice via Y.Map, trigger recompute)
 
 ## 6. Planner — Map UI
 
@@ -57,9 +57,9 @@
 - [x] 6.4 Implement waypoint delete (right-click → remove from Y.Array)
 - [x] 6.5 Implement waypoint list sidebar (draggable reorder, synced with Y.Array)
 - [x] 6.6 Implement route polyline display (render GeoJSON from Y.Map)
-- [ ] 6.7 Implement elevation profile chart (parse elevation from route GeoJSON, render chart)
-- [ ] 6.8 Implement profile selector UI (dropdown, synced via Y.Map)
-- [ ] 6.9 Implement GPX export button (generate GPX from current waypoints and route)
+- [x] 6.7 Implement elevation profile chart (parse elevation from route GeoJSON, render chart)
+- [x] 6.8 Implement profile selector UI (dropdown, synced via Y.Map)
+- [x] 6.9 Implement GPX export button (generate GPX from current waypoints and route)
 
 ## 7. Journal — Auth
 
