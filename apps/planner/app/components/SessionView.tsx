@@ -55,7 +55,14 @@ export function SessionView({ sessionId }: { sessionId: string }) {
       </header>
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex flex-col">
-          <div className="flex-1">
+          <div className="relative flex-1">
+            {computing && (
+              <div className="absolute inset-x-0 top-0 z-[1000]">
+                <div className="h-1 w-full overflow-hidden bg-blue-100">
+                  <div className="h-full w-1/3 animate-[slide_1s_ease-in-out_infinite] bg-blue-500" />
+                </div>
+              </div>
+            )}
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">
