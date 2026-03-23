@@ -63,13 +63,16 @@
 
 ## 7. Journal — Auth
 
-- [ ] 7.1 Set up PostgreSQL schema (journal.users table with id, email, password_hash, username, bio, created_at)
-- [ ] 7.2 Implement registration page and API (POST /api/auth/register)
-- [ ] 7.3 Implement login page and API (POST /api/auth/login, session cookie)
-- [ ] 7.4 Implement logout (POST /api/auth/logout, invalidate session)
-- [ ] 7.5 Implement session middleware (validate cookie, load user in loader context)
-- [ ] 7.6 Implement user profile page (GET /users/:username)
-- [ ] 7.7 Store federated identity format (@user@domain) in user record
+- [x] 7.1 Update DB schema: remove password_hash from users, add credentials table (WebAuthn) and magic_tokens table
+- [x] 7.2 Implement passkey registration flow (email + username → WebAuthn create → account created)
+- [x] 7.3 Implement passkey login flow (WebAuthn get → session created)
+- [x] 7.4 Implement magic link request (POST /api/auth/magic-link → send email with token)
+- [x] 7.5 Implement magic link verification (GET /auth/verify?token=... → session created)
+- [x] 7.6 Implement "Add passkey" prompt after magic link login on new device
+- [x] 7.7 Implement session middleware (validate cookie, load user in loader context)
+- [x] 7.8 Implement logout (POST /api/auth/logout, invalidate session)
+- [x] 7.9 Implement user profile page (GET /users/:username)
+- [x] 7.10 Store federated identity format (@user@domain) in user record
 
 ## 8. Journal — Route Management
 

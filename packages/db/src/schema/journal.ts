@@ -25,11 +25,32 @@ export const journalSchema = pgSchema("journal");
 export const users = journalSchema.table("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
   username: text("username").notNull().unique(),
   displayName: text("display_name"),
   bio: text("bio"),
   domain: text("domain").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const credentials = journalSchema.table("credentials", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialId: bytea("credential_id").notNull(),
+  publicKey: bytea("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  deviceType: text("device_type"),
+  transports: jsonb("transports").$type<string[]>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const magicTokens = journalSchema.table("magic_tokens", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
