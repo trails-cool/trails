@@ -28,6 +28,21 @@ export function yjsDevPlugin(): Plugin {
       awareness = new awarenessProtocol.Awareness(doc);
       awarenessMap.set(docName, awareness);
 
+      // Broadcast doc updates to all connections in this room
+      doc.on("update", (update: Uint8Array, origin: unknown) => {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageSync);
+        syncProtocol.writeUpdate(encoder, update);
+        const message = encoding.toUint8Array(encoder);
+
+        for (const [ws, meta] of conns) {
+          // Don't send back to the origin connection
+          if (meta.docName === docName && ws !== origin && ws.readyState === ws.OPEN) {
+            ws.send(message);
+          }
+        }
+      });
+
       awareness.on("update", ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
         const changedClients = added.concat(updated, removed);
         const encoder = encoding.createEncoder();
