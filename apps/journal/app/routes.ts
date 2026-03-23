@@ -8,5 +8,9 @@ export default [
   route("auth/logout", "routes/auth.logout.tsx"),
   route("api/auth/register", "routes/api.auth.register.ts"),
   route("api/auth/login", "routes/api.auth.login.ts"),
+  route("routes", "routes/routes._index.tsx"),
+  route("routes/new", "routes/routes.new.tsx"),
+  route("routes/:id", "routes/routes.$id.tsx"),
+  route("routes/:id/edit", "routes/routes.$id.edit.tsx"),
   route("users/:username", "routes/users.$username.tsx"),
 ] satisfies RouteConfig;

@@ -76,16 +76,16 @@
 
 ## 8. Journal — Route Management
 
-- [ ] 8.1 Set up PostgreSQL schema (journal.routes table with PostGIS geometry column, journal.route_versions table)
-- [ ] 8.2 Implement route creation page (form: name, description, optional GPX upload)
-- [ ] 8.3 Implement route detail page (map, metadata, version history)
-- [ ] 8.4 Implement route edit page (update name, description)
-- [ ] 8.5 Implement route deletion (with confirmation dialog)
-- [ ] 8.6 Implement GPX import (parse GPX, extract geometry for PostGIS, compute stats)
-- [ ] 8.7 Implement GPX export (generate GPX from stored data, download)
-- [ ] 8.8 Implement route versioning (create new version on each GPX update)
-- [ ] 8.9 Implement route list page (user's routes, sorted by last updated)
-- [ ] 8.10 Implement route metadata computation (distance, elevation gain/loss from GPX)
+- [x] 8.1 Set up PostgreSQL schema (journal.routes table with PostGIS geometry column, journal.route_versions table)
+- [x] 8.2 Implement route creation page (form: name, description, optional GPX upload)
+- [x] 8.3 Implement route detail page (map, metadata, version history)
+- [x] 8.4 Implement route edit page (update name, description)
+- [x] 8.5 Implement route deletion (with confirmation dialog)
+- [x] 8.6 Implement GPX import (parse GPX, extract geometry for PostGIS, compute stats)
+- [x] 8.7 Implement GPX export (generate GPX from stored data, download)
+- [x] 8.8 Implement route versioning (create new version on each GPX update)
+- [x] 8.9 Implement route list page (user's routes, sorted by last updated)
+- [x] 8.10 Implement route metadata computation (distance, elevation gain/loss from GPX)
 
 ## 9. Planner-Journal Handoff
 
