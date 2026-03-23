@@ -1,29 +1,4 @@
 import { useState } from "react";
-import { data, redirect } from "react-router";
-import type { Route } from "./+types/auth.register";
-import { startRegistration, finishRegistration, createSession } from "~/lib/auth.server";
-
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.json();
-  const { step, email, username, response, challenge, userId } = formData;
-
-  try {
-    if (step === "start") {
-      const { options, userId } = await startRegistration(email, username);
-      return data({ step: "challenge", options, userId });
-    }
-
-    if (step === "finish") {
-      const newUserId = await finishRegistration(userId, email, username, response, challenge);
-      const cookie = await createSession(newUserId, request);
-      return redirect("/", { headers: { "Set-Cookie": cookie } });
-    }
-
-    return data({ error: "Invalid step" }, { status: 400 });
-  } catch (e) {
-    return data({ error: (e as Error).message }, { status: 400 });
-  }
-}
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -38,7 +13,7 @@ export default function RegisterPage() {
 
     try {
       // Step 1: Get registration options from server
-      const startResp = await fetch("/auth/register", {
+      const startResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ step: "start", email, username }),
@@ -56,7 +31,7 @@ export default function RegisterPage() {
       const webAuthnResp = await startWebAuthn(startData.options);
 
       // Step 3: Send response to server
-      const finishResp = await fetch("/auth/register", {
+      const finishResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -69,14 +44,11 @@ export default function RegisterPage() {
         }),
       });
 
-      if (finishResp.redirected) {
-        window.location.href = finishResp.url;
-        return;
-      }
-
       const finishData = await finishResp.json();
       if (finishData.error) {
         setError(finishData.error);
+      } else if (finishData.step === "done") {
+        window.location.href = "/";
       }
     } catch (err) {
       setError((err as Error).message);

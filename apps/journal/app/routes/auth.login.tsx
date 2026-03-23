@@ -1,37 +1,4 @@
 import { useState } from "react";
-import { data, redirect } from "react-router";
-import type { Route } from "./+types/auth.login";
-import { startAuthentication, finishAuthentication, createMagicToken, createSession } from "~/lib/auth.server";
-
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.json();
-  const { step, response, challenge, email } = formData;
-
-  try {
-    if (step === "start-passkey") {
-      const options = await startAuthentication();
-      return data({ step: "challenge", options });
-    }
-
-    if (step === "finish-passkey") {
-      const userId = await finishAuthentication(response, challenge);
-      const cookie = await createSession(userId, request);
-      return redirect("/", { headers: { "Set-Cookie": cookie } });
-    }
-
-    if (step === "magic-link") {
-      const token = await createMagicToken(email);
-      // In production, send email. For dev, log the link.
-      const link = `${process.env.ORIGIN ?? "http://localhost:3000"}/auth/verify?token=${token}`;
-      console.log(`[Magic Link] ${email}: ${link}`);
-      return data({ step: "magic-link-sent" });
-    }
-
-    return data({ error: "Invalid step" }, { status: 400 });
-  } catch (e) {
-    return data({ error: (e as Error).message }, { status: 400 });
-  }
-}
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"passkey" | "magic-link">("passkey");
@@ -45,7 +12,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const startResp = await fetch("/auth/login", {
+      const startResp = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ step: "start-passkey" }),
@@ -61,7 +28,7 @@ export default function LoginPage() {
       const { startAuthentication: startWebAuthn } = await import("@simplewebauthn/browser");
       const webAuthnResp = await startWebAuthn(startData.options);
 
-      const finishResp = await fetch("/auth/login", {
+      const finishResp = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -71,13 +38,12 @@ export default function LoginPage() {
         }),
       });
 
-      if (finishResp.redirected) {
-        window.location.href = finishResp.url;
-        return;
-      }
-
       const finishData = await finishResp.json();
-      if (finishData.error) setError(finishData.error);
+      if (finishData.error) {
+        setError(finishData.error);
+      } else if (finishData.step === "done") {
+        window.location.href = "/";
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -91,7 +57,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const resp = await fetch("/auth/login", {
+      const resp = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ step: "magic-link", email }),
