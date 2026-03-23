@@ -1,4 +1,4 @@
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import type { Route } from "./+types/session.$id";
 import { getSession } from "~/lib/sessions";
 import { data } from "react-router";
@@ -20,12 +20,15 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
   return data({
     sessionId: session.id,
-    hasCallback: !!session.callbackUrl,
+    callbackUrl: session.callbackUrl ?? null,
+    callbackToken: session.callbackToken ?? null,
   });
 }
 
-export default function SessionPage() {
+export default function SessionPage({ loaderData }: Route.ComponentProps) {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl") ?? undefined;
 
   return (
     <div className="flex h-full flex-col">
@@ -44,7 +47,12 @@ export default function SessionPage() {
               </div>
             }
           >
-            <SessionView sessionId={id!} />
+            <SessionView
+              sessionId={id!}
+              callbackUrl={loaderData.callbackUrl ?? undefined}
+              callbackToken={loaderData.callbackToken ?? undefined}
+              returnUrl={returnUrl}
+            />
           </Suspense>
         )}
       </ClientOnly>
