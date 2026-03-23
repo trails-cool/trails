@@ -90,6 +90,60 @@ export async function finishRegistration(
   return userId;
 }
 
+// --- Add Passkey to Existing Account ---
+
+export async function addPasskeyStart(userId: string) {
+  const db = getDb();
+
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  if (!user) throw new Error("User not found");
+
+  const options = await generateRegistrationOptions({
+    rpName: RP_NAME,
+    rpID: RP_ID,
+    userID: new TextEncoder().encode(userId),
+    userName: user.username,
+    userDisplayName: user.displayName ?? user.username,
+    attestationType: "none",
+    authenticatorSelection: {
+      residentKey: "preferred",
+      userVerification: "preferred",
+    },
+  });
+
+  return options;
+}
+
+export async function addPasskeyFinish(
+  userId: string,
+  response: RegistrationResponseJSON,
+  challenge: string,
+) {
+  const db = getDb();
+
+  const verification = await verifyRegistrationResponse({
+    response,
+    expectedChallenge: challenge,
+    expectedOrigin: ORIGIN,
+    expectedRPID: RP_ID,
+  });
+
+  if (!verification.verified || !verification.registrationInfo) {
+    throw new Error("Passkey verification failed");
+  }
+
+  const { credential } = verification.registrationInfo;
+
+  await db.insert(credentials).values({
+    id: randomUUID(),
+    userId,
+    credentialId: Buffer.from(credential.id),
+    publicKey: Buffer.from(credential.publicKey),
+    counter: credential.counter,
+    transports: response.response.transports,
+  });
+}
+
 // --- Passkey Login ---
 
 export async function startAuthentication() {

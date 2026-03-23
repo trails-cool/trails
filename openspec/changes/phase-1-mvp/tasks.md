@@ -68,7 +68,7 @@
 - [x] 7.3 Implement passkey login flow (WebAuthn get → session created)
 - [x] 7.4 Implement magic link request (POST /api/auth/magic-link → send email with token)
 - [x] 7.5 Implement magic link verification (GET /auth/verify?token=... → session created)
-- [ ] 7.6 Implement "Add passkey" prompt after magic link login on new device
+- [x] 7.6 Implement "Add passkey" prompt after magic link login on new device
 - [x] 7.7 Implement session middleware (validate cookie, load user in loader context)
 - [x] 7.8 Implement logout (POST /api/auth/logout, invalidate session)
 - [x] 7.9 Implement user profile page (GET /users/:username)

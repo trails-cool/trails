@@ -66,6 +66,9 @@ export default function LoginPage() {
 
       if (result.error) {
         setError(result.error);
+      } else if (result.devLink) {
+        // Dev mode: auto-redirect to magic link
+        window.location.href = result.devLink;
       } else {
         setMagicLinkSent(true);
       }

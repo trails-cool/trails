@@ -20,8 +20,14 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (step === "magic-link") {
       const token = await createMagicToken(email);
-      const link = `${process.env.ORIGIN ?? "http://localhost:3000"}/auth/verify?token=${token}`;
+      const origin = process.env.ORIGIN ?? "http://localhost:3000";
+      const link = `${origin}/auth/verify?token=${token}`;
       console.log(`[Magic Link] ${email}: ${link}`);
+
+      // In dev, return the link directly so the client can auto-redirect
+      if (process.env.NODE_ENV !== "production") {
+        return data({ step: "magic-link-sent", devLink: link });
+      }
       return data({ step: "magic-link-sent" });
     }
 
