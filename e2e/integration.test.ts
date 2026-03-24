@@ -12,17 +12,15 @@ import { test, expect } from "@playwright/test";
 const JOURNAL = "http://localhost:3000";
 const PLANNER = "http://localhost:3001";
 
-// Helper: check if DB is available
+// Helper: check if DB is available (checks Planner API)
 async function isDbAvailable(): Promise<boolean> {
   try {
-    const resp = await fetch(`${JOURNAL}/api/auth/login`, {
+    const resp = await fetch(`${PLANNER}/api/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ step: "magic-link", email: "nonexistent@test.com" }),
+      body: JSON.stringify({}),
     });
-    // If we get a JSON response (even error), DB is available
-    const body = await resp.json();
-    return body.error !== undefined || body.step !== undefined;
+    return resp.ok; // 201 = DB available, 503 = DB unavailable
   } catch {
     return false;
   }
