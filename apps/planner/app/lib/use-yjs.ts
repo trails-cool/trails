@@ -36,10 +36,14 @@ export interface YjsState {
   connected: boolean;
 }
 
-export function useYjs(sessionId: string): YjsState | null {
+export function useYjs(
+  sessionId: string,
+  initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>,
+): YjsState | null {
   const [state, setState] = useState<YjsState | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const docRef = useRef<Y.Doc | null>(null);
+  const initializedWaypoints = useRef(false);
 
   useEffect(() => {
     const doc = new Y.Doc();
@@ -52,9 +56,27 @@ export function useYjs(sessionId: string): YjsState | null {
     const waypoints = doc.getArray<Y.Map<unknown>>("waypoints");
     const routeData = doc.getMap("routeData");
 
-    // Use persistent identity
     const { color, name } = getOrCreateUserIdentity();
     provider.awareness.setLocalStateField("user", { color, name });
+
+    // Initialize waypoints once after first sync
+    if (initialWaypoints?.length && !initializedWaypoints.current) {
+      (provider as unknown as { on(event: string, cb: () => void): void }).on("synced", () => {
+        // Only add if the doc is empty (avoid duplicating on reconnect)
+        if (waypoints.length === 0 && !initializedWaypoints.current) {
+          initializedWaypoints.current = true;
+          doc.transact(() => {
+            for (const wp of initialWaypoints) {
+              const yMap = new Y.Map();
+              yMap.set("lat", wp.lat);
+              yMap.set("lon", wp.lon);
+              if (wp.name) yMap.set("name", wp.name);
+              waypoints.push([yMap]);
+            }
+          });
+        }
+      });
+    }
 
     const updateState = (connected: boolean) => {
       setState({

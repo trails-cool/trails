@@ -2,6 +2,7 @@ import { data, redirect } from "react-router";
 import type { Route } from "./+types/routes._index";
 import { getSessionUser } from "~/lib/auth.server";
 import { listRoutes } from "~/lib/routes.server";
+import { ClientDate } from "~/components/ClientDate";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
@@ -53,7 +54,7 @@ export default function RoutesListPage({ loaderData }: Route.ComponentProps) {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-medium text-gray-900">{route.name}</h2>
                   <span className="text-sm text-gray-500">
-                    {new Date(route.updatedAt).toLocaleDateString()}
+                    <ClientDate iso={route.updatedAt} />
                   </span>
                 </div>
                 <div className="mt-1 flex gap-4 text-sm text-gray-500">

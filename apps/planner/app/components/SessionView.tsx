@@ -3,6 +3,7 @@ import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
+import { SaveToJournalButton } from "~/components/SaveToJournalButton";
 import { YjsDebugPanel } from "~/components/YjsDebugPanel";
 
 const PlannerMap = lazy(() =>
@@ -15,8 +16,16 @@ const ElevationChart = lazy(() =>
   import("~/components/ElevationChart").then((m) => ({ default: m.ElevationChart })),
 );
 
-export function SessionView({ sessionId }: { sessionId: string }) {
-  const yjs = useYjs(sessionId);
+interface SessionViewProps {
+  sessionId: string;
+  callbackUrl?: string;
+  callbackToken?: string;
+  returnUrl?: string;
+  initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+}
+
+export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints }: SessionViewProps) {
+  const yjs = useYjs(sessionId, initialWaypoints);
   const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
 
@@ -40,6 +49,14 @@ export function SessionView({ sessionId }: { sessionId: string }) {
           <ProfileSelector yjs={yjs} />
         </div>
         <div className="flex items-center gap-3">
+          {callbackUrl && callbackToken && (
+            <SaveToJournalButton
+              yjs={yjs}
+              callbackUrl={callbackUrl}
+              callbackToken={callbackToken}
+              returnUrl={returnUrl}
+            />
+          )}
           <ExportButton yjs={yjs} />
           {computing && (
             <span className="text-xs text-blue-600">Computing route...</span>

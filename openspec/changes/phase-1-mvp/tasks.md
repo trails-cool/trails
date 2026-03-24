@@ -89,12 +89,12 @@
 
 ## 9. Planner-Journal Handoff
 
-- [ ] 9.1 Implement JWT token generation in Journal (scoped to route_id, with expiry)
-- [ ] 9.2 Implement "Edit in Planner" button on Journal route detail page (redirect with callback + token + GPX)
-- [ ] 9.3 Implement callback URL handling in Planner (store callback URL in session metadata)
-- [ ] 9.4 Implement "Save to Journal" button in Planner (POST GPX + JWT to callback URL)
-- [ ] 9.5 Implement callback endpoint in Journal (POST /api/routes/:id/callback — validate JWT, save new version)
-- [ ] 9.6 Implement "Return to Journal" link after successful save
+- [x] 9.1 Implement JWT token generation in Journal (scoped to route_id, with expiry)
+- [x] 9.2 Implement "Edit in Planner" button on Journal route detail page (redirect with callback + token + GPX)
+- [x] 9.3 Implement callback URL handling in Planner (store callback URL in session metadata)
+- [x] 9.4 Implement "Save to Journal" button in Planner (POST GPX + JWT to callback URL)
+- [x] 9.5 Implement callback endpoint in Journal (POST /api/routes/:id/callback — validate JWT, save new version)
+- [x] 9.6 Implement "Return to Journal" link after successful save
 
 ## 10. Journal — Activity Feed
 

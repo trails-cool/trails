@@ -1,7 +1,9 @@
+import { useState, useCallback } from "react";
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/routes.$id";
 import { getSessionUser } from "~/lib/auth.server";
 import { getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
+import { ClientDate } from "~/components/ClientDate";
 
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -61,18 +63,6 @@ export async function action({ params, request }: Route.ActionArgs) {
     return redirect(`/routes/${params.id}`);
   }
 
-  if (intent === "export-gpx") {
-    const route = await getRouteWithVersions(params.id);
-    if (!route?.gpx) return data({ error: "No GPX data" }, { status: 400 });
-
-    return new Response(route.gpx, {
-      headers: {
-        "Content-Type": "application/gpx+xml",
-        "Content-Disposition": `attachment; filename="${route.name.replace(/[^a-z0-9]/gi, "_")}.gpx"`,
-      },
-    });
-  }
-
   return data({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -83,6 +73,20 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const { route, versions, isOwner } = loaderData;
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleEditInPlanner = useCallback(async () => {
+    setEditLoading(true);
+    try {
+      const resp = await fetch(`/api/routes/${route.id}/edit-in-planner`, { method: "POST" });
+      const result = await resp.json();
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } finally {
+      setEditLoading(false);
+    }
+  }, [route.id]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -95,22 +99,28 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
         </div>
         {isOwner && (
           <div className="flex gap-2">
+            <button
+              onClick={handleEditInPlanner}
+              disabled={editLoading}
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {editLoading ? "Opening..." : "Edit in Planner"}
+            </button>
             <a
               href={`/routes/${route.id}/edit`}
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               Edit
             </a>
-            <form method="post">
-              <input type="hidden" name="intent" value="export-gpx" />
-              <button
-                type="submit"
-                disabled={!route.hasGpx}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            {route.hasGpx && (
+              <a
+                href={`/api/routes/${route.id}/gpx`}
+                download
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
               >
                 Export GPX
-              </button>
-            </form>
+              </a>
+            )}
           </div>
         )}
       </div>
@@ -147,7 +157,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-700">v{v.version}</span>
                   <span className="text-sm text-gray-500">
-                    {new Date(v.createdAt).toLocaleDateString()}
+                    <ClientDate iso={v.createdAt} />
                   </span>
                 </div>
                 {v.changeDescription && (
