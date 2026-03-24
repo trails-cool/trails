@@ -65,19 +65,6 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
     }
   }, [yjs, callbackUrl, callbackToken]);
 
-  if (saved) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-green-600">Saved!</span>
-        {returnUrl && (
-          <a href={returnUrl} className="rounded bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200">
-            Return to Journal
-          </a>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="flex items-center gap-2">
       <button
@@ -87,7 +74,13 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
       >
         {saving ? "Saving..." : "Save to Journal"}
       </button>
+      {saved && <span className="text-xs text-green-600">Saved!</span>}
       {error && <span className="text-xs text-red-600">{error}</span>}
+      {saved && returnUrl && (
+        <a href={returnUrl} className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200">
+          Return to Journal
+        </a>
+      )}
     </div>
   );
 }
