@@ -102,9 +102,14 @@ jobs:
             -e POSTGRES_DB=trails \
             -p 5432:5432 \
             postgis/postgis:16-3.4
-          # Wait for health
+          # Wait for pg_isready
           for i in $(seq 1 30); do
             docker exec postgres pg_isready -U trails > /dev/null 2>&1 && break
+            sleep 1
+          done
+          # Wait for PostGIS extension to be ready
+          for i in $(seq 1 10); do
+            docker exec postgres psql -U trails -c "SELECT PostGIS_Version();" > /dev/null 2>&1 && break
             sleep 1
           done
 
