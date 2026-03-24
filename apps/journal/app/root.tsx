@@ -1,5 +1,6 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse } from "react-router";
 import type { LinksFunction } from "react-router";
+import type { Route } from "./+types/root";
 import stylesheet from "@trails-cool/ui/styles.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
@@ -24,4 +25,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return <Outlet />;
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-4xl font-bold text-gray-900">{error.status}</h1>
+        <p className="mt-2 text-gray-600">
+          {error.status === 404 && "Page not found"}
+          {error.status === 503 && "Service temporarily unavailable. Please try again later."}
+          {error.status !== 404 && error.status !== 503 && (error.statusText || "Something went wrong")}
+        </p>
+        <a href="/" className="mt-6 inline-block text-blue-600 hover:underline">
+          Go home
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-md px-4 py-16 text-center">
+      <h1 className="text-4xl font-bold text-gray-900">Error</h1>
+      <p className="mt-2 text-gray-600">
+        {error instanceof Error ? error.message : "An unexpected error occurred"}
+      </p>
+      <a href="/" className="mt-6 inline-block text-blue-600 hover:underline">
+        Go home
+      </a>
+    </div>
+  );
 }
