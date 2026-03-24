@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.sessions";
 import { createSession, listSessions } from "~/lib/sessions";
 import { parseGpxAsync } from "@trails-cool/gpx";
+import { withDb } from "@trails-cool/db";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -15,29 +16,29 @@ export async function action({ request }: Route.ActionArgs) {
     gpx?: string;
   };
 
-  const session = await createSession({ callbackUrl, callbackToken });
+  return withDb(async () => {
+    const session = await createSession({ callbackUrl, callbackToken });
 
-  let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
-  if (gpx) {
-    try {
-      const gpxData = await parseGpxAsync(gpx);
-      initialWaypoints = gpxData.waypoints;
-    } catch (_e) {
-      // Continue with empty session if GPX is invalid
+    let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
+    if (gpx) {
+      try {
+        const gpxData = await parseGpxAsync(gpx);
+        initialWaypoints = gpxData.waypoints;
+      } catch {
+        // Continue with empty session if GPX is invalid
+      }
     }
-  }
 
-  return data(
-    {
-      sessionId: session.id,
-      url: `/session/${session.id}`,
-      initialWaypoints,
-    },
-    { status: 201 },
-  );
+    return data(
+      { sessionId: session.id, url: `/session/${session.id}`, initialWaypoints },
+      { status: 201 },
+    );
+  });
 }
 
 export async function loader(_args: Route.LoaderArgs) {
-  const sessions = await listSessions();
-  return data({ sessions });
+  return withDb(async () => {
+    const sessions = await listSessions();
+    return data({ sessions });
+  });
 }
