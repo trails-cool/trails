@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/routes.$id";
 import { getSessionUser } from "~/lib/auth.server";
@@ -94,7 +95,7 @@ export async function action({ params, request }: Route.ActionArgs) {
       plannerParams.set("gpx", encodeURIComponent(route.gpx));
     }
 
-    return redirect(`${plannerUrl}/new?${plannerParams}`);
+    return data({ redirect: `${plannerUrl}/new?${plannerParams}` });
   }
 
   return data({ error: "Unknown action" }, { status: 400 });
@@ -107,6 +108,22 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const { route, versions, isOwner } = loaderData;
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleEditInPlanner = useCallback(async () => {
+    setEditLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set("intent", "edit-in-planner");
+      const resp = await fetch(`/routes/${route.id}`, { method: "POST", body: formData });
+      const result = await resp.json();
+      if (result.redirect) {
+        window.location.href = result.redirect;
+      }
+    } finally {
+      setEditLoading(false);
+    }
+  }, [route.id]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -119,15 +136,13 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
         </div>
         {isOwner && (
           <div className="flex gap-2">
-            <form method="post">
-              <input type="hidden" name="intent" value="edit-in-planner" />
-              <button
-                type="submit"
-                className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-              >
-                Edit in Planner
-              </button>
-            </form>
+            <button
+              onClick={handleEditInPlanner}
+              disabled={editLoading}
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {editLoading ? "Opening..." : "Edit in Planner"}
+            </button>
             <a
               href={`/routes/${route.id}/edit`}
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
