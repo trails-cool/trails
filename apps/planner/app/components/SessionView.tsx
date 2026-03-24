@@ -21,10 +21,11 @@ interface SessionViewProps {
   callbackUrl?: string;
   callbackToken?: string;
   returnUrl?: string;
+  initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
 }
 
-export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl }: SessionViewProps) {
-  const yjs = useYjs(sessionId);
+export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints }: SessionViewProps) {
+  const yjs = useYjs(sessionId, initialWaypoints);
   const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
 

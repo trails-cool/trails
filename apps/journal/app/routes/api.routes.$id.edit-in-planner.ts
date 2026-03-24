@@ -33,9 +33,18 @@ export async function action({ params, request }: Route.ActionArgs) {
     return data({ error: "Failed to create Planner session" }, { status: 502 });
   }
 
-  const session = (await sessionResp.json()) as { url: string };
+  const session = (await sessionResp.json()) as {
+    url: string;
+    initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+  };
+
+  // Encode waypoints in URL params (small — just coordinates, not full GPX)
+  const urlParams = new URLSearchParams({ returnUrl });
+  if (session.initialWaypoints?.length) {
+    urlParams.set("waypoints", JSON.stringify(session.initialWaypoints));
+  }
 
   return data({
-    url: `${plannerUrl}${session.url}?returnUrl=${encodeURIComponent(returnUrl)}`,
+    url: `${plannerUrl}${session.url}?${urlParams}`,
   });
 }

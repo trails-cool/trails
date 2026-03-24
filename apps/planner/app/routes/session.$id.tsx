@@ -29,6 +29,11 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") ?? undefined;
+  const waypointsParam = searchParams.get("waypoints");
+  let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
+  if (waypointsParam) {
+    try { initialWaypoints = JSON.parse(waypointsParam); } catch { /* ignore */ }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -52,6 +57,7 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
               callbackUrl={loaderData.callbackUrl ?? undefined}
               callbackToken={loaderData.callbackToken ?? undefined}
               returnUrl={returnUrl}
+              initialWaypoints={initialWaypoints}
             />
           </Suspense>
         )}

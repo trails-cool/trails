@@ -1,7 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.sessions";
-import { createSession, initializeSessionWithWaypoints, listSessions } from "~/lib/sessions";
-import { parseGpx } from "@trails-cool/gpx";
+import { createSession, listSessions } from "~/lib/sessions";
+import { parseGpxAsync } from "@trails-cool/gpx";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -17,10 +17,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   const session = await createSession({ callbackUrl, callbackToken });
 
+  let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
   if (gpx) {
     try {
-      const gpxData = parseGpx(gpx);
-      initializeSessionWithWaypoints(session.id, gpxData.waypoints);
+      const gpxData = await parseGpxAsync(gpx);
+      initialWaypoints = gpxData.waypoints;
     } catch (_e) {
       // Continue with empty session if GPX is invalid
     }
@@ -30,6 +31,7 @@ export async function action({ request }: Route.ActionArgs) {
     {
       sessionId: session.id,
       url: `/session/${session.id}`,
+      initialWaypoints,
     },
     { status: 201 },
   );
