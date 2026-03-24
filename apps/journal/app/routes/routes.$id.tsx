@@ -3,7 +3,6 @@ import { data, redirect } from "react-router";
 import type { Route } from "./+types/routes.$id";
 import { getSessionUser } from "~/lib/auth.server";
 import { getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
-import { createRouteToken } from "~/lib/jwt.server";
 
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -75,29 +74,6 @@ export async function action({ params, request }: Route.ActionArgs) {
     });
   }
 
-  if (intent === "edit-in-planner") {
-    const route = await getRouteWithVersions(params.id);
-    if (!route) return data({ error: "Route not found" }, { status: 404 });
-
-    const token = await createRouteToken(params.id);
-    const origin = process.env.ORIGIN ?? "http://localhost:3000";
-    const callbackUrl = `${origin}/api/routes/${params.id}/callback`;
-    const plannerUrl = process.env.PLANNER_URL ?? "http://localhost:3001";
-
-    const plannerParams = new URLSearchParams({
-      callback: callbackUrl,
-      token,
-      returnUrl: `${origin}/routes/${params.id}`,
-    });
-
-    // If route has GPX, include it
-    if (route.gpx) {
-      plannerParams.set("gpx", encodeURIComponent(route.gpx));
-    }
-
-    return data({ redirect: `${plannerUrl}/new?${plannerParams}` });
-  }
-
   return data({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -113,12 +89,10 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const handleEditInPlanner = useCallback(async () => {
     setEditLoading(true);
     try {
-      const formData = new FormData();
-      formData.set("intent", "edit-in-planner");
-      const resp = await fetch(`/routes/${route.id}`, { method: "POST", body: formData });
+      const resp = await fetch(`/api/routes/${route.id}/edit-in-planner`, { method: "POST" });
       const result = await resp.json();
-      if (result.redirect) {
-        window.location.href = result.redirect;
+      if (result.url) {
+        window.location.href = result.url;
       }
     } finally {
       setEditLoading(false);
