@@ -6,18 +6,6 @@ test.describe("Planner", () => {
     await expect(page).toHaveTitle("trails.cool Planner");
     await expect(page.getByText("Collaborative route planning")).toBeVisible();
   });
-});
-
-// Tests that require PostgreSQL — skip in CI
-test.describe("Planner (requires DB)", () => {
-  test.beforeEach(async ({ request }) => {
-    try {
-      const resp = await request.post("/api/sessions", { data: {} });
-      if (!resp.ok()) test.skip();
-    } catch {
-      test.skip();
-    }
-  });
 
   test("can create a session via API", async ({ request }) => {
     const response = await request.post("/api/sessions", { data: {} });

@@ -67,6 +67,22 @@ jobs:
     name: E2E Tests
     needs: build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: trails
+          POSTGRES_PASSWORD: trails
+          POSTGRES_DB: trails
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trails"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://trails:trails@localhost:5432/trails
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -75,8 +91,61 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: Push database schema
+        run: pnpm db:push
+
+      - name: Build and cache BRouter
+        id: brouter-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/brouter
+          key: brouter-1.7.8
+
+      - name: Download BRouter
+        if: steps.brouter-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/brouter
+          wget -q "https://github.com/abrensch/brouter/releases/download/v1.7.8/brouter-1.7.8.zip" -O /tmp/brouter/brouter.zip
+          cd /tmp/brouter && unzip -o brouter.zip && mv brouter-1.7.8/* . && rmdir brouter-1.7.8 && rm brouter.zip
+
+      - name: Cache BRouter segment
+        id: segment-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/brouter-segments
+          key: brouter-segment-E10_N50
+
+      - name: Download Berlin segment
+        if: steps.segment-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/brouter-segments
+          wget -q "https://brouter.de/brouter/segments4/E10_N50.rd5" -O /tmp/brouter-segments/E10_N50.rd5
+
+      - name: Start BRouter
+        run: |
+          cd /tmp/brouter
+          java -Xmx256M -Xms64M \
+            -DmaxRunningTime=300 \
+            -cp brouter-1.7.8-all.jar \
+            btools.server.RouteServer \
+            /tmp/brouter-segments profiles2 profiles2 \
+            17777 2 &
+          # Wait for BRouter to start
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:17777/brouter?lonlats=13.4,52.5\|13.5,52.5\&profile=trekking\&format=geojson > /dev/null 2>&1 && break
+            sleep 2
+          done
+        env:
+          BROUTER_URL: http://localhost:17777
+
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          BROUTER_URL: http://localhost:17777
+
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
