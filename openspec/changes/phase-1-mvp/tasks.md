@@ -98,12 +98,12 @@
 
 ## 10. Journal — Activity Feed
 
-- [ ] 10.1 Set up PostgreSQL schema (journal.activities table with route_id FK, gpx, stats)
-- [ ] 10.2 Implement activity creation page (GPX upload, description, optional route link)
-- [ ] 10.3 Implement activity detail page (map with GPS trace, stats, description)
-- [ ] 10.4 Implement activity feed page (chronological list of own activities)
-- [ ] 10.5 Implement "Link to Route" action (select existing route to link)
-- [ ] 10.6 Implement "Create Route from Activity" action (create route from activity GPX)
+- [x] 10.1 Set up PostgreSQL schema (journal.activities table with route_id FK, gpx, stats)
+- [x] 10.2 Implement activity creation page (GPX upload, description, optional route link)
+- [x] 10.3 Implement activity detail page (map with GPS trace, stats, description)
+- [x] 10.4 Implement activity feed page (chronological list of own activities)
+- [x] 10.5 Implement "Link to Route" action (select existing route to link)
+- [x] 10.6 Implement "Create Route from Activity" action (create route from activity GPX)
 
 ## 11. Testing & Polish
 

@@ -15,5 +15,8 @@ export default [
   route("api/routes/:id/callback", "routes/api.routes.$id.callback.ts"),
   route("api/routes/:id/edit-in-planner", "routes/api.routes.$id.edit-in-planner.ts"),
   route("api/routes/:id/gpx", "routes/api.routes.$id.gpx.ts"),
+  route("activities", "routes/activities._index.tsx"),
+  route("activities/new", "routes/activities.new.tsx"),
+  route("activities/:id", "routes/activities.$id.tsx"),
   route("users/:username", "routes/users.$username.tsx"),
 ] satisfies RouteConfig;
