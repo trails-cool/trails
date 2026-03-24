@@ -2,38 +2,17 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Integration tests that require the full dev stack:
- * - PostgreSQL (for auth and routes)
+ * - PostgreSQL (for sessions)
  * - BRouter (for route computation)
  *
- * Run with: pnpm dev:full (in another terminal), then pnpm test:e2e
- * These tests are skipped in CI unless services are available.
+ * In CI, these services are started by the workflow.
+ * Locally, run `pnpm dev:full` first.
  */
 
-const JOURNAL = "http://localhost:3000";
 const PLANNER = "http://localhost:3001";
 
-// Helper: check if DB is available (checks Planner API)
-async function isDbAvailable(): Promise<boolean> {
-  try {
-    const resp = await fetch(`${PLANNER}/api/sessions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    return resp.ok; // 201 = DB available, 503 = DB unavailable
-  } catch {
-    return false;
-  }
-}
-
 test.describe("Integration: Journal ↔ Planner handoff", () => {
-  test.beforeAll(async () => {
-    const dbAvailable = await isDbAvailable();
-    test.skip(!dbAvailable, "Database not available — run pnpm dev:full");
-  });
-
   test("GPX import → view route → export GPX", async ({ request }) => {
-    // This tests the API flow without needing WebAuthn
     const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
   <wpt lat="52.52" lon="13.405"><name>Berlin</name></wpt>
@@ -45,7 +24,6 @@ test.describe("Integration: Journal ↔ Planner handoff", () => {
   </trkseg></trk>
 </gpx>`;
 
-    // Create a planner session with GPX
     const sessionResp = await request.post(`${PLANNER}/api/sessions`, {
       data: { gpx },
     });
@@ -57,25 +35,6 @@ test.describe("Integration: Journal ↔ Planner handoff", () => {
 });
 
 test.describe("Integration: BRouter routing", () => {
-  test.beforeAll(async () => {
-    try {
-      const resp = await fetch(`${PLANNER}/api/route`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          waypoints: [
-            { lat: 52.516, lon: 13.377 },
-            { lat: 52.515, lon: 13.351 },
-          ],
-          profile: "trekking",
-        }),
-      });
-      test.skip(!resp.ok, "BRouter not available — start with pnpm dev:full");
-    } catch {
-      test.skip(true, "BRouter not available");
-    }
-  });
-
   test("computes route between Berlin waypoints", async ({ request }) => {
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
@@ -108,7 +67,6 @@ test.describe("Integration: BRouter routing", () => {
     const geojson = await response.json();
     const coords = geojson.features[0].geometry.coordinates;
 
-    // Route should pass near the middle waypoint (52.516, 13.377)
     const nearMiddle = coords.some(
       (c: number[]) =>
         Math.abs(c[1] - 52.516) < 0.005 && Math.abs(c[0] - 13.377) < 0.005,
