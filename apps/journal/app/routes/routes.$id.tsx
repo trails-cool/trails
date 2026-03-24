@@ -3,6 +3,7 @@ import { data, redirect } from "react-router";
 import type { Route } from "./+types/routes.$id";
 import { getSessionUser } from "~/lib/auth.server";
 import { getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
+import { ClientDate } from "~/components/ClientDate";
 
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -156,7 +157,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-700">v{v.version}</span>
                   <span className="text-sm text-gray-500">
-                    {new Date(v.createdAt).toLocaleDateString()}
+                    <ClientDate iso={v.createdAt} />
                   </span>
                 </div>
                 {v.changeDescription && (
