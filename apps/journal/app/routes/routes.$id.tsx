@@ -62,18 +62,6 @@ export async function action({ params, request }: Route.ActionArgs) {
     return redirect(`/routes/${params.id}`);
   }
 
-  if (intent === "export-gpx") {
-    const route = await getRouteWithVersions(params.id);
-    if (!route?.gpx) return data({ error: "No GPX data" }, { status: 400 });
-
-    return new Response(route.gpx, {
-      headers: {
-        "Content-Type": "application/gpx+xml",
-        "Content-Disposition": `attachment; filename="${route.name.replace(/[^a-z0-9]/gi, "_")}.gpx"`,
-      },
-    });
-  }
-
   return data({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -123,16 +111,15 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
             >
               Edit
             </a>
-            <form method="post">
-              <input type="hidden" name="intent" value="export-gpx" />
-              <button
-                type="submit"
-                disabled={!route.hasGpx}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            {route.hasGpx && (
+              <a
+                href={`/api/routes/${route.id}/gpx`}
+                download
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
               >
                 Export GPX
-              </button>
-            </form>
+              </a>
+            )}
           </div>
         )}
       </div>
