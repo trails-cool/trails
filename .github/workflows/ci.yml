@@ -67,20 +67,6 @@ jobs:
     name: E2E Tests
     needs: build
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgis/postgis:16-3.4
-        env:
-          POSTGRES_USER: trails
-          POSTGRES_PASSWORD: trails
-          POSTGRES_DB: trails
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U trails"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
     env:
       DATABASE_URL: postgres://trails:trails@localhost:5432/trails
     steps:
@@ -91,6 +77,36 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: Cache PostGIS Docker image
+        id: postgis-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/postgis-image.tar
+          key: postgis-16-3.4
+
+      - name: Load or pull PostGIS image
+        run: |
+          if [ -f /tmp/postgis-image.tar ]; then
+            docker load < /tmp/postgis-image.tar
+          else
+            docker pull postgis/postgis:16-3.4
+            docker save postgis/postgis:16-3.4 > /tmp/postgis-image.tar
+          fi
+
+      - name: Start PostgreSQL
+        run: |
+          docker run -d --name postgres \
+            -e POSTGRES_USER=trails \
+            -e POSTGRES_PASSWORD=trails \
+            -e POSTGRES_DB=trails \
+            -p 5432:5432 \
+            postgis/postgis:16-3.4
+          # Wait for health
+          for i in $(seq 1 30); do
+            docker exec postgres pg_isready -U trails > /dev/null 2>&1 && break
+            sleep 1
+          done
 
       - name: Push database schema
         run: pnpm db:push
