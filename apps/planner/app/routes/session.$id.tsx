@@ -2,6 +2,7 @@ import { useParams, useSearchParams } from "react-router";
 import type { Route } from "./+types/session.$id";
 import { getSession } from "~/lib/sessions";
 import { data } from "react-router";
+import { withDb } from "@trails-cool/db";
 import { ClientOnly } from "~/components/ClientOnly";
 import { lazy, Suspense } from "react";
 
@@ -14,7 +15,7 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  try {
+  return withDb(async () => {
     const session = await getSession(params.id);
     if (!session) {
       throw data({ error: "Session not found" }, { status: 404 });
@@ -24,10 +25,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       callbackUrl: session.callbackUrl ?? null,
       callbackToken: session.callbackToken ?? null,
     });
-  } catch (e) {
-    if (e instanceof Response) throw e; // Re-throw data() responses
-    throw data({ error: "Database unavailable" }, { status: 503 });
-  }
+  });
 }
 
 export default function SessionPage({ loaderData }: Route.ComponentProps) {

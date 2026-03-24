@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.sessions";
 import { createSession, listSessions } from "~/lib/sessions";
 import { parseGpxAsync } from "@trails-cool/gpx";
+import { withDb } from "@trails-cool/db";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -15,7 +16,7 @@ export async function action({ request }: Route.ActionArgs) {
     gpx?: string;
   };
 
-  try {
+  return withDb(async () => {
     const session = await createSession({ callbackUrl, callbackToken });
 
     let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
@@ -29,26 +30,15 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     return data(
-      {
-        sessionId: session.id,
-        url: `/session/${session.id}`,
-        initialWaypoints,
-      },
+      { sessionId: session.id, url: `/session/${session.id}`, initialWaypoints },
       { status: 201 },
     );
-  } catch (e) {
-    return data(
-      { error: "Database unavailable", details: (e as Error).message },
-      { status: 503 },
-    );
-  }
+  });
 }
 
 export async function loader(_args: Route.LoaderArgs) {
-  try {
+  return withDb(async () => {
     const sessions = await listSessions();
     return data({ sessions });
-  } catch {
-    return data({ sessions: [], error: "Database unavailable" });
-  }
+  });
 }
