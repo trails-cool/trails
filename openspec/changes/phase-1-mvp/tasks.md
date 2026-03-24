@@ -107,11 +107,11 @@
 
 ## 11. Testing & Polish
 
-- [ ] 11.1 End-to-end test: Create route in Journal → Edit in Planner → Save back to Journal
-- [ ] 11.2 End-to-end test: Two users collaboratively edit waypoints in Planner
-- [ ] 11.3 End-to-end test: Import GPX → view route on map → export GPX
-- [ ] 11.4 Test BRouter routing with Germany segments (Berlin → Munich route)
-- [ ] 11.5 Test session expiry and manual close
+- [x] 11.1 End-to-end test: Create route in Journal → Edit in Planner → Save back to Journal
+- [x] 11.2 End-to-end test: Two users collaboratively edit waypoints in Planner
+- [x] 11.3 End-to-end test: Import GPX → view route on map → export GPX
+- [x] 11.4 Test BRouter routing with Germany segments (Berlin → Munich route)
+- [x] 11.5 Test session expiry and manual close
 - [ ] 11.6 Verify i18n works (English and German)
 - [ ] 11.7 Basic responsive layout testing (desktop, tablet)
 - [ ] 11.8 Deploy to Hetzner and verify production setup

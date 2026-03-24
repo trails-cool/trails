@@ -29,6 +29,13 @@ export default defineConfig({
         baseURL: "http://localhost:3001",
       },
     },
+    {
+      name: "integration",
+      testMatch: "integration.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+      },
+    },
   ],
   webServer: [
     {
