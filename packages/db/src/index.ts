@@ -21,7 +21,13 @@ export type Database = ReturnType<typeof createDb>;
 export function withDb<T>(handler: () => Promise<T>): Promise<T> {
   return handler().catch((error) => {
     // Re-throw React Router responses (redirects, data() throws)
-    if (error instanceof Response) throw error;
+    // Check for Response, ErrorResponseImpl, or anything with a status property
+    if (
+      error instanceof Response ||
+      (error && typeof error === "object" && "status" in error && "data" in error)
+    ) {
+      throw error;
+    }
 
     // Any other error from a DB-wrapped handler is treated as DB unavailable
     const message = error instanceof Error ? error.message : String(error);
