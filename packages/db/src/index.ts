@@ -20,12 +20,12 @@ export type Database = ReturnType<typeof createDb>;
  */
 export function withDb<T>(handler: () => Promise<T>): Promise<T> {
   return handler().catch((error) => {
-    // Re-throw anything that looks like a React Router response:
-    // - Response (redirects)
-    // - ErrorResponseImpl from data() throws (has status + data)
+    // Re-throw React Router responses and data() throws:
+    // - Response instances (redirects, manual responses)
+    // - DataWithResponseInit from data() throws (type + data + init)
     if (
       error instanceof Response ||
-      (error != null && typeof error === "object" && "status" in error)
+      (error != null && typeof error === "object" && error.type === "DataWithResponseInit")
     ) {
       throw error;
     }
@@ -34,7 +34,6 @@ export function withDb<T>(handler: () => Promise<T>): Promise<T> {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[withDb] Database error:", message);
 
-    // Use the same shape as data() throw so isRouteErrorResponse works
     throw new Response("Database unavailable", { status: 503, statusText: "Service Unavailable" });
   });
 }
