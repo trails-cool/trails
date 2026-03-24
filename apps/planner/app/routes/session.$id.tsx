@@ -14,15 +14,20 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const session = await getSession(params.id);
-  if (!session) {
-    throw data({ error: "Session not found" }, { status: 404 });
+  try {
+    const session = await getSession(params.id);
+    if (!session) {
+      throw data({ error: "Session not found" }, { status: 404 });
+    }
+    return data({
+      sessionId: session.id,
+      callbackUrl: session.callbackUrl ?? null,
+      callbackToken: session.callbackToken ?? null,
+    });
+  } catch (e) {
+    if (e instanceof Response) throw e; // Re-throw data() responses
+    throw data({ error: "Database unavailable" }, { status: 503 });
   }
-  return data({
-    sessionId: session.id,
-    callbackUrl: session.callbackUrl ?? null,
-    callbackToken: session.callbackToken ?? null,
-  });
 }
 
 export default function SessionPage({ loaderData }: Route.ComponentProps) {
