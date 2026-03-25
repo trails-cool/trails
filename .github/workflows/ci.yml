@@ -177,6 +177,8 @@ jobs:
 
       - name: Build for production
         run: pnpm build
+        env:
+          VITE_SENTRY_ENVIRONMENT: ci
 
       - name: Run E2E tests
         run: pnpm test:e2e
