@@ -35,6 +35,13 @@ export default {
       shortest: "Kürzeste",
       car: "Auto",
     },
+    participants: {
+      you: "(du)",
+      host: "Host",
+      editName: "Klicke, um deinen Namen zu ändern",
+      joined: "{{name}} ist beigetreten",
+      left: "{{name}} hat die Sitzung verlassen",
+    },
     elevation: {
       gain: "Höhenmeter aufwärts",
       loss: "Höhenmeter abwärts",
