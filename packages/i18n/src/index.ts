@@ -24,6 +24,7 @@ export function initI18n() {
         escapeValue: false,
       },
       showSupportNotice: false,
+      initImmediate: false,
     });
 }
 
