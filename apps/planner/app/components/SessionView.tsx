@@ -43,9 +43,9 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
 
   return (
     <>
-      <header className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-gray-900">trails.cool Planner</h1>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
+        <div className="flex items-center gap-2 md:gap-4">
+          <h1 className="hidden text-lg font-semibold text-gray-900 sm:block">trails.cool Planner</h1>
           <ProfileSelector yjs={yjs} />
         </div>
         <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             <ElevationChart yjs={yjs} onHover={handleElevationHover} />
           </Suspense>
         </main>
-        <aside className="w-72 border-l border-gray-200 bg-white">
+        <aside className="hidden w-72 border-l border-gray-200 bg-white md:block">
           <Suspense fallback={null}>
             <WaypointSidebar yjs={yjs} routeStats={routeStats} />
           </Suspense>
