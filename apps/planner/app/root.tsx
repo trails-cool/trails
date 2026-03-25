@@ -3,10 +3,7 @@ import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
 import { useTranslation } from "react-i18next";
-import { initI18n } from "@trails-cool/i18n";
 import stylesheet from "@trails-cool/ui/styles.css?url";
-
-initI18n();
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
 
