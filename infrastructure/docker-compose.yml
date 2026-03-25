@@ -26,6 +26,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
       NODE_ENV: production
       PORT: 3000
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,6 +39,7 @@ services:
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
       NODE_ENV: production
       PORT: 3001
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
     depends_on:
       postgres:
         condition: service_healthy
