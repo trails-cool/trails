@@ -90,7 +90,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{route.name}</h1>
           {route.description && (
@@ -98,7 +98,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
           )}
         </div>
         {isOwner && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleEditInPlanner}
               disabled={editLoading}
@@ -125,7 +125,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
         )}
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {route.distance != null && (
           <div className="rounded-md bg-gray-50 p-4">
             <p className="text-2xl font-bold text-gray-900">
