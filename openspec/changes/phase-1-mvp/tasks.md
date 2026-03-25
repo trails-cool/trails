@@ -112,6 +112,6 @@
 - [x] 11.3 End-to-end test: Import GPX → view route on map → export GPX
 - [x] 11.4 Test BRouter routing with Germany segments (Berlin → Munich route)
 - [x] 11.5 Test session expiry and manual close
-- [ ] 11.6 Verify i18n works (English and German)
-- [ ] 11.7 Basic responsive layout testing (desktop, tablet)
-- [ ] 11.8 Deploy to Hetzner and verify production setup
+- [x] 11.6 Verify i18n works (English and German)
+- [x] 11.7 Basic responsive layout testing (desktop, tablet)
+- [x] 11.8 Deploy to Hetzner and verify production setup
