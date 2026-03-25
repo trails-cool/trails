@@ -121,6 +121,9 @@ jobs:
             # Start all services
             docker compose up -d --remove-orphans
 
+            # Clean up old images to prevent disk full
+            docker image prune -af
+
             # Verify services are running
             sleep 10
             docker compose ps
