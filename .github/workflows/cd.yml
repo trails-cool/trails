@@ -1,8 +1,17 @@
 name: CD
 
+# Triggers:
+# - push: normal merges (manual gh pr merge)
+# - workflow_run: after automerge completes (GITHUB_TOKEN merges don't trigger push)
+# - workflow_dispatch: manual trigger via gh workflow run cd.yml
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: ["Automerge"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy
@@ -12,6 +21,7 @@ jobs:
   build-images:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       packages: write
