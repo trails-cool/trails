@@ -24,7 +24,7 @@ USER app
 EXPOSE 17777
 
 # BRouter server: <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
-CMD ["java", "-Xmx512M", "-Xms128M", "-Xmn32M", \
+CMD ["java", "-Xmx1024M", "-Xms256M", "-Xmn64M", \
      "-DmaxRunningTime=300", \
      "-cp", "brouter.jar", \
      "btools.server.RouteServer", \
