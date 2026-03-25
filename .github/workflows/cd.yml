@@ -59,20 +59,49 @@ jobs:
             ghcr.io/trails-cool/brouter:latest
             ghcr.io/trails-cool/brouter:${{ github.sha }}
 
-  # Deploy step - uncomment when Hetzner server is provisioned
-  # deploy:
-  #   name: Deploy to Hetzner
-  #   needs: [build-images, build-brouter]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - name: Deploy via SSH
-  #       uses: appleboy/ssh-action@v1
-  #       with:
-  #         host: ${{ secrets.DEPLOY_HOST }}
-  #         username: root
-  #         key: ${{ secrets.DEPLOY_SSH_KEY }}
-  #         script: |
-  #           cd /opt/trails-cool
-  #           docker compose pull
-  #           docker compose up -d
+  deploy:
+    name: Deploy to Hetzner
+    needs: [build-images, build-brouter]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile"
+          target: /opt/trails-cool
+          strip_components: 1
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/trails-cool
+
+            # Login to ghcr.io to pull private images
+            echo "${{ secrets.DEPLOY_GHCR_TOKEN }}" | docker login ghcr.io -u stigi --password-stdin
+
+            # Download BRouter segments if missing
+            if [ ! -d /opt/trails-cool/segments ] || [ -z "$(ls /opt/trails-cool/segments/*.rd5 2>/dev/null)" ]; then
+              mkdir -p /opt/trails-cool/segments
+              echo "Downloading Germany BRouter segments..."
+              for tile in E5_N45 E5_N50 E10_N45 E10_N50; do
+                [ -f "/opt/trails-cool/segments/${tile}.rd5" ] || \
+                  wget -q "https://brouter.de/brouter/segments4/${tile}.rd5" -O "/opt/trails-cool/segments/${tile}.rd5"
+              done
+            fi
+
+            # Pull latest images and restart
+            docker compose pull
+            docker compose up -d --remove-orphans
+
+            # Verify services are running
+            sleep 10
+            docker compose ps

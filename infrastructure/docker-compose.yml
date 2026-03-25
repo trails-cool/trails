@@ -19,12 +19,12 @@ services:
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN:-trails.cool}
+      ORIGIN: https://${DOMAIN:-trails.cool}
+      PLANNER_URL: https://planner.${DOMAIN:-trails.cool}
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
-      S3_ENDPOINT: http://garage:3900
-      S3_BUCKET: trails-media
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      NODE_ENV: production
       PORT: 3000
     depends_on:
       postgres:
@@ -36,6 +36,7 @@ services:
     environment:
       BROUTER_URL: http://brouter:17777
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
+      NODE_ENV: production
       PORT: 3001
     depends_on:
       postgres:
@@ -47,8 +48,7 @@ services:
     image: ghcr.io/trails-cool/brouter:latest
     restart: unless-stopped
     volumes:
-      - brouter_segments:/data/segments
-      - brouter_profiles:/data/profiles
+      - ./segments:/data/segments
     # Segments can be pulled from:
     # - https://brouter.de/brouter/segments4/ (official, weekly updates)
     # - A trails.cool CDN mirror (later)
@@ -68,17 +68,14 @@ services:
       timeout: 5s
       retries: 5
 
-  garage:
-    image: dxflrs/garage:v1.0
-    restart: unless-stopped
-    volumes:
-      - garage_data:/var/lib/garage
-      - ./garage.toml:/etc/garage.toml:ro
+  # garage:
+  #   image: dxflrs/garage:v1.0
+  #   restart: unless-stopped
+  #   volumes:
+  #     - garage_data:/var/lib/garage
+  #     - ./garage.toml:/etc/garage.toml:ro
 
 volumes:
   caddy_data:
   caddy_config:
   pgdata:
-  brouter_segments:
-  brouter_profiles:
-  garage_data:
