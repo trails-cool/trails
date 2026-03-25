@@ -3,8 +3,8 @@ import { test, expect } from "@playwright/test";
 test.describe("Planner", () => {
   test("loads the home page", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle("trails.cool Planner");
-    await expect(page.getByText("Collaborative route planning")).toBeVisible();
+    await expect(page).toHaveTitle(/trails\.cool Planner/);
+    await expect(page.getByRole("link", { name: "Start Planning" })).toBeVisible();
   });
 
   test("can create a session via API", async ({ request }) => {
