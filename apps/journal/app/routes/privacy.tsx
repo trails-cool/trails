@@ -90,6 +90,18 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">Security Practices</h2>
+        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
+          <li><strong>Authentication</strong>: Passkey (WebAuthn) and magic link login. No passwords stored.</li>
+          <li><strong>Encryption</strong>: All traffic over HTTPS with HSTS preload. Cookies are httpOnly and secure.</li>
+          <li><strong>Headers</strong>: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options on all responses.</li>
+          <li><strong>Infrastructure</strong>: Docker containers run as non-root. Firewall restricts to HTTP/HTTPS/SSH only.</li>
+          <li><strong>CI/CD</strong>: Gitleaks secret scanning and dependency auditing on every pull request.</li>
+          <li><strong>Vulnerability reporting</strong>: See our <a href="https://github.com/trails-cool/trails/blob/main/SECURITY.md" className="text-blue-600 hover:underline">SECURITY.md</a> for responsible disclosure.</li>
+        </ul>
+      </section>
+
       <p className="mt-10 text-sm text-gray-500">
         Last updated: March 2026. If this manifest changes, we&apos;ll note it here.
       </p>
