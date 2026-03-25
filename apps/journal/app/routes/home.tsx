@@ -125,6 +125,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </a>
         </div>
       )}
+
+      <footer className="mt-16 border-t border-gray-200 pt-6">
+        <a href="/privacy" className="text-sm text-gray-400 hover:text-gray-600">
+          Privacy
+        </a>
+      </footer>
     </div>
   );
 }

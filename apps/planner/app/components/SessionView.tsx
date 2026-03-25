@@ -1,5 +1,6 @@
-import { Suspense, lazy, useState, useCallback } from "react";
+import { Suspense, lazy, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import * as Sentry from "@sentry/react";
 import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
@@ -27,6 +28,7 @@ interface SessionViewProps {
 
 export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints }: SessionViewProps) {
   const { t } = useTranslation("planner");
+  useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
   const yjs = useYjs(sessionId, initialWaypoints);
   const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);

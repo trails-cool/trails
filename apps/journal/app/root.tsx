@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse } from "react-router";
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
 import { useTranslation } from "react-i18next";
 import { initI18n } from "@trails-cool/i18n";
+import { getSessionUser } from "~/lib/auth.server";
 import stylesheet from "@trails-cool/ui/styles.css?url";
 
 initI18n();
@@ -28,7 +30,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+export async function loader({ request }: Route.LoaderArgs) {
+  const user = await getSessionUser(request);
+  return { user: user ? { id: user.id, username: user.username } : null };
+}
+
+export default function App({ loaderData }: Route.ComponentProps) {
+  const user = loaderData?.user;
+  useEffect(() => {
+    if (user) {
+      Sentry.setUser({ id: user.id, username: user.username });
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [user]);
+
   return <Outlet />;
 }
 

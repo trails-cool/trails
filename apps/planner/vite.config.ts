@@ -7,7 +7,7 @@ import { yjsDevPlugin } from "./app/lib/vite-yjs-plugin.ts";
 
 export default defineConfig({
   build: {
-    sourcemap: true,
+    sourcemap: "hidden",
   },
   plugins: [
     tailwindcss(),
@@ -17,6 +17,7 @@ export default defineConfig({
       org: "trails-qq",
       project: "planner",
       release: { name: process.env.SENTRY_RELEASE },
+      sourcemaps: { filesToDeleteAfterUpload: ["./build/**/*.map"] },
       disable: !process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
