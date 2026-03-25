@@ -123,7 +123,10 @@ export default function App({ loaderData }: Route.ComponentProps) {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  Sentry.captureException(error);
+  // Don't report expected HTTP errors (404, 403) to Sentry
+  if (!(isRouteErrorResponse(error) && error.status < 500)) {
+    Sentry.captureException(error);
+  }
   const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {

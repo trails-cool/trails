@@ -33,7 +33,9 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  Sentry.captureException(error);
+  if (!(isRouteErrorResponse(error) && error.status < 500)) {
+    Sentry.captureException(error);
+  }
   const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {
