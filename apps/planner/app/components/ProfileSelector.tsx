@@ -1,19 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { YjsState } from "~/lib/use-yjs";
 
-const PROFILES = [
-  { id: "trekking", label: "Hiking" },
-  { id: "fastbike", label: "Cycling (fast)" },
-  { id: "safety", label: "Cycling (safe)" },
-  { id: "shortest", label: "Shortest" },
-  { id: "car-eco", label: "Car" },
-];
+const PROFILE_IDS = ["trekking", "fastbike", "safety", "shortest", "car"] as const;
 
 interface ProfileSelectorProps {
   yjs: YjsState;
 }
 
 export function ProfileSelector({ yjs }: ProfileSelectorProps) {
+  const { t } = useTranslation("planner");
   const [profile, setProfile] = useState("trekking");
 
   useEffect(() => {
@@ -38,7 +34,7 @@ export function ProfileSelector({ yjs }: ProfileSelectorProps) {
   return (
     <div className="flex items-center gap-2">
       <label htmlFor="profile" className="text-sm text-gray-600">
-        Profile:
+        {t("profile")}:
       </label>
       <select
         id="profile"
@@ -46,9 +42,9 @@ export function ProfileSelector({ yjs }: ProfileSelectorProps) {
         onChange={handleChange}
         className="rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
-        {PROFILES.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label}
+        {PROFILE_IDS.map((id) => (
+          <option key={id} value={id}>
+            {t(`profiles.${id}`)}
           </option>
         ))}
       </select>

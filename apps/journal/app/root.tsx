@@ -2,7 +2,11 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse }
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
+import { useTranslation } from "react-i18next";
+import { initI18n } from "@trails-cool/i18n";
 import stylesheet from "@trails-cool/ui/styles.css?url";
+
+initI18n();
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
 
@@ -30,18 +34,19 @@ export default function App() {
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   Sentry.captureException(error);
+  const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900">{error.status}</h1>
         <p className="mt-2 text-gray-600">
-          {error.status === 404 && "Page not found"}
-          {error.status === 503 && "Service temporarily unavailable. Please try again later."}
-          {error.status !== 404 && error.status !== 503 && (error.statusText || "Something went wrong")}
+          {error.status === 404 && t("pageNotFound")}
+          {error.status === 503 && t("serviceUnavailable")}
+          {error.status !== 404 && error.status !== 503 && (error.statusText || t("error"))}
         </p>
         <a href="/" className="mt-6 inline-block text-blue-600 hover:underline">
-          Go home
+          {t("goHome")}
         </a>
       </div>
     );
@@ -49,12 +54,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <h1 className="text-4xl font-bold text-gray-900">Error</h1>
+      <h1 className="text-4xl font-bold text-gray-900">{t("error")}</h1>
       <p className="mt-2 text-gray-600">
-        {error instanceof Error ? error.message : "An unexpected error occurred"}
+        {error instanceof Error ? error.message : t("error")}
       </p>
       <a href="/" className="mt-6 inline-block text-blue-600 hover:underline">
-        Go home
+        {t("goHome")}
       </a>
     </div>
   );

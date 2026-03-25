@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { generateGpx } from "@trails-cool/gpx";
@@ -12,6 +13,7 @@ interface SaveToJournalButtonProps {
 }
 
 export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl }: SaveToJournalButtonProps) {
+  const { t } = useTranslation("planner");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +74,13 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
         disabled={saving}
         className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
       >
-        {saving ? "Saving..." : "Save to Journal"}
+        {saving ? t("saving") : t("saveToJournal")}
       </button>
-      {saved && <span className="text-xs text-green-600">Saved!</span>}
+      {saved && <span className="text-xs text-green-600">{t("saved")}</span>}
       {error && <span className="text-xs text-red-600">{error}</span>}
       {saved && returnUrl && (
         <a href={returnUrl} className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200">
-          Return to Journal
+          {t("returnToJournal")}
         </a>
       )}
     </div>

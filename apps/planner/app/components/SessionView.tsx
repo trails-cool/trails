@@ -1,4 +1,5 @@
 import { Suspense, lazy, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
@@ -25,6 +26,7 @@ interface SessionViewProps {
 }
 
 export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints }: SessionViewProps) {
+  const { t } = useTranslation("planner");
   const yjs = useYjs(sessionId, initialWaypoints);
   const { isHost, computing, routeStats, requestRoute } = useRouting(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
@@ -36,7 +38,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   if (!yjs) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-500">Connecting...</p>
+        <p className="text-gray-500">{t("connecting")}</p>
       </div>
     );
   }
@@ -45,7 +47,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
     <>
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
         <div className="flex items-center gap-2 md:gap-4">
-          <h1 className="hidden text-lg font-semibold text-gray-900 sm:block">trails.cool Planner</h1>
+          <h1 className="hidden text-lg font-semibold text-gray-900 sm:block">{t("title")}</h1>
           <ProfileSelector yjs={yjs} />
         </div>
         <div className="flex items-center gap-3">
@@ -59,15 +61,15 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           )}
           <ExportButton yjs={yjs} />
           {computing && (
-            <span className="text-xs text-blue-600">Computing route...</span>
+            <span className="text-xs text-blue-600">{t("computingRoute")}</span>
           )}
           {isHost && (
             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-              Host
+              {t("host")}
             </span>
           )}
           <span className="text-sm text-gray-500">
-            {yjs.connected ? "Connected" : "Connecting..."} · {sessionId.slice(0, 8)}
+            {yjs.connected ? t("connected") : t("connecting")} · {sessionId.slice(0, 8)}
           </span>
         </div>
       </header>
@@ -84,7 +86,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">
-                  Loading map...
+                  {t("loadingMap")}
                 </div>
               }
             >

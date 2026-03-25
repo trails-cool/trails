@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
+  const { t } = useTranslation("journal");
   const [mode, setMode] = useState<"passkey" | "magic-link">("passkey");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-2xl font-bold text-gray-900">Sign In</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t("auth.login")}</h1>
 
       {mode === "passkey" && (
         <div className="mt-8">
@@ -90,7 +92,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-md bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? "Authenticating..." : "Sign in with Passkey"}
+            {loading ? t("auth.authenticating") : t("auth.signInWithPasskey")}
           </button>
 
           <div className="mt-6 text-center">
@@ -98,7 +100,7 @@ export default function LoginPage() {
               onClick={() => setMode("magic-link")}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              No passkey on this device? Use a magic link instead
+              {t("auth.useMagicLink")}
             </button>
           </div>
         </div>
@@ -107,11 +109,11 @@ export default function LoginPage() {
       {mode === "magic-link" && !magicLinkSent && (
         <form onSubmit={handleMagicLink} className="mt-8 space-y-4">
           <p className="text-sm text-gray-600">
-            We'll send a login link to your email.
+            {t("auth.magicLinkHelp")}
           </p>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
+              {t("auth.email")}
             </label>
             <input
               id="email"
@@ -128,7 +130,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
           >
-            {loading ? "Sending..." : "Send Magic Link"}
+            {loading ? t("auth.sending") : t("auth.sendMagicLink")}
           </button>
 
           <div className="text-center">
@@ -137,7 +139,7 @@ export default function LoginPage() {
               onClick={() => setMode("passkey")}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Back to passkey login
+              {t("auth.backToPasskey")}
             </button>
           </div>
         </form>
@@ -146,10 +148,10 @@ export default function LoginPage() {
       {magicLinkSent && (
         <div className="mt-8 rounded-md bg-green-50 p-4">
           <p className="text-sm text-green-800">
-            Check your email! We sent a login link to <strong>{email}</strong>.
+            {t("auth.checkEmail")} <strong>{email}</strong>.
           </p>
           <p className="mt-2 text-xs text-green-600">
-            The link expires in 15 minutes.
+            {t("auth.linkExpires")}
           </p>
         </div>
       )}
@@ -159,9 +161,9 @@ export default function LoginPage() {
       )}
 
       <p className="mt-6 text-center text-sm text-gray-500">
-        Don't have an account?{" "}
+        {t("auth.noAccount")}{" "}
         <a href="/auth/register" className="text-blue-600 hover:underline">
-          Register
+          {t("auth.register")}
         </a>
       </p>
     </div>

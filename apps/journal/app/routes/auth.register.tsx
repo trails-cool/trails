@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function RegisterPage() {
+  const { t } = useTranslation("journal");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -59,15 +61,15 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t("auth.register")}</h1>
       <p className="mt-2 text-sm text-gray-600">
-        Register with a passkey — no password needed.
+        {t("auth.registerDescription")}
       </p>
 
       <form onSubmit={handleRegister} className="mt-8 space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
+            {t("auth.email")}
           </label>
           <input
             id="email"
@@ -81,7 +83,7 @@ export default function RegisterPage() {
 
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-            Username
+            {t("auth.username")}
           </label>
           <input
             id="username"
@@ -106,14 +108,14 @@ export default function RegisterPage() {
           disabled={loading}
           className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? "Creating passkey..." : "Register with Passkey"}
+          {loading ? t("auth.creatingPasskey") : t("auth.registerWithPasskey")}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-500">
         Already have an account?{" "}
         <a href="/auth/login" className="text-blue-600 hover:underline">
-          Sign in
+          {t("auth.login")}
         </a>
       </p>
     </div>

@@ -1,10 +1,13 @@
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { generateGpx } from "@trails-cool/gpx";
 import type { TrackPoint } from "@trails-cool/gpx";
 
 export function ExportButton({ yjs }: { yjs: YjsState }) {
+  const { t } = useTranslation("planner");
+
   const handleExport = useCallback(() => {
     // Get waypoints from Yjs
     const waypoints = yjs.waypoints.toArray().map((yMap: Y.Map<unknown>) => ({
@@ -51,7 +54,7 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
       onClick={handleExport}
       className="rounded bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200"
     >
-      Export GPX
+      {t("exportGpx")}
     </button>
   );
 }
