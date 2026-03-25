@@ -15,6 +15,12 @@ Sentry.init({
   environment: sentryEnvironment,
   tracesSampleRate: 1.0,
   enabled: process.env.NODE_ENV === "production" && !process.env.CI,
+  beforeSend(event) {
+    // Drop 404s — they're expected (scanners, typos), not bugs
+    const serialized = event.extra?.__serialized__ as Record<string, unknown> | undefined;
+    if (serialized?.status === 404) return null;
+    return event;
+  },
 });
 
 export const streamTimeout = 5_000;

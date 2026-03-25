@@ -13,6 +13,11 @@ Sentry.init({
   environment: sentryEnvironment,
   tracesSampleRate: 1.0,
   enabled: process.env.NODE_ENV === "production" && !process.env.CI,
+  beforeSend(event) {
+    const serialized = event.extra?.__serialized__ as Record<string, unknown> | undefined;
+    if (serialized?.status === 404) return null;
+    return event;
+  },
 });
 
 const port = Number(process.env.PORT ?? 3001);
