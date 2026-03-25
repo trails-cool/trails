@@ -105,7 +105,7 @@ jobs:
 
       - name: Cache PostGIS Docker image
         id: postgis-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/postgis-image.tar
           key: postgis-16-3.4
@@ -143,7 +143,7 @@ jobs:
 
       - name: Build and cache BRouter
         id: brouter-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/brouter
           key: brouter-1.7.8
@@ -157,7 +157,7 @@ jobs:
 
       - name: Cache BRouter segment
         id: segment-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/brouter-segments
           key: brouter-segment-E10_N50
@@ -187,7 +187,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
