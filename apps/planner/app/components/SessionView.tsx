@@ -1,5 +1,6 @@
 import { Suspense, lazy, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import * as Sentry from "@sentry/react";
 import { useYjs } from "~/lib/use-yjs";
 import { useRouting } from "~/lib/use-routing";
@@ -49,7 +50,9 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
     <>
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
         <div className="flex items-center gap-2 md:gap-4">
-          <h1 className="hidden text-lg font-semibold text-gray-900 sm:block">{t("title")}</h1>
+          <Link to="/" className="hidden text-lg font-semibold text-gray-900 hover:text-blue-600 sm:block">
+            {t("title")}
+          </Link>
           <ProfileSelector yjs={yjs} />
         </div>
         <div className="flex items-center gap-3">

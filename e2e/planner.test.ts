@@ -20,7 +20,8 @@ test.describe("Planner", () => {
     const { url } = await response.json();
 
     await page.goto(url);
-    await expect(page.getByText("trails.cool Planner")).toBeVisible();
+    // Title is now a home link
+    await expect(page.getByRole("link", { name: "trails.cool Planner" })).toBeVisible();
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
   });
 

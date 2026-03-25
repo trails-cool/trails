@@ -14,6 +14,7 @@ export default {
   planner: {
     title: "trails.cool Planner",
     subtitle: "Collaborative route planning",
+    home: "Home",
     newSession: "New Session",
     saveRoute: "Save Route",
     exportGpx: "Export GPX",
@@ -65,6 +66,14 @@ export default {
   journal: {
     title: "trails.cool",
     subtitle: "Your outdoor activity journal",
+    nav: {
+      routes: "Routes",
+      activities: "Activities",
+      login: "Sign In",
+      register: "Register",
+      profile: "Profile",
+      logout: "Log Out",
+    },
     welcome: "Welcome,",
     addPasskeyPrompt: "Add a passkey for faster sign-in on this device.",
     addPasskey: "Add Passkey",
