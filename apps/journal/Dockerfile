@@ -10,18 +10,20 @@ COPY packages/ui/package.json packages/ui/
 COPY packages/map/package.json packages/map/
 COPY packages/gpx/package.json packages/gpx/
 COPY packages/i18n/package.json packages/i18n/
+COPY packages/db/package.json packages/db/
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/journal/node_modules ./apps/journal/node_modules
+COPY --from=deps /app/ ./
 COPY . .
 RUN pnpm --filter @trails-cool/journal build
 
 FROM base AS runtime
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/journal/node_modules ./apps/journal/node_modules
 COPY --from=build /app/apps/journal/build ./apps/journal/build
 COPY --from=build /app/apps/journal/package.json ./apps/journal/package.json
+COPY --from=build /app/packages ./packages
 
 WORKDIR /app/apps/journal
 EXPOSE 3000
