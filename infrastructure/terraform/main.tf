@@ -130,6 +130,193 @@ resource "hcloud_zone_rrset" "www_cname" {
   records = [{ value = "trails.cool." }]
 }
 
+# Fastmail Email
+
+resource "hcloud_zone_rrset" "mx_root" {
+  zone = "trails.cool"
+  name = "@"
+  type = "MX"
+  ttl  = 3600
+  records = [
+    { value = "10 in1-smtp.messagingengine.com." },
+    { value = "20 in2-smtp.messagingengine.com." },
+  ]
+}
+
+resource "hcloud_zone_rrset" "mx_wildcard" {
+  zone = "trails.cool"
+  name = "*"
+  type = "MX"
+  ttl  = 3600
+  records = [
+    { value = "10 in1-smtp.messagingengine.com." },
+    { value = "20 in2-smtp.messagingengine.com." },
+  ]
+}
+
+resource "hcloud_zone_rrset" "mx_mail" {
+  zone = "trails.cool"
+  name = "mail"
+  type = "MX"
+  ttl  = 3600
+  records = [
+    { value = "10 in1-smtp.messagingengine.com." },
+    { value = "20 in2-smtp.messagingengine.com." },
+  ]
+}
+
+resource "hcloud_zone_rrset" "mail_a" {
+  zone = "trails.cool"
+  name = "mail"
+  type = "A"
+  ttl  = 3600
+  records = [{ value = "103.168.172.65" }]
+}
+
+resource "hcloud_zone_rrset" "spf" {
+  zone = "trails.cool"
+  name = "@"
+  type = "TXT"
+  ttl  = 3600
+  records = [{ value = "\"v=spf1 include:spf.messagingengine.com ?all\"" }]
+}
+
+resource "hcloud_zone_rrset" "dmarc" {
+  zone = "trails.cool"
+  name = "_dmarc"
+  type = "TXT"
+  ttl  = 3600
+  records = [{ value = "\"v=DMARC1; p=none;\"" }]
+}
+
+resource "hcloud_zone_rrset" "dkim_fm1" {
+  zone = "trails.cool"
+  name = "fm1._domainkey"
+  type = "CNAME"
+  ttl  = 3600
+  records = [{ value = "fm1.trails.cool.dkim.fmhosted.com." }]
+}
+
+resource "hcloud_zone_rrset" "dkim_fm2" {
+  zone = "trails.cool"
+  name = "fm2._domainkey"
+  type = "CNAME"
+  ttl  = 3600
+  records = [{ value = "fm2.trails.cool.dkim.fmhosted.com." }]
+}
+
+resource "hcloud_zone_rrset" "dkim_fm3" {
+  zone = "trails.cool"
+  name = "fm3._domainkey"
+  type = "CNAME"
+  ttl  = 3600
+  records = [{ value = "fm3.trails.cool.dkim.fmhosted.com." }]
+}
+
+resource "hcloud_zone_rrset" "dkim_mesmtp" {
+  zone = "trails.cool"
+  name = "mesmtp._domainkey"
+  type = "CNAME"
+  ttl  = 3600
+  records = [{ value = "mesmtp.trails.cool.dkim.fmhosted.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_autodiscover" {
+  zone = "trails.cool"
+  name = "_autodiscover._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 1 443 autodiscover.fastmail.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_caldav" {
+  zone = "trails.cool"
+  name = "_caldav._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 0 0 ." }]
+}
+
+resource "hcloud_zone_rrset" "srv_caldavs" {
+  zone = "trails.cool"
+  name = "_caldavs._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 1 443 d5979255.caldav.fastmail.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_carddav" {
+  zone = "trails.cool"
+  name = "_carddav._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 0 0 ." }]
+}
+
+resource "hcloud_zone_rrset" "srv_carddavs" {
+  zone = "trails.cool"
+  name = "_carddavs._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 1 443 d5979255.carddav.fastmail.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_imap" {
+  zone = "trails.cool"
+  name = "_imap._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 0 0 ." }]
+}
+
+resource "hcloud_zone_rrset" "srv_imaps" {
+  zone = "trails.cool"
+  name = "_imaps._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 1 993 imap.fastmail.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_jmap" {
+  zone = "trails.cool"
+  name = "_jmap._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 1 443 api.fastmail.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_pop3" {
+  zone = "trails.cool"
+  name = "_pop3._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 0 0 ." }]
+}
+
+resource "hcloud_zone_rrset" "srv_pop3s" {
+  zone = "trails.cool"
+  name = "_pop3s._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "10 1 995 pop.fastmail.com." }]
+}
+
+resource "hcloud_zone_rrset" "srv_submission" {
+  zone = "trails.cool"
+  name = "_submission._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 0 0 ." }]
+}
+
+resource "hcloud_zone_rrset" "srv_submissions" {
+  zone = "trails.cool"
+  name = "_submissions._tcp"
+  type = "SRV"
+  ttl  = 3600
+  records = [{ value = "0 1 465 smtp.fastmail.com." }]
+}
+
 # Outputs
 
 output "server_ip" {
