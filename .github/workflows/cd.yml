@@ -108,8 +108,13 @@ jobs:
               done
             fi
 
-            # Pull latest images and restart
+            # Pull latest images
             docker compose pull
+
+            # Push database schema (starts postgres, waits for healthy)
+            docker compose run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+
+            # Start all services
             docker compose up -d --remove-orphans
 
             # Verify services are running

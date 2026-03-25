@@ -30,4 +30,4 @@ COPY --from=build /app/packages ./packages
 WORKDIR /app/apps/planner
 EXPOSE 3001
 ENV PORT=3001
-CMD ["node", "server.ts"]
+CMD ["node", "--experimental-strip-types", "server.ts"]
