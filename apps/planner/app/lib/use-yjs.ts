@@ -34,6 +34,7 @@ export interface YjsState {
   routeData: Y.Map<unknown>;
   awareness: WebsocketProvider["awareness"];
   connected: boolean;
+  setUserName: (name: string) => void;
 }
 
 export function useYjs(
@@ -44,6 +45,7 @@ export function useYjs(
   const providerRef = useRef<WebsocketProvider | null>(null);
   const docRef = useRef<Y.Doc | null>(null);
   const initializedWaypoints = useRef(false);
+  const identityRef = useRef<{ color: string; name: string } | null>(null);
 
   useEffect(() => {
     const doc = new Y.Doc();
@@ -56,8 +58,16 @@ export function useYjs(
     const waypoints = doc.getArray<Y.Map<unknown>>("waypoints");
     const routeData = doc.getMap("routeData");
 
-    const { color, name } = getOrCreateUserIdentity();
-    provider.awareness.setLocalStateField("user", { color, name });
+    const identity = getOrCreateUserIdentity();
+    identityRef.current = identity;
+    provider.awareness.setLocalStateField("user", { color: identity.color, name: identity.name });
+
+    const setUserName = (newName: string) => {
+      if (!identityRef.current) return;
+      identityRef.current = { ...identityRef.current, name: newName };
+      try { localStorage.setItem("trails:user", JSON.stringify(identityRef.current)); } catch { /* localStorage unavailable */ }
+      provider.awareness.setLocalStateField("user", { ...identityRef.current });
+    };
 
     // Initialize waypoints once after first sync
     if (initialWaypoints?.length && !initializedWaypoints.current) {
@@ -86,6 +96,7 @@ export function useYjs(
         routeData,
         awareness: provider.awareness,
         connected,
+        setUserName,
       });
     };
 

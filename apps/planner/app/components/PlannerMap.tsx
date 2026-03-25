@@ -102,9 +102,22 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
         <Marker
           key={clientId}
           position={[cursor.lat, cursor.lng]}
+          zIndexOffset={-1000}
           icon={L.divIcon({
             className: "",
-            html: `<div style="background:${cursor.color};color:white;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;transform:translate(10px,-50%)">${cursor.name}</div>`,
+            html: `<div style="position:relative;z-index:400;pointer-events:none">
+              <svg width="16" height="20" viewBox="0 0 16 20" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
+                <path d="M0 0L16 12L8 12L4 20Z" fill="${cursor.color}" />
+              </svg>
+              <span style="
+                position:absolute;left:16px;top:2px;
+                background:${cursor.color};color:white;
+                padding:1px 6px;border-radius:6px;
+                font-size:11px;font-weight:500;white-space:nowrap;
+                box-shadow:0 1px 3px rgba(0,0,0,0.2);
+                line-height:1.4;
+              ">${cursor.name}</span>
+            </div>`,
             iconSize: [0, 0],
           })}
         />

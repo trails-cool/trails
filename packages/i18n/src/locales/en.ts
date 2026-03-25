@@ -35,6 +35,13 @@ export default {
       shortest: "Shortest",
       car: "Car",
     },
+    participants: {
+      you: "(you)",
+      host: "Host",
+      editName: "Click to edit your name",
+      joined: "{{name}} joined",
+      left: "{{name}} left",
+    },
     elevation: {
       gain: "Elevation Gain",
       loss: "Elevation Loss",
