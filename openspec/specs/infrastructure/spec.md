@@ -15,7 +15,7 @@ All services SHALL be deployed via Docker Compose on the Hetzner server.
 - **THEN** the Journal, Planner, BRouter, PostgreSQL, and Garage containers start and are reachable
 
 ### Requirement: Service configuration
-Each service SHALL be configured via environment variables defined in Docker Compose.
+Each service SHALL be configured via environment variables defined in Docker Compose, with security best practices including non-root execution and security headers.
 
 #### Scenario: Journal configuration
 - **WHEN** the Journal container starts
@@ -24,6 +24,14 @@ Each service SHALL be configured via environment variables defined in Docker Com
 #### Scenario: Planner configuration
 - **WHEN** the Planner container starts
 - **THEN** it reads BROUTER_URL and DATABASE_URL from environment variables
+
+#### Scenario: Caddy security headers
+- **WHEN** Caddy proxies a request
+- **THEN** it adds HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and Permissions-Policy headers
+
+#### Scenario: Caddy scanner blocking
+- **WHEN** a request matches known scanner paths (.env, .git, wp-config, etc.)
+- **THEN** Caddy returns 403 without forwarding to the application
 
 ### Requirement: PostgreSQL with PostGIS
 The database SHALL be PostgreSQL with the PostGIS extension for spatial queries.
@@ -44,11 +52,19 @@ The infrastructure SHALL support downloading and updating Germany RD5 segments f
 - **THEN** RD5 segments are updated from brouter.de and the BRouter container is restarted
 
 ### Requirement: CI/CD pipeline
-GitHub Actions SHALL build and deploy both apps on push to main.
+GitHub Actions SHALL build, deploy, and security-scan both apps on push to main.
 
 #### Scenario: Push triggers deployment
 - **WHEN** code is pushed to the main branch
 - **THEN** GitHub Actions builds Docker images, pushes to ghcr.io/trails-cool/, and deploys to the Hetzner server
+
+#### Scenario: Gitleaks scan
+- **WHEN** a PR is opened
+- **THEN** gitleaks scans for committed secrets
+
+#### Scenario: Dependency audit
+- **WHEN** CI runs
+- **THEN** pnpm audit checks for high/critical vulnerabilities
 
 ### Requirement: Backup strategy
 The infrastructure SHALL include daily backups of the PostgreSQL database.
