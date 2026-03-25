@@ -7,12 +7,14 @@ import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 
+const sentryEnvironment = process.env.CI ? "ci" : (process.env.NODE_ENV ?? "development");
+
 Sentry.init({
   dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
   release: process.env.SENTRY_RELEASE,
-  environment: process.env.NODE_ENV ?? "development",
-  tracesSampleRate: 0.1,
-  enabled: process.env.NODE_ENV === "production",
+  environment: sentryEnvironment,
+  tracesSampleRate: 1.0,
+  enabled: process.env.NODE_ENV === "production" && !process.env.CI,
 });
 
 export const streamTimeout = 5_000;

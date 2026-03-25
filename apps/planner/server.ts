@@ -5,12 +5,14 @@ import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import { setupYjsWebSocket } from "./app/lib/yjs-server.ts";
 
+const sentryEnvironment = process.env.CI ? "ci" : (process.env.NODE_ENV ?? "development");
+
 Sentry.init({
   dsn: "https://5215134cd78d5e6c199e29300b8425af@o4509530546634752.ingest.de.sentry.io/4511102546608208",
   release: process.env.SENTRY_RELEASE,
-  environment: process.env.NODE_ENV ?? "development",
-  tracesSampleRate: 0.1,
-  enabled: process.env.NODE_ENV === "production",
+  environment: sentryEnvironment,
+  tracesSampleRate: 1.0,
+  enabled: process.env.NODE_ENV === "production" && !process.env.CI,
 });
 
 const port = Number(process.env.PORT ?? 3001);
