@@ -1,6 +1,6 @@
 import { createRequestHandler } from "@react-router/node";
 import { createServer } from "node:http";
-import { setupYjsWebSocket } from "./app/lib/yjs-server";
+import { setupYjsWebSocket } from "./app/lib/yjs-server.ts";
 
 const port = Number(process.env.PORT ?? 3001);
 

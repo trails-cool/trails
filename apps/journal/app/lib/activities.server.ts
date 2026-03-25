@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
-import { getDb } from "./db";
+import { getDb } from "./db.ts";
 import { activities, routes } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
 

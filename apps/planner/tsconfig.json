@@ -9,6 +9,7 @@
   "compilerOptions": {
     "rootDirs": [".", "./.react-router/types"],
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["vite/client"],
     "paths": {
       "~/*": ["./app/*"]

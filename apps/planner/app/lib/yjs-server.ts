@@ -1,7 +1,7 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import * as Y from "yjs";
 import type { IncomingMessage, Server } from "node:http";
-import { saveSessionState, loadSessionState, touchSession } from "./sessions";
+import { saveSessionState, loadSessionState, touchSession } from "./sessions.ts";
 
 const docs = new Map<string, Y.Doc>();
 const sessionClients = new Map<string, Set<WebSocket>>();
