@@ -1,7 +1,7 @@
-[extend]
-# Use default gitleaks rules
-
-[[allowlist.regexTarget]]
+[allowlist]
 # Sentry DSNs are public (ingest-only, not secrets)
-description = "Sentry DSN"
-regex = '''https://[a-f0-9]+@o\d+\.ingest\.\w+\.sentry\.io/\d+'''
+description = "Allow Sentry DSNs"
+regexTarget = "line"
+regexes = [
+  '''https://[a-f0-9]+@o\d+\.ingest\.\w+\.sentry\.io/\d+''',
+]
