@@ -11,7 +11,7 @@ Sentry.init({
   dsn: "https://5215134cd78d5e6c199e29300b8425af@o4509530546634752.ingest.de.sentry.io/4511102546608208",
   release: process.env.SENTRY_RELEASE,
   environment: sentryEnvironment,
-  tracesSampleRate: 0.1,
+  tracesSampleRate: 1.0,
   enabled: process.env.NODE_ENV === "production" && !process.env.CI,
 });
 
