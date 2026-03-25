@@ -6,7 +6,7 @@ import path from "node:path";
 
 export default defineConfig({
   build: {
-    sourcemap: true,
+    sourcemap: "hidden",
   },
   plugins: [
     tailwindcss(),
@@ -15,6 +15,7 @@ export default defineConfig({
       org: "trails-qq",
       project: "journal",
       release: { name: process.env.SENTRY_RELEASE },
+      sourcemaps: { filesToDeleteAfterUpload: ["./build/**/*.map"] },
       disable: !process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
