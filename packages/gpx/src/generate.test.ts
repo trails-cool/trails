@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { generateGpx } from "./generate";
-import { parseGpx } from "./parse";
+import { generateGpx } from "./generate.ts";
+import { parseGpx } from "./parse.ts";
 
 describe("generateGpx", () => {
   it("generates valid GPX with name", () => {

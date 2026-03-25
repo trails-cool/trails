@@ -1,5 +1,5 @@
 import type { Waypoint } from "@trails-cool/types";
-import type { TrackPoint } from "./types";
+import type { TrackPoint } from "./types.ts";
 
 /**
  * Generate a GPX XML string from waypoints and track points.

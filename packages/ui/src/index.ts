@@ -1,6 +1,6 @@
-export { Button } from "./Button";
-export type { ButtonProps } from "./Button";
-export { Input } from "./Input";
-export type { InputProps } from "./Input";
-export { Card } from "./Card";
-export type { CardProps } from "./Card";
+export { Button } from "./Button.tsx";
+export type { ButtonProps } from "./Button.tsx";
+export { Input } from "./Input.tsx";
+export type { InputProps } from "./Input.tsx";
+export { Card } from "./Card.tsx";
+export type { CardProps } from "./Card.tsx";

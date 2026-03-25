@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Waypoint, Route } from "./index";
+import type { Waypoint, Route } from "./index.ts";
 
 describe("types", () => {
   it("Waypoint type accepts valid data", () => {

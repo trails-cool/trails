@@ -1,3 +1,3 @@
-export { parseGpx, parseGpxAsync } from "./parse";
-export { generateGpx } from "./generate";
-export type { GpxData, TrackPoint, ElevationProfile } from "./types";
+export { parseGpx, parseGpxAsync } from "./parse.ts";
+export { generateGpx } from "./generate.ts";
+export type { GpxData, TrackPoint, ElevationProfile } from "./types.ts";

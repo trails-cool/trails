@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { electHost } from "./host-election";
+import { electHost } from "./host-election.ts";
 
 function makeStates(
   entries: Array<{ id: number; user?: boolean; role?: string }>,
