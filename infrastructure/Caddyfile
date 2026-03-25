@@ -1,4 +1,22 @@
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' wss: https://*.sentry.io https://*.ingest.de.sentry.io; font-src 'self';"
+	}
+}
+
+(block_scanners) {
+	@scanners path /.env* /.git* /wp-* /wp-admin* /admin* /config.* /backup* /.aws* /.docker* /composer* /vendor* *.php *.asp
+	respond @scanners 403
+}
+
 {$DOMAIN:trails.cool} {
+	import security_headers
+	import block_scanners
 	reverse_proxy journal:3000
 }
 
@@ -7,5 +25,7 @@ www.{$DOMAIN:trails.cool} {
 }
 
 planner.{$DOMAIN:trails.cool} {
+	import security_headers
+	import block_scanners
 	reverse_proxy planner:3001
 }

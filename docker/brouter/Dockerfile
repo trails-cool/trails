@@ -12,13 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget unzip curl
     && rm "brouter-${BROUTER_VERSION}.zip" \
     && apt-get purge -y wget unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-# Create directories for segments and profiles
-RUN mkdir -p /data/segments /data/profiles
+# Create non-root user and directories for segments and profiles
+RUN addgroup --system app && adduser --system --ingroup app app \
+    && mkdir -p /data/segments /data/profiles
 
 # Copy default profiles from release and rename JAR for simpler CMD
 RUN cp -r profiles2/* /data/profiles/ 2>/dev/null || true \
     && mv brouter-*-all.jar brouter.jar
 
+USER app
 EXPOSE 17777
 
 # BRouter server: <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
