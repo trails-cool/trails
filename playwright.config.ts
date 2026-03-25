@@ -39,16 +39,31 @@ export default defineConfig({
       },
     },
   ],
-  webServer: [
-    {
-      command: "pnpm --filter @trails-cool/journal dev",
-      url: "http://localhost:3000",
-      reuseExistingServer: !process.env.CI,
-    },
-    {
-      command: "pnpm --filter @trails-cool/planner dev",
-      url: "http://localhost:3001",
-      reuseExistingServer: !process.env.CI,
-    },
-  ],
+  webServer: process.env.CI
+    ? [
+        {
+          command: "npx react-router-serve ./build/server/index.js",
+          url: "http://localhost:3000",
+          cwd: "./apps/journal",
+          reuseExistingServer: false,
+        },
+        {
+          command: "node --experimental-strip-types server.ts",
+          url: "http://localhost:3001",
+          cwd: "./apps/planner",
+          reuseExistingServer: false,
+        },
+      ]
+    : [
+        {
+          command: "pnpm --filter @trails-cool/journal dev",
+          url: "http://localhost:3000",
+          reuseExistingServer: true,
+        },
+        {
+          command: "pnpm --filter @trails-cool/planner dev",
+          url: "http://localhost:3001",
+          reuseExistingServer: true,
+        },
+      ],
 });
