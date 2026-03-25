@@ -1,3 +1,4 @@
+import { initI18n } from "@trails-cool/i18n";
 import * as Sentry from "@sentry/react";
 import { useEffect } from "react";
 import { startTransition, StrictMode } from "react";
@@ -26,6 +27,8 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
   enabled: import.meta.env.PROD && sentryEnvironment !== "ci",
 });
+
+initI18n();
 
 startTransition(() => {
   hydrateRoot(
