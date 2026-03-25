@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
-import type { YjsState } from "./use-yjs";
-import { electHost } from "./host-election";
+import type { YjsState } from "./use-yjs.ts";
+import { electHost } from "./host-election.ts";
 
 interface RouteStats {
   distance?: number;

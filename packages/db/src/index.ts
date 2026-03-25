@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as plannerSchema from "./schema/planner";
-import * as journalSchema from "./schema/journal";
+import * as plannerSchema from "./schema/planner.ts";
+import * as journalSchema from "./schema/journal.ts";
 
 export function createDb(connectionString?: string) {
   const client = postgres(

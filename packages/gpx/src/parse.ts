@@ -1,5 +1,5 @@
 import type { Waypoint } from "@trails-cool/types";
-import type { GpxData, TrackPoint, ElevationProfile } from "./types";
+import type { GpxData, TrackPoint, ElevationProfile } from "./types.ts";
 
 /**
  * Parse a GPX XML string into structured data.
