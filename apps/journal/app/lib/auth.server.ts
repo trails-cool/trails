@@ -11,7 +11,7 @@ import type {
   AuthenticationResponseJSON,
   AuthenticatorTransportFuture,
 } from "@simplewebauthn/types";
-import { getDb } from "./db";
+import { getDb } from "./db.ts";
 import { users, credentials, magicTokens } from "@trails-cool/db/schema/journal";
 
 const RP_NAME = "trails.cool";

@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import * as Y from "yjs";
 import { eq, and, desc, lt } from "drizzle-orm";
-import { getOrCreateDoc, deleteDoc } from "./yjs-server";
-import { getDb } from "./db";
+import { getOrCreateDoc, deleteDoc } from "./yjs-server.ts";
+import { getDb } from "./db.ts";
 import { sessions } from "@trails-cool/db/schema/planner";
 
 export type SessionMetadata = typeof sessions.$inferSelect;
