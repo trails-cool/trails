@@ -1,6 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse } from "react-router";
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
+import * as Sentry from "@sentry/react";
 import stylesheet from "@trails-cool/ui/styles.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
@@ -28,6 +29,8 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  Sentry.captureException(error);
+
   if (isRouteErrorResponse(error)) {
     return (
       <div className="flex h-full items-center justify-center">
