@@ -48,3 +48,4 @@ jobs:
           MERGE_DELETE_BRANCH: "true"
           MERGE_READY_STATE: "clean"
           UPDATE_METHOD: "rebase"
+          BASE_BRANCHES: "main"
