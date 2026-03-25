@@ -14,6 +14,8 @@ COPY packages/db/package.json packages/db/
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
+ARG SENTRY_AUTH_TOKEN
+ARG SENTRY_RELEASE
 COPY --from=deps /app/ ./
 COPY . .
 RUN pnpm --filter @trails-cool/planner build

@@ -45,6 +45,9 @@ jobs:
           tags: |
             ghcr.io/trails-cool/${{ matrix.app }}:latest
             ghcr.io/trails-cool/${{ matrix.app }}:${{ github.sha }}
+          build-args: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_RELEASE=${{ github.sha }}
 
   build-brouter:
     name: Build & Push BRouter Image
@@ -109,6 +112,7 @@ jobs:
             fi
 
             # Pull latest images
+            export SENTRY_RELEASE="${{ github.sha }}"
             docker compose pull
 
             # Push database schema (starts postgres, waits for healthy)
