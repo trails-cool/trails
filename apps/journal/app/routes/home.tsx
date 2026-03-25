@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { data } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/home";
 import { getSessionUser } from "~/lib/auth.server";
 
@@ -22,6 +23,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { user, showAddPasskey } = loaderData;
+  const { t } = useTranslation("journal");
   const [addingPasskey, setAddingPasskey] = useState(false);
   const [passkeyDone, setPasskeyDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,19 +76,19 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
-      <h1 className="text-4xl font-bold text-gray-900">trails.cool</h1>
-      <p className="mt-4 text-lg text-gray-600">Your outdoor activity journal</p>
+      <h1 className="text-4xl font-bold text-gray-900">{t("title")}</h1>
+      <p className="mt-4 text-lg text-gray-600">{t("subtitle")}</p>
 
       {user ? (
         <div className="mt-8">
           <p className="text-gray-700">
-            Welcome, <a href={`/users/${user.username}`} className="text-blue-600 hover:underline">{user.displayName ?? user.username}</a>
+            {t("welcome")} <a href={`/users/${user.username}`} className="text-blue-600 hover:underline">{user.displayName ?? user.username}</a>
           </p>
 
           {showAddPasskey && !passkeyDone && (
             <div className="mt-6 rounded-md bg-blue-50 p-4">
               <p className="text-sm text-blue-800">
-                Add a passkey for faster sign-in on this device.
+                {t("addPasskeyPrompt")}
               </p>
               {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
               <button
@@ -94,7 +96,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 disabled={addingPasskey}
                 className="mt-3 rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {addingPasskey ? "Setting up..." : "Add Passkey"}
+                {addingPasskey ? t("settingUp") : t("addPasskey")}
               </button>
             </div>
           )}
@@ -102,7 +104,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           {passkeyDone && (
             <div className="mt-6 rounded-md bg-green-50 p-4">
               <p className="text-sm text-green-800">
-                Passkey added! You can now sign in instantly on this device.
+                {t("passkeyAdded")}
               </p>
             </div>
           )}
@@ -113,13 +115,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             href="/auth/register"
             className="rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
           >
-            Register
+            {t("auth.register")}
           </a>
           <a
             href="/auth/login"
             className="rounded-md border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
           >
-            Sign in
+            {t("auth.login")}
           </a>
         </div>
       )}

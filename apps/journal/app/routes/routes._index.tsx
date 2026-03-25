@@ -1,4 +1,5 @@
 import { data, redirect } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes._index";
 import { getSessionUser } from "~/lib/auth.server";
 import { listRoutes } from "~/lib/routes.server";
@@ -26,22 +27,23 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function RoutesListPage({ loaderData }: Route.ComponentProps) {
   const { routes } = loaderData;
+  const { t } = useTranslation("journal");
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">My Routes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("routes.myRoutes")}</h1>
         <a
           href="/routes/new"
           className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
         >
-          New Route
+          {t("routes.new")}
         </a>
       </div>
 
       {routes.length === 0 ? (
         <p className="mt-8 text-center text-gray-500">
-          No routes yet. Create your first route!
+          {t("routes.noRoutesYet")}
         </p>
       ) : (
         <ul className="mt-6 divide-y divide-gray-200">

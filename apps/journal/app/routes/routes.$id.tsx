@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { data, redirect } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
 import { getSessionUser } from "~/lib/auth.server";
 import { getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
@@ -73,6 +74,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const { route, versions, isOwner } = loaderData;
+  const { t } = useTranslation("journal");
   const [editLoading, setEditLoading] = useState(false);
 
   const handleEditInPlanner = useCallback(async () => {
@@ -104,13 +106,13 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
               disabled={editLoading}
               className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {editLoading ? "Opening..." : "Edit in Planner"}
+              {editLoading ? t("routes.opening") : t("routes.editInPlanner")}
             </button>
             <a
               href={`/routes/${route.id}/edit`}
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
             >
-              Edit
+              {t("routes.edit")}
             </a>
             {route.hasGpx && (
               <a
@@ -118,7 +120,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
                 download
                 className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
               >
-                Export GPX
+                {t("routes.exportGpx")}
               </a>
             )}
           </div>
@@ -131,7 +133,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
             <p className="text-2xl font-bold text-gray-900">
               {(route.distance / 1000).toFixed(1)} km
             </p>
-            <p className="text-sm text-gray-500">Distance</p>
+            <p className="text-sm text-gray-500">{t("routes.distance")}</p>
           </div>
         )}
         {route.elevationGain != null && (
@@ -181,7 +183,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
               type="submit"
               className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700 hover:bg-red-100"
             >
-              Delete Route
+              {t("routes.delete")}
             </button>
           </form>
         </div>

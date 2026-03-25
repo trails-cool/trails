@@ -15,7 +15,7 @@ test.describe("Journal", () => {
 
   test("registration page renders correctly", async ({ page }) => {
     await page.goto("/auth/register");
-    await expect(page.getByText("Create Account")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Register" })).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByLabel("Username")).toBeVisible();
     await expect(page.getByRole("button", { name: /Register with Passkey/ })).toBeVisible();
