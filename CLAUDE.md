@@ -110,11 +110,11 @@ pnpm db:studio        # Open Drizzle Studio (DB browser)
 ### Opening a PR
 - Create a feature branch: `git checkout -b <descriptive-name>`
 - Keep PRs focused — one logical change per PR
-- Add the `automerge` label to auto-merge when CI passes:
+- Use the merge queue to auto-merge when CI passes:
   ```bash
-  gh pr create --title "..." --body "..." --label automerge
+  gh pr create --title "..." --body "..."
+  gh pr merge --merge-queue
   ```
-- PRs with `automerge` label merge and delete the branch automatically
 
 ### Stacking PRs (for fast local iteration)
 When working on sequential tasks, stack branches locally:
@@ -126,8 +126,8 @@ main → feature-a → feature-b → feature-c
 - When feature-a merges, rebase feature-b onto main
 - This keeps you unblocked while PRs are in CI
 
-### Important: Do not push to a branch after its PR auto-merges
-With the `automerge` label, PRs squash-merge as soon as CI passes. If you
+### Important: Do not push to a branch after its PR merges via merge queue
+Once a PR enters the merge queue it will merge as soon as CI passes. If you
 push additional commits to the branch after that, those commits are orphaned
 — they won't be on main. Always check `gh pr view <number> --json state`
 before pushing to an existing PR branch.
