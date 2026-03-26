@@ -113,6 +113,8 @@ jobs:
 
             # Pull latest images
             export SENTRY_RELEASE="${{ github.sha }}"
+            export SMTP_URL="${{ secrets.SMTP_URL }}"
+            export SMTP_FROM="${{ secrets.SMTP_FROM }}"
             docker compose pull
 
             # Push database schema (starts postgres, waits for healthy)
