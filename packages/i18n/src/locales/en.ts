@@ -42,6 +42,19 @@ export default {
       joined: "{{name}} joined",
       left: "{{name}} left",
     },
+    sidebar: {
+      waypoints: "Waypoints",
+      notes: "Notes",
+    },
+    noGoAreas: {
+      draw: "Draw no-go area",
+      cancel: "Cancel no-go area",
+      hint: "Right-click a no-go area to delete it",
+    },
+    notes: {
+      placeholder: "Add notes for this session...",
+    },
+    rateLimitExceeded: "Too many requests. Please try again later.",
     elevation: {
       gain: "Elevation Gain",
       loss: "Elevation Loss",

@@ -71,11 +71,29 @@ export default function PrivacyPage() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">Email</h2>
+        <p className="mt-2 text-gray-600">
+          The Journal sends transactional emails for magic link login and welcome messages
+          via SMTP. On the official instance, emails are sent through our own mail server.
+        </p>
+        <h3 className="mt-4 font-medium text-gray-800">What is sent via email:</h3>
+        <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
+          <li><strong>Magic link</strong>: a one-time login link sent to your email address</li>
+          <li><strong>Welcome email</strong>: a greeting after registration</li>
+        </ul>
+        <p className="mt-3 text-gray-600">
+          Self-hosted instances can configure their own SMTP server. No email content
+          is stored beyond what your mail server retains.
+        </p>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-xl font-semibold text-gray-900">Third Parties</h2>
         <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
           <li><strong>Sentry</strong> (Functional Software Inc.) — error tracking, as described above</li>
           <li><strong>OpenStreetMap</strong> — map tiles are loaded from OSM tile servers. OSM&apos;s <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" className="text-blue-600 hover:underline">privacy policy</a> applies to tile requests.</li>
           <li><strong>BRouter</strong> — routing requests are processed by our self-hosted BRouter instance. No data is sent to third parties for routing.</li>
+          <li><strong>SMTP provider</strong> — transactional emails (magic link, welcome) are delivered via SMTP. Self-hosters configure their own provider.</li>
         </ul>
       </section>
 

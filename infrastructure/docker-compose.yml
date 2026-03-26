@@ -27,6 +27,8 @@ services:
       NODE_ENV: production
       PORT: 3000
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-trails.cool <noreply@trails.cool>}
     depends_on:
       postgres:
         condition: service_healthy

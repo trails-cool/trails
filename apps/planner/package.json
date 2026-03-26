@@ -11,6 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.19.2",
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
     "@sentry/node": "^10.45.0",

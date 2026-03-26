@@ -62,6 +62,35 @@ test.describe("Planner", () => {
     await expect(page.getByText("Click on the map to add waypoints")).toBeVisible();
   });
 
+  test("session has sidebar tabs (waypoints and notes)", async ({ page, request }) => {
+    const response = await request.post("/api/sessions", { data: {} });
+    const { url } = await response.json();
+
+    await page.goto(url);
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+
+    // Waypoints tab is active by default
+    await expect(page.getByRole("button", { name: "Waypoints" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Notes" })).toBeVisible();
+
+    // Switch to Notes tab
+    await page.getByRole("button", { name: "Notes" }).click();
+    await expect(page.getByPlaceholder("Add notes for this session...")).toBeVisible();
+
+    // Switch back to Waypoints tab
+    await page.getByRole("button", { name: "Waypoints" }).click();
+    await expect(page.getByText("Waypoints (0)")).toBeVisible();
+  });
+
+  test("session has no-go area button", async ({ page, request }) => {
+    const response = await request.post("/api/sessions", { data: {} });
+    const { url } = await response.json();
+
+    await page.goto(url);
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTitle("Draw no-go area")).toBeVisible();
+  });
+
   test("can create session with initial waypoints", async ({ request }) => {
     const response = await request.post("/api/sessions", {
       data: {

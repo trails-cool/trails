@@ -94,4 +94,30 @@ test.describe("Integration: BRouter routing", () => {
     });
     expect(response.status()).toBe(400);
   });
+
+  test("accepts no-go areas parameter", async ({ request }) => {
+    const response = await request.post(`${PLANNER}/api/route`, {
+      data: {
+        waypoints: [
+          { lat: 52.516, lon: 13.377 },
+          { lat: 52.515, lon: 13.351 },
+        ],
+        profile: "trekking",
+        noGoAreas: [
+          {
+            points: [
+              { lat: 52.516, lon: 13.365 },
+              { lat: 52.514, lon: 13.365 },
+              { lat: 52.514, lon: 13.370 },
+              { lat: 52.516, lon: 13.370 },
+            ],
+          },
+        ],
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    const geojson = await response.json();
+    expect(geojson.features).toHaveLength(1);
+    expect(geojson.features[0].geometry.type).toBe("LineString");
+  });
 });
