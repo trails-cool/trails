@@ -105,6 +105,37 @@ function useAwarenessToasts(yjs: YjsState | null, t: TFunction) {
   return toasts;
 }
 
+function ColorModeToggle({ yjs }: { yjs: YjsState }) {
+  const { t } = useTranslation("planner");
+  const [current, setCurrent] = useState<string>("plain");
+
+  useEffect(() => {
+    const update = () => {
+      setCurrent((yjs.routeData.get("colorMode") as string) ?? "plain");
+    };
+    yjs.routeData.observe(update);
+    update();
+    return () => yjs.routeData.unobserve(update);
+  }, [yjs.routeData]);
+
+  const setMode = (mode: string) => {
+    yjs.routeData.set("colorMode", mode);
+  };
+
+  return (
+    <select
+      value={current}
+      onChange={(e) => setMode(e.target.value)}
+      className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700"
+      title={t("colorMode.label")}
+    >
+      <option value="plain">{t("colorMode.plain")}</option>
+      <option value="elevation">{t("colorMode.elevation")}</option>
+      <option value="surface">{t("colorMode.surface")}</option>
+    </select>
+  );
+}
+
 function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"] }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
@@ -186,6 +217,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             />
           )}
           <ExportButton yjs={yjs} />
+          <ColorModeToggle yjs={yjs} />
           {computing && (
             <span className="text-xs text-blue-600">{t("computingRoute")}</span>
           )}

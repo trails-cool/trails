@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
-import { MapContainer, TileLayer, LayersControl, Marker, Polyline, CircleMarker, useMapEvents, useMap } from "react-leaflet";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { MapContainer, TileLayer, LayersControl, Marker, CircleMarker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { baseLayers } from "@trails-cool/map";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
+import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
+import { RouteInteraction } from "./RouteInteraction";
 import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number): L.DivIcon {
@@ -42,9 +44,23 @@ interface PlannerMapProps {
   highlightPosition?: [number, number] | null;
 }
 
-function MapClickHandler({ onAdd }: { onAdd: (lat: number, lng: number) => void }) {
+function MapExposer() {
+  const map = useMap();
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as unknown as Record<string, unknown>).__leafletMap = map;
+    }
+  }, [map]);
+  return null;
+}
+
+function MapClickHandler({ onAdd, suppressRef }: { onAdd: (lat: number, lng: number) => void; suppressRef: React.RefObject<boolean> }) {
   useMapEvents({
     click(e) {
+      if (suppressRef.current) {
+        suppressRef.current = false;
+        return;
+      }
       onAdd(e.latlng.lat, e.latlng.lng);
     },
   });
@@ -156,9 +172,13 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
 
 export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMapProps) {
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
-  const [routeGeoJson, setRouteGeoJson] = useState<L.LatLngExpression[] | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
+  const [segmentBoundaries, setSegmentBoundaries] = useState<number[]>([]);
+  const [surfaces, setSurfaces] = useState<string[]>([]);
+  const [colorMode, setColorMode] = useState<ColorMode>("plain");
   const [noGoDrawing, setNoGoDrawing] = useState(false);
   const toggleNoGoDraw = useCallback(() => setNoGoDrawing((v) => !v), []);
+  const suppressMapClickRef = useRef(false);
 
   // Sync waypoints from Yjs
   useEffect(() => {
@@ -178,23 +198,49 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
     };
   }, [yjs.waypoints, onRouteRequest]);
 
-  // Sync route data from Yjs
+  // Sync route data from Yjs (enriched: coordinates + segment boundaries)
   useEffect(() => {
     const update = () => {
-      const geojson = yjs.routeData.get("geojson") as string | undefined;
-      if (geojson) {
+      const coordsJson = yjs.routeData.get("coordinates") as string | undefined;
+      const boundsJson = yjs.routeData.get("segmentBoundaries") as string | undefined;
+      const modeVal = yjs.routeData.get("colorMode") as ColorMode | undefined;
+
+      if (coordsJson) {
         try {
-          const parsed = JSON.parse(geojson);
-          const coords = parsed.features?.[0]?.geometry?.coordinates;
-          if (coords) {
-            setRouteGeoJson(coords.map((c: number[]) => [c[1], c[0]] as L.LatLngExpression));
-          }
+          setRouteCoordinates(JSON.parse(coordsJson));
         } catch {
-          // Invalid GeoJSON
+          setRouteCoordinates(null);
         }
       } else {
-        setRouteGeoJson(null);
+        // Fallback: parse from geojson for backwards compat
+        const geojson = yjs.routeData.get("geojson") as string | undefined;
+        if (geojson) {
+          try {
+            const parsed = JSON.parse(geojson);
+            const coords = parsed.features?.[0]?.geometry?.coordinates;
+            if (coords) {
+              setRouteCoordinates(coords.map((c: number[]) => [c[0]!, c[1]!, c[2] ?? 0] as [number, number, number]));
+            }
+          } catch { setRouteCoordinates(null); }
+        } else {
+          setRouteCoordinates(null);
+        }
       }
+
+      if (boundsJson) {
+        try { setSegmentBoundaries(JSON.parse(boundsJson)); } catch { setSegmentBoundaries([]); }
+      } else {
+        setSegmentBoundaries([]);
+      }
+
+      const surfacesJson = yjs.routeData.get("surfaces") as string | undefined;
+      if (surfacesJson) {
+        try { setSurfaces(JSON.parse(surfacesJson)); } catch { setSurfaces([]); }
+      } else {
+        setSurfaces([]);
+      }
+
+      if (modeVal) setColorMode(modeVal);
     };
 
     yjs.routeData.observe(update);
@@ -213,6 +259,26 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
       yjs.waypoints.push([yMap]);
     },
     [yjs.waypoints],
+  );
+
+  const insertWaypointAtSegment = useCallback(
+    (segmentIndex: number, lat: number, lon: number) => {
+      const yMap = new Y.Map();
+      yMap.set("lat", lat);
+      yMap.set("lon", lon);
+      // Insert after the segment's start waypoint
+      yjs.waypoints.insert(segmentIndex + 1, [yMap]);
+    },
+    [yjs.waypoints],
+  );
+
+  const handleRouteInsert = useCallback(
+    (pointIndex: number, lat: number, lon: number) => {
+      suppressMapClickRef.current = true;
+      const segIdx = findSegmentForPoint(pointIndex, segmentBoundaries);
+      insertWaypointAtSegment(segIdx, lat, lon);
+    },
+    [segmentBoundaries, insertWaypointAtSegment],
   );
 
   const moveWaypoint = useCallback(
@@ -245,7 +311,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
         ))}
       </LayersControl>
 
-      <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} />
+      <MapExposer />
+      <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} suppressRef={suppressMapClickRef} />
       <CursorTracker awareness={yjs.awareness} />
       <NoGoAreaLayer noGoAreas={yjs.noGoAreas} doc={yjs.doc} enabled={noGoDrawing} onToggle={toggleNoGoDraw} />
       <NoGoAreaButton active={noGoDrawing} onClick={toggleNoGoDraw} />
@@ -269,7 +336,21 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
         />
       ))}
 
-      {routeGeoJson && <Polyline positions={routeGeoJson} color="#2563eb" weight={4} opacity={0.8} />}
+      {routeCoordinates && routeCoordinates.length >= 2 && (
+        <>
+          <ColoredRoute
+            coordinates={routeCoordinates}
+            colorMode={colorMode}
+            surfaces={surfaces}
+          />
+          <RouteInteraction
+            coordinates={routeCoordinates}
+            segmentBoundaries={segmentBoundaries}
+            onInsertWaypoint={handleRouteInsert}
+            disabled={noGoDrawing}
+          />
+        </>
+      )}
 
       {highlightPosition && (
         <CircleMarker
