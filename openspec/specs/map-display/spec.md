@@ -34,15 +34,19 @@ The Planner map SHALL allow users to add, move, and delete waypoints by interact
 - **THEN** the waypoint is removed and the change syncs via Yjs
 
 ### Requirement: Route visualization
-The map SHALL display the computed route as a polyline on the map.
+The map SHALL display the computed route as an interactive, optionally color-coded polyline on the map.
 
 #### Scenario: Display route
 - **WHEN** BRouter returns a route GeoJSON
-- **THEN** the route is rendered as a colored polyline on the map
+- **THEN** the route is rendered as a polyline on the map, colored according to the active color mode
 
 #### Scenario: Route updates on waypoint change
 - **WHEN** a waypoint is added, moved, or deleted
 - **THEN** the route polyline updates after BRouter recomputes the route
+
+#### Scenario: Ghost marker on hover
+- **WHEN** the cursor is within 15 pixels of the route polyline
+- **THEN** a transient ghost marker appears at the nearest route point, which can be clicked or dragged to insert a waypoint (see route-splitting and route-drag-reshape specs)
 
 ### Requirement: Elevation profile display
 The Planner SHALL display an elevation profile chart for the current route.
@@ -72,3 +76,14 @@ Other participants' cursors on the map SHALL be clearly visible with proper styl
 #### Scenario: Cursor does not obscure map controls
 - **WHEN** cursors are rendered
 - **THEN** they appear below map controls (zoom, layer switcher) in z-index
+
+### Requirement: Map polygon drawing
+The Planner map SHALL support drawing and displaying no-go area polygons.
+
+#### Scenario: Polygon tool
+- **WHEN** a user activates the no-go area tool
+- **THEN** they can draw a polygon by clicking points on the map
+
+#### Scenario: Polygon display
+- **WHEN** no-go areas exist in the session
+- **THEN** they are rendered as semi-transparent red polygons on the map
