@@ -17,6 +17,10 @@
 {$DOMAIN:trails.cool} {
 	import security_headers
 	import block_scanners
+	log {
+		output stdout
+		format json
+	}
 	reverse_proxy journal:3000
 }
 
@@ -24,8 +28,19 @@ www.{$DOMAIN:trails.cool} {
 	redir https://{$DOMAIN:trails.cool}{uri} permanent
 }
 
+grafana.{$DOMAIN:trails.cool} {
+	basicauth {
+		{$GRAFANA_USER:admin} {$GRAFANA_PASSWORD_HASH}
+	}
+	reverse_proxy grafana:3000
+}
+
 planner.{$DOMAIN:trails.cool} {
 	import security_headers
 	import block_scanners
+	log {
+		output stdout
+		format json
+	}
 	reverse_proxy planner:3001
 }

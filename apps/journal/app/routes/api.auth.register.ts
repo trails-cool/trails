@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.auth.register";
 import { startRegistration, finishRegistration, createSession, addPasskeyStart, addPasskeyFinish } from "~/lib/auth.server";
 import { sendWelcome } from "~/lib/email.server";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
@@ -18,7 +19,7 @@ export async function action({ request }: Route.ActionArgs) {
       const cookie = await createSession(newUserId, request);
       // Send welcome email (fire-and-forget — don't block registration on email)
       sendWelcome(email, username).catch((err) =>
-        console.error("[Email] Failed to send welcome email:", err),
+        logger.error({ err }, "Failed to send welcome email"),
       );
       return data({ step: "done" }, { headers: { "Set-Cookie": cookie } });
     }
