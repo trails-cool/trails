@@ -32,6 +32,8 @@ export interface YjsState {
   provider: WebsocketProvider;
   waypoints: Y.Array<Y.Map<unknown>>;
   routeData: Y.Map<unknown>;
+  noGoAreas: Y.Array<Y.Map<unknown>>;
+  notes: Y.Text;
   awareness: WebsocketProvider["awareness"];
   connected: boolean;
   setUserName: (name: string) => void;
@@ -57,6 +59,27 @@ export function useYjs(
 
     const waypoints = doc.getArray<Y.Map<unknown>>("waypoints");
     const routeData = doc.getMap("routeData");
+    const noGoAreas = doc.getArray<Y.Map<unknown>>("noGoAreas");
+    const notes = doc.getText("notes");
+
+    // --- Crash Recovery: restore state from localStorage ---
+    const storageKey = `trails:session:${sessionId}`;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const update = Uint8Array.from(atob(saved), (c) => c.charCodeAt(0));
+        Y.applyUpdate(doc, update);
+      }
+    } catch { /* localStorage unavailable or corrupted */ }
+
+    // --- Crash Recovery: periodic save to localStorage ---
+    const saveInterval = setInterval(() => {
+      try {
+        const state = Y.encodeStateAsUpdate(doc);
+        const b64 = btoa(String.fromCharCode(...state));
+        localStorage.setItem(storageKey, b64);
+      } catch { /* localStorage unavailable */ }
+    }, 10_000);
 
     const identity = getOrCreateUserIdentity();
     identityRef.current = identity;
@@ -94,6 +117,8 @@ export function useYjs(
         provider,
         waypoints,
         routeData,
+        noGoAreas,
+        notes,
         awareness: provider.awareness,
         connected,
         setUserName,
@@ -107,6 +132,9 @@ export function useYjs(
     updateState(false);
 
     return () => {
+      clearInterval(saveInterval);
+      // Clear localStorage on clean disconnect (session close)
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
       provider.destroy();
       doc.destroy();
       providerRef.current = null;

@@ -4,6 +4,7 @@ import L from "leaflet";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { baseLayers } from "@trails-cool/map";
+import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number): L.DivIcon {
@@ -126,9 +127,38 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
   );
 }
 
+function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <div className="leaflet-top leaflet-left" style={{ marginTop: 80 }}>
+      <div className="leaflet-control leaflet-bar">
+        <a
+          href="#"
+          role="button"
+          title={active ? "Cancel no-go area" : "Draw no-go area"}
+          onClick={(e) => { e.preventDefault(); onClick(); }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 30,
+            height: 30,
+            fontSize: 16,
+            background: active ? "#fecaca" : "white",
+            color: active ? "#dc2626" : "#333",
+          }}
+        >
+          ⊘
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMapProps) {
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const [routeGeoJson, setRouteGeoJson] = useState<L.LatLngExpression[] | null>(null);
+  const [noGoDrawing, setNoGoDrawing] = useState(false);
+  const toggleNoGoDraw = useCallback(() => setNoGoDrawing((v) => !v), []);
 
   // Sync waypoints from Yjs
   useEffect(() => {
@@ -215,8 +245,10 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
         ))}
       </LayersControl>
 
-      <MapClickHandler onAdd={addWaypoint} />
+      <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} />
       <CursorTracker awareness={yjs.awareness} />
+      <NoGoAreaLayer noGoAreas={yjs.noGoAreas} doc={yjs.doc} enabled={noGoDrawing} onToggle={toggleNoGoDraw} />
+      <NoGoAreaButton active={noGoDrawing} onClick={toggleNoGoDraw} />
 
       {waypoints.map((wp, i) => (
         <Marker

@@ -42,6 +42,26 @@ systemctl start fail2ban
 fail2ban-client status sshd
 ```
 
+## Email (SMTP)
+
+Transactional emails (magic link login, welcome) require an SMTP server.
+Set these env vars on the server (used by docker-compose):
+
+```bash
+# SMTP connection URL (any provider: Mailgun, SES, Postfix relay, etc.)
+export SMTP_URL="smtp://user:pass@smtp.example.com:587"
+
+# Optional: override sender address (defaults to noreply@trails.cool)
+export SMTP_FROM="trails.cool <noreply@trails.cool>"
+```
+
+DNS records for deliverability (add to your domain's DNS):
+- **SPF**: `v=spf1 include:_spf.your-smtp-provider.com ~all`
+- **DKIM**: Provider-specific TXT record for email signing
+- **DMARC**: `v=DMARC1; p=quarantine; rua=mailto:dmarc@trails.cool`
+
+In dev mode, emails are logged to console instead of sent (no SMTP needed).
+
 ## SSH Hardening
 
 Already in place:

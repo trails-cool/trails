@@ -9,10 +9,11 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const body = await request.json();
-  const { waypoints, profile, sessionId } = body as {
+  const { waypoints, profile, sessionId, noGoAreas } = body as {
     waypoints: Array<{ lat: number; lon: number }>;
     profile?: string;
     sessionId?: string;
+    noGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
   };
 
   if (!waypoints || waypoints.length < 2) {
@@ -34,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const route = await computeRoute({ waypoints, profile });
+    const route = await computeRoute({ waypoints, profile, noGoAreas });
     return data(route, {
       headers: { "X-RateLimit-Remaining": String(limit.remaining) },
     });

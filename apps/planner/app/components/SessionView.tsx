@@ -10,6 +10,7 @@ import { ExportButton } from "~/components/ExportButton";
 import { SaveToJournalButton } from "~/components/SaveToJournalButton";
 import { YjsDebugPanel } from "~/components/YjsDebugPanel";
 import { ParticipantList } from "~/components/ParticipantList";
+import { NotesPanel } from "~/components/NotesPanel";
 
 const PlannerMap = lazy(() =>
   import("~/components/PlannerMap").then((m) => ({ default: m.PlannerMap })),
@@ -104,6 +105,39 @@ function useAwarenessToasts(yjs: YjsState | null, t: TFunction) {
   return toasts;
 }
 
+function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"] }) {
+  const { t } = useTranslation("planner");
+  const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
+
+  return (
+    <aside className="hidden w-72 border-l border-gray-200 bg-white md:flex md:flex-col">
+      <div className="flex border-b border-gray-200">
+        <button
+          onClick={() => setTab("waypoints")}
+          className={`flex-1 px-3 py-2 text-xs font-medium ${tab === "waypoints" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+        >
+          {t("sidebar.waypoints", "Waypoints")}
+        </button>
+        <button
+          onClick={() => setTab("notes")}
+          className={`flex-1 px-3 py-2 text-xs font-medium ${tab === "notes" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+        >
+          {t("sidebar.notes", "Notes")}
+        </button>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        {tab === "waypoints" ? (
+          <Suspense fallback={null}>
+            <WaypointSidebar yjs={yjs} routeStats={routeStats} />
+          </Suspense>
+        ) : (
+          <NotesPanel yjs={yjs} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
 interface SessionViewProps {
   sessionId: string;
   callbackUrl?: string;
@@ -184,11 +218,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             <ElevationChart yjs={yjs} onHover={handleElevationHover} />
           </Suspense>
         </main>
-        <aside className="hidden w-72 border-l border-gray-200 bg-white md:block">
-          <Suspense fallback={null}>
-            <WaypointSidebar yjs={yjs} routeStats={routeStats} />
-          </Suspense>
-        </aside>
+        <SidebarTabs yjs={yjs} routeStats={routeStats} />
       </div>
       <YjsDebugPanel yjs={yjs} />
       {toasts.length > 0 && (

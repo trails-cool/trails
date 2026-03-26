@@ -51,6 +51,11 @@ export function useRouting(yjs: YjsState | null) {
     async (waypoints: WaypointData[]) => {
       if (!yjs || !isHost || waypoints.length < 2) return;
 
+      // Collect no-go areas from Yjs
+      const noGoAreas = yjs.noGoAreas.toArray().map((yMap) => ({
+        points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
+      })).filter((a) => a.points.length >= 3);
+
       setComputing(true);
       try {
         const response = await fetch("/api/route", {
@@ -59,9 +64,14 @@ export function useRouting(yjs: YjsState | null) {
           body: JSON.stringify({
             waypoints,
             profile: (yjs.routeData.get("profile") as string) ?? "trekking",
+            noGoAreas: noGoAreas.length > 0 ? noGoAreas : undefined,
           }),
         });
 
+        if (response.status === 429) {
+          console.warn("[Rate Limit] Route computation rate limit exceeded");
+          return;
+        }
         if (!response.ok) return;
 
         const geojson = await response.json();
@@ -100,7 +110,7 @@ export function useRouting(yjs: YjsState | null) {
   useEffect(() => {
     if (!yjs || !isHost) return;
 
-    const onProfileChange = () => {
+    const triggerRecompute = () => {
       const wps = getWaypointsFromYjs(yjs.waypoints);
       if (wps.length >= 2) {
         requestRoute(wps);
@@ -108,14 +118,23 @@ export function useRouting(yjs: YjsState | null) {
     };
 
     // Observe routeData for profile changes
-    const observer = (event: Y.YMapEvent<unknown>) => {
+    const profileObserver = (event: Y.YMapEvent<unknown>) => {
       if (event.keysChanged.has("profile")) {
-        onProfileChange();
+        triggerRecompute();
       }
     };
 
-    yjs.routeData.observe(observer);
-    return () => yjs.routeData.unobserve(observer);
+    // Observe noGoAreas for changes
+    const noGoObserver = () => {
+      triggerRecompute();
+    };
+
+    yjs.routeData.observe(profileObserver);
+    yjs.noGoAreas.observeDeep(noGoObserver);
+    return () => {
+      yjs.routeData.unobserve(profileObserver);
+      yjs.noGoAreas.unobserveDeep(noGoObserver);
+    };
   }, [yjs, isHost, requestRoute]);
 
   return { isHost, computing, routeStats, requestRoute };

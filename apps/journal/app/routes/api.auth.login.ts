@@ -1,6 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.auth.login";
 import { startAuthentication, finishAuthentication, createMagicToken, createSession } from "~/lib/auth.server";
+import { sendMagicLink } from "~/lib/email.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
@@ -22,12 +23,13 @@ export async function action({ request }: Route.ActionArgs) {
       const token = await createMagicToken(email);
       const origin = process.env.ORIGIN ?? "http://localhost:3000";
       const link = `${origin}/auth/verify?token=${token}`;
-      console.log(`[Magic Link] ${email}: ${link}`);
-
       // In dev, return the link directly so the client can auto-redirect
       if (process.env.NODE_ENV !== "production") {
+        console.log(`[Magic Link] ${email}: ${link}`);
         return data({ step: "magic-link-sent", devLink: link });
       }
+
+      await sendMagicLink(email, link);
       return data({ step: "magic-link-sent" });
     }
 

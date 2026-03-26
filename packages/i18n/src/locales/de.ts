@@ -42,6 +42,19 @@ export default {
       joined: "{{name}} ist beigetreten",
       left: "{{name}} hat die Sitzung verlassen",
     },
+    sidebar: {
+      waypoints: "Wegpunkte",
+      notes: "Notizen",
+    },
+    noGoAreas: {
+      draw: "Sperrgebiet zeichnen",
+      cancel: "Sperrgebiet abbrechen",
+      hint: "Rechtsklick auf ein Sperrgebiet zum Löschen",
+    },
+    notes: {
+      placeholder: "Notizen für diese Sitzung hinzufügen...",
+    },
+    rateLimitExceeded: "Zu viele Anfragen. Bitte versuche es später erneut.",
     elevation: {
       gain: "Höhenmeter aufwärts",
       loss: "Höhenmeter abwärts",
