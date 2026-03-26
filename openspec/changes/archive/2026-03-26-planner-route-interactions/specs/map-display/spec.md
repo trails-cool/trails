@@ -11,10 +11,6 @@ The map SHALL display the computed route as an interactive, optionally color-cod
 - **WHEN** a waypoint is added, moved, or deleted
 - **THEN** the route polyline updates after BRouter recomputes the route
 
-#### Scenario: Route is clickable
-- **WHEN** a user clicks on the route polyline
-- **THEN** a new waypoint is inserted at the clicked position (see route-splitting spec)
-
-#### Scenario: Route has midpoint handles
-- **WHEN** a route with two or more waypoints is displayed
-- **THEN** draggable midpoint handles appear on each route segment (see route-drag-reshape spec)
+#### Scenario: Ghost marker on hover
+- **WHEN** the cursor is within 15 pixels of the route polyline
+- **THEN** a transient ghost marker appears at the nearest route point, which can be clicked or dragged to insert a waypoint (see route-splitting and route-drag-reshape specs)

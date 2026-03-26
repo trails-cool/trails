@@ -121,3 +121,10 @@ Users in a planning session SHALL see who else is present and be able to identif
 #### Scenario: Leave notification
 - **WHEN** a participant leaves the session
 - **THEN** a brief toast shows "[name] left"
+
+### Requirement: Planner session data model
+The Yjs document SHALL include noGoAreas and notes fields alongside waypoints and routeData.
+
+#### Scenario: Session with all fields
+- **WHEN** a Planner session is active
+- **THEN** the Yjs doc contains: waypoints (Y.Array), routeData (Y.Map), noGoAreas (Y.Array), notes (Y.Text)
