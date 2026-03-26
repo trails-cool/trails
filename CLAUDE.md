@@ -113,7 +113,7 @@ pnpm db:studio        # Open Drizzle Studio (DB browser)
 - Use the merge queue to auto-merge when CI passes:
   ```bash
   gh pr create --title "..." --body "..."
-  gh pr merge --merge-queue
+  gh pr merge --auto
   ```
 
 ### Stacking PRs (for fast local iteration)
