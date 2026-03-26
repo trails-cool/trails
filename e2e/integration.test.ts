@@ -46,10 +46,10 @@ test.describe("Integration: BRouter routing", () => {
       },
     });
     expect(response.ok()).toBeTruthy();
-    const geojson = await response.json();
-    expect(geojson.features).toHaveLength(1);
-    expect(geojson.features[0].geometry.type).toBe("LineString");
-    expect(geojson.features[0].geometry.coordinates.length).toBeGreaterThan(10);
+    const enriched = await response.json();
+    expect(enriched.geojson.features).toHaveLength(1);
+    expect(enriched.geojson.features[0].geometry.type).toBe("LineString");
+    expect(enriched.coordinates.length).toBeGreaterThan(10);
   });
 
   test("routes through all waypoints (segment by segment)", async ({ request }) => {
@@ -64,8 +64,8 @@ test.describe("Integration: BRouter routing", () => {
       },
     });
     expect(response.ok()).toBeTruthy();
-    const geojson = await response.json();
-    const coords = geojson.features[0].geometry.coordinates;
+    const enriched = await response.json();
+    const coords = enriched.coordinates;
 
     const nearMiddle = coords.some(
       (c: number[]) =>
@@ -95,6 +95,32 @@ test.describe("Integration: BRouter routing", () => {
     expect(response.status()).toBe(400);
   });
 
+  test("returns enriched route with segment boundaries", async ({ request }) => {
+    const response = await request.post(`${PLANNER}/api/route`, {
+      data: {
+        waypoints: [
+          { lat: 52.520, lon: 13.405 },
+          { lat: 52.516, lon: 13.377 },
+          { lat: 52.510, lon: 13.390 },
+        ],
+        profile: "trekking",
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    const enriched = await response.json();
+
+    // EnrichedRoute fields
+    expect(enriched.coordinates).toBeDefined();
+    expect(enriched.coordinates.length).toBeGreaterThan(10);
+    expect(enriched.coordinates[0]).toHaveLength(3); // [lon, lat, ele]
+    expect(enriched.segmentBoundaries).toBeDefined();
+    expect(enriched.segmentBoundaries).toHaveLength(2); // 3 waypoints = 2 segments
+    expect(enriched.segmentBoundaries[0]).toBe(0);
+    expect(enriched.totalLength).toBeGreaterThan(0);
+    expect(enriched.geojson).toBeDefined();
+    expect(enriched.geojson.features[0].geometry.type).toBe("LineString");
+  });
+
   test("accepts no-go areas parameter", async ({ request }) => {
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
@@ -116,8 +142,8 @@ test.describe("Integration: BRouter routing", () => {
       },
     });
     expect(response.ok()).toBeTruthy();
-    const geojson = await response.json();
-    expect(geojson.features).toHaveLength(1);
-    expect(geojson.features[0].geometry.type).toBe("LineString");
+    const enriched = await response.json();
+    expect(enriched.geojson.features).toHaveLength(1);
+    expect(enriched.geojson.features[0].geometry.type).toBe("LineString");
   });
 });

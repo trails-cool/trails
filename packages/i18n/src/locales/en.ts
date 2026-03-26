@@ -54,6 +54,13 @@ export default {
     notes: {
       placeholder: "Add notes for this session...",
     },
+    colorMode: {
+      label: "Route Color",
+      plain: "Plain",
+      elevation: "Elevation",
+      surface: "Surface",
+      surfaceUnavailable: "Surface data not available for this profile",
+    },
     rateLimitExceeded: "Too many requests. Please try again later.",
     elevation: {
       gain: "Elevation Gain",

@@ -12,12 +12,22 @@ export interface RouteRequest {
   noGoAreas?: NoGoArea[];
 }
 
+export interface EnrichedRoute {
+  coordinates: [number, number, number][]; // [lon, lat, ele]
+  segmentBoundaries: number[];             // coordinate index where each waypoint segment starts
+  surfaces: string[];                      // surface type per coordinate point (e.g. "asphalt", "gravel")
+  totalLength: number;
+  totalAscend: number;
+  totalTime: number;
+  geojson: GeoJsonCollection;              // original merged GeoJSON for backwards compat
+}
+
 /**
  * Compute a route segment-by-segment between consecutive waypoints.
  * This matches bikerouter.de's behavior and guarantees the route
  * passes through every waypoint.
  */
-export async function computeRoute(request: RouteRequest): Promise<unknown> {
+export async function computeRoute(request: RouteRequest): Promise<EnrichedRoute> {
   if (request.waypoints.length < 2) {
     throw new Error("At least 2 waypoints are required");
   }
@@ -40,6 +50,7 @@ export async function computeRoute(request: RouteRequest): Promise<unknown> {
         profile,
         alternativeidx: "0",
         format,
+        tiledesc: "true",
       });
       if (nogoParam) params.set("nogos", nogoParam);
       return fetchSegment(`${BROUTER_URL}/brouter?${params}`);
@@ -70,8 +81,10 @@ interface GeoJsonCollection {
   features: GeoJsonFeature[];
 }
 
-function mergeGeoJsonSegments(segments: Record<string, unknown>[]): GeoJsonCollection {
-  const allCoords: number[][] = [];
+export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): EnrichedRoute {
+  const allCoords: [number, number, number][] = [];
+  const allSurfaces: string[] = [];
+  const segmentBoundaries: number[] = [];
   let totalLength = 0;
   let totalAscend = 0;
   let totalTime = 0;
@@ -81,11 +94,19 @@ function mergeGeoJsonSegments(segments: Record<string, unknown>[]): GeoJsonColle
     const feature = segment.features?.[0];
     if (!feature) continue;
 
+    // Record where this segment starts in the merged coordinate array
+    segmentBoundaries.push(allCoords.length);
+
     const coords = feature.geometry.coordinates;
+    // Extract surface data from BRouter messages (tiledesc=true)
+    const surfaceMap = extractSurfacesFromMessages(feature.properties);
+
     // Skip first point of subsequent segments to avoid duplicates
     const startIdx = i === 0 ? 0 : 1;
     for (let j = startIdx; j < coords.length; j++) {
-      allCoords.push(coords[j]!);
+      const c = coords[j]!;
+      allCoords.push([c[0]!, c[1]!, c[2] ?? 0]);
+      allSurfaces.push(surfaceMap.get(j) ?? surfaceMap.get(j - 1) ?? "unknown");
     }
 
     // Accumulate stats
@@ -95,7 +116,7 @@ function mergeGeoJsonSegments(segments: Record<string, unknown>[]): GeoJsonColle
     totalTime += parseInt(String(props["total-time"] ?? "0"));
   }
 
-  return {
+  const geojson: GeoJsonCollection = {
     type: "FeatureCollection",
     features: [
       {
@@ -113,6 +134,39 @@ function mergeGeoJsonSegments(segments: Record<string, unknown>[]): GeoJsonColle
       },
     ],
   };
+
+  return {
+    coordinates: allCoords,
+    segmentBoundaries,
+    surfaces: allSurfaces,
+    totalLength,
+    totalAscend,
+    totalTime,
+    geojson,
+  };
+}
+
+/**
+ * Extract surface type per message row from BRouter's tiledesc messages.
+ * Messages is an array of arrays: first row is headers, subsequent rows are data.
+ * We look for the "WayTags" column which contains OSM tags like "surface=asphalt".
+ */
+function extractSurfacesFromMessages(properties: Record<string, unknown>): Map<number, string> {
+  const result = new Map<number, string>();
+  const messages = properties.messages as string[][] | undefined;
+  if (!messages || messages.length < 2) return result;
+
+  const headers = messages[0]!;
+  const wayTagsIdx = headers.indexOf("WayTags");
+  if (wayTagsIdx === -1) return result;
+
+  for (let i = 1; i < messages.length; i++) {
+    const row = messages[i]!;
+    const tags = row[wayTagsIdx] ?? "";
+    const surfaceMatch = tags.match(/surface=(\S+)/);
+    result.set(i - 1, surfaceMatch ? surfaceMatch[1]! : "unknown");
+  }
+  return result;
 }
 
 /**

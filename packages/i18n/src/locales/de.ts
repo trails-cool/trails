@@ -54,6 +54,13 @@ export default {
     notes: {
       placeholder: "Notizen für diese Sitzung hinzufügen...",
     },
+    colorMode: {
+      label: "Routenfarbe",
+      plain: "Standard",
+      elevation: "Höhe",
+      surface: "Untergrund",
+      surfaceUnavailable: "Untergrunddaten für dieses Profil nicht verfügbar",
+    },
     rateLimitExceeded: "Zu viele Anfragen. Bitte versuche es später erneut.",
     elevation: {
       gain: "Höhenmeter aufwärts",

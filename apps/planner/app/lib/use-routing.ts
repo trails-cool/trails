@@ -74,20 +74,22 @@ export function useRouting(yjs: YjsState | null) {
         }
         if (!response.ok) return;
 
-        const geojson = await response.json();
+        const enriched = await response.json();
 
-        const props = geojson.features?.[0]?.properties;
-        if (props) {
-          setRouteStats({
-            distance: props["track-length"] ? parseInt(props["track-length"]) : undefined,
-            elevationGain: props["filtered ascend"] ? parseInt(props["filtered ascend"]) : undefined,
-            elevationLoss: props["plain-ascend"]
-              ? Math.abs(parseInt(props["plain-ascend"]))
-              : undefined,
-          });
-        }
+        setRouteStats({
+          distance: enriched.totalLength || undefined,
+          elevationGain: enriched.totalAscend || undefined,
+        });
 
-        yjs.routeData.set("geojson", JSON.stringify(geojson));
+        // Store enriched route data in Yjs for all participants
+        yjs.doc.transact(() => {
+          yjs.routeData.set("geojson", JSON.stringify(enriched.geojson));
+          yjs.routeData.set("coordinates", JSON.stringify(enriched.coordinates));
+          yjs.routeData.set("segmentBoundaries", JSON.stringify(enriched.segmentBoundaries));
+          if (enriched.surfaces?.length) {
+            yjs.routeData.set("surfaces", JSON.stringify(enriched.surfaces));
+          }
+        });
       } catch {
         // Route computation failed
       } finally {

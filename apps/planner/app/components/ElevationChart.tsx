@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import type { YjsState } from "~/lib/use-yjs";
+import { elevationColor, type ColorMode } from "~/components/ColoredRoute";
 
 interface ElevationPoint {
   distance: number;
@@ -59,6 +60,7 @@ interface ElevationChartProps {
 export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
   const [points, setPoints] = useState<ElevationPoint[]>([]);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [colorMode, setColorMode] = useState<ColorMode>("plain");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<ElevationPoint[]>([]);
   pointsRef.current = points;
@@ -71,6 +73,8 @@ export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
       } else {
         setPoints([]);
       }
+      const mode = yjs.routeData.get("colorMode") as ColorMode | undefined;
+      setColorMode(mode ?? "plain");
     };
     yjs.routeData.observe(update);
     update();
@@ -107,27 +111,54 @@ export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
 
       ctx.clearRect(0, 0, w, h);
 
-      // Fill area
-      ctx.beginPath();
-      ctx.moveTo(PADDING.left, PADDING.top + chartH);
-      for (const p of points) {
-        ctx.lineTo(toX(p.distance), toY(p.elevation));
-      }
-      ctx.lineTo(PADDING.left + chartW, PADDING.top + chartH);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(37, 99, 235, 0.15)";
-      ctx.fill();
+      if (colorMode === "elevation") {
+        // Elevation-colored fill and line segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const t = (p0.elevation - minEle) / eleRange;
+          const color = elevationColor(t);
 
-      // Line
-      ctx.beginPath();
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i]!;
-        if (i === 0) ctx.moveTo(toX(p.distance), toY(p.elevation));
-        else ctx.lineTo(toX(p.distance), toY(p.elevation));
+          // Fill segment
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color.replace("rgb", "rgba").replace(")", ", 0.2)");
+          ctx.fill();
+
+          // Line segment
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else {
+        // Plain fill and line
+        ctx.beginPath();
+        ctx.moveTo(PADDING.left, PADDING.top + chartH);
+        for (const p of points) {
+          ctx.lineTo(toX(p.distance), toY(p.elevation));
+        }
+        ctx.lineTo(PADDING.left + chartW, PADDING.top + chartH);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(37, 99, 235, 0.15)";
+        ctx.fill();
+
+        ctx.beginPath();
+        for (let i = 0; i < points.length; i++) {
+          const p = points[i]!;
+          if (i === 0) ctx.moveTo(toX(p.distance), toY(p.elevation));
+          else ctx.lineTo(toX(p.distance), toY(p.elevation));
+        }
+        ctx.strokeStyle = "#2563eb";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
-      ctx.strokeStyle = "#2563eb";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
       // Axis labels
       ctx.fillStyle = "#6b7280";
@@ -172,12 +203,12 @@ export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
         ctx.fillText(label, labelX, PADDING.top + 10);
       }
     },
-    [points],
+    [points, colorMode],
   );
 
   useEffect(() => {
     drawChart(hoverIdx);
-  }, [points, hoverIdx, drawChart]);
+  }, [points, hoverIdx, colorMode, drawChart]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {

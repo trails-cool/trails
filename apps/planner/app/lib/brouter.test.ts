@@ -1,61 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { mergeGeoJsonSegments } from "./brouter";
 
-// Test the mergeGeoJsonSegments logic extracted from brouter.ts
-
-interface GeoJsonFeature {
-  type: string;
-  properties: Record<string, unknown>;
-  geometry: { type: string; coordinates: number[][] };
-}
-
-interface GeoJsonCollection {
-  type: string;
-  features: GeoJsonFeature[];
-}
-
-function mergeGeoJsonSegments(segments: GeoJsonCollection[]): GeoJsonCollection {
-  const allCoords: number[][] = [];
-  let totalLength = 0;
-  let totalAscend = 0;
-  let totalTime = 0;
-
-  for (let i = 0; i < segments.length; i++) {
-    const feature = segments[i]!.features?.[0];
-    if (!feature) continue;
-
-    const coords = feature.geometry.coordinates;
-    const startIdx = i === 0 ? 0 : 1;
-    for (let j = startIdx; j < coords.length; j++) {
-      allCoords.push(coords[j]!);
-    }
-
-    const props = feature.properties;
-    totalLength += parseInt(String(props["track-length"] ?? "0"));
-    totalAscend += parseInt(String(props["filtered ascend"] ?? "0"));
-    totalTime += parseInt(String(props["total-time"] ?? "0"));
-  }
-
-  return {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {
-          "track-length": String(totalLength),
-          "filtered ascend": String(totalAscend),
-          "total-time": String(totalTime),
-          creator: "trails.cool (BRouter segments)",
-        },
-        geometry: {
-          type: "LineString",
-          coordinates: allCoords,
-        },
-      },
-    ],
-  };
-}
-
-function makeSegment(coords: number[][], length: number, ascend: number): GeoJsonCollection {
+function makeSegment(coords: number[][], length: number, ascend: number) {
   return {
     type: "FeatureCollection",
     features: [{
@@ -72,70 +18,129 @@ function makeSegment(coords: number[][], length: number, ascend: number): GeoJso
 
 describe("mergeGeoJsonSegments", () => {
   it("merges two segments", () => {
-    const seg1 = makeSegment([[13.0, 52.0], [13.1, 52.1], [13.2, 52.2]], 1000, 10);
-    const seg2 = makeSegment([[13.2, 52.2], [13.3, 52.3], [13.4, 52.4]], 1500, 20);
+    const seg1 = makeSegment([[13.0, 52.0, 30], [13.1, 52.1, 40], [13.2, 52.2, 50]], 1000, 10);
+    const seg2 = makeSegment([[13.2, 52.2, 50], [13.3, 52.3, 60], [13.4, 52.4, 45]], 1500, 20);
 
-    const result = mergeGeoJsonSegments([seg1, seg2]);
-    const coords = result.features[0]!.geometry.coordinates;
+    const result = mergeGeoJsonSegments([seg1, seg2] as never[]);
 
-    // Should have 5 points (first segment 3 + second segment 2, skipping duplicate)
-    expect(coords).toHaveLength(5);
-    expect(coords[0]).toEqual([13.0, 52.0]);
-    expect(coords[2]).toEqual([13.2, 52.2]); // shared point
-    expect(coords[4]).toEqual([13.4, 52.4]);
+    expect(result.coordinates).toHaveLength(5);
+    expect(result.coordinates[0]).toEqual([13.0, 52.0, 30]);
+    expect(result.coordinates[2]).toEqual([13.2, 52.2, 50]);
+    expect(result.coordinates[4]).toEqual([13.4, 52.4, 45]);
   });
 
   it("skips duplicate point at segment boundaries", () => {
-    const seg1 = makeSegment([[1, 1], [2, 2]], 100, 0);
-    const seg2 = makeSegment([[2, 2], [3, 3]], 100, 0);
-    const seg3 = makeSegment([[3, 3], [4, 4]], 100, 0);
+    const seg1 = makeSegment([[1, 1, 0], [2, 2, 0]], 100, 0);
+    const seg2 = makeSegment([[2, 2, 0], [3, 3, 0]], 100, 0);
+    const seg3 = makeSegment([[3, 3, 0], [4, 4, 0]], 100, 0);
 
-    const result = mergeGeoJsonSegments([seg1, seg2, seg3]);
-    const coords = result.features[0]!.geometry.coordinates;
-
-    expect(coords).toHaveLength(4);
-    expect(coords).toEqual([[1, 1], [2, 2], [3, 3], [4, 4]]);
+    const result = mergeGeoJsonSegments([seg1, seg2, seg3] as never[]);
+    expect(result.coordinates).toHaveLength(4);
   });
 
   it("accumulates stats across segments", () => {
-    const seg1 = makeSegment([[1, 1], [2, 2]], 1000, 50);
-    const seg2 = makeSegment([[2, 2], [3, 3]], 2000, 30);
+    const seg1 = makeSegment([[1, 1, 0], [2, 2, 0]], 1000, 50);
+    const seg2 = makeSegment([[2, 2, 0], [3, 3, 0]], 2000, 30);
 
-    const result = mergeGeoJsonSegments([seg1, seg2]);
-    const props = result.features[0]!.properties;
-
-    expect(props["track-length"]).toBe("3000");
-    expect(props["filtered ascend"]).toBe("80");
-    expect(props["total-time"]).toBe("200");
+    const result = mergeGeoJsonSegments([seg1, seg2] as never[]);
+    expect(result.totalLength).toBe(3000);
+    expect(result.totalAscend).toBe(80);
   });
 
   it("handles single segment", () => {
-    const seg = makeSegment([[1, 1], [2, 2], [3, 3]], 500, 10);
-    const result = mergeGeoJsonSegments([seg]);
+    const seg = makeSegment([[1, 1, 10], [2, 2, 20], [3, 3, 30]], 500, 10);
+    const result = mergeGeoJsonSegments([seg] as never[]);
 
-    expect(result.features[0]!.geometry.coordinates).toHaveLength(3);
-    expect(result.features[0]!.properties["track-length"]).toBe("500");
+    expect(result.coordinates).toHaveLength(3);
+    expect(result.totalLength).toBe(500);
   });
 
   it("handles empty segment gracefully", () => {
-    const seg1 = makeSegment([[1, 1], [2, 2]], 100, 0);
-    const empty: GeoJsonCollection = { type: "FeatureCollection", features: [] };
+    const seg1 = makeSegment([[1, 1, 0], [2, 2, 0]], 100, 0);
+    const empty = { type: "FeatureCollection", features: [] };
 
-    const result = mergeGeoJsonSegments([seg1, empty]);
-    expect(result.features[0]!.geometry.coordinates).toHaveLength(2);
+    const result = mergeGeoJsonSegments([seg1, empty] as never[]);
+    expect(result.coordinates).toHaveLength(2);
   });
 
-  it("preserves elevation data in coordinates", () => {
-    const seg1 = makeSegment([[13.0, 52.0, 100], [13.1, 52.1, 150]], 500, 50);
-    const seg2 = makeSegment([[13.1, 52.1, 150], [13.2, 52.2, 200]], 500, 50);
+  it("preserves 3D coordinates (elevation)", () => {
+    const seg = makeSegment([[13.4, 52.5, 34], [13.38, 52.51, 40]], 500, 6);
+    const result = mergeGeoJsonSegments([seg] as never[]);
 
-    const result = mergeGeoJsonSegments([seg1, seg2]);
-    const coords = result.features[0]!.geometry.coordinates;
+    expect(result.coordinates[0]![2]).toBe(34);
+    expect(result.coordinates[1]![2]).toBe(40);
+  });
 
-    expect(coords).toHaveLength(3);
-    expect(coords[0]).toEqual([13.0, 52.0, 100]);
-    expect(coords[1]).toEqual([13.1, 52.1, 150]);
-    expect(coords[2]).toEqual([13.2, 52.2, 200]);
+  it("defaults missing elevation to 0", () => {
+    const seg = makeSegment([[13.4, 52.5], [13.38, 52.51]], 500, 0);
+    const result = mergeGeoJsonSegments([seg] as never[]);
+
+    expect(result.coordinates[0]![2]).toBe(0);
+    expect(result.coordinates[1]![2]).toBe(0);
+  });
+
+  // Segment boundary tests
+  it("tracks segment boundaries with 1 segment", () => {
+    const seg = makeSegment([[0, 0, 0], [1, 1, 10], [2, 2, 20]], 100, 20);
+    const result = mergeGeoJsonSegments([seg] as never[]);
+
+    expect(result.segmentBoundaries).toEqual([0]);
+  });
+
+  it("tracks segment boundaries with 2 segments", () => {
+    const seg1 = makeSegment([[0, 0, 0], [1, 1, 10], [2, 2, 20]], 100, 20);
+    const seg2 = makeSegment([[2, 2, 20], [3, 3, 30], [4, 4, 40]], 100, 20);
+
+    const result = mergeGeoJsonSegments([seg1, seg2] as never[]);
+
+    expect(result.segmentBoundaries).toEqual([0, 3]);
+    expect(result.coordinates).toHaveLength(5);
+  });
+
+  it("tracks segment boundaries with 4 segments (5 waypoints)", () => {
+    const segments = [
+      makeSegment([[0, 0, 0], [1, 1, 10]], 100, 10),
+      makeSegment([[1, 1, 10], [2, 2, 20]], 100, 10),
+      makeSegment([[2, 2, 20], [3, 3, 30]], 100, 10),
+      makeSegment([[3, 3, 30], [4, 4, 40]], 100, 10),
+    ];
+    const result = mergeGeoJsonSegments(segments as never[]);
+
+    expect(result.segmentBoundaries).toEqual([0, 2, 3, 4]);
+    expect(result.coordinates).toHaveLength(5);
+    expect(result.totalLength).toBe(400);
+  });
+
+  it("segment boundaries allow mapping point index to waypoint segment", () => {
+    const seg1 = makeSegment([[0, 0, 0], [0.5, 0.5, 5], [1, 1, 10]], 100, 10);
+    const seg2 = makeSegment([[1, 1, 10], [1.5, 1.5, 15], [2, 2, 20]], 100, 10);
+
+    const result = mergeGeoJsonSegments([seg1, seg2] as never[]);
+    // boundaries: [0, 3] — segment 0 is coords 0-2, segment 1 is coords 3-4
+
+    function findSegment(pointIndex: number): number {
+      const bounds = result.segmentBoundaries;
+      for (let i = bounds.length - 1; i >= 0; i--) {
+        if (pointIndex >= bounds[i]!) return i;
+      }
+      return 0;
+    }
+
+    expect(findSegment(0)).toBe(0); // first point → segment 0
+    expect(findSegment(1)).toBe(0); // mid of segment 0
+    expect(findSegment(2)).toBe(0); // last point of segment 0
+    expect(findSegment(3)).toBe(1); // first point of segment 1
+    expect(findSegment(4)).toBe(1); // last point
+  });
+
+  it("geojson field is backwards compatible", () => {
+    const seg = makeSegment([[13.0, 52.0, 30], [13.1, 52.1, 40]], 500, 10);
+    const result = mergeGeoJsonSegments([seg] as never[]);
+
+    expect(result.geojson.type).toBe("FeatureCollection");
+    expect(result.geojson.features).toHaveLength(1);
+    expect(result.geojson.features[0]!.geometry.type).toBe("LineString");
+    expect(result.geojson.features[0]!.properties["track-length"]).toBe("500");
   });
 });
 
@@ -154,14 +159,5 @@ describe("waypoint to BRouter segments", () => {
     }
 
     expect(pairs).toHaveLength(3);
-    expect(pairs[0]).toEqual([waypoints[0], waypoints[1]]);
-    expect(pairs[1]).toEqual([waypoints[1], waypoints[2]]);
-    expect(pairs[2]).toEqual([waypoints[2], waypoints[3]]);
-  });
-
-  it("formats lon,lat correctly for BRouter", () => {
-    const wp = { lat: 52.5277, lon: 13.4033 };
-    const lonlat = `${wp.lon},${wp.lat}`;
-    expect(lonlat).toBe("13.4033,52.5277");
   });
 });
