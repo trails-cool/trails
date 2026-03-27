@@ -140,6 +140,32 @@ before pushing to an existing PR branch.
 ### Emergency override
 Admins can bypass the PR workflow when necessary (e.g., CI is broken and needs a hotfix). Document the reason in the commit message.
 
+## Deployment
+
+Three separate CD workflows triggered by path:
+
+| Workflow | Triggers on | Deploys |
+|----------|-------------|---------|
+| `cd-apps.yml` | `apps/`, `packages/`, `pnpm-lock.yaml` | journal, planner |
+| `cd-infra.yml` | `infrastructure/` | caddy, postgres, prometheus, loki, grafana, exporters |
+| `cd-brouter.yml` | `docker/brouter/` | brouter |
+
+### Secrets
+All secrets are stored in SOPS-encrypted files (`infrastructure/secrets.app.env`, `infrastructure/secrets.infra.env`). Edit with `sops infrastructure/secrets.app.env`. Only `AGE_SECRET_KEY`, `DEPLOY_SSH_KEY`, and `DEPLOY_HOST` remain as GitHub secrets.
+
+### Full restart
+To restart **all** containers (not just the ones a workflow normally touches), either:
+- Add `[restart-all]` to the commit message
+- Or trigger manually: `gh workflow run cd-infra.yml -f restart_all=true`
+
+### Server access
+```bash
+ssh -i ~/.ssh/trails-cool-deploy root@trails.cool
+```
+
+### Grafana
+`https://grafana.internal.trails.cool` — GitHub OAuth (trails-cool org)
+
 ## OpenSpec Workflow
 
 Specs live in `openspec/`. Use these slash commands:
