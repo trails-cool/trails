@@ -82,7 +82,7 @@ contactPoints:
       - uid: email-default
         type: email
         settings:
-          addresses: ${ALERT_EMAIL:-admin@trails.cool}
+          addresses: admin@trails.cool
 
 policies:
   - orgId: 1
