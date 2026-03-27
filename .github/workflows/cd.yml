@@ -123,6 +123,9 @@ jobs:
             # Clean up old images to prevent disk full
             docker image prune -af
 
-            # Verify services are running
+            # Sync Grafana admin credentials (env vars only work on first boot)
             sleep 10
+            docker compose exec -T grafana grafana cli admin reset-admin-password "$GRAFANA_PASSWORD" || true
+
+            # Verify services are running
             docker compose ps
