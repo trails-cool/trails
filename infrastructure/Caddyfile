@@ -29,7 +29,7 @@ www.{$DOMAIN:trails.cool} {
 }
 
 grafana.internal.{$DOMAIN:trails.cool} {
-	basicauth {
+	basic_auth {
 		{$GRAFANA_USER:admin} {$GRAFANA_PASSWORD_HASH}
 	}
 	reverse_proxy grafana:3000
