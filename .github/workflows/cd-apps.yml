@@ -38,7 +38,7 @@ jobs:
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
           SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
-          grep SENTRY_AUTH_TOKEN /tmp/secrets.env | cut -d= -f2- > /tmp/sentry_token
+          grep SENTRY_AUTH_TOKEN /tmp/secrets.env | cut -d= -f2- | tr -d '\n' > /tmp/sentry_token
 
       - uses: docker/build-push-action@v7
         with:
