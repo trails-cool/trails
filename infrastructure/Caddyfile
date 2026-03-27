@@ -40,7 +40,14 @@ grafana.internal.{$DOMAIN:trails.cool} {
 }
 
 planner.{$DOMAIN:trails.cool} {
-	import security_headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' wss: https://{$DOMAIN:trails.cool} https://*.sentry.io https://*.ingest.de.sentry.io; font-src 'self';"
+	}
 	import block_scanners
 	log {
 		output stdout
