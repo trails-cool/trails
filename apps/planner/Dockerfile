@@ -18,7 +18,7 @@ ARG SENTRY_RELEASE
 COPY --from=deps /app/ ./
 COPY . .
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
-    SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null)" \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null | tr -d '\n\r')" \
     SENTRY_RELEASE="$SENTRY_RELEASE" \
     pnpm --filter @trails-cool/planner build
 
