@@ -8,22 +8,22 @@ groups:
     rules:
       - uid: disk-usage-high
         title: Disk usage > 80%
-        condition: C
+        condition: B
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: prometheus
             model:
               expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100
-              intervalMs: 60000
-              maxDataPoints: 43200
-          - refId: C
-            relativeTimeRange: { from: 600, to: 0 }
+              instant: true
+          - refId: B
             datasourceUid: __expr__
             model:
               type: threshold
+              expression: A
               conditions:
                 - evaluator: { params: [80], type: gt }
+                  operator: { type: and }
                   reducer: { type: last }
         for: 15m
         annotations:
@@ -31,22 +31,22 @@ groups:
 
       - uid: app-health-failing
         title: App health check failing
-        condition: C
+        condition: B
         data:
           - refId: A
             relativeTimeRange: { from: 300, to: 0 }
             datasourceUid: prometheus
             model:
-              expr: up{job=~"journal|planner"} == 0
-              intervalMs: 15000
-              maxDataPoints: 43200
-          - refId: C
-            relativeTimeRange: { from: 300, to: 0 }
+              expr: up{job=~"journal|planner"}
+              instant: true
+          - refId: B
             datasourceUid: __expr__
             model:
               type: threshold
+              expression: A
               conditions:
-                - evaluator: { params: [0], type: gt }
+                - evaluator: { params: [1], type: lt }
+                  operator: { type: and }
                   reducer: { type: last }
         for: 2m
         annotations:
@@ -54,22 +54,22 @@ groups:
 
       - uid: error-rate-high
         title: Error rate > 5%
-        condition: C
+        condition: B
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: prometheus
             model:
               expr: sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) / sum(rate(http_request_duration_seconds_count[5m])) * 100
-              intervalMs: 60000
-              maxDataPoints: 43200
-          - refId: C
-            relativeTimeRange: { from: 600, to: 0 }
+              instant: true
+          - refId: B
             datasourceUid: __expr__
             model:
               type: threshold
+              expression: A
               conditions:
                 - evaluator: { params: [5], type: gt }
+                  operator: { type: and }
                   reducer: { type: last }
         for: 5m
         annotations:
