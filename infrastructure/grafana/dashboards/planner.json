@@ -1,0 +1,40 @@
+{
+  "dashboard": {
+    "title": "Planner",
+    "uid": "trails-planner",
+    "timezone": "browser",
+    "refresh": "30s",
+    "panels": [
+      {
+        "title": "Active Sessions",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+        "targets": [{ "expr": "planner_active_sessions", "legendFormat": "Sessions" }]
+      },
+      {
+        "title": "Connected Clients",
+        "type": "stat",
+        "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+        "targets": [{ "expr": "planner_connected_clients", "legendFormat": "Clients" }]
+      },
+      {
+        "title": "BRouter Latency",
+        "type": "timeseries",
+        "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          { "expr": "histogram_quantile(0.50, rate(brouter_request_duration_seconds_bucket[5m]))", "legendFormat": "p50" },
+          { "expr": "histogram_quantile(0.95, rate(brouter_request_duration_seconds_bucket[5m]))", "legendFormat": "p95" }
+        ],
+        "fieldConfig": { "defaults": { "unit": "s" } }
+      },
+      {
+        "title": "Request Rate by Route",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+        "targets": [
+          { "expr": "sum(rate(http_request_duration_seconds_count{job=\"planner\"}[5m])) by (route)", "legendFormat": "{{route}}" }
+        ]
+      }
+    ]
+  }
+}

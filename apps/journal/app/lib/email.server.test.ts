@@ -7,6 +7,11 @@ vi.mock("nodemailer", () => ({
   }),
 }));
 
+// Mock logger
+vi.mock("./logger.server", () => ({
+  logger: { info: vi.fn(), debug: vi.fn(), error: vi.fn(), warn: vi.fn() },
+}));
+
 describe("email.server", () => {
   const originalEnv = process.env.NODE_ENV;
 
@@ -19,29 +24,27 @@ describe("email.server", () => {
     delete process.env.SMTP_URL;
   });
 
-  it("logs to console in dev mode", async () => {
+  it("uses logger in dev mode instead of sending email", async () => {
     process.env.NODE_ENV = "development";
     const { sendEmail } = await import("./email.server");
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { logger } = await import("./logger.server");
 
     await sendEmail("test@example.com", "Test Subject", "<p>Hello</p>", "Hello");
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("test@example.com"),
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "test@example.com" }),
+      expect.any(String),
     );
-    consoleSpy.mockRestore();
   });
 
   it("does not call SMTP in dev mode", async () => {
     process.env.NODE_ENV = "development";
     const nodemailer = await import("nodemailer");
     const { sendEmail } = await import("./email.server");
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     await sendEmail("test@example.com", "Test", "<p>Hi</p>", "Hi");
 
     expect(nodemailer.createTransport).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 
   it("magicLinkTemplate includes link and expiry note", async () => {

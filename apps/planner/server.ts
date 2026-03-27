@@ -1,4 +1,6 @@
 import * as Sentry from "@sentry/node";
+import { logger } from "./app/lib/logger.server.ts";
+import { httpRequestDuration } from "./app/lib/metrics.server.ts";
 import { createRequestListener } from "@react-router/node";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream, statSync } from "node:fs";
@@ -62,7 +64,44 @@ const listener = createRequestListener({
   build: () => import("./build/server/index.js") as never,
 });
 
+async function handleMetrics(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const { registry } = await import("./app/lib/metrics.server.ts");
+  const metrics = await registry.metrics();
+  res.writeHead(200, { "Content-Type": registry.contentType });
+  res.end(metrics);
+}
+
+async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+  try {
+    const { withDb, db } = await import("@trails-cool/db");
+    const { sql } = await import("drizzle-orm");
+    await withDb(async () => { await db.execute(sql`SELECT 1`); });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", db: "connected" }));
+  } catch {
+    res.writeHead(503, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "degraded", db: "unreachable" }));
+  }
+}
+
 const server = createServer((req, res) => {
+  const url = req.url ?? "/";
+  const start = Date.now();
+
+  // Log and track request on finish (skip static assets and health/metrics)
+  if (!url.startsWith("/assets/") && url !== "/health" && url !== "/metrics") {
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      logger.info({ method: req.method, path: url, status: res.statusCode, duration }, "request");
+      httpRequestDuration.observe(
+        { method: req.method ?? "GET", route: url.split("?")[0]!, status: String(res.statusCode) },
+        duration / 1000,
+      );
+    });
+  }
+
+  if (url === "/health") { handleHealth(req, res); return; }
+  if (url === "/metrics") { handleMetrics(req, res); return; }
   if (!serveStatic(req, res)) {
     listener(req, res);
   }
@@ -71,6 +110,6 @@ const server = createServer((req, res) => {
 setupYjsWebSocket(server);
 
 server.listen(port, () => {
-  console.log(`Planner server listening on http://localhost:${port}`);
-  console.log(`Yjs WebSocket available at ws://localhost:${port}/sync/:sessionId`);
+  logger.info({ port }, "Planner server listening");
+  logger.info({ port, path: "/sync/:sessionId" }, "Yjs WebSocket available");
 });

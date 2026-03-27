@@ -1,4 +1,5 @@
 import { createTransport, type Transporter } from "nodemailer";
+import { logger } from "./logger.server";
 
 const FROM = process.env.SMTP_FROM ?? "trails.cool <noreply@trails.cool>";
 
@@ -19,8 +20,8 @@ export async function sendEmail(
   text: string,
 ): Promise<void> {
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[Email] To: ${to} | Subject: ${subject}`);
-    console.log(`[Email] Text:\n${text}`);
+    logger.info({ to, subject }, "Email sent (dev mode — logged, not delivered)");
+    logger.debug({ text }, "Email text content");
     return;
   }
 
