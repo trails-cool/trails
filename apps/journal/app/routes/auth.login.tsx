@@ -47,7 +47,12 @@ export default function LoginPage() {
         window.location.href = "/";
       }
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      if (message.includes("timed out") || message.includes("not allowed")) {
+        setError("No passkey found for this site. Register a new account or use a magic link instead.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }

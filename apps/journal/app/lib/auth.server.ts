@@ -81,7 +81,7 @@ export async function finishRegistration(
   await db.insert(credentials).values({
     id: randomUUID(),
     userId,
-    credentialId: Buffer.from(credential.id),
+    credentialId: Buffer.from(credential.id, "base64url"),
     publicKey: Buffer.from(credential.publicKey),
     counter: credential.counter,
     transports: response.response.transports,
@@ -137,7 +137,7 @@ export async function addPasskeyFinish(
   await db.insert(credentials).values({
     id: randomUUID(),
     userId,
-    credentialId: Buffer.from(credential.id),
+    credentialId: Buffer.from(credential.id, "base64url"),
     publicKey: Buffer.from(credential.publicKey),
     counter: credential.counter,
     transports: response.response.transports,
