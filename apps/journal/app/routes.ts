@@ -20,4 +20,6 @@ export default [
   route("activities/:id", "routes/activities.$id.tsx"),
   route("users/:username", "routes/users.$username.tsx"),
   route("privacy", "routes/privacy.tsx"),
+  route("api/health", "routes/api.health.ts"),
+  route("api/metrics", "routes/api.metrics.ts"),
 ] satisfies RouteConfig;
