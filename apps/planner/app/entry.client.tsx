@@ -18,12 +18,9 @@ Sentry.init({
       createRoutesFromChildren,
       matchRoutes,
     }),
-    Sentry.replayIntegration(),
   ],
   environment: sentryEnvironment,
   tracesSampleRate: sentryEnvironment === "ci" ? 0 : 1.0,
-  replaysSessionSampleRate: sentryEnvironment === "ci" ? 0 : 1.0,
-  replaysOnErrorSampleRate: 1.0,
   enabled: import.meta.env.PROD && sentryEnvironment !== "ci",
 });
 
