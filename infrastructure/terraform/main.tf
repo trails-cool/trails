@@ -122,6 +122,25 @@ resource "hcloud_zone_rrset" "planner_aaaa" {
   records = [{ value = hcloud_server.trails.ipv6_address }]
 }
 
+# Internal wildcard — all *.internal.trails.cool resolves to the server.
+# Caddy handles routing per-subdomain. No individual DNS entries needed
+# for internal services (Grafana, Prometheus, etc.)
+resource "hcloud_zone_rrset" "internal_wildcard_a" {
+  zone = "trails.cool"
+  name = "*.internal"
+  type = "A"
+  ttl  = 300
+  records = [{ value = hcloud_server.trails.ipv4_address }]
+}
+
+resource "hcloud_zone_rrset" "internal_wildcard_aaaa" {
+  zone = "trails.cool"
+  name = "*.internal"
+  type = "AAAA"
+  ttl  = 300
+  records = [{ value = hcloud_server.trails.ipv6_address }]
+}
+
 resource "hcloud_zone_rrset" "www_cname" {
   zone = "trails.cool"
   name = "www"

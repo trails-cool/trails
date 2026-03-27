@@ -28,7 +28,7 @@ www.{$DOMAIN:trails.cool} {
 	redir https://{$DOMAIN:trails.cool}{uri} permanent
 }
 
-grafana.{$DOMAIN:trails.cool} {
+grafana.internal.{$DOMAIN:trails.cool} {
 	basicauth {
 		{$GRAFANA_USER:admin} {$GRAFANA_PASSWORD_HASH}
 	}
