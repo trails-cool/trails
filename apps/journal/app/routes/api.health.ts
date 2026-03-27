@@ -1,13 +1,13 @@
 import { data } from "react-router";
 import { withDb } from "@trails-cool/db";
 
+const version = process.env.SENTRY_RELEASE ?? "dev";
+
 export async function loader() {
   try {
-    await withDb(async () => {
-      // withDb creates a connection — if it succeeds, DB is reachable
-    });
-    return data({ status: "ok", db: "connected" });
+    await withDb(async () => {});
+    return data({ status: "ok", version, db: "connected" });
   } catch {
-    return data({ status: "degraded", db: "unreachable" }, { status: 503 });
+    return data({ status: "degraded", version, db: "unreachable" }, { status: 503 });
   }
 }
