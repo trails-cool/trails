@@ -81,6 +81,7 @@ pnpm db:studio        # Open Drizzle Studio (DB browser)
 
 ## Code Conventions
 
+- **Route registration**: Both apps use explicit `routes.ts` (not file-based routing). When adding a new route file, you **must** add it to `apps/*/app/routes.ts` or it won't be compiled into the build.
 - All user-facing strings must use i18n (`useTranslation()` hook, never hardcode strings)
 - Use `@trails-cool/types` for shared interfaces — don't duplicate type definitions
 - Map components go in `@trails-cool/map`, not in individual apps
