@@ -1,4 +1,5 @@
 FROM node:25-slim AS base
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@10.6.5
 WORKDIR /app
 
