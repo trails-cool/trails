@@ -12,13 +12,16 @@ COPY packages/gpx/package.json packages/gpx/
 COPY packages/i18n/package.json packages/i18n/
 COPY packages/db/package.json packages/db/
 RUN pnpm install --frozen-lockfile
+RUN pnpm approve-builds @sentry/cli esbuild && pnpm install --frozen-lockfile
 
 FROM base AS build
-ARG SENTRY_AUTH_TOKEN
-ARG SENTRY_RELEASE
 COPY --from=deps /app/ ./
 COPY . .
-RUN pnpm --filter @trails-cool/journal build
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
+    --mount=type=secret,id=SENTRY_RELEASE \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null)" \
+    SENTRY_RELEASE="$(cat /run/secrets/SENTRY_RELEASE 2>/dev/null)" \
+    pnpm --filter @trails-cool/journal build
 
 FROM base AS runtime
 RUN addgroup --system app && adduser --system --ingroup app app
