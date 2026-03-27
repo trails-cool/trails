@@ -109,6 +109,9 @@ jobs:
             export SENTRY_RELEASE="${{ github.sha }}"
             export SMTP_URL="${{ secrets.SMTP_URL }}"
             export SMTP_FROM="${{ secrets.SMTP_FROM }}"
+            export GRAFANA_USER="${{ secrets.GRAFANA_USER }}"
+            export GRAFANA_PASSWORD="${{ secrets.GRAFANA_PASSWORD }}"
+            export GRAFANA_PASSWORD_HASH='${{ secrets.GRAFANA_PASSWORD_HASH }}'
             docker compose pull
 
             # Push database schema (starts postgres, waits for healthy)
