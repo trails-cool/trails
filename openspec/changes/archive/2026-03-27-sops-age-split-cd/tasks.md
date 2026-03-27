@@ -4,7 +4,7 @@
 - [x] 1.2 Create `.sops.yaml` at repo root with age encryption rule for `secrets.*.env`
 - [x] 1.3 Create `infrastructure/secrets.app.env` with app secrets (POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, SMTP_URL, SMTP_FROM, SENTRY_AUTH_TOKEN, DEPLOY_GHCR_TOKEN), encrypt with `sops -e`
 - [x] 1.4 Create `infrastructure/secrets.infra.env` with infra secrets (GF_AUTH_GITHUB_CLIENT_ID, GF_AUTH_GITHUB_CLIENT_SECRET), encrypt with `sops -e`
-- [ ] 1.5 Remove migrated secrets from GitHub Actions (keep only AGE_SECRET_KEY, DEPLOY_SSH_KEY, DEPLOY_HOST)
+- [x] 1.5 Remove migrated secrets from GitHub Actions (keep only AGE_SECRET_KEY, DEPLOY_SSH_KEY, DEPLOY_HOST)
 
 ## 2. GitHub OAuth for Grafana
 
@@ -30,7 +30,7 @@
 ## 4. Verify
 
 - [x] 4.1 Test sops encrypt/decrypt cycle locally
-- [ ] 4.2 Test cd-apps deploys only on app changes (not infra)
-- [ ] 4.3 Test cd-infra deploys only on infra changes (not apps)
-- [ ] 4.4 Test Grafana GitHub OAuth login
-- [ ] 4.5 Verify old GitHub secrets can be removed after migration
+- [x] 4.2 Test cd-apps deploys only on app changes (not infra)
+- [x] 4.3 Test cd-infra deploys only on infra changes (not apps)
+- [x] 4.4 Test Grafana GitHub OAuth login
+- [x] 4.5 Verify old GitHub secrets can be removed after migration
