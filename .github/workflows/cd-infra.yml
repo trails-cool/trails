@@ -68,15 +68,8 @@ jobs:
             GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN .env | cut -d= -f2-)
             echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin 2>/dev/null || true
 
-            # Check if full restart requested via:
-            # - workflow_dispatch input: restart_all=true
-            # - commit message containing [restart-all]
-            RESTART_ALL="${{ github.event.inputs.restart_all }}"
-            if [ "$RESTART_ALL" != "true" ] && echo "${{ github.event.head_commit.message }}" | grep -q '\[restart-all\]'; then
-              RESTART_ALL="true"
-            fi
-
-            if [ "$RESTART_ALL" = "true" ]; then
+            # Full restart: gh workflow run cd-infra.yml -f restart_all=true
+            if [ "${{ github.event.inputs.restart_all }}" = "true" ]; then
               docker compose --env-file .env up -d --remove-orphans
             else
               # Restart infra services (except Caddy — just reload its config)
