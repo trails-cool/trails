@@ -1,0 +1,109 @@
+name: CD Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-apps
+  cancel-in-progress: true
+
+jobs:
+  build-images:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [journal, planner]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decrypt app secrets
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
+          source /tmp/secrets.env
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/trails-cool/${{ matrix.app }}:latest
+            ghcr.io/trails-cool/${{ matrix.app }}:${{ github.sha }}
+          build-args: |
+            SENTRY_AUTH_TOKEN=${{ env.SENTRY_AUTH_TOKEN }}
+            SENTRY_RELEASE=${{ github.sha }}
+
+  deploy:
+    name: Deploy Apps
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Decrypt secrets
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/app.env
+          echo "SENTRY_RELEASE=${{ github.sha }}" >> /tmp/app.env
+          echo "DOMAIN=trails.cool" >> /tmp/app.env
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile"
+          target: /opt/trails-cool
+          strip_components: 1
+
+      - name: Copy secrets to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "/tmp/app.env"
+          target: /opt/trails-cool
+          strip_components: 2
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/trails-cool
+
+            # Login to ghcr.io
+            GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN app.env | cut -d= -f2-)
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin
+
+            # Pull and deploy app containers
+            docker compose --env-file app.env pull journal planner
+            docker compose --env-file app.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            docker compose --env-file app.env up -d journal planner
+
+            # Clean up
+            docker image prune -af
+            docker compose ps
