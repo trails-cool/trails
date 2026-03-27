@@ -33,12 +33,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Decrypt app secrets
+      - name: Decrypt Sentry auth token
         run: |
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
           SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
-          source /tmp/secrets.env
+          echo "SENTRY_AUTH_TOKEN=$(grep SENTRY_AUTH_TOKEN /tmp/secrets.env | cut -d= -f2-)" >> "$GITHUB_ENV"
 
       - uses: docker/build-push-action@v7
         with:
