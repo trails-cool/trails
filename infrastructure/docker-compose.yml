@@ -78,6 +78,7 @@ services:
       POSTGRES_DB: trails
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-grafana-user.sql:/docker-entrypoint-initdb.d/init-grafana-user.sql:ro
     command:
       - "postgres"
       - "-c"
@@ -154,6 +155,7 @@ services:
       GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS: trails-cool
       GF_AUTH_GITHUB_SCOPES: user:email,read:org
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro

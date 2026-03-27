@@ -68,6 +68,13 @@ jobs:
             GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN .env | cut -d= -f2-)
             echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin 2>/dev/null || true
 
+            # Setup Grafana read-only DB user (idempotent)
+            docker compose exec -T postgres psql -U trails -d trails -f /docker-entrypoint-initdb.d/init-grafana-user.sql 2>/dev/null || true
+            GRAFANA_DB_PW=$(grep GRAFANA_DB_PASSWORD .env | cut -d= -f2-)
+            if [ -n "$GRAFANA_DB_PW" ]; then
+              docker compose exec -T postgres psql -U trails -d trails -c "ALTER ROLE grafana_reader PASSWORD '$GRAFANA_DB_PW'" 2>/dev/null || true
+            fi
+
             # Full restart: gh workflow run cd-infra.yml -f restart_all=true
             if [ "${{ github.event.inputs.restart_all }}" = "true" ]; then
               docker compose --env-file .env up -d --remove-orphans
