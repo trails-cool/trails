@@ -75,9 +75,10 @@ const version = process.env.SENTRY_RELEASE ?? "dev";
 
 async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const { withDb, db } = await import("@trails-cool/db");
+    const { createDb } = await import("@trails-cool/db");
     const { sql } = await import("drizzle-orm");
-    await withDb(async () => { await db.execute(sql`SELECT 1`); });
+    const db = createDb();
+    await db.execute(sql`SELECT 1`);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version, db: "connected" }));
   } catch {
