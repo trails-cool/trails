@@ -32,6 +32,14 @@ export default defineConfig({
       },
     },
     {
+      name: "auth",
+      testMatch: "auth.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
+    {
       name: "integration",
       testMatch: "integration.test.ts",
       use: {
