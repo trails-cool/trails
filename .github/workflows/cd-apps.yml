@@ -64,9 +64,9 @@ jobs:
         run: |
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
-          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/app.env
-          echo "SENTRY_RELEASE=${{ github.sha }}" >> /tmp/app.env
-          echo "DOMAIN=trails.cool" >> /tmp/app.env
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/app.env
+          echo "SENTRY_RELEASE=${{ github.sha }}" >> infrastructure/app.env
+          echo "DOMAIN=trails.cool" >> infrastructure/app.env
 
       - name: Copy files to server
         uses: appleboy/scp-action@v1
@@ -84,9 +84,9 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "/tmp/app.env"
+          source: "infrastructure/app.env"
           target: /opt/trails-cool
-          strip_components: 2
+          strip_components: 1
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
