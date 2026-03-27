@@ -29,9 +29,9 @@ jobs:
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
           # Merge app + infra secrets into one .env for docker-compose
-          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/all.env
-          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.infra.env >> /tmp/all.env
-          echo "DOMAIN=trails.cool" >> /tmp/all.env
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/.env
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.infra.env >> infrastructure/.env
+          echo "DOMAIN=trails.cool" >> infrastructure/.env
 
       - name: Copy configs to server
         uses: appleboy/scp-action@v1
@@ -49,9 +49,9 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "/tmp/all.env"
+          source: "infrastructure/.env"
           target: /opt/trails-cool
-          strip_components: 2
+          strip_components: 1
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -62,9 +62,7 @@ jobs:
           script: |
             cd /opt/trails-cool
 
-            # Merge env files: app.env (from cd-apps) + all.env (from cd-infra)
-            # all.env has both app + infra secrets
-            cp all.env .env
+            # .env was placed by the SCP step (decrypted app + infra secrets)
 
             # Login to ghcr.io (for pulling monitoring images)
             GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN .env | cut -d= -f2-)
