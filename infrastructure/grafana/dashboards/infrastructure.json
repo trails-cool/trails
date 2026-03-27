@@ -1,45 +1,87 @@
 {
-  "dashboard": {
-    "title": "Infrastructure",
-    "uid": "trails-infra",
-    "timezone": "browser",
-    "refresh": "30s",
-    "panels": [
-      {
-        "title": "Process Memory (RSS)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-        "targets": [
-          { "expr": "process_resident_memory_bytes", "legendFormat": "{{job}}" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "bytes" } }
+  "title": "Infrastructure",
+  "uid": "trails-infra",
+  "timezone": "browser",
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "Process Memory (RSS)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
       },
-      {
-        "title": "CPU Usage",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-        "targets": [
-          { "expr": "rate(process_cpu_seconds_total[5m])", "legendFormat": "{{job}}" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "percentunit" } }
-      },
-      {
-        "title": "Event Loop Lag",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-        "targets": [
-          { "expr": "nodejs_eventloop_lag_seconds", "legendFormat": "{{job}}" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "s" } }
-      },
-      {
-        "title": "Open File Descriptors",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-        "targets": [
-          { "expr": "process_open_fds", "legendFormat": "{{job}}" }
-        ]
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
       }
-    ]
-  }
+    },
+    {
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total[5m])",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        }
+      }
+    },
+    {
+      "title": "Event Loop Lag",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "expr": "nodejs_eventloop_lag_seconds",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "title": "Open File Descriptors",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "expr": "process_open_fds",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    }
+  ]
 }
