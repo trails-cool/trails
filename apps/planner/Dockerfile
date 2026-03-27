@@ -12,7 +12,6 @@ COPY packages/gpx/package.json packages/gpx/
 COPY packages/i18n/package.json packages/i18n/
 COPY packages/db/package.json packages/db/
 RUN pnpm install --frozen-lockfile
-RUN pnpm approve-builds @sentry/cli esbuild && pnpm install --frozen-lockfile
 
 FROM base AS build
 COPY --from=deps /app/ ./

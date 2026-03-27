@@ -25,7 +25,8 @@
   "pnpm": {
     "overrides": {
       "picomatch@>=4.0.0 <4.0.4": "4.0.4"
-    }
+    },
+    "onlyBuiltDependencies": ["@sentry/cli", "esbuild"]
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
