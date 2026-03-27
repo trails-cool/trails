@@ -1,0 +1,125 @@
+{
+  "title": "Business Metrics",
+  "uid": "trails-business",
+  "timezone": "browser",
+  "refresh": "5m",
+  "panels": [
+    {
+      "title": "Total Users",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        { "rawSql": "SELECT count(*) AS \"Users\" FROM journal.users", "format": "table" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "title": "Total Routes",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        { "rawSql": "SELECT count(*) AS \"Routes\" FROM journal.routes", "format": "table" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } }
+    },
+    {
+      "title": "Total Activities",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        { "rawSql": "SELECT count(*) AS \"Activities\" FROM journal.activities", "format": "table" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } } }
+    },
+    {
+      "title": "Planner Sessions (active)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        { "rawSql": "SELECT count(*) AS \"Active Sessions\" FROM planner.sessions WHERE closed = false", "format": "table" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" } } }
+    },
+    {
+      "title": "User Growth",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, count(*) OVER (ORDER BY created_at) AS \"Total Users\" FROM journal.users ORDER BY created_at",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "title": "Route Growth",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, count(*) OVER (ORDER BY created_at) AS \"Total Routes\" FROM journal.routes ORDER BY created_at",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } }
+    },
+    {
+      "title": "Signups per Day",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS \"Signups\" FROM journal.users GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "title": "Routes Created per Day",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS \"Routes\" FROM journal.routes GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } }
+    },
+    {
+      "title": "Planner Sessions per Day",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 26 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS \"Sessions\" FROM planner.sessions GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" } } }
+    },
+    {
+      "title": "Top Routes by Distance",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 26 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT r.name, u.username AS owner, round(r.distance::numeric / 1000, 1) AS \"km\", round(r.elevation_gain::numeric) AS \"ascent (m)\", r.created_at FROM journal.routes r JOIN journal.users u ON r.owner_id = u.id ORDER BY r.distance DESC NULLS LAST LIMIT 20",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}
