@@ -8,8 +8,6 @@ services:
       - "443:443/udp"
     environment:
       DOMAIN: ${DOMAIN:-trails.cool}
-      GRAFANA_USER: ${GRAFANA_USER:-admin}
-      GRAFANA_PASSWORD_HASH: ${GRAFANA_PASSWORD_HASH:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -109,9 +107,13 @@ services:
     image: grafana/grafana:latest
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_SERVER_ROOT_URL: https://grafana.internal.${DOMAIN:-trails.cool}
+      GF_AUTH_GITHUB_ENABLED: "true"
+      GF_AUTH_GITHUB_CLIENT_ID: ${GF_AUTH_GITHUB_CLIENT_ID:-}
+      GF_AUTH_GITHUB_CLIENT_SECRET: ${GF_AUTH_GITHUB_CLIENT_SECRET:-}
+      GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS: trails-cool
+      GF_AUTH_GITHUB_SCOPES: user:email,read:org
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
