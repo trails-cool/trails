@@ -154,9 +154,10 @@ Three separate CD workflows triggered by path:
 All secrets are stored in SOPS-encrypted files (`infrastructure/secrets.app.env`, `infrastructure/secrets.infra.env`). Edit with `sops infrastructure/secrets.app.env`. Only `AGE_SECRET_KEY`, `DEPLOY_SSH_KEY`, and `DEPLOY_HOST` remain as GitHub secrets.
 
 ### Full restart
-To restart **all** containers (not just the ones a workflow normally touches), either:
-- Add `[restart-all]` to the commit message
-- Or trigger manually: `gh workflow run cd-infra.yml -f restart_all=true`
+To restart **all** containers (not just the ones a workflow normally touches):
+```bash
+gh workflow run cd-infra.yml -f restart_all=true
+```
 
 ### Server access
 ```bash
