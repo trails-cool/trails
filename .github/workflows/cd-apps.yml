@@ -39,7 +39,6 @@ jobs:
           chmod +x sops-v3.9.4.linux.amd64
           SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
           grep SENTRY_AUTH_TOKEN /tmp/secrets.env | cut -d= -f2- > /tmp/sentry_token
-          echo "${{ github.sha }}" > /tmp/sentry_release
 
       - uses: docker/build-push-action@v7
         with:
@@ -49,9 +48,10 @@ jobs:
           tags: |
             ghcr.io/trails-cool/${{ matrix.app }}:latest
             ghcr.io/trails-cool/${{ matrix.app }}:${{ github.sha }}
+          build-args: |
+            SENTRY_RELEASE=${{ github.sha }}
           secrets: |
             SENTRY_AUTH_TOKEN=/tmp/sentry_token
-            SENTRY_RELEASE=/tmp/sentry_release
 
   deploy:
     name: Deploy Apps

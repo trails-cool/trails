@@ -17,6 +17,7 @@ export default defineConfig({
       release: { name: process.env.SENTRY_RELEASE },
       sourcemaps: { filesToDeleteAfterUpload: ["./build/**/*.map"] },
       disable: !process.env.SENTRY_AUTH_TOKEN,
+      telemetry: false,
     }),
   ],
   resolve: {
