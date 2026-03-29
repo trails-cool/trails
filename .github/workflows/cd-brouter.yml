@@ -68,9 +68,9 @@ jobs:
             # Annotate deploy in Grafana
             GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env | cut -d= -f2- 2>/dev/null)
             if [ -n "$GRAFANA_TOKEN" ]; then
-              docker compose exec -T grafana wget -q -O /dev/null \
-                --header="Authorization: Bearer $GRAFANA_TOKEN" \
-                --header="Content-Type: application/json" \
-                --post-data='{"text":"Deploy brouter ${{ github.sha }}","tags":["deploy","brouter"]}' \
+              docker compose exec -T grafana curl -sf -X POST \
+                -H "Authorization: Bearer $GRAFANA_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d '{"text":"Deploy brouter ${{ github.sha }}","tags":["deploy","brouter"]}' \
                 http://localhost:3000/api/annotations || true
             fi
