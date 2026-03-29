@@ -22,6 +22,8 @@ export default {
     connecting: "Verbinde...",
     loadingMap: "Karte wird geladen...",
     computingRoute: "Route wird berechnet...",
+    routeError: "Routenberechnung fehlgeschlagen. Bitte versuche es erneut.",
+    noRouteFound: "Keine Route gefunden. Versuche den Wegpunkt auf einen Weg zu verschieben.",
     host: "Host",
     connected: "Verbunden",
     saveToJournal: "Im Journal speichern",

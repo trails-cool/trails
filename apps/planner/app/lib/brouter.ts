@@ -61,11 +61,21 @@ export async function computeRoute(request: RouteRequest): Promise<EnrichedRoute
   return mergeGeoJsonSegments(segments);
 }
 
+export class BRouterError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+  ) {
+    super(message);
+    this.name = "BRouterError";
+  }
+}
+
 async function fetchSegment(url: string): Promise<Record<string, unknown>> {
   const response = await fetch(url);
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`BRouter error (${response.status}): ${body}`);
+    throw new BRouterError(body.trim(), response.status);
   }
   return response.json() as Promise<Record<string, unknown>>;
 }

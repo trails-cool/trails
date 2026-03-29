@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.route";
-import { computeRoute } from "~/lib/brouter";
+import { computeRoute, BRouterError } from "~/lib/brouter";
 import { checkRateLimit } from "~/lib/rate-limit";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -40,7 +40,11 @@ export async function action({ request }: Route.ActionArgs) {
       headers: { "X-RateLimit-Remaining": String(limit.remaining) },
     });
   } catch (e) {
+    if (e instanceof BRouterError && e.statusCode >= 400 && e.statusCode < 500) {
+      // BRouter client error: unroutable waypoints, missing tiles, etc.
+      return data({ error: e.message, code: "no_route" }, { status: 422 });
+    }
     const message = e instanceof Error ? e.message : "Route computation failed";
-    return data({ error: message }, { status: 502 });
+    return data({ error: message, code: "server_error" }, { status: 502 });
   }
 }
