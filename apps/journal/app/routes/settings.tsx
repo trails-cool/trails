@@ -54,7 +54,7 @@ function transportLabel(transports: string[] | null, t: (key: string) => string)
 
 export default function Settings({ loaderData }: Route.ComponentProps) {
   const { user, passkeys } = loaderData;
-  const { t } = useTranslation("journal");
+  const { t } = useTranslation(["journal", "common"]);
   const profileFetcher = useFetcher();
   const emailFetcher = useFetcher();
   const deleteFetcher = useFetcher();
