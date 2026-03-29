@@ -7,6 +7,8 @@ interface RouteInteractionProps {
   segmentBoundaries: number[];
   onInsertWaypoint: (pointIndex: number, lat: number, lon: number) => void;
   disabled?: boolean;
+  /** Set true to suspend ghost marker (e.g. while hovering/dragging a waypoint) */
+  suspendedRef?: React.RefObject<boolean>;
 }
 
 const SNAP_TOLERANCE_PX = 15;
@@ -26,13 +28,14 @@ const ghostIcon = L.divIcon({
 /**
  * Route interaction layer: shows a ghost marker on hover that can be
  * clicked or dragged to insert a waypoint. Follows brouter-web's pattern
- * of a single persistent draggable Marker with distance-based mouseout.
+ * of suspending when the mouse is over a waypoint marker.
  */
 export function RouteInteraction({
   coordinates,
   segmentBoundaries,
   onInsertWaypoint,
   disabled,
+  suspendedRef,
 }: RouteInteractionProps) {
   const map = useMap();
   const markerRef = useRef<L.Marker | null>(null);
@@ -86,7 +89,7 @@ export function RouteInteraction({
       icon: ghostIcon,
       draggable: true,
       interactive: true,
-      zIndexOffset: 1000,
+      zIndexOffset: -100,
     });
     markerRef.current = marker;
 
@@ -115,7 +118,11 @@ export function RouteInteraction({
 
     // Listen for mousemove on the map (distance-based approach, not polyline events)
     const onMouseMove = (e: L.LeafletMouseEvent) => {
-      if (draggingRef.current) return;
+      // Suspended while hovering over or dragging a waypoint marker (brouter-web pattern)
+      if (draggingRef.current || suspendedRef?.current) {
+        hideMarker();
+        return;
+      }
 
       const snap = findClosestOnRoute(e.latlng);
       if (!snap || snap.distPx > SNAP_TOLERANCE_PX) {
@@ -131,7 +138,7 @@ export function RouteInteraction({
       hideMarker();
     };
 
-    // Drag events on the ghost marker (Leaflet's L.Draggable handles text selection)
+    // Drag events on the ghost marker
     marker.on("dragstart", () => {
       draggingRef.current = true;
       trailer1.setStyle({ opacity: 0.6 });
@@ -200,7 +207,7 @@ export function RouteInteraction({
       trailer2.remove();
       markerRef.current = null;
     };
-  }, [map, disabled, findClosestOnRoute]);
+  }, [map, disabled, findClosestOnRoute, suspendedRef]);
 
   return null;
 }
