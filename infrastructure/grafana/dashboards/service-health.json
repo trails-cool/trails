@@ -1,198 +1,464 @@
 {
-  "dashboard": {
-    "title": "Service Health",
-    "uid": "trails-service-health",
-    "annotations": {
-      "list": [
+  "title": "Service Health",
+  "uid": "trails-service-health",
+  "annotations": {
+    "list": [
+      {
+        "name": "Deploys",
+        "enable": true,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [
+            "deploy"
+          ],
+          "type": "tags"
+        }
+      }
+    ]
+  },
+  "timezone": "browser",
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "PostgreSQL \u2014 Active Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
         {
-          "name": "Deploys",
-          "enable": true,
-          "datasource": { "type": "grafana", "uid": "-- Grafana --" },
-          "iconColor": "rgba(0, 211, 255, 1)",
-          "target": { "limit": 100, "matchAny": false, "tags": ["deploy"], "type": "tags" }
+          "expr": "pg_stat_activity_count{datname=\"trails\"}",
+          "legendFormat": "{{state}}"
         }
       ]
     },
-    "timezone": "browser",
-    "refresh": "30s",
-    "panels": [
-      {
-        "title": "PostgreSQL — Active Connections",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-        "targets": [
-          { "expr": "pg_stat_activity_count{datname=\"trails\"}", "legendFormat": "{{state}}" }
-        ]
+    {
+      "title": "PostgreSQL \u2014 Database Size",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 0
       },
-      {
-        "title": "PostgreSQL — Database Size",
-        "type": "stat",
-        "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
-        "targets": [
-          { "expr": "pg_database_size_bytes{datname=\"trails\"}", "legendFormat": "trails" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "bytes" } }
-      },
-      {
-        "title": "PostgreSQL — Transactions/sec",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
-        "targets": [
-          { "expr": "rate(pg_stat_database_xact_commit{datname=\"trails\"}[5m])", "legendFormat": "commits/s" },
-          { "expr": "rate(pg_stat_database_xact_rollback{datname=\"trails\"}[5m])", "legendFormat": "rollbacks/s" }
-        ]
-      },
-      {
-        "title": "PostgreSQL — Slowest Queries (pg_stat_statements)",
-        "type": "table",
-        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
-        "targets": [
-          {
-            "expr": "topk(10, pg_stat_statements_mean_time_seconds{datname=\"trails\"})",
-            "legendFormat": "{{query}}",
-            "format": "table",
-            "instant": true
-          }
-        ]
-      },
-      {
-        "title": "PostgreSQL — Cache Hit Ratio",
-        "type": "gauge",
-        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 16 },
-        "targets": [
-          { "expr": "pg_stat_database_blks_hit{datname=\"trails\"} / (pg_stat_database_blks_hit{datname=\"trails\"} + pg_stat_database_blks_read{datname=\"trails\"}) * 100", "legendFormat": "hit %" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 90 }, { "color": "green", "value": 99 }] } } }
-      },
-      {
-        "title": "PostgreSQL — Index Scans vs Sequential Scans",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 18, "x": 6, "y": 16 },
-        "targets": [
-          { "expr": "sum(rate(pg_stat_user_tables_idx_scan[5m]))", "legendFormat": "Index scans/s" },
-          { "expr": "sum(rate(pg_stat_user_tables_seq_scan[5m]))", "legendFormat": "Sequential scans/s" }
-        ]
-      },
-      {
-        "title": "Host — Disk Usage",
-        "type": "gauge",
-        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
-        "targets": [
-          { "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100", "legendFormat": "Used %" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 85 }] } } }
-      },
-      {
-        "title": "Host — CPU Usage",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
-        "targets": [
-          { "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU %" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "percent", "max": 100 } }
-      },
-      {
-        "title": "Host — Memory Usage",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
-        "targets": [
-          { "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes", "legendFormat": "Used" },
-          { "expr": "node_memory_MemAvailable_bytes", "legendFormat": "Available" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "bytes" } }
-      },
-      {
-        "title": "Host — Network I/O",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
-        "targets": [
-          { "expr": "rate(node_network_receive_bytes_total{device!~\"lo|veth.*|br.*|docker.*\"}[5m])", "legendFormat": "{{device}} rx" },
-          { "expr": "-rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|br.*|docker.*\"}[5m])", "legendFormat": "{{device}} tx" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "Bps" } }
-      },
-      {
-        "title": "Host — Disk I/O",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
-        "targets": [
-          { "expr": "rate(node_disk_read_bytes_total[5m])", "legendFormat": "{{device}} read" },
-          { "expr": "-rate(node_disk_written_bytes_total[5m])", "legendFormat": "{{device}} write" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "Bps" } }
-      },
-      {
-        "title": "BRouter — Request Latency (from Planner proxy)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
-        "targets": [
-          { "expr": "histogram_quantile(0.50, rate(brouter_request_duration_seconds_bucket[5m]))", "legendFormat": "p50" },
-          { "expr": "histogram_quantile(0.95, rate(brouter_request_duration_seconds_bucket[5m]))", "legendFormat": "p95" },
-          { "expr": "histogram_quantile(0.99, rate(brouter_request_duration_seconds_bucket[5m]))", "legendFormat": "p99" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "s" } }
-      },
-      {
-        "title": "Container — CPU Usage (all containers)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
-        "targets": [
-          { "expr": "rate(container_cpu_usage_seconds_total{name=~\"trails-cool.*\"}[5m]) * 100", "legendFormat": "{{name}}" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "percent" } }
-      },
-      {
-        "title": "Container — Memory Usage (all containers)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
-        "targets": [
-          { "expr": "container_memory_usage_bytes{name=~\"trails-cool.*\"}", "legendFormat": "{{name}}" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "bytes" } }
-      },
-      {
-        "title": "BRouter — Container Resources",
-        "type": "stat",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
-        "targets": [
-          { "expr": "container_memory_usage_bytes{name=~\".*brouter.*\"}", "legendFormat": "Memory" },
-          { "expr": "rate(container_cpu_usage_seconds_total{name=~\".*brouter.*\"}[5m]) * 100", "legendFormat": "CPU %" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "bytes" } }
-      },
-      {
-        "title": "Caddy — Request Rate by Host",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
-        "targets": [
-          { "expr": "sum(rate(caddy_http_requests_total[5m])) by (server)", "legendFormat": "{{server}}" }
-        ]
-      },
-      {
-        "title": "Caddy — Response Status Codes",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
-        "targets": [
-          { "expr": "sum(rate(caddy_http_responses_total[5m])) by (code)", "legendFormat": "{{code}}" }
-        ]
-      },
-      {
-        "title": "Caddy — Request Duration by Host",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
-        "targets": [
-          { "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le, server))", "legendFormat": "p95 {{server}}" }
-        ],
-        "fieldConfig": { "defaults": { "unit": "s" } }
-      },
-      {
-        "title": "Caddy — Active Connections",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
-        "targets": [
-          { "expr": "caddy_http_requests_in_flight", "legendFormat": "in-flight" }
-        ]
+      "targets": [
+        {
+          "expr": "pg_database_size_bytes{datname=\"trails\"}",
+          "legendFormat": "trails"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
       }
-    ]
-  }
+    },
+    {
+      "title": "PostgreSQL \u2014 Transactions/sec",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"trails\"}[5m])",
+          "legendFormat": "commits/s"
+        },
+        {
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"trails\"}[5m])",
+          "legendFormat": "rollbacks/s"
+        }
+      ]
+    },
+    {
+      "title": "PostgreSQL \u2014 Slowest Queries (pg_stat_statements)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "expr": "topk(10, pg_stat_statements_mean_time_seconds{datname=\"trails\"})",
+          "legendFormat": "{{query}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "PostgreSQL \u2014 Cache Hit Ratio",
+      "type": "gauge",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "expr": "pg_stat_database_blks_hit{datname=\"trails\"} / (pg_stat_database_blks_hit{datname=\"trails\"} + pg_stat_database_blks_read{datname=\"trails\"}) * 100",
+          "legendFormat": "hit %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 90
+              },
+              {
+                "color": "green",
+                "value": 99
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "PostgreSQL \u2014 Index Scans vs Sequential Scans",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 16
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_user_tables_idx_scan[5m]))",
+          "legendFormat": "Index scans/s"
+        },
+        {
+          "expr": "sum(rate(pg_stat_user_tables_seq_scan[5m]))",
+          "legendFormat": "Sequential scans/s"
+        }
+      ]
+    },
+    {
+      "title": "Host \u2014 Disk Usage",
+      "type": "gauge",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100",
+          "legendFormat": "Used %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Host \u2014 CPU Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100
+        }
+      }
+    },
+    {
+      "title": "Host \u2014 Memory Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "legendFormat": "Used"
+        },
+        {
+          "expr": "node_memory_MemAvailable_bytes",
+          "legendFormat": "Available"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "title": "Host \u2014 Network I/O",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "rate(node_network_receive_bytes_total{device!~\"lo|veth.*|br.*|docker.*\"}[5m])",
+          "legendFormat": "{{device}} rx"
+        },
+        {
+          "expr": "-rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|br.*|docker.*\"}[5m])",
+          "legendFormat": "{{device}} tx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        }
+      }
+    },
+    {
+      "title": "Host \u2014 Disk I/O",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "rate(node_disk_read_bytes_total[5m])",
+          "legendFormat": "{{device}} read"
+        },
+        {
+          "expr": "-rate(node_disk_written_bytes_total[5m])",
+          "legendFormat": "{{device}} write"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        }
+      }
+    },
+    {
+      "title": "BRouter \u2014 Request Latency (from Planner proxy)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(brouter_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(brouter_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(brouter_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "title": "Container \u2014 CPU Usage (all containers)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{name=~\"trails-cool.*\"}[5m]) * 100",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "title": "Container \u2014 Memory Usage (all containers)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\"trails-cool.*\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "title": "BRouter \u2014 Container Resources",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\".*brouter.*\"}",
+          "legendFormat": "Memory"
+        },
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{name=~\".*brouter.*\"}[5m]) * 100",
+          "legendFormat": "CPU %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "title": "Caddy \u2014 Request Rate by Host",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(caddy_http_requests_total[5m])) by (server)",
+          "legendFormat": "{{server}}"
+        }
+      ]
+    },
+    {
+      "title": "Caddy \u2014 Response Status Codes",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(caddy_http_responses_total[5m])) by (code)",
+          "legendFormat": "{{code}}"
+        }
+      ]
+    },
+    {
+      "title": "Caddy \u2014 Request Duration by Host",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le, server))",
+          "legendFormat": "p95 {{server}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "title": "Caddy \u2014 Active Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 64
+      },
+      "targets": [
+        {
+          "expr": "caddy_http_requests_in_flight",
+          "legendFormat": "in-flight"
+        }
+      ]
+    }
+  ]
 }
