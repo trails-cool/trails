@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Passkey registration
-The Journal SHALL allow new users to register using a passkey (WebAuthn). No password is required.
+The Journal SHALL allow new users to register using a passkey (WebAuthn) when the browser supports it. No password is required.
 
 #### Scenario: Successful passkey registration
 - **WHEN** a user enters an email and username and creates a passkey via the browser prompt
@@ -15,8 +15,23 @@ The Journal SHALL allow new users to register using a passkey (WebAuthn). No pas
 - **WHEN** a user submits a username that is already taken
 - **THEN** the system displays an error indicating the username is not available
 
+### Requirement: Magic link registration (fallback)
+The Journal SHALL allow new users to register via magic link when the browser does not support passkeys. The user can add a passkey later from a supported browser.
+
+#### Scenario: Register without passkey support
+- **WHEN** a user's browser does not support WebAuthn
+- **THEN** the registration page shows a "Register with Magic Link" button instead of the passkey button
+
+#### Scenario: Successful magic link registration
+- **WHEN** a user submits email and username via magic link registration
+- **THEN** a new user account is created without a credential, a verification email is sent, and the user is redirected to verify their email
+
+#### Scenario: Magic link verify redirects to add-passkey
+- **WHEN** a user clicks the verification link from magic link registration
+- **THEN** they are logged in and redirected to the home page with the add-passkey prompt
+
 ### Requirement: Passkey login
-The Journal SHALL allow returning users to log in using a stored passkey.
+The Journal SHALL allow returning users to log in using a stored passkey when the browser supports WebAuthn.
 
 #### Scenario: Successful passkey login
 - **WHEN** a user clicks "Sign in" and selects a passkey from the browser prompt
@@ -25,6 +40,10 @@ The Journal SHALL allow returning users to log in using a stored passkey.
 #### Scenario: No passkey available
 - **WHEN** a user has no passkey on the current device
 - **THEN** the system offers magic link login as a fallback
+
+#### Scenario: Browser without WebAuthn support
+- **WHEN** a user's browser does not support WebAuthn
+- **THEN** the login page shows only the magic link option with no passkey button
 
 ### Requirement: Magic link login (fallback)
 The Journal SHALL allow users to log in via a magic link sent to their email. This serves as a fallback for devices without passkey support or for logging in on a new device.
@@ -49,8 +68,19 @@ The Journal SHALL allow users to log in via a magic link sent to their email. Th
 The Journal SHALL allow logged-in users to register additional passkeys for new devices.
 
 #### Scenario: Add passkey after magic link login
-- **WHEN** a user logs in via magic link on a new device
+- **WHEN** a user logs in via magic link on a device that supports WebAuthn
 - **THEN** the system prompts them to register a passkey for that device
+
+#### Scenario: Add passkey prompt on unsupported browser
+- **WHEN** a user logs in via magic link on a device that does not support WebAuthn
+- **THEN** the system shows the add-passkey prompt with a message that the browser does not support passkeys
+
+### Requirement: Passkey status display
+The Journal home page SHALL show the user how many passkeys they have registered.
+
+#### Scenario: User with passkeys
+- **WHEN** a logged-in user visits the home page and has one or more passkeys
+- **THEN** the page displays the passkey count (e.g., "2 passkeys registered")
 
 ### Requirement: User profile page
 Each user SHALL have a public profile page displaying their username and routes.

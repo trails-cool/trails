@@ -1,8 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { data } from "react-router";
 import { useTranslation } from "react-i18next";
+import { eq, count } from "drizzle-orm";
 import type { Route } from "./+types/home";
 import { getSessionUser } from "~/lib/auth.server";
+import { getDb } from "~/lib/db";
+import { credentials } from "@trails-cool/db/schema/journal";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -15,18 +18,39 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   const url = new URL(request.url);
   const showAddPasskey = url.searchParams.get("add-passkey") === "1" && user !== null;
+
+  let passkeyCount = 0;
+  if (user) {
+    const db = getDb();
+    const [row] = await db
+      .select({ count: count() })
+      .from(credentials)
+      .where(eq(credentials.userId, user.id));
+    passkeyCount = row?.count ?? 0;
+  }
+
   return data({
     user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null,
     showAddPasskey,
+    passkeyCount,
   });
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { user, showAddPasskey } = loaderData;
+  const { user, showAddPasskey, passkeyCount } = loaderData;
   const { t } = useTranslation("journal");
   const [addingPasskey, setAddingPasskey] = useState(false);
   const [passkeyDone, setPasskeyDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [supportsPasskey, setSupportsPasskey] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (showAddPasskey) {
+      import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
+        setSupportsPasskey(browserSupportsWebAuthn());
+      });
+    }
+  }, [showAddPasskey]);
 
   const handleAddPasskey = useCallback(async () => {
     if (!user) return;
@@ -85,7 +109,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             {t("welcome")} <a href={`/users/${user.username}`} className="text-blue-600 hover:underline">{user.displayName ?? user.username}</a>
           </p>
 
-          {showAddPasskey && !passkeyDone && (
+          {showAddPasskey && !passkeyDone && supportsPasskey === true && (
             <div className="mt-6 rounded-md bg-blue-50 p-4">
               <p className="text-sm text-blue-800">
                 {t("addPasskeyPrompt")}
@@ -101,12 +125,29 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
+          {showAddPasskey && !passkeyDone && supportsPasskey === false && (
+            <div className="mt-6 rounded-md bg-amber-50 p-4">
+              <p className="text-sm text-amber-800">
+                {t("addPasskeyPrompt")}
+              </p>
+              <p className="mt-2 text-sm text-amber-600">
+                {t("auth.passkeyNotSupported")}
+              </p>
+            </div>
+          )}
+
           {passkeyDone && (
             <div className="mt-6 rounded-md bg-green-50 p-4">
               <p className="text-sm text-green-800">
                 {t("passkeyAdded")}
               </p>
             </div>
+          )}
+
+          {user && passkeyCount > 0 && !showAddPasskey && (
+            <p className="mt-4 text-sm text-gray-500">
+              {t("passkeyStatus", { count: passkeyCount })}
+            </p>
           )}
         </div>
       ) : (

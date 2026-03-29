@@ -144,6 +144,36 @@ export async function addPasskeyFinish(
   });
 }
 
+// --- Registration via Magic Link (no passkey) ---
+
+export async function registerWithMagicLink(email: string, username: string): Promise<string> {
+  const db = getDb();
+
+  const [existingEmail] = await db.select().from(users).where(eq(users.email, email));
+  if (existingEmail) throw new Error("Email already in use");
+
+  const [existingUsername] = await db.select().from(users).where(eq(users.username, username));
+  if (existingUsername) throw new Error("Username already taken");
+
+  const userId = randomUUID();
+  const domain = process.env.DOMAIN ?? "localhost";
+
+  await db.insert(users).values({ id: userId, email, username, domain });
+
+  // Create magic token for verification
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await db.insert(magicTokens).values({
+    id: randomUUID(),
+    email,
+    token,
+    expiresAt,
+  });
+
+  return token;
+}
+
 // --- Passkey Login ---
 
 export async function startAuthentication() {

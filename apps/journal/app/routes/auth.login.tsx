@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
   const { t } = useTranslation("journal");
+  const [supportsPasskey, setSupportsPasskey] = useState(true);
   const [mode, setMode] = useState<"passkey" | "magic-link">("passkey");
+
+  useEffect(() => {
+    import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
+      const supported = browserSupportsWebAuthn();
+      setSupportsPasskey(supported);
+      if (!supported) setMode("magic-link");
+    });
+  }, []);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -90,7 +99,7 @@ export default function LoginPage() {
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="text-2xl font-bold text-gray-900">{t("auth.login")}</h1>
 
-      {mode === "passkey" && (
+      {mode === "passkey" && supportsPasskey && (
         <div className="mt-8">
           <button
             onClick={handlePasskeyLogin}
@@ -138,15 +147,17 @@ export default function LoginPage() {
             {loading ? t("auth.sending") : t("auth.sendMagicLink")}
           </button>
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setMode("passkey")}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              {t("auth.backToPasskey")}
-            </button>
-          </div>
+          {supportsPasskey && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode("passkey")}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                {t("auth.backToPasskey")}
+              </button>
+            </div>
+          )}
         </form>
       )}
 

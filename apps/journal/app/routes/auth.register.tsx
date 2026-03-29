@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function RegisterPage() {
@@ -7,14 +7,21 @@ export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [supportsPasskey, setSupportsPasskey] = useState<boolean | null>(null);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  useEffect(() => {
+    import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
+      setSupportsPasskey(browserSupportsWebAuthn());
+    });
+  }, []);
+
+  const handleRegisterPasskey = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      // Step 1: Get registration options from server
       const startResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,11 +35,9 @@ export default function RegisterPage() {
         return;
       }
 
-      // Step 2: Create passkey via browser
       const { startRegistration: startWebAuthn } = await import("@simplewebauthn/browser");
       const webAuthnResp = await startWebAuthn(startData.options);
 
-      // Step 3: Send response to server
       const finishResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,6 +64,49 @@ export default function RegisterPage() {
     }
   };
 
+  const handleRegisterMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const resp = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: "register-magic-link", email, username }),
+      });
+      const result = await resp.json();
+
+      if (result.error) {
+        setError(result.error);
+      } else if (result.devLink) {
+        window.location.href = result.devLink;
+      } else {
+        setMagicLinkSent(true);
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (magicLinkSent) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16">
+        <h1 className="text-2xl font-bold text-gray-900">{t("auth.register")}</h1>
+        <div className="mt-8 rounded-md bg-green-50 p-4">
+          <p className="text-sm text-green-800">
+            {t("auth.checkEmail")} <strong>{email}</strong>.
+          </p>
+          <p className="mt-2 text-xs text-green-600">
+            {t("auth.linkExpires")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="text-2xl font-bold text-gray-900">{t("auth.register")}</h1>
@@ -66,7 +114,7 @@ export default function RegisterPage() {
         {t("auth.registerDescription")}
       </p>
 
-      <form onSubmit={handleRegister} className="mt-8 space-y-4">
+      <form onSubmit={supportsPasskey ? handleRegisterPasskey : handleRegisterMagicLink} className="mt-8 space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             {t("auth.email")}
@@ -103,13 +151,29 @@ export default function RegisterPage() {
           <p className="text-sm text-red-600">{error}</p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? t("auth.creatingPasskey") : t("auth.registerWithPasskey")}
-        </button>
+        {supportsPasskey ? (
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? t("auth.creatingPasskey") : t("auth.registerWithPasskey")}
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={loading || supportsPasskey === null}
+            className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
+          >
+            {loading ? t("auth.sending") : t("auth.registerWithMagicLink")}
+          </button>
+        )}
+
+        {supportsPasskey === false && (
+          <p className="text-sm text-gray-500">
+            {t("auth.passkeyNotSupportedRegister")}
+          </p>
+        )}
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-500">
