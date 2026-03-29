@@ -23,8 +23,7 @@ export function initI18n() {
       interpolation: {
         escapeValue: false,
       },
-      showSupportNotice: false,
-      initImmediate: false,
+      initAsync: false,
     });
 }
 
