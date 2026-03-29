@@ -54,6 +54,27 @@ function MapExposer() {
   return null;
 }
 
+function RouteFitter({ coordinates }: { coordinates: [number, number, number][] | null }) {
+  const map = useMap();
+  const hasFitted = useRef(false);
+
+  useEffect(() => {
+    if (hasFitted.current || !coordinates || coordinates.length < 2) return;
+
+    // Coordinates are in [lon, lat, elevation] GeoJSON format
+    const bounds = L.latLngBounds(
+      coordinates.filter((c) => c.length >= 2).map((c) => [c[1]!, c[0]!] as [number, number]),
+    );
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      hasFitted.current = true;
+    }
+  }, [coordinates, map]);
+
+  return null;
+}
+
 function MapClickHandler({ onAdd, suppressRef }: { onAdd: (lat: number, lng: number) => void; suppressRef: React.RefObject<boolean> }) {
   useMapEvents({
     click(e) {
@@ -314,6 +335,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
       </LayersControl>
 
       <MapExposer />
+      <RouteFitter coordinates={routeCoordinates} />
       <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} suppressRef={suppressMapClickRef} />
       <CursorTracker awareness={yjs.awareness} />
       <NoGoAreaLayer noGoAreas={yjs.noGoAreas} doc={yjs.doc} enabled={noGoDrawing} onToggle={toggleNoGoDraw} />

@@ -151,6 +151,30 @@ test.describe("Planner", () => {
     await expect(page.getByTitle("Draw no-go area")).toBeVisible();
   });
 
+  test("map zooms to fit the route when opened with initial waypoints", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    const waypoints = [
+      { lat: 52.520, lon: 13.405 },
+      { lat: 52.515, lon: 13.351 },
+    ];
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify(waypoints))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+    // Wait for route to compute and fit
+    await expect(page.getByText(/\d+\.\d+ km/)).toBeVisible({ timeout: 20000 });
+
+    // The map should have zoomed in to the route bounds (zoom > default 6)
+    const zoom = await page.evaluate(() => {
+      const map = (window as any).__leafletMap;
+      return map ? map.getZoom() : null;
+    });
+    expect(zoom).not.toBeNull();
+    expect(zoom).toBeGreaterThan(6);
+  });
+
   test("can create session with initial waypoints", async ({ request }) => {
     const response = await request.post("/api/sessions", {
       data: {
