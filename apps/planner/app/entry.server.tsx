@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/node";
 import { PassThrough } from "node:stream";
 import type { AppLoadContext, EntryContext } from "react-router";
 import { createReadableStreamFromReadable } from "@react-router/node";
@@ -7,22 +6,6 @@ import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 import { initI18nServer, detectLanguage } from "@trails-cool/i18n";
-
-const sentryEnvironment = process.env.CI ? "ci" : (process.env.NODE_ENV ?? "development");
-
-Sentry.init({
-  dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
-  release: process.env.SENTRY_RELEASE,
-  environment: sentryEnvironment,
-  tracesSampleRate: 1.0,
-  enabled: process.env.NODE_ENV === "production" && !process.env.CI,
-  beforeSend(event) {
-    // Drop 404s — they're expected (scanners, typos), not bugs
-    const serialized = event.extra?.__serialized__ as Record<string, unknown> | undefined;
-    if (serialized?.status === 404) return null;
-    return event;
-  },
-});
 
 export const streamTimeout = 5_000;
 
@@ -88,7 +71,6 @@ export default function handleRequest(
           responseStatusCode = 500;
           if (shellRendered) {
             console.error(error);
-            Sentry.captureException(error);
           }
         },
       },

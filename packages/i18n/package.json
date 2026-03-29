@@ -10,7 +10,7 @@
   "types": "./src/index.ts",
   "peerDependencies": {
     "react": ">=18",
-    "i18next": ">=23",
-    "react-i18next": ">=14"
+    "i18next": ">=26",
+    "react-i18next": ">=17"
   }
 }

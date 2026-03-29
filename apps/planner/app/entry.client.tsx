@@ -4,6 +4,7 @@ import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { HydratedRouter } from "react-router/dom";
 import { useLocation, useNavigationType, createRoutesFromChildren, matchRoutes } from "react-router";
+import { initI18nClient } from "@trails-cool/i18n";
 
 const sentryEnvironment = import.meta.env.VITE_SENTRY_ENVIRONMENT ??
   (import.meta.env.PROD ? "production" : "development");
@@ -23,6 +24,8 @@ Sentry.init({
   tracesSampleRate: sentryEnvironment === "ci" ? 0 : 1.0,
   enabled: import.meta.env.PROD && sentryEnvironment !== "ci",
 });
+
+initI18nClient();
 
 startTransition(() => {
   hydrateRoot(
