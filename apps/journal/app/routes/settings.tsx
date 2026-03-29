@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { data, redirect, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
+import { ClientDate } from "~/components/ClientDate";
 import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings";
 import { getSessionUser } from "~/lib/auth.server";
@@ -217,9 +218,8 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
                   {transportLabel(passkey.transports, t)}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {t("settings.security.addedOn", {
-                    date: new Date(passkey.createdAt).toLocaleDateString(),
-                  })}
+                  {t("settings.security.addedOn", { date: "" })}
+                  <ClientDate iso={passkey.createdAt} />
                 </p>
               </div>
               <deleteFetcher.Form

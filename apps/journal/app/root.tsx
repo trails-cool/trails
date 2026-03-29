@@ -4,7 +4,9 @@ import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
 import { useTranslation } from "react-i18next";
+import { detectLocale } from "@trails-cool/i18n";
 import { getSessionUser } from "~/lib/auth.server";
+import { LocaleProvider } from "~/components/LocaleContext";
 import stylesheet from "@trails-cool/ui/styles.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
@@ -33,7 +35,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
-  return { user: user ? { id: user.id, username: user.username } : null };
+  const locale = detectLocale(request);
+  return { user: user ? { id: user.id, username: user.username } : null, locale };
 }
 
 function NavBar({ user }: { user: { id: string; username: string } | null }) {
@@ -110,6 +113,7 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
 
 export default function App({ loaderData }: Route.ComponentProps) {
   const user = loaderData?.user;
+  const locale = loaderData?.locale ?? "en";
   useEffect(() => {
     if (user) {
       Sentry.setUser({ id: user.id, username: user.username });
@@ -119,10 +123,10 @@ export default function App({ loaderData }: Route.ComponentProps) {
   }, [user]);
 
   return (
-    <>
+    <LocaleProvider locale={locale}>
       <NavBar user={user ?? null} />
       <Outlet />
-    </>
+    </LocaleProvider>
   );
 }
 

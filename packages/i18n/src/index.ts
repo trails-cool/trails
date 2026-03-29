@@ -70,4 +70,23 @@ export function detectLanguage(request: Request): SupportedLng {
   return "en";
 }
 
+/**
+ * Extract the full locale (e.g. "de-DE") from a request's Accept-Language header.
+ * Falls back to the supported language (e.g. "en") if no region tag is present.
+ */
+export function detectLocale(request: Request): string {
+  const header = request.headers.get("Accept-Language") ?? "";
+  for (const part of header.split(",")) {
+    const tag = part.split(";")[0]?.trim();
+    if (!tag) continue;
+    const lang = tag.toLowerCase();
+    for (const supported of supportedLngs) {
+      if (lang === supported || lang.startsWith(supported + "-")) {
+        return tag; // preserve original casing (e.g. "de-DE")
+      }
+    }
+  }
+  return "en";
+}
+
 export { i18n };
