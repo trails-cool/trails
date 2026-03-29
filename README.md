@@ -78,7 +78,7 @@ This project uses AI-assisted, spec-driven development. See
 | Tool | Purpose |
 |------|---------|
 | [cmux](https://cmux.dev) | Native macOS terminal for running multiple AI coding sessions |
-| [Claude Code](https://claude.ai/claude-code) | AI coding assistant |
+| [Claude Code](https://claude.ai/claude-code) | AI coding assistant (primary development tool) |
 | [GitHub Copilot](https://github.com/features/copilot) | AI coding assistant |
 | [Crit](https://github.com/tomasz-tomczyk/crit) | Browser-based inline code review |
 | [OpenSpec](https://openspec.dev) | Spec-driven development workflow |
