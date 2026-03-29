@@ -33,9 +33,9 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
-    "@react-router/dev": "^7.13.1",
-    "@react-router/node": "^7.13.1",
-    "@react-router/serve": "^7.13.1",
+    "@react-router/dev": "^7.13.2",
+    "@react-router/node": "^7.13.2",
+    "@react-router/serve": "^7.13.2",
     "@sentry/vite-plugin": "^5.1.1",
     "@tailwindcss/vite": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
@@ -45,7 +45,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "drizzle-kit": "^0.31.10",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "drizzle-postgis": "^1.1.1",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
@@ -61,11 +61,11 @@
     "react-dom": "^19.2.4",
     "react-i18next": "^17.0.1",
     "react-leaflet": "^5.0.0",
-    "react-router": "^7.13.1",
+    "react-router": "^7.13.2",
     "tailwindcss": "^4.2.2",
-    "turbo": "^2.8.20",
-    "typescript-eslint": "^8.57.1",
+    "turbo": "^2.8.21",
+    "typescript-eslint": "^8.57.2",
     "vite": "catalog:",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.2"
   }
 }
