@@ -2,6 +2,17 @@
   "dashboard": {
     "title": "Service Health",
     "uid": "trails-service-health",
+    "annotations": {
+      "list": [
+        {
+          "name": "Deploys",
+          "enable": true,
+          "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "tags": ["deploy"]
+        }
+      ]
+    },
     "timezone": "browser",
     "refresh": "30s",
     "panels": [
