@@ -262,11 +262,10 @@ export async function initiateEmailChange(userId: string, newEmail: string): Pro
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-  // Store new email in the token — verifyMagicToken will detect the mismatch
-  // and update the user's email
   await db.insert(magicTokens).values({
     id: randomUUID(),
     email: newEmail,
+    purpose: "email-change",
     token,
     expiresAt,
   });
@@ -283,6 +282,7 @@ export async function verifyMagicToken(token: string): Promise<string> {
     .where(
       and(
         eq(magicTokens.token, token),
+        eq(magicTokens.purpose, "login"),
         gt(magicTokens.expiresAt, new Date()),
         isNull(magicTokens.usedAt),
       ),
@@ -290,14 +290,11 @@ export async function verifyMagicToken(token: string): Promise<string> {
 
   if (!record) throw new Error("Invalid or expired magic link");
 
-  // Mark as used
   await db
     .update(magicTokens)
     .set({ usedAt: new Date() })
     .where(eq(magicTokens.id, record.id));
 
-  // Find user — for login/registration tokens, email matches an existing user.
-  // For email-change tokens, the email is the NEW email (no user yet).
   const [user] = await db.select().from(users).where(eq(users.email, record.email));
   if (!user) throw new Error("User not found");
 
@@ -313,6 +310,7 @@ export async function verifyEmailChange(token: string, userId: string): Promise<
     .where(
       and(
         eq(magicTokens.token, token),
+        eq(magicTokens.purpose, "email-change"),
         gt(magicTokens.expiresAt, new Date()),
         isNull(magicTokens.usedAt),
       ),
@@ -320,14 +318,21 @@ export async function verifyEmailChange(token: string, userId: string): Promise<
 
   if (!record) throw new Error("Invalid or expired verification link");
 
+  const newEmail = record.email;
+
+  // Re-check email availability at verification time — someone may have
+  // registered with this email between initiation and verification
+  const [existing] = await db.select().from(users).where(eq(users.email, newEmail));
+  if (existing) {
+    await db.update(magicTokens).set({ usedAt: new Date() }).where(eq(magicTokens.id, record.id));
+    throw new Error("This email is now in use by another account");
+  }
+
   await db
     .update(magicTokens)
     .set({ usedAt: new Date() })
     .where(eq(magicTokens.id, record.id));
 
-  const newEmail = record.email;
-
-  // Update user email
   await db
     .update(users)
     .set({ email: newEmail })
