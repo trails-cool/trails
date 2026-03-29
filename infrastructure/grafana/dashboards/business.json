@@ -1,6 +1,17 @@
 {
   "title": "Business Metrics",
   "uid": "trails-business",
+  "annotations": {
+    "list": [
+      {
+        "name": "Deploys",
+        "enable": true,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "tags": ["deploy"]
+      }
+    ]
+  },
   "timezone": "browser",
   "refresh": "5m",
   "panels": [
