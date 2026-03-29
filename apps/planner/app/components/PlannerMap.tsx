@@ -63,13 +63,18 @@ function RouteFitter({ coordinates }: { coordinates: [number, number, number][] 
 
     // Coordinates are in [lon, lat, elevation] GeoJSON format
     const bounds = L.latLngBounds(
-      coordinates.filter((c) => c.length >= 2).map((c) => [c[1]!, c[0]!] as [number, number]),
+      coordinates.map((c) => [c[1]!, c[0]!] as [number, number]),
     );
 
-    if (bounds.isValid()) {
+    if (!bounds.isValid()) return;
+
+    // Delay fitBounds so the layout has settled (elevation chart may resize the map)
+    const raf = requestAnimationFrame(() => {
+      map.invalidateSize();
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       hasFitted.current = true;
-    }
+    });
+    return () => cancelAnimationFrame(raf);
   }, [coordinates, map]);
 
   return null;
