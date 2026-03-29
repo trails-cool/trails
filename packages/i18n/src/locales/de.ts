@@ -106,6 +106,8 @@ export default {
     addPasskey: "Passkey hinzufügen",
     settingUp: "Wird eingerichtet...",
     passkeyAdded: "Passkey hinzugefügt! Du kannst dich jetzt sofort auf diesem Gerät anmelden.",
+    passkeyStatus: "{{count}} Passkey registriert",
+    passkeyStatus_other: "{{count}} Passkeys registriert",
     routes: {
       title: "Routen",
       myRoutes: "Meine Routen",
@@ -147,6 +149,9 @@ export default {
       registerDescription: "Registriere dich mit einem Passkey — kein Passwort nötig.",
       registerWithPasskey: "Mit Passkey registrieren",
       creatingPasskey: "Erstelle Passkey...",
+      passkeyNotSupported: "Dein Browser unterstützt keine Passkeys. Bitte verwende einen anderen Browser zur Registrierung.",
+      passkeyNotSupportedRegister: "Dein Browser unterstützt keine Passkeys. Du kannst dich stattdessen per Magic Link registrieren und später einen Passkey hinzufügen.",
+      registerWithMagicLink: "Per Magic Link registrieren",
     },
   },
 } as const;

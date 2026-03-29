@@ -1,12 +1,13 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.auth.register";
-import { startRegistration, finishRegistration, createSession, addPasskeyStart, addPasskeyFinish } from "~/lib/auth.server";
-import { sendWelcome } from "~/lib/email.server";
+import { startRegistration, finishRegistration, createSession, addPasskeyStart, addPasskeyFinish, registerWithMagicLink } from "~/lib/auth.server";
+import { sendWelcome, sendMagicLink } from "~/lib/email.server";
 import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
   const { step, email, username, response, challenge, userId } = body;
+  const origin = process.env.ORIGIN ?? `http://localhost:3000`;
 
   try {
     if (step === "start") {
@@ -17,11 +18,23 @@ export async function action({ request }: Route.ActionArgs) {
     if (step === "finish") {
       const newUserId = await finishRegistration(userId, email, username, response, challenge);
       const cookie = await createSession(newUserId, request);
-      // Send welcome email (fire-and-forget — don't block registration on email)
       sendWelcome(email, username).catch((err) =>
         logger.error({ err }, "Failed to send welcome email"),
       );
       return data({ step: "done" }, { headers: { "Set-Cookie": cookie } });
+    }
+
+    if (step === "register-magic-link") {
+      const token = await registerWithMagicLink(email, username);
+      const link = `${origin}/auth/verify?token=${token}`;
+      if (process.env.NODE_ENV !== "production") {
+        return data({ step: "magic-link-sent", devLink: link });
+      }
+      await sendMagicLink(email, link);
+      sendWelcome(email, username).catch((err) =>
+        logger.error({ err }, "Failed to send welcome email"),
+      );
+      return data({ step: "magic-link-sent" });
     }
 
     if (step === "add-passkey") {
