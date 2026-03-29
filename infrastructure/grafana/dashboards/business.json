@@ -8,7 +8,8 @@
         "enable": true,
         "datasource": { "type": "grafana", "uid": "-- Grafana --" },
         "iconColor": "rgba(0, 211, 255, 1)",
-        "tags": ["deploy"]
+        "target": { "limit": 100, "matchAny": false, "tags": ["deploy"], "type": "tags" },
+        "type": "dashboard"
       }
     ]
   },
