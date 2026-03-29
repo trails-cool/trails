@@ -23,7 +23,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: Gitleaks
-        if: github.actor != 'dependabot[bot]'
         uses: trails-cool/gitleaks-action@4cbc857b9cfa2a3297fe2be1078e196d30d1b424
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
