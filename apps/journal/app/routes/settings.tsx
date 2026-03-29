@@ -192,7 +192,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
               disabled={profileFetcher.state !== "idle"}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {profileFetcher.state !== "idle" ? t("common.loading") : t("common.save")}
+              {profileFetcher.state !== "idle" ? t("common:loading") : t("common:save")}
             </button>
             {profileSaved && (
               <p className="text-sm text-green-600">{t("settings.profile.saved")}</p>
@@ -238,7 +238,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
                   type="submit"
                   className="text-sm text-red-600 hover:text-red-800"
                 >
-                  {t("common.delete")}
+                  {t("common:delete")}
                 </button>
               </deleteFetcher.Form>
             </div>
@@ -310,7 +310,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
                 onClick={() => { setShowEmailForm(false); setNewEmail(""); }}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
-                {t("common.cancel")}
+                {t("common:cancel")}
               </button>
             </emailFetcher.Form>
           )}
@@ -362,7 +362,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
                   onClick={() => { setDeleteConfirm(false); setDeleteUsername(""); }}
                   className="text-sm text-gray-500 hover:text-gray-700"
                 >
-                  {t("common.cancel")}
+                  {t("common:cancel")}
                 </button>
               </div>
             </div>
