@@ -41,6 +41,18 @@ resource "hcloud_server" "trails" {
 
     # Create app directory
     mkdir -p /opt/trails-cool
+
+    # Harden SSH
+    cat > /etc/ssh/sshd_config.d/99-hardening.conf <<'SSHD'
+    PasswordAuthentication no
+    X11Forwarding no
+    AllowTcpForwarding no
+    AllowAgentForwarding no
+    MaxAuthTries 3
+    ClientAliveInterval 300
+    ClientAliveCountMax 2
+    SSHD
+    systemctl reload ssh
   EOF
 }
 
