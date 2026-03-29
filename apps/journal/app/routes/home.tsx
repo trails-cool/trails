@@ -17,27 +17,27 @@ export function meta(_args: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   const url = new URL(request.url);
-  const showAddPasskey = url.searchParams.get("add-passkey") === "1" && user !== null;
+  const addPasskeyParam = url.searchParams.get("add-passkey") === "1" && user !== null;
 
-  let passkeyCount = 0;
-  if (user) {
+  // Only show the add-passkey prompt if the user has no passkeys yet
+  let showAddPasskey = false;
+  if (addPasskeyParam && user) {
     const db = getDb();
     const [row] = await db
       .select({ count: count() })
       .from(credentials)
       .where(eq(credentials.userId, user.id));
-    passkeyCount = row?.count ?? 0;
+    showAddPasskey = (row?.count ?? 0) === 0;
   }
 
   return data({
     user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null,
     showAddPasskey,
-    passkeyCount,
   });
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { user, showAddPasskey, passkeyCount } = loaderData;
+  const { user, showAddPasskey } = loaderData;
   const { t } = useTranslation("journal");
   const [addingPasskey, setAddingPasskey] = useState(false);
   const [passkeyDone, setPasskeyDone] = useState(false);
@@ -144,11 +144,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          {user && passkeyCount > 0 && !showAddPasskey && (
-            <p className="mt-4 text-sm text-gray-500">
-              {t("passkeyStatus", { count: passkeyCount })}
-            </p>
-          )}
         </div>
       ) : (
         <div className="mt-8 flex gap-4">
