@@ -179,6 +179,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
   const [noGoDrawing, setNoGoDrawing] = useState(false);
   const toggleNoGoDraw = useCallback(() => setNoGoDrawing((v) => !v), []);
   const suppressMapClickRef = useRef(false);
+  const routeInteractionSuspendedRef = useRef(false);
+  const waypointDraggingRef = useRef(false);
 
   // Sync waypoints from Yjs
   useEffect(() => {
@@ -324,7 +326,21 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
           draggable
           icon={waypointIcon(i)}
           eventHandlers={{
+            mouseover: () => {
+              routeInteractionSuspendedRef.current = true;
+            },
+            mouseout: () => {
+              if (!waypointDraggingRef.current) {
+                routeInteractionSuspendedRef.current = false;
+              }
+            },
+            dragstart: () => {
+              waypointDraggingRef.current = true;
+              routeInteractionSuspendedRef.current = true;
+            },
             dragend: (e) => {
+              waypointDraggingRef.current = false;
+              routeInteractionSuspendedRef.current = false;
               const { lat, lng } = e.target.getLatLng();
               moveWaypoint(i, lat, lng);
             },
@@ -347,6 +363,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
             coordinates={routeCoordinates}
             segmentBoundaries={segmentBoundaries}
             onInsertWaypoint={handleRouteInsert}
+            suspendedRef={routeInteractionSuspendedRef}
             disabled={noGoDrawing}
           />
         </>
