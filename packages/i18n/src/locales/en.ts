@@ -22,6 +22,8 @@ export default {
     connecting: "Connecting...",
     loadingMap: "Loading map...",
     computingRoute: "Computing route...",
+    routeError: "Route calculation failed. Please try again.",
+    noRouteFound: "No route found. Try moving the waypoint to a road or path.",
     host: "Host",
     connected: "Connected",
     saveToJournal: "Save to Journal",

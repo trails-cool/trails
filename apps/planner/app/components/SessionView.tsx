@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
-import { useRouting } from "~/lib/use-routing";
+import { useRouting, type RouteError } from "~/lib/use-routing";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
 import { SaveToJournalButton } from "~/components/SaveToJournalButton";
@@ -25,25 +25,31 @@ const ElevationChart = lazy(() =>
 interface Toast {
   id: number;
   message: string;
+  variant?: "error" | "info";
 }
 
 let toastIdCounter = 0;
 
-function useAwarenessToasts(yjs: YjsState | null, t: TFunction) {
+function useToasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const addToast = useCallback((message: string, variant: Toast["variant"] = "info") => {
+    const id = ++toastIdCounter;
+    setToasts((prev) => [...prev, { id, message, variant }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 4000);
+  }, []);
+
+  return { toasts, addToast };
+}
+
+function useAwarenessToasts(yjs: YjsState | null, t: TFunction, addToast: (message: string) => void) {
   const namesCacheRef = useRef<Map<number, string>>(new Map());
   const initializedRef = useRef(false);
 
   useEffect(() => {
     if (!yjs) return;
-
-    const addToast = (message: string) => {
-      const id = ++toastIdCounter;
-      setToasts((prev) => [...prev, { id, message }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((toast) => toast.id !== id));
-      }, 3000);
-    };
 
     const handleChange = (
       changes: { added: number[]; updated: number[]; removed: number[] },
@@ -100,9 +106,7 @@ function useAwarenessToasts(yjs: YjsState | null, t: TFunction) {
       initializedRef.current = false;
       namesCacheRef.current.clear();
     };
-  }, [yjs, t]);
-
-  return toasts;
+  }, [yjs, t, addToast]);
 }
 
 function ColorModeToggle({ yjs }: { yjs: YjsState }) {
@@ -181,9 +185,23 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const { t } = useTranslation("planner");
   useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
   const yjs = useYjs(sessionId, initialWaypoints);
-  const { computing, routeStats, requestRoute } = useRouting(yjs);
+  const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
-  const toasts = useAwarenessToasts(yjs, t);
+  const { toasts, addToast } = useToasts();
+  useAwarenessToasts(yjs, t, addToast);
+
+  // Show toast on route calculation error
+  const prevErrorRef = useRef<RouteError>(null);
+  useEffect(() => {
+    if (routeError && routeError !== prevErrorRef.current) {
+      const message =
+        routeError === "rate_limit" ? t("rateLimitExceeded") :
+        routeError === "no_route" ? t("noRouteFound") :
+        t("routeError");
+      addToast(message, "error");
+    }
+    prevErrorRef.current = routeError;
+  }, [routeError, addToast, t]);
 
   const handleElevationHover = useCallback((pos: [number, number] | null) => {
     setHighlightPosition(pos);
@@ -258,7 +276,9 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className="rounded-lg bg-gray-800 px-4 py-2 text-sm text-white shadow-lg animate-[fadeIn_0.2s_ease-out]"
+              className={`rounded-lg px-4 py-2 text-sm text-white shadow-lg animate-[fadeIn_0.2s_ease-out] ${
+                toast.variant === "error" ? "bg-red-600" : "bg-gray-800"
+              }`}
             >
               {toast.message}
             </div>

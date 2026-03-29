@@ -21,11 +21,36 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
   }));
 }
 
+function restoreWaypoints(yjs: YjsState, snapshot: WaypointData[], restoringRef: React.RefObject<boolean>) {
+  restoringRef.current = true;
+  yjs.doc.transact(() => {
+    for (let i = 0; i < snapshot.length && i < yjs.waypoints.length; i++) {
+      const yMap = yjs.waypoints.get(i);
+      const wp = snapshot[i]!;
+      if (yMap) {
+        yMap.set("lat", wp.lat);
+        yMap.set("lon", wp.lon);
+      }
+    }
+    // Remove extra waypoints added since snapshot
+    if (yjs.waypoints.length > snapshot.length) {
+      yjs.waypoints.delete(snapshot.length, yjs.waypoints.length - snapshot.length);
+    }
+  });
+  // Reset after microtask so Yjs observers fire first
+  queueMicrotask(() => { restoringRef.current = false; });
+}
+
+export type RouteError = "no_route" | "failed" | "rate_limit" | null;
+
 export function useRouting(yjs: YjsState | null) {
   const [isHost, setIsHost] = useState(false);
   const [computing, setComputing] = useState(false);
+  const [routeError, setRouteError] = useState<RouteError>(null);
   const [routeStats, setRouteStats] = useState<RouteStats>({});
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const lastGoodWaypointsRef = useRef<WaypointData[] | null>(null);
+  const restoringRef = useRef(false);
 
   // Host election via Yjs awareness
   useEffect(() => {
@@ -56,6 +81,9 @@ export function useRouting(yjs: YjsState | null) {
         points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
       })).filter((a) => a.points.length >= 3);
 
+      // Save current waypoints so we can restore on failure
+      const snapshotBeforeCompute = getWaypointsFromYjs(yjs.waypoints);
+
       setComputing(true);
       try {
         const response = await fetch("/api/route", {
@@ -69,13 +97,22 @@ export function useRouting(yjs: YjsState | null) {
         });
 
         if (response.status === 429) {
-          console.warn("[Rate Limit] Route computation rate limit exceeded");
+          setRouteError("rate_limit");
+          restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
           return;
         }
-        if (!response.ok) return;
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          const code = (body as { code?: string }).code;
+          setRouteError(code === "no_route" ? "no_route" : "failed");
+          restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
+          return;
+        }
 
         const enriched = await response.json();
 
+        setRouteError(null);
+        lastGoodWaypointsRef.current = snapshotBeforeCompute;
         setRouteStats({
           distance: enriched.totalLength || undefined,
           elevationGain: enriched.totalAscend || undefined,
@@ -91,7 +128,8 @@ export function useRouting(yjs: YjsState | null) {
           }
         });
       } catch {
-        // Route computation failed
+        setRouteError("failed");
+        restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
       } finally {
         setComputing(false);
       }
@@ -101,7 +139,7 @@ export function useRouting(yjs: YjsState | null) {
 
   const requestRoute = useCallback(
     (waypoints: WaypointData[]) => {
-      if (!isHost) return;
+      if (!isHost || restoringRef.current) return;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(() => computeRoute(waypoints), 500);
     },
@@ -139,5 +177,5 @@ export function useRouting(yjs: YjsState | null) {
     };
   }, [yjs, isHost, requestRoute]);
 
-  return { isHost, computing, routeStats, requestRoute };
+  return { isHost, computing, routeError, routeStats, requestRoute };
 }
