@@ -49,6 +49,7 @@ export const magicTokens = journalSchema.table("magic_tokens", {
   id: text("id").primaryKey(),
   email: text("email").notNull(),
   token: text("token").notNull().unique(),
+  purpose: text("purpose").notNull().default("login"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

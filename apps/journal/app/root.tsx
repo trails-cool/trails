@@ -79,6 +79,9 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
               >
                 {user.username}
               </Link>
+              <Link to="/settings" className={linkClass("/settings")}>
+                {t("nav.settings")}
+              </Link>
               <Form method="post" action="/auth/logout">
                 <button
                   type="submit"
