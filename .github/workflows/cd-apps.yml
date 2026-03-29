@@ -110,3 +110,13 @@ jobs:
             # Clean up
             docker image prune -af
             docker compose ps
+
+            # Annotate deploy in Grafana
+            GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN app.env | cut -d= -f2-)
+            if [ -n "$GRAFANA_TOKEN" ]; then
+              docker compose exec -T grafana wget -q -O /dev/null \
+                --header="Authorization: Bearer $GRAFANA_TOKEN" \
+                --header="Content-Type: application/json" \
+                --post-data='{"text":"Deploy '${{ github.sha }}'","tags":["deploy","apps"]}' \
+                http://localhost:3000/api/annotations || true
+            fi
