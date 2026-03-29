@@ -1,20 +1,12 @@
-import { useState, useEffect } from "react";
 import { useLocale } from "./LocaleContext";
 
 /**
- * Renders a date using the server-detected locale for the initial render
- * (matching SSR output), then updates to the browser's native locale
- * after hydration.
+ * Renders a date formatted with the server-detected locale,
+ * ensuring SSR and client output match (no hydration flicker).
  */
 export function ClientDate({ iso }: { iso: string }) {
   const locale = useLocale();
-  const [formatted, setFormatted] = useState(
-    new Date(iso).toLocaleDateString(locale),
+  return (
+    <time dateTime={iso}>{new Date(iso).toLocaleDateString(locale)}</time>
   );
-
-  useEffect(() => {
-    setFormatted(new Date(iso).toLocaleDateString());
-  }, [iso]);
-
-  return <time dateTime={iso}>{formatted}</time>;
 }
