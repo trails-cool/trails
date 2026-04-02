@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "./db.ts";
-import { activities, routes } from "@trails-cool/db/schema/journal";
+import { activities, routes, lineStringFromCoords } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
+import type { SQL } from "drizzle-orm";
 
 export interface ActivityInput {
   name: string;
@@ -19,6 +20,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
   let startedAt: Date | null = null;
+  let geom: SQL | null = null;
 
   if (input.gpx) {
     try {
@@ -27,6 +29,9 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
       distance = profile.length > 0 ? Math.round(profile[profile.length - 1]!.distance) : null;
       elevationGain = gpxData.elevation.gain;
       elevationLoss = gpxData.elevation.loss;
+
+      const coords = gpxData.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
+      if (coords.length >= 2) geom = lineStringFromCoords(coords);
 
       // Try to extract start time from first track point
       if (gpxData.tracks[0]?.[0]?.time) {
@@ -48,6 +53,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
     elevationGain,
     elevationLoss,
     startedAt,
+    geom,
   });
 
   return id;
@@ -82,6 +88,17 @@ export async function createRouteFromActivity(activityId: string, ownerId: strin
   if (!activity?.gpx) return null;
 
   const routeId = randomUUID();
+  let routeGeom: SQL | null = null;
+  if (activity.gpx) {
+    try {
+      const gpxData = await parseGpxAsync(activity.gpx);
+      const coords = gpxData.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
+      if (coords.length >= 2) routeGeom = lineStringFromCoords(coords);
+    } catch {
+      // Continue without geom
+    }
+  }
+
   await db.insert(routes).values({
     id: routeId,
     ownerId,
@@ -91,6 +108,7 @@ export async function createRouteFromActivity(activityId: string, ownerId: strin
     distance: activity.distance,
     elevationGain: activity.elevationGain,
     elevationLoss: activity.elevationLoss,
+    geom: routeGeom,
   });
 
   // Link the activity to the new route
