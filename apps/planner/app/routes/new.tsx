@@ -1,7 +1,7 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/new";
 import { createSession, initializeSessionWithWaypoints } from "~/lib/sessions";
-import { parseGpxAsync } from "@trails-cool/gpx";
+import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { checkRateLimit } from "~/lib/rate-limit";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -36,31 +36,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     try {
       const gpx = decodeURIComponent(gpxEncoded);
       const gpxData = await parseGpxAsync(gpx);
-      // Use explicit waypoints if present, otherwise extract from track segments
-      let waypoints = gpxData.waypoints;
-      if (waypoints.length === 0 && gpxData.tracks.length > 0) {
-        const extracted: Array<{ lat: number; lon: number }> = [];
-        for (const seg of gpxData.tracks) {
-          if (seg.length === 0) continue;
-          const first = seg[0]!;
-          // Deduplicate: skip if same as previous waypoint
-          const prev = extracted[extracted.length - 1];
-          if (!prev || prev.lat !== first.lat || prev.lon !== first.lon) {
-            extracted.push({ lat: first.lat, lon: first.lon });
-          }
-        }
-        // Add the end of the last segment
-        const lastSeg = gpxData.tracks[gpxData.tracks.length - 1]!;
-        if (lastSeg.length > 0) {
-          const last = lastSeg[lastSeg.length - 1]!;
-          const prev = extracted[extracted.length - 1];
-          if (!prev || prev.lat !== last.lat || prev.lon !== last.lon) {
-            extracted.push({ lat: last.lat, lon: last.lon });
-          }
-        }
-        waypoints = extracted;
-      }
-      initializeSessionWithWaypoints(session.id, waypoints);
+      initializeSessionWithWaypoints(session.id, extractWaypoints(gpxData));
     } catch {
       // Continue with empty session if GPX is invalid
     }
