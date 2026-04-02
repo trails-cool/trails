@@ -18,6 +18,8 @@ export interface GpxData {
   name?: string;
   waypoints: Waypoint[];
   tracks: TrackPoint[][];
+  /** Total distance in meters (haversine, works with or without elevation data) */
+  distance: number;
   elevation: {
     gain: number;
     loss: number;

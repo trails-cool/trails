@@ -145,11 +145,7 @@ async function computeRouteStats(gpxString: string) {
   try {
     const gpxData = await parseGpxAsync(gpxString);
     return {
-      distance: Math.round(
-        gpxData.elevation.profile.length > 0
-          ? gpxData.elevation.profile[gpxData.elevation.profile.length - 1]!.distance
-          : 0,
-      ),
+      distance: gpxData.distance,
       elevationGain: gpxData.elevation.gain,
       elevationLoss: gpxData.elevation.loss,
     };
