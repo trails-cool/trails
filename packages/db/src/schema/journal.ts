@@ -7,6 +7,7 @@ import {
   jsonb,
   customType,
 } from "drizzle-orm/pg-core";
+import { sql, type SQL } from "drizzle-orm";
 
 const bytea = customType<{ data: Buffer }>({
   dataType() {
@@ -14,11 +15,26 @@ const bytea = customType<{ data: Buffer }>({
   },
 });
 
-const lineString = customType<{ data: string }>({
+const lineString = customType<{ data: string | SQL }>({
   dataType() {
     return "geometry(LineString, 4326)";
   },
+  toDriver(value) {
+    return value;
+  },
 });
+
+/**
+ * Build a SQL expression to create a PostGIS LineString from coordinate pairs.
+ * Coordinates are [lon, lat] (GeoJSON order).
+ */
+export function lineStringFromCoords(coords: [number, number][]): SQL {
+  const geojson = JSON.stringify({
+    type: "LineString",
+    coordinates: coords,
+  });
+  return sql`ST_GeomFromGeoJSON(${geojson})`;
+}
 
 export const journalSchema = pgSchema("journal");
 

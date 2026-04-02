@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "./db.ts";
-import { routes, routeVersions } from "@trails-cool/db/schema/journal";
+import { routes, routeVersions, lineStringFromCoords } from "@trails-cool/db/schema/journal";
 import { parseGpx } from "@trails-cool/gpx";
+import type { SQL } from "drizzle-orm";
 
 export interface RouteInput {
   name: string;
@@ -18,12 +19,14 @@ export async function createRoute(ownerId: string, input: RouteInput) {
   let distance: number | null = null;
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
+  let geom: SQL | null = null;
 
   if (input.gpx) {
     const stats = computeRouteStats(input.gpx);
     distance = stats.distance;
     elevationGain = stats.elevationGain;
     elevationLoss = stats.elevationLoss;
+    geom = stats.geom;
   }
 
   await db.insert(routes).values({
@@ -36,6 +39,7 @@ export async function createRoute(ownerId: string, input: RouteInput) {
     distance,
     elevationGain,
     elevationLoss,
+    geom,
   });
 
   // Create initial version if GPX provided
@@ -99,6 +103,7 @@ export async function updateRoute(
     updateData.distance = stats.distance;
     updateData.elevationGain = stats.elevationGain;
     updateData.elevationLoss = stats.elevationLoss;
+    updateData.geom = stats.geom;
 
     // Get next version number
     const existingVersions = await db
@@ -136,6 +141,7 @@ export async function deleteRoute(id: string, ownerId: string) {
 function computeRouteStats(gpxString: string) {
   try {
     const gpxData = parseGpx(gpxString);
+    const coords = gpxData.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
     return {
       distance: Math.round(
         gpxData.elevation.profile.length > 0
@@ -144,8 +150,9 @@ function computeRouteStats(gpxString: string) {
       ),
       elevationGain: gpxData.elevation.gain,
       elevationLoss: gpxData.elevation.loss,
+      geom: coords.length >= 2 ? lineStringFromCoords(coords) : null,
     };
   } catch {
-    return { distance: null, elevationGain: null, elevationLoss: null };
+    return { distance: null, elevationGain: null, elevationLoss: null, geom: null };
   }
 }
