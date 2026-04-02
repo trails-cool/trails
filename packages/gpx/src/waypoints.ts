@@ -35,7 +35,7 @@ export function extractWaypoints(gpxData: GpxData): Array<{ lat: number; lon: nu
   const allPoints = gpxData.tracks.flat().map((p) => ({ lat: p.lat, lon: p.lon }));
   if (allPoints.length < 2) return allPoints;
 
-  return douglasPeucker(allPoints, 0.05);
+  return douglasPeucker(allPoints, 0.005);
 }
 
 /**
