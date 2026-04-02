@@ -15,7 +15,7 @@ async function getDOMParser(): Promise<typeof DOMParser> {
   return _LinkedDOMParser;
 }
 
-export function parseGpx(xml: string): GpxData {
+function parseGpx(xml: string): GpxData {
   // Synchronous path for browser
   if (typeof DOMParser !== "undefined") {
     return parseGpxWithParser(new DOMParser(), xml);

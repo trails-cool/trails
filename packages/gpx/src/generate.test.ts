@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generateGpx } from "./generate.ts";
-import { parseGpx } from "./parse.ts";
+import { parseGpxAsync } from "./parse.ts";
 
 describe("generateGpx", () => {
   it("generates valid GPX with name", () => {
@@ -36,13 +36,13 @@ describe("generateGpx", () => {
     expect(gpx).toContain("Route &lt;A&gt; &amp; B");
   });
 
-  it("produces round-trippable GPX", () => {
+  it("produces round-trippable GPX", async () => {
     const original = generateGpx({
       name: "Round Trip",
       waypoints: [{ lat: 52.52, lon: 13.405, name: "Start" }],
       tracks: [[{ lat: 52.52, lon: 13.405, ele: 34 }, { lat: 48.137, lon: 11.576, ele: 519 }]],
     });
-    const parsed = parseGpx(original);
+    const parsed = await parseGpxAsync(original);
     expect(parsed.name).toBe("Round Trip");
     expect(parsed.waypoints).toHaveLength(1);
     expect(parsed.waypoints[0]!.name).toBe("Start");
