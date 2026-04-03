@@ -1,7 +1,10 @@
 import client from "prom-client";
 
 // Collect default Node.js metrics (event loop, heap, GC)
-client.collectDefaultMetrics();
+// Guard against duplicate registration during HMR
+if (!client.register.getSingleMetric("process_cpu_user_seconds_total")) {
+  client.collectDefaultMetrics();
+}
 
 export const httpRequestDuration = new client.Histogram({
   name: "http_request_duration_seconds",
