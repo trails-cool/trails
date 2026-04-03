@@ -88,10 +88,11 @@ function parseTracks(doc: Document): TrackPoint[][] {
 
 function parseNoGoAreas(doc: Document): NoGoArea[] {
   const areas: NoGoArea[] = [];
-  const nogos = doc.querySelectorAll("nogo");
+  // Match both unprefixed and prefixed (trails:nogo) elements
+  const nogos = doc.querySelectorAll("nogo, trails\\:nogo");
   for (const nogo of Array.from(nogos)) {
     const points: Array<{ lat: number; lon: number }> = [];
-    const pts = nogo.querySelectorAll("point");
+    const pts = nogo.querySelectorAll("point, trails\\:point");
     for (const pt of Array.from(pts)) {
       const lat = parseFloat(pt.getAttribute("lat") ?? "0");
       const lon = parseFloat(pt.getAttribute("lon") ?? "0");
