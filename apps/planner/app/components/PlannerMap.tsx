@@ -2,8 +2,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, LayersControl, Marker, CircleMarker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import * as Y from "yjs";
+import { useTranslation } from "react-i18next";
 import type { YjsState } from "~/lib/use-yjs";
 import { baseLayers } from "@trails-cool/map";
+import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
@@ -41,6 +43,7 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
 interface PlannerMapProps {
   yjs: YjsState;
   onRouteRequest?: (waypoints: WaypointData[]) => void;
+  onImportError?: (message: string) => void;
   highlightPosition?: [number, number] | null;
 }
 
@@ -203,8 +206,11 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
-export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMapProps) {
+export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportError }: PlannerMapProps) {
+  const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
+  const [draggingOver, setDraggingOver] = useState(false);
+  const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
   const [segmentBoundaries, setSegmentBoundaries] = useState<number[]>([]);
   const [surfaces, setSurfaces] = useState<string[]>([]);
@@ -336,7 +342,80 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
     [yjs.waypoints],
   );
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current++;
+    if (dragCounterRef.current === 1) setDraggingOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setDraggingOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDraggingOver(false);
+
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".gpx")) {
+      onImportError?.(t("importGpxError"));
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const gpxData = await parseGpxAsync(text);
+      const newWaypoints = extractWaypoints(gpxData);
+      if (newWaypoints.length < 2) return;
+
+      if (!window.confirm(t("replaceRouteConfirm"))) return;
+
+      yjs.doc.transact(() => {
+        // Replace waypoints
+        yjs.waypoints.delete(0, yjs.waypoints.length);
+        for (const wp of newWaypoints) {
+          const yMap = new Y.Map();
+          yMap.set("lat", wp.lat);
+          yMap.set("lon", wp.lon);
+          yjs.waypoints.push([yMap]);
+        }
+
+        // Replace no-go areas
+        yjs.noGoAreas.delete(0, yjs.noGoAreas.length);
+        for (const area of gpxData.noGoAreas) {
+          const yMap = new Y.Map();
+          yMap.set("points", area.points);
+          yjs.noGoAreas.push([yMap]);
+        }
+      });
+    } catch {
+      onImportError?.(t("importGpxError"));
+    }
+  }, [yjs, t, onImportError]);
+
   return (
+    <div
+      className="relative h-full w-full"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {draggingOver && (
+        <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-blue-500/20 backdrop-blur-sm">
+          <div className="rounded-xl bg-white px-8 py-6 text-lg font-medium text-blue-600 shadow-lg">
+            {t("dropGpxHere")}
+          </div>
+        </div>
+      )}
     <MapContainer center={[50.1, 10.0]} zoom={6} className="h-full w-full">
       <LayersControl position="topright">
         {baseLayers.map((layer, i) => (
@@ -411,5 +490,6 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition }: PlannerMa
         />
       )}
     </MapContainer>
+    </div>
   );
 }

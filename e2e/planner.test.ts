@@ -190,4 +190,49 @@ test.describe("Planner", () => {
     const response = await page.goto("/session/nonexistent-id");
     expect(response?.status()).toBe(404);
   });
+
+  test("home page has Import GPX button", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Import GPX")).toBeVisible();
+  });
+
+  test("import invalid GPX shows error", async ({ page }) => {
+    await page.goto("/");
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.getByText("Import GPX").click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({
+      name: "broken.gpx",
+      mimeType: "application/gpx+xml",
+      buffer: Buffer.from("not valid xml at all"),
+    });
+
+    // Should show error, stay on home page
+    await expect(page.getByText(/Could not read|konnte nicht/)).toBeVisible({ timeout: 5000 });
+    await expect(page).toHaveURL(/^\/$|\/$/);
+  });
+
+  test("import GPX from home page creates session with waypoints", async ({ page }) => {
+    await page.goto("/");
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="51.05" lon="13.74"><ele>113</ele></trkpt>
+    <trkpt lat="48.137" lon="11.576"><ele>519</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.getByText("Import GPX").click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({
+      name: "test-route.gpx",
+      mimeType: "application/gpx+xml",
+      buffer: Buffer.from(gpx),
+    });
+
+    // Should redirect to a session
+    await expect(page).toHaveURL(/\/session\//, { timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+  });
 });

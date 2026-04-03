@@ -262,7 +262,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} onImportError={(msg) => addToast(msg, "error")} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
