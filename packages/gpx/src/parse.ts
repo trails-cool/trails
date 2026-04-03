@@ -15,7 +15,7 @@ async function getDOMParser(): Promise<typeof DOMParser> {
   return _LinkedDOMParser;
 }
 
-export function parseGpx(xml: string): GpxData {
+function parseGpx(xml: string): GpxData {
   // Synchronous path for browser
   if (typeof DOMParser !== "undefined") {
     return parseGpxWithParser(new DOMParser(), xml);
@@ -46,9 +46,9 @@ function parseGpxWithParser(parser: DOMParser, xml: string): GpxData {
   const name = doc.querySelector("metadata > name")?.textContent ?? undefined;
   const waypoints = parseWaypoints(doc);
   const tracks = parseTracks(doc);
-  const elevation = computeElevation(tracks);
+  const { totalDistance, ...elevation } = computeElevation(tracks);
 
-  return { name, waypoints, tracks, elevation };
+  return { name, waypoints, tracks, distance: totalDistance, elevation };
 }
 
 function parseWaypoints(doc: Document): Waypoint[] {
@@ -85,7 +85,7 @@ function parseTracks(doc: Document): TrackPoint[][] {
   return tracks;
 }
 
-function computeElevation(tracks: TrackPoint[][]): GpxData["elevation"] {
+function computeElevation(tracks: TrackPoint[][]): GpxData["elevation"] & { totalDistance: number } {
   let gain = 0;
   let loss = 0;
   const profile: ElevationProfile[] = [];
@@ -112,7 +112,7 @@ function computeElevation(tracks: TrackPoint[][]): GpxData["elevation"] {
     }
   }
 
-  return { gain: Math.round(gain), loss: Math.round(loss), profile };
+  return { totalDistance: Math.round(totalDistance), gain: Math.round(gain), loss: Math.round(loss), profile };
 }
 
 /** Haversine distance between two points in meters */

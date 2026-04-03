@@ -23,8 +23,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   if (input.gpx) {
     try {
       const gpxData = await parseGpxAsync(input.gpx);
-      const profile = gpxData.elevation.profile;
-      distance = profile.length > 0 ? Math.round(profile[profile.length - 1]!.distance) : null;
+      distance = gpxData.distance || null;
       elevationGain = gpxData.elevation.gain;
       elevationLoss = gpxData.elevation.loss;
 
