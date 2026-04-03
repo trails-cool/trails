@@ -45,7 +45,7 @@ The Planner SHALL persist Yjs session state to PostgreSQL so that sessions survi
 - **THEN** reconnecting clients recover the full session state from PostgreSQL
 
 ### Requirement: Session expiry
-The Planner SHALL automatically expire sessions after a configurable period of inactivity (default: 7 days, max: 30 days).
+The Planner SHALL automatically expire sessions after a configurable period of inactivity (default: 7 days, no hard ceiling enforced).
 
 #### Scenario: Session expires
 - **WHEN** no edits are made to a session for 7 days

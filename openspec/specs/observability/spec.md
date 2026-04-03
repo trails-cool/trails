@@ -5,11 +5,11 @@ Both apps SHALL expose a `/health` endpoint returning service and database statu
 
 #### Scenario: Healthy service
 - **WHEN** the app is running and the database is reachable
-- **THEN** `GET /health` returns `{ "status": "ok", "db": "connected" }` with HTTP 200
+- **THEN** `GET /health` returns `{ "status": "ok", "db": "connected", "version": "<string>" }` with HTTP 200 (version from `SENTRY_RELEASE` env var, defaults to `"dev"`)
 
 #### Scenario: Degraded service
 - **WHEN** the app is running but the database is unreachable
-- **THEN** `GET /health` returns `{ "status": "degraded", "db": "unreachable" }` with HTTP 503
+- **THEN** `GET /health` returns `{ "status": "degraded", "db": "unreachable", "version": "<string>" }` with HTTP 503
 
 ### Requirement: Prometheus metrics
 Both apps SHALL expose a `/metrics` endpoint with Prometheus-formatted metrics.
@@ -25,6 +25,10 @@ Both apps SHALL expose a `/metrics` endpoint with Prometheus-formatted metrics.
 #### Scenario: Planner-specific metrics
 - **WHEN** the Planner is running
 - **THEN** `planner_active_sessions` and `planner_connected_clients` gauges reflect current state
+
+#### Scenario: BRouter latency metrics
+- **WHEN** the Planner proxies a routing request to BRouter
+- **THEN** `brouter_request_duration_seconds` histogram is updated (buckets: 0.1s to 10s)
 
 ### Requirement: Structured logging
 Both apps SHALL output structured JSON logs in production.
