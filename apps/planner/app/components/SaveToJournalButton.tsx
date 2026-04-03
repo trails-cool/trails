@@ -41,7 +41,13 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
         points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
       })).filter((a) => a.points.length >= 3);
 
-      const gpx = generateGpx({ name: "trails.cool route", waypoints: [], tracks, noGoAreas });
+      const waypoints = yjs.waypoints.toArray().map((yMap: Y.Map<unknown>) => ({
+        lat: yMap.get("lat") as number,
+        lon: yMap.get("lon") as number,
+        name: yMap.get("name") as string | undefined,
+      }));
+
+      const gpx = generateGpx({ name: "trails.cool route", waypoints, tracks, noGoAreas });
 
       // POST to Journal callback
       const response = await fetch(callbackUrl, {
