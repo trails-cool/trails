@@ -74,7 +74,7 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
   }, [yjs]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative z-[1001]">
       <div className="flex">
         <button
           onClick={handleExportRoute}
@@ -90,18 +90,20 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
         </button>
       </div>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded border border-gray-200 bg-white py-1 shadow-lg">
           <button
             onClick={handleExportRoute}
-            className="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+            className="block w-full px-3 py-1.5 text-left hover:bg-gray-100"
           >
-            {t("exportRoute")}
+            <span className="text-sm text-gray-700">{t("exportRoute")}</span>
+            <span className="block text-xs text-gray-400">{t("exportRouteDesc")}</span>
           </button>
           <button
             onClick={handleExportPlan}
-            className="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+            className="block w-full px-3 py-1.5 text-left hover:bg-gray-100"
           >
-            {t("exportPlan")}
+            <span className="text-sm text-gray-700">{t("exportPlan")}</span>
+            <span className="block text-xs text-gray-400">{t("exportPlanDesc")}</span>
           </button>
         </div>
       )}
