@@ -52,7 +52,7 @@ export async function computeRoute(request: RouteRequest): Promise<EnrichedRoute
         format,
         tiledesc: "true",
       });
-      if (nogoParam) params.set("nogos", nogoParam);
+      if (nogoParam) params.set("polygons", nogoParam);
       return fetchSegment(`${BROUTER_URL}/brouter?${params}`);
     }),
   );
@@ -180,38 +180,17 @@ function extractSurfacesFromMessages(properties: Record<string, unknown>): Map<n
 }
 
 /**
- * Convert no-go area polygons to BRouter's `nogos` parameter format.
- * BRouter accepts `lon,lat,radius` per no-go circle, separated by `|`.
- * We approximate each polygon as a circle: centroid + max distance to any vertex.
+ * Convert no-go area polygons to BRouter's `polygons` parameter format.
+ * Format: lon1,lat1,lon2,lat2,...,lonN,latN separated by `|` per polygon.
  */
 function noGoAreasToParam(areas: NoGoArea[]): string {
   return areas
     .map((area) => {
-      const pts = area.points;
-      if (pts.length === 0) return null;
-      // Centroid
-      const cLat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
-      const cLon = pts.reduce((s, p) => s + p.lon, 0) / pts.length;
-      // Max distance from centroid in meters (approximate)
-      const maxDist = Math.max(
-        ...pts.map((p) => haversineMeters(cLat, cLon, p.lat, p.lon)),
-      );
-      return `${cLon},${cLat},${Math.ceil(maxDist)}`;
+      if (area.points.length < 3) return null;
+      return area.points.map((p) => `${p.lon},${p.lat}`).join(",");
     })
     .filter(Boolean)
     .join("|");
-}
-
-function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export function getBRouterUrl(): string {
