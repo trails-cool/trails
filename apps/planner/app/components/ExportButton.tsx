@@ -83,8 +83,8 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
           {t("exportGpx")}
         </button>
         <button
-          onClick={() => setOpen((v) => !v)}
-          className="rounded-r border-l border-gray-300 bg-gray-100 px-1.5 py-1 text-sm text-gray-700 hover:bg-gray-200"
+          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          className="rounded-r border-l border-gray-300 bg-gray-100 px-2.5 py-1 text-sm text-gray-700 hover:bg-gray-200"
         >
           ▾
         </button>
