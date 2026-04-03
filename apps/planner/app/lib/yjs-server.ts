@@ -6,6 +6,7 @@ import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import type { IncomingMessage, Server } from "node:http";
 import { saveSessionState, loadSessionState, touchSession } from "./sessions.ts";
+import { plannerActiveSessions, plannerConnectedClients } from "./metrics.server.ts";
 
 const messageSync = 0;
 const messageAwareness = 1;
@@ -159,10 +160,13 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
   });
 
   wss.on("connection", async (ws: WebSocket, _request: IncomingMessage, sessionId: string) => {
+    const isNewSession = !docs.has(sessionId);
     const doc = await getOrLoadDoc(sessionId);
     const awareness = getAwareness(sessionId, doc);
 
     conns.set(ws, { sessionId, clientIds: new Set() });
+    plannerConnectedClients.inc();
+    if (isNewSession) plannerActiveSessions.inc();
 
     // Broadcast doc updates to all connections in this session
     const onUpdate = (update: Uint8Array, origin: unknown) => {
@@ -218,11 +222,13 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
         );
       }
       conns.delete(ws);
+      plannerConnectedClients.dec();
       doc.off("update", onUpdate);
 
       // Save when last client leaves
       const hasClients = Array.from(conns.values()).some((m) => m.sessionId === sessionId);
       if (!hasClients) {
+        plannerActiveSessions.dec();
         saveSessionState(sessionId).catch(() => {});
       }
     });
