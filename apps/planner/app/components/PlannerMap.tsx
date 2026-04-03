@@ -177,7 +177,7 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
           href="#"
           role="button"
           title={active ? "Cancel no-go area" : "Draw no-go area"}
-          onClick={(e) => { e.preventDefault(); onClick(); }}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
           style={{
             display: "flex",
             alignItems: "center",
