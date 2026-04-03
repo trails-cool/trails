@@ -170,8 +170,15 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
 }
 
 function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Prevent clicks from reaching the Leaflet map (same as built-in controls)
+  useEffect(() => {
+    if (ref.current) L.DomEvent.disableClickPropagation(ref.current);
+  }, []);
+
   return (
-    <div className="leaflet-top leaflet-left" style={{ marginTop: 80 }}>
+    <div ref={ref} className="leaflet-top leaflet-left" style={{ marginTop: 80 }}>
       <div className="leaflet-control leaflet-bar">
         <a
           href="#"
