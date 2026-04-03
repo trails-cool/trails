@@ -23,13 +23,8 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
     setError(null);
 
     try {
-      // Build GPX from current Yjs state
-      const waypoints = yjs.waypoints.toArray().map((yMap: Y.Map<unknown>) => ({
-        lat: yMap.get("lat") as number,
-        lon: yMap.get("lon") as number,
-        name: yMap.get("name") as string | undefined,
-      }));
-
+      // Build GPX from computed track (not editing waypoints).
+      // The track reflects the actual routed path including no-go avoidance.
       let tracks: TrackPoint[][] = [];
       const geojsonStr = yjs.routeData.get("geojson") as string | undefined;
       if (geojsonStr) {
@@ -42,7 +37,7 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
         } catch { /* invalid geojson */ }
       }
 
-      const gpx = generateGpx({ name: "trails.cool route", waypoints, tracks });
+      const gpx = generateGpx({ name: "trails.cool route", waypoints: [], tracks });
 
       // POST to Journal callback
       const response = await fetch(callbackUrl, {

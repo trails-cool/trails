@@ -9,14 +9,9 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
   const { t } = useTranslation("planner");
 
   const handleExport = useCallback(() => {
-    // Get waypoints from Yjs
-    const waypoints = yjs.waypoints.toArray().map((yMap: Y.Map<unknown>) => ({
-      lat: yMap.get("lat") as number,
-      lon: yMap.get("lon") as number,
-      name: yMap.get("name") as string | undefined,
-    }));
-
-    // Get route track from GeoJSON
+    // Export only the computed track, not editing waypoints.
+    // The track already reflects no-go area avoidance and BRouter's routing.
+    // On reimport, waypoints are extracted from the track shape.
     let tracks: TrackPoint[][] = [];
     const geojsonStr = yjs.routeData.get("geojson") as string | undefined;
     if (geojsonStr) {
@@ -37,7 +32,7 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
       }
     }
 
-    const gpx = generateGpx({ name: "trails.cool route", waypoints, tracks });
+    const gpx = generateGpx({ name: "trails.cool route", waypoints: [], tracks });
 
     // Download
     const blob = new Blob([gpx], { type: "application/gpx+xml" });
