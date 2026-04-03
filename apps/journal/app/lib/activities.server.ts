@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
+import { setGeomFromGpx } from "./routes.server.ts";
 
 export interface ActivityInput {
   name: string;
@@ -19,12 +20,10 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
   let startedAt: Date | null = null;
-
   if (input.gpx) {
     try {
       const gpxData = await parseGpxAsync(input.gpx);
-      const profile = gpxData.elevation.profile;
-      distance = profile.length > 0 ? Math.round(profile[profile.length - 1]!.distance) : null;
+      distance = gpxData.distance || null;
       elevationGain = gpxData.elevation.gain;
       elevationLoss = gpxData.elevation.loss;
 
@@ -49,6 +48,10 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
     elevationLoss,
     startedAt,
   });
+
+  if (input.gpx) {
+    await setGeomFromGpx(id, "activities", input.gpx);
+  }
 
   return id;
 }
@@ -92,6 +95,8 @@ export async function createRouteFromActivity(activityId: string, ownerId: strin
     elevationGain: activity.elevationGain,
     elevationLoss: activity.elevationLoss,
   });
+
+  await setGeomFromGpx(routeId, "routes", activity.gpx);
 
   // Link the activity to the new route
   await db

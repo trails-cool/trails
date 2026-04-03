@@ -5,7 +5,7 @@ The system SHALL provide a provider-agnostic email sending function that support
 
 #### Scenario: Send email in production
 - **WHEN** the system sends a transactional email in production
-- **THEN** the email is delivered via the configured provider (Resend) to the recipient
+- **THEN** the email is delivered via Nodemailer with SMTP (configured via `SMTP_URL` connection string and `SMTP_FROM` env var) to the recipient
 
 #### Scenario: Dev mode skips sending
 - **WHEN** the system sends a transactional email in development
