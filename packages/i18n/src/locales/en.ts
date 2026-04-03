@@ -18,6 +18,8 @@ export default {
     newSession: "New Session",
     saveRoute: "Save Route",
     exportGpx: "Export GPX",
+    exportRoute: "Export Route",
+    exportPlan: "Export Plan",
     profile: "Profile",
     connecting: "Connecting...",
     loadingMap: "Loading map...",

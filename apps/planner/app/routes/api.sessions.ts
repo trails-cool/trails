@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.sessions";
-import { createSession, listSessions } from "~/lib/sessions";
+import { createSession, listSessions, initializeSessionWithNoGoAreas } from "~/lib/sessions";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { withDb } from "@trails-cool/db";
 
@@ -25,6 +25,9 @@ export async function action({ request }: Route.ActionArgs) {
         const gpxData = await parseGpxAsync(gpx);
         const wps = extractWaypoints(gpxData);
         if (wps.length > 0) initialWaypoints = wps;
+        if (gpxData.noGoAreas.length > 0) {
+          initializeSessionWithNoGoAreas(session.id, gpxData.noGoAreas);
+        }
       } catch {
         // Continue with empty session if GPX is invalid
       }

@@ -90,6 +90,22 @@ export function initializeSessionWithWaypoints(
   });
 }
 
+export function initializeSessionWithNoGoAreas(
+  sessionId: string,
+  noGoAreas: Array<{ points: Array<{ lat: number; lon: number }> }>,
+): void {
+  const doc = getOrCreateDoc(sessionId);
+  const yNoGoAreas = doc.getArray("noGoAreas");
+
+  doc.transact(() => {
+    for (const area of noGoAreas) {
+      const yMap = new Y.Map();
+      yMap.set("points", area.points);
+      yNoGoAreas.push([yMap]);
+    }
+  });
+}
+
 export async function listSessions(): Promise<SessionMetadata[]> {
   return getDb()
     .select()
