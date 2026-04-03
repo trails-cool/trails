@@ -1,15 +1,15 @@
 ## Requirements
 
 ### Requirement: Encrypted secrets in repository
-Production secrets SHALL be stored as a SOPS-encrypted file in the repository, decryptable only with a single age private key.
+Production secrets SHALL be stored as SOPS-encrypted files in the repository, decryptable only with a single age private key. Secrets are split into two files: `secrets.app.env` (application secrets) and `secrets.infra.env` (infrastructure secrets).
 
 #### Scenario: Edit secrets
-- **WHEN** a developer runs `sops infrastructure/secrets.env`
+- **WHEN** a developer runs `sops infrastructure/secrets.app.env` or `sops infrastructure/secrets.infra.env`
 - **THEN** the file is decrypted in a temporary editor, and re-encrypted on save
 
 #### Scenario: CD decryption
 - **WHEN** the CD workflow runs
-- **THEN** the encrypted secrets file is decrypted using the AGE_SECRET_KEY GitHub secret and provided to docker-compose as an env file
+- **THEN** both encrypted secrets files are decrypted using the AGE_SECRET_KEY GitHub secret and merged at deploy time as env files for docker-compose
 
 #### Scenario: Secret audit trail
 - **WHEN** a secret is changed

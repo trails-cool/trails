@@ -32,7 +32,7 @@ The Planner SHALL elect one participant per session as the "routing host" who is
 
 #### Scenario: Host failover
 - **WHEN** the current routing host disconnects
-- **THEN** the longest-connected remaining participant becomes the new host within 5 seconds
+- **THEN** failover is immediate via deterministic Yjs clientID election: the client with the lowest remaining ID becomes host instantly
 
 ### Requirement: Route broadcast
 The routing host SHALL store computed route results in the Yjs document so that all participants receive route updates automatically.
@@ -45,7 +45,7 @@ The routing host SHALL store computed route results in the Yjs document so that 
 The Planner SHALL support selecting a routing profile that determines how BRouter computes the route.
 
 #### Scenario: Switch routing profile
-- **WHEN** a user changes the routing profile from "trekking" to "shortest"
+- **WHEN** a user changes the routing profile (available profiles: `trekking`, `fastbike`, `safety`, `shortest`, `car`)
 - **THEN** the profile change syncs via Yjs and the routing host recomputes the route
 
 ### Requirement: BRouter API proxy

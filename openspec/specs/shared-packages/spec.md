@@ -27,7 +27,7 @@ The `@trails-cool/gpx` package SHALL parse GPX XML into structured data (waypoin
 - **THEN** it returns elevation gain, loss, and a profile array of distance/elevation pairs
 
 ### Requirement: Map rendering package
-The `@trails-cool/map` package SHALL provide React components for rendering Leaflet maps with configurable base layers and route overlays.
+The `@trails-cool/map` package SHALL provide core React components (MapView, RouteLayer) for rendering Leaflet maps with configurable base layers and route overlays. Interactive features (route drag-reshape, ghost markers, no-go area drawing, elevation chart, cursor tracking, colored routes) are implemented directly in the Planner app since they are Planner-specific.
 
 #### Scenario: Render map component
 - **WHEN** the map package's MapView component is rendered with a center and zoom

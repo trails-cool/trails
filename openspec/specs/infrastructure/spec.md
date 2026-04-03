@@ -5,7 +5,7 @@ Infrastructure SHALL be provisioned on Hetzner Cloud using Terraform with the He
 
 #### Scenario: Provision server
 - **WHEN** `terraform apply` is run
-- **THEN** a Hetzner CX21 server (2 vCPU, 4 GB RAM, 40 GB SSD) is created with Docker installed
+- **THEN** a Hetzner cx23 server (2 vCPU, 4 GB RAM, 40 GB SSD) is created with Docker installed
 
 ### Requirement: Docker Compose deployment
 All services SHALL be deployed via Docker Compose on the Hetzner server.
