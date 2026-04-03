@@ -1,6 +1,6 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/new";
-import { createSession, initializeSessionWithWaypoints } from "~/lib/sessions";
+import { createSession, initializeSessionWithWaypoints, initializeSessionWithNoGoAreas } from "~/lib/sessions";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { checkRateLimit } from "~/lib/rate-limit";
 
@@ -37,6 +37,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       const gpx = decodeURIComponent(gpxEncoded);
       const gpxData = await parseGpxAsync(gpx);
       initializeSessionWithWaypoints(session.id, extractWaypoints(gpxData));
+      if (gpxData.noGoAreas.length > 0) {
+        initializeSessionWithNoGoAreas(session.id, gpxData.noGoAreas);
+      }
     } catch {
       // Continue with empty session if GPX is invalid
     }

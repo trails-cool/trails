@@ -1,5 +1,5 @@
 import type { Waypoint } from "@trails-cool/types";
-import type { GpxData, TrackPoint, ElevationProfile } from "./types.ts";
+import type { GpxData, TrackPoint, ElevationProfile, NoGoArea } from "./types.ts";
 
 /**
  * Parse a GPX XML string into structured data.
@@ -46,9 +46,10 @@ function parseGpxWithParser(parser: DOMParser, xml: string): GpxData {
   const name = doc.querySelector("metadata > name")?.textContent ?? undefined;
   const waypoints = parseWaypoints(doc);
   const tracks = parseTracks(doc);
+  const noGoAreas = parseNoGoAreas(doc);
   const { totalDistance, ...elevation } = computeElevation(tracks);
 
-  return { name, waypoints, tracks, distance: totalDistance, elevation };
+  return { name, waypoints, tracks, noGoAreas, distance: totalDistance, elevation };
 }
 
 function parseWaypoints(doc: Document): Waypoint[] {
@@ -83,6 +84,23 @@ function parseTracks(doc: Document): TrackPoint[][] {
   }
 
   return tracks;
+}
+
+function parseNoGoAreas(doc: Document): NoGoArea[] {
+  const areas: NoGoArea[] = [];
+  // Match both unprefixed and prefixed (trails:nogo) elements
+  const nogos = doc.querySelectorAll("nogo, trails\\:nogo");
+  for (const nogo of Array.from(nogos)) {
+    const points: Array<{ lat: number; lon: number }> = [];
+    const pts = nogo.querySelectorAll("point, trails\\:point");
+    for (const pt of Array.from(pts)) {
+      const lat = parseFloat(pt.getAttribute("lat") ?? "0");
+      const lon = parseFloat(pt.getAttribute("lon") ?? "0");
+      points.push({ lat, lon });
+    }
+    if (points.length >= 3) areas.push({ points });
+  }
+  return areas;
 }
 
 function computeElevation(tracks: TrackPoint[][]): GpxData["elevation"] & { totalDistance: number } {

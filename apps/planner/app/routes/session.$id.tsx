@@ -37,6 +37,11 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
   if (waypointsParam) {
     try { initialWaypoints = JSON.parse(waypointsParam); } catch { /* ignore */ }
   }
+  const noGoParam = searchParams.get("noGoAreas");
+  let initialNoGoAreas: Array<{ points: Array<{ lat: number; lon: number }> }> | undefined;
+  if (noGoParam) {
+    try { initialNoGoAreas = JSON.parse(noGoParam); } catch { /* ignore */ }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -61,6 +66,7 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
               callbackToken={loaderData.callbackToken ?? undefined}
               returnUrl={returnUrl}
               initialWaypoints={initialWaypoints}
+              initialNoGoAreas={initialNoGoAreas}
             />
           </Suspense>
         )}

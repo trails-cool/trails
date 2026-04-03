@@ -42,6 +42,7 @@ export interface YjsState {
 export function useYjs(
   sessionId: string,
   initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>,
+  initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>,
 ): YjsState | null {
   const [state, setState] = useState<YjsState | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
@@ -105,6 +106,13 @@ export function useYjs(
               yMap.set("lon", wp.lon);
               if (wp.name) yMap.set("name", wp.name);
               waypoints.push([yMap]);
+            }
+            if (initialNoGoAreas?.length && noGoAreas.length === 0) {
+              for (const area of initialNoGoAreas) {
+                const yMap = new Y.Map();
+                yMap.set("points", area.points);
+                noGoAreas.push([yMap]);
+              }
             }
           });
         }

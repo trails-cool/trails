@@ -179,12 +179,13 @@ interface SessionViewProps {
   callbackToken?: string;
   returnUrl?: string;
   initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+  initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
 }
 
-export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints }: SessionViewProps) {
+export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints, initialNoGoAreas }: SessionViewProps) {
   const { t } = useTranslation("planner");
   useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
-  const yjs = useYjs(sessionId, initialWaypoints);
+  const yjs = useYjs(sessionId, initialWaypoints, initialNoGoAreas);
   const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const { toasts, addToast } = useToasts();

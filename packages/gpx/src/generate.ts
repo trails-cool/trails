@@ -4,15 +4,23 @@ import type { TrackPoint } from "./types.ts";
 /**
  * Generate a GPX XML string from waypoints and track points.
  */
+export interface NoGoArea {
+  points: Array<{ lat: number; lon: number }>;
+}
+
 export function generateGpx(options: {
   name?: string;
   waypoints?: Waypoint[];
   tracks?: TrackPoint[][];
+  noGoAreas?: NoGoArea[];
 }): string {
+  const hasExtensions = options.noGoAreas && options.noGoAreas.length > 0;
   const lines: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<gpx version="1.1" creator="trails.cool"',
-    '  xmlns="http://www.topografix.com/GPX/1/1">',
+    '  xmlns="http://www.topografix.com/GPX/1/1"' +
+      (hasExtensions ? '\n  xmlns:trails="https://trails.cool/gpx/1"' : "") +
+      ">",
   ];
 
   if (options.name) {
@@ -44,6 +52,18 @@ export function generateGpx(options: {
       }
       lines.push("    </trkseg>", "  </trk>");
     }
+  }
+
+  if (options.noGoAreas && options.noGoAreas.length > 0) {
+    lines.push("  <extensions>", "    <trails:planning>");
+    for (const area of options.noGoAreas) {
+      lines.push("      <trails:nogo>");
+      for (const pt of area.points) {
+        lines.push(`        <trails:point lat="${pt.lat}" lon="${pt.lon}"/>`);
+      }
+      lines.push("      </trails:nogo>");
+    }
+    lines.push("    </trails:planning>", "  </extensions>");
   }
 
   lines.push("</gpx>");

@@ -36,12 +36,16 @@ export async function action({ params, request }: Route.ActionArgs) {
   const session = (await sessionResp.json()) as {
     url: string;
     initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+    initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
   };
 
-  // Encode waypoints in URL params (small — just coordinates, not full GPX)
+  // Encode planning data in URL params
   const urlParams = new URLSearchParams({ returnUrl });
   if (session.initialWaypoints?.length) {
     urlParams.set("waypoints", JSON.stringify(session.initialWaypoints));
+  }
+  if (session.initialNoGoAreas?.length) {
+    urlParams.set("noGoAreas", JSON.stringify(session.initialNoGoAreas));
   }
 
   return data({

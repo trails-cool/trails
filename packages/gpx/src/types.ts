@@ -14,10 +14,15 @@ export interface ElevationProfile {
   elevation: number;
 }
 
+export interface NoGoArea {
+  points: Array<{ lat: number; lon: number }>;
+}
+
 export interface GpxData {
   name?: string;
   waypoints: Waypoint[];
   tracks: TrackPoint[][];
+  noGoAreas: NoGoArea[];
   /** Total distance in meters (haversine, works with or without elevation data) */
   distance: number;
   elevation: {
