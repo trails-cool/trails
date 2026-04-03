@@ -1,5 +1,8 @@
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import type { Route } from "./+types/home";
+import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -18,6 +21,41 @@ const features = [
 
 export default function Home() {
   const { t } = useTranslation("planner");
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+
+    try {
+      const text = await file.text();
+      const gpxData = await parseGpxAsync(text);
+      const waypoints = extractWaypoints(gpxData);
+      const noGoAreas = gpxData.noGoAreas;
+
+      // Create session via API
+      const resp = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!resp.ok) return;
+      const session = await resp.json() as { url: string };
+
+      // Build session URL with imported data
+      const params = new URLSearchParams();
+      if (waypoints.length > 0) params.set("waypoints", JSON.stringify(waypoints));
+      if (noGoAreas.length > 0) params.set("noGoAreas", JSON.stringify(noGoAreas));
+      navigate(`${session.url}?${params}`);
+    } catch {
+      setImportError(t("importGpxError"));
+      setTimeout(() => setImportError(null), 4000);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -29,12 +67,30 @@ export default function Home() {
         <p className="mt-4 max-w-lg text-center text-lg text-gray-600">
           {t("landing.heroDescription")}
         </p>
-        <a
-          href="/new"
-          className="mt-8 rounded-lg bg-blue-600 px-8 py-3 text-lg font-medium text-white shadow-sm hover:bg-blue-700"
-        >
-          {t("landing.startPlanning")}
-        </a>
+        <div className="mt-8 flex gap-4">
+          <a
+            href="/new"
+            className="rounded-lg bg-blue-600 px-8 py-3 text-lg font-medium text-white shadow-sm hover:bg-blue-700"
+          >
+            {t("landing.startPlanning")}
+          </a>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-lg border border-gray-300 bg-white px-8 py-3 text-lg font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            {t("importGpx")}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".gpx"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+        </div>
+        {importError && (
+          <p className="mt-4 text-sm text-red-600">{importError}</p>
+        )}
       </section>
 
       {/* Features */}
