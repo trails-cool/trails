@@ -9,7 +9,8 @@ Users SHALL be able to draw polygons on the map that BRouter avoids when computi
 
 #### Scenario: Route avoids no-go area
 - **WHEN** a route is computed and a no-go area intersects the direct path
-- **THEN** BRouter routes around the no-go area
+- **THEN** BRouter request includes the polygon vertices via the `polygons` parameter
+- **AND** BRouter routes around the no-go area
 
 #### Scenario: Delete no-go area
 - **WHEN** a user deletes a no-go area polygon
