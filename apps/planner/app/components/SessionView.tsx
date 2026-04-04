@@ -5,6 +5,7 @@ import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
 import { useRouting, type RouteError } from "~/lib/use-routing";
+import { useUndo, useUndoShortcuts } from "~/lib/use-undo";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
 import { SaveToJournalButton } from "~/components/SaveToJournalButton";
@@ -187,6 +188,8 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
   const yjs = useYjs(sessionId, initialWaypoints, initialNoGoAreas);
   const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
+  const { canUndo, canRedo, undo, redo } = useUndo(yjs?.undoManager ?? null);
+  useUndoShortcuts(yjs?.undoManager ?? null);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const { toasts, addToast } = useToasts();
   useAwarenessToasts(yjs, t, addToast);
@@ -225,6 +228,24 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           </Link>
           <ProfileSelector yjs={yjs} />
           <ParticipantList yjs={yjs} />
+          <div className="flex gap-1">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              title={t("undo.tooltip")}
+              className="rounded px-1.5 py-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              title={t("redo.tooltip")}
+              className="rounded px-1.5 py-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {callbackUrl && callbackToken && (

@@ -294,23 +294,26 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
 
   const addWaypoint = useCallback(
     (lat: number, lng: number) => {
-      const yMap = new Y.Map();
-      yMap.set("lat", lat);
-      yMap.set("lon", lng);
-      yjs.waypoints.push([yMap]);
+      yjs.doc.transact(() => {
+        const yMap = new Y.Map();
+        yMap.set("lat", lat);
+        yMap.set("lon", lng);
+        yjs.waypoints.push([yMap]);
+      }, "local");
     },
-    [yjs.waypoints],
+    [yjs.doc, yjs.waypoints],
   );
 
   const insertWaypointAtSegment = useCallback(
     (segmentIndex: number, lat: number, lon: number) => {
-      const yMap = new Y.Map();
-      yMap.set("lat", lat);
-      yMap.set("lon", lon);
-      // Insert after the segment's start waypoint
-      yjs.waypoints.insert(segmentIndex + 1, [yMap]);
+      yjs.doc.transact(() => {
+        const yMap = new Y.Map();
+        yMap.set("lat", lat);
+        yMap.set("lon", lon);
+        yjs.waypoints.insert(segmentIndex + 1, [yMap]);
+      }, "local");
     },
-    [yjs.waypoints],
+    [yjs.doc, yjs.waypoints],
   );
 
   const handleRouteInsert = useCallback(
@@ -329,7 +332,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
         yjs.doc.transact(() => {
           yMap.set("lat", lat);
           yMap.set("lon", lng);
-        });
+        }, "local");
       }
     },
     [yjs.waypoints, yjs.doc],
@@ -337,7 +340,9 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
 
   const deleteWaypoint = useCallback(
     (index: number) => {
-      yjs.waypoints.delete(index, 1);
+      yjs.doc.transact(() => {
+        yjs.waypoints.delete(index, 1);
+      }, "local");
     },
     [yjs.waypoints],
   );
@@ -395,7 +400,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
           yMap.set("points", area.points);
           yjs.noGoAreas.push([yMap]);
         }
-      });
+      }, "local");
     } catch {
       onImportError?.(t("importGpxError"));
     }
@@ -449,6 +454,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
             },
             dragstart: () => {
               waypointDraggingRef.current = true;
+              yjs.undoManager.stopCapturing();
               routeInteractionSuspendedRef.current = true;
             },
             dragend: (e) => {
