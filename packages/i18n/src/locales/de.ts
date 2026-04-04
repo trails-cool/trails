@@ -22,6 +22,8 @@ export default {
     exportRouteDesc: "GPX-Track für jede App",
     exportPlan: "Plan exportieren",
     exportPlanDesc: "Mit Wegpunkten und Sperrzonen",
+    "undo.tooltip": "Rückgängig (Strg+Z)",
+    "redo.tooltip": "Wiederholen (Strg+Umschalt+Z)",
     importGpx: "GPX importieren",
     importGpxError: "GPX-Datei konnte nicht gelesen werden. Bitte Dateiformat prüfen.",
     dropGpxHere: "GPX-Datei hier ablegen",

@@ -34,6 +34,7 @@ export interface YjsState {
   routeData: Y.Map<unknown>;
   noGoAreas: Y.Array<Y.Map<unknown>>;
   notes: Y.Text;
+  undoManager: Y.UndoManager;
   awareness: WebsocketProvider["awareness"];
   connected: boolean;
   setUserName: (name: string) => void;
@@ -119,6 +120,11 @@ export function useYjs(
       });
     }
 
+    const undoManager = new Y.UndoManager([waypoints, noGoAreas, notes], {
+      captureTimeout: 500,
+      trackedOrigins: new Set(["local"]),
+    });
+
     const updateState = (connected: boolean) => {
       setState({
         doc,
@@ -127,6 +133,7 @@ export function useYjs(
         routeData,
         noGoAreas,
         notes,
+        undoManager,
         awareness: provider.awareness,
         connected,
         setUserName,
@@ -143,6 +150,7 @@ export function useYjs(
       clearInterval(saveInterval);
       // Clear localStorage on clean disconnect (session close)
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+      undoManager.destroy();
       provider.destroy();
       doc.destroy();
       providerRef.current = null;

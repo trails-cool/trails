@@ -42,7 +42,7 @@ export function NotesPanel({ yjs }: NotesPanelProps) {
       yjs.doc.transact(() => {
         yjs.notes.delete(0, yjs.notes.length);
         yjs.notes.insert(0, newValue);
-      });
+      }, "local");
       isLocalChange.current = false;
     },
     [yjs.notes, yjs.doc],

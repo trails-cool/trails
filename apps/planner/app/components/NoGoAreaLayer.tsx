@@ -47,7 +47,7 @@ export function NoGoAreaLayer({ noGoAreas, doc, enabled, onToggle }: NoGoAreaLay
       polygon.on("contextmenu", (e) => {
         L.DomEvent.preventDefault(e as unknown as Event);
         suppressObserverRef.current = true;
-        noGoAreas.delete(i, 1);
+        doc.transact(() => noGoAreas.delete(i, 1), "local");
         suppressObserverRef.current = false;
         syncLayers();
       });
@@ -101,7 +101,7 @@ export function NoGoAreaLayer({ noGoAreas, doc, enabled, onToggle }: NoGoAreaLay
       yMap.set("points", points);
       doc.transact(() => {
         noGoAreas.push([yMap]);
-      });
+      }, "local");
 
       // Exit draw mode
       onToggle();

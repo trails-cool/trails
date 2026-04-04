@@ -36,8 +36,10 @@ export function WaypointSidebar({ yjs, routeStats }: WaypointSidebarProps) {
   }, [yjs.waypoints]);
 
   const deleteWaypoint = useCallback(
-    (index: number) => yjs.waypoints.delete(index, 1),
-    [yjs.waypoints],
+    (index: number) => {
+      yjs.doc.transact(() => yjs.waypoints.delete(index, 1), "local");
+    },
+    [yjs.doc, yjs.waypoints],
   );
 
   const moveWaypoint = useCallback(
@@ -53,7 +55,7 @@ export function WaypointSidebar({ yjs, routeStats }: WaypointSidebarProps) {
         yMap.set("lon", data.lon);
         if (data.name) yMap.set("name", data.name);
         yjs.waypoints.insert(to, [yMap]);
-      });
+      }, "local");
     },
     [yjs.waypoints, yjs.doc],
   );
