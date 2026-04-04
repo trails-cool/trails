@@ -106,3 +106,27 @@ export const activities = journalSchema.table("activities", {
   participants: jsonb("participants").$type<string[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const syncConnections = journalSchema.table("sync_connections", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  providerUserId: text("provider_user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const syncImports = journalSchema.table("sync_imports", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  externalWorkoutId: text("external_workout_id").notNull(),
+  activityId: text("activity_id").references(() => activities.id, { onDelete: "set null" }),
+  importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+});

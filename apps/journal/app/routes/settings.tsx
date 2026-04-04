@@ -6,7 +6,8 @@ import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings";
 import { getSessionUser } from "~/lib/auth.server";
 import { getDb } from "~/lib/db";
-import { credentials } from "@trails-cool/db/schema/journal";
+import { credentials, syncConnections } from "@trails-cool/db/schema/journal";
+import { getAllProviders } from "~/lib/sync/registry";
 
 export function meta() {
   return [{ title: "Settings — trails.cool" }];
@@ -27,6 +28,19 @@ export async function loader({ request }: Route.LoaderArgs) {
     .from(credentials)
     .where(eq(credentials.userId, user.id));
 
+  const connections = await db
+    .select({
+      provider: syncConnections.provider,
+      providerUserId: syncConnections.providerUserId,
+    })
+    .from(syncConnections)
+    .where(eq(syncConnections.userId, user.id));
+
+  const providers = getAllProviders().map((p) => {
+    const conn = connections.find((c) => c.provider === p.id);
+    return { id: p.id, name: p.name, connected: !!conn, providerUserId: conn?.providerUserId };
+  });
+
   return data({
     user: {
       id: user.id,
@@ -41,6 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       transports: p.transports as string[] | null,
       createdAt: p.createdAt.toISOString(),
     })),
+    providers,
   });
 }
 
@@ -54,7 +69,7 @@ function transportLabel(transports: string[] | null, t: (key: string) => string)
 }
 
 export default function Settings({ loaderData }: Route.ComponentProps) {
-  const { user, passkeys } = loaderData;
+  const { user, passkeys, providers } = loaderData;
   const { t } = useTranslation(["journal", "common"]);
   const profileFetcher = useFetcher();
   const emailFetcher = useFetcher();
@@ -266,6 +281,48 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
         {supportsPasskey === false && (
           <p className="mt-4 text-sm text-amber-700">{t("auth.passkeyNotSupported")}</p>
         )}
+      </section>
+
+      {/* Connected Services */}
+      <section id="services" className="mt-12">
+        <h2 className="text-lg font-semibold text-gray-900">{t("settings.services.title")}</h2>
+        <div className="mt-4 space-y-3">
+          {providers.map((p) => (
+            <div key={p.id} className="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3">
+              <div>
+                <p className="font-medium text-gray-900">{p.name}</p>
+                {p.connected && p.providerUserId && (
+                  <p className="text-xs text-gray-500">{t("settings.services.connectedAs", { id: p.providerUserId })}</p>
+                )}
+              </div>
+              {p.connected ? (
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`/sync/import/${p.id}`}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    {t("sync.import")}
+                  </a>
+                  <form method="post" action={`/api/sync/disconnect/${p.id}`}>
+                    <button
+                      type="submit"
+                      className="text-sm text-red-600 hover:underline"
+                    >
+                      {t("settings.services.disconnect")}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <a
+                  href={`/api/sync/connect/${p.id}`}
+                  className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+                >
+                  {t("settings.services.connect")}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Account Section */}

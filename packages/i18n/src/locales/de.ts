@@ -169,6 +169,20 @@ export default {
         deleteConfirmPrompt: "Gib \"{{username}}\" ein, um die Löschung zu bestätigen:",
         confirmDelete: "Endgültig löschen",
       },
+      services: {
+        title: "Verbundene Dienste",
+        connect: "Verbinden",
+        disconnect: "Trennen",
+        connectedAs: "Verbunden (ID: {{id}})",
+      },
+    },
+    sync: {
+      import: "Importieren",
+      importFrom: "Import von {{provider}}",
+      imported: "Importiert",
+      noWorkouts: "Keine Workouts gefunden.",
+      previous: "Zurück",
+      next: "Weiter",
     },
     nav: {
       routes: "Routen",
