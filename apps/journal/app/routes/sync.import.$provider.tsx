@@ -86,8 +86,11 @@ export async function action({ params, request }: Route.ActionArgs) {
     fileUrl: fileUrl || undefined,
   };
 
-  const fileBuffer = await provider.downloadFile(tokens, workout);
-  const gpx = await provider.convertToGpx(fileBuffer);
+  let gpx: string | null = null;
+  if (workout.fileUrl) {
+    const fileBuffer = await provider.downloadFile(tokens, workout);
+    gpx = await provider.convertToGpx(fileBuffer);
+  }
 
   const activityId = await createActivity(user.id, {
     name: workoutName || `${provider.name} workout`,

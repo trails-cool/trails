@@ -44,10 +44,13 @@ export async function action({ params, request }: Route.ActionArgs) {
       await updateTokens(connection.id, tokens);
     }
 
-    // Download and convert
+    // Download and convert (if file available)
     const workout = { id: event.workoutId, name: "", type: "", startedAt: "", duration: null, distance: null, fileUrl: event.fileUrl };
-    const fileBuffer = await provider.downloadFile(tokens, workout);
-    const gpx = await provider.convertToGpx(fileBuffer);
+    let gpx: string | null = null;
+    if (workout.fileUrl) {
+      const fileBuffer = await provider.downloadFile(tokens, workout);
+      gpx = await provider.convertToGpx(fileBuffer);
+    }
 
     // Create activity
     const activityId = await createActivity(connection.userId, {
