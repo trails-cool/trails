@@ -31,6 +31,9 @@ services:
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
       SMTP_URL: ${SMTP_URL:-}
       SMTP_FROM: ${SMTP_FROM:-trails.cool <noreply@trails.cool>}
+      WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
+      WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
+      WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
       interval: 15s
