@@ -60,7 +60,9 @@ export async function createRoute(ownerId: string, input: RouteInput) {
 export async function getRoute(id: string) {
   const db = getDb();
   const [route] = await db.select().from(routes).where(eq(routes.id, id));
-  return route ?? null;
+  if (!route) return null;
+  const geojson = await getGeojson("routes", id);
+  return { ...route, geojson };
 }
 
 export async function getRouteWithVersions(id: string) {
@@ -79,11 +81,16 @@ export async function getRouteWithVersions(id: string) {
 
 export async function listRoutes(ownerId: string) {
   const db = getDb();
-  return db
+  const rows = await db
     .select()
     .from(routes)
     .where(eq(routes.ownerId, ownerId))
     .orderBy(desc(routes.updatedAt));
+
+  // Batch-fetch simplified GeoJSON for list thumbnails
+  const ids = rows.map((r) => r.id);
+  const geojsonMap = ids.length > 0 ? await getSimplifiedGeojsonBatch(ids) : new Map();
+  return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
 }
 
 export async function updateRoute(
@@ -170,3 +177,35 @@ async function setGeomFromGpx(id: string, table: "routes" | "activities", gpxStr
 }
 
 export { setGeomFromGpx };
+
+async function getGeojson(table: "routes" | "activities", id: string): Promise<string | null> {
+  try {
+    const db = getDb();
+    const result = await db.execute(
+      sql`SELECT ST_AsGeoJSON(geom) as geojson FROM ${sql.identifier("journal")}.${sql.identifier(table)} WHERE id = ${id} AND geom IS NOT NULL`,
+    );
+    const row = (result as unknown as Array<{ geojson: string }>)[0];
+    return row?.geojson ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function getSimplifiedGeojsonBatch(ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  try {
+    const db = getDb();
+    // Fetch individually — Drizzle's sql template doesn't handle array params well with ANY()
+    await Promise.all(ids.map(async (id) => {
+      const result = await db.execute(
+        sql`SELECT ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson FROM journal.routes WHERE id = ${id} AND geom IS NOT NULL`,
+      );
+      const row = (result as unknown as Array<{ geojson: string }>)[0];
+      if (row?.geojson) map.set(id, row.geojson);
+    }));
+  } catch {
+    // Fallback: no geojson
+  }
+  return map;
+}
