@@ -1,9 +1,14 @@
+import { Suspense, lazy } from "react";
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/activities.$id";
 import { getSessionUser } from "~/lib/auth.server";
 import { getActivity, linkActivityToRoute, createRouteFromActivity } from "~/lib/activities.server";
 import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
+
+const RouteMapThumbnail = lazy(() =>
+  import("~/components/RouteMapThumbnail").then((m) => ({ default: m.RouteMapThumbnail })),
+);
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const activity = await getActivity(params.id);
@@ -25,6 +30,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       duration: activity.duration,
       routeId: activity.routeId,
       hasGpx: !!activity.gpx,
+      geojson: activity.geojson ?? null,
       startedAt: activity.startedAt?.toISOString() ?? null,
       createdAt: activity.createdAt.toISOString(),
     },
@@ -98,6 +104,14 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
           </div>
         )}
       </div>
+
+      {activity.geojson && (
+        <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
+          <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">Loading map...</div>}>
+            <RouteMapThumbnail geojson={activity.geojson} interactive className="h-full w-full" />
+          </Suspense>
+        </div>
+      )}
 
       {activity.routeId && (
         <div className="mt-6">

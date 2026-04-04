@@ -1,9 +1,14 @@
 import { data, redirect } from "react-router";
+import { Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes._index";
 import { getSessionUser } from "~/lib/auth.server";
 import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
+
+const RouteMapThumbnail = lazy(() =>
+  import("~/components/RouteMapThumbnail").then((m) => ({ default: m.RouteMapThumbnail })),
+);
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
@@ -17,6 +22,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       distance: r.distance,
       elevationGain: r.elevationGain,
       updatedAt: r.updatedAt.toISOString(),
+      geojson: r.geojson ?? null,
     })),
   });
 }
@@ -46,26 +52,41 @@ export default function RoutesListPage({ loaderData }: Route.ComponentProps) {
           {t("routes.noRoutesYet")}
         </p>
       ) : (
-        <ul className="mt-6 divide-y divide-gray-200">
+        <ul className="mt-6 space-y-4">
           {routes.map((route) => (
             <li key={route.id}>
               <a
                 href={`/routes/${route.id}`}
-                className="block py-4 hover:bg-gray-50"
+                className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
               >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-medium text-gray-900">{route.name}</h2>
-                  <span className="text-sm text-gray-500">
-                    <ClientDate iso={route.updatedAt} />
-                  </span>
-                </div>
-                <div className="mt-1 flex gap-4 text-sm text-gray-500">
-                  {route.distance != null && (
-                    <span>{(route.distance / 1000).toFixed(1)} km</span>
-                  )}
-                  {route.elevationGain != null && (
-                    <span>↑ {route.elevationGain} m</span>
-                  )}
+                <div className="flex gap-4">
+                  <div className="w-48 shrink-0">
+                    {route.geojson ? (
+                      <Suspense fallback={<div className="h-36 w-full animate-pulse rounded bg-gray-100" />}>
+                        <RouteMapThumbnail geojson={route.geojson} />
+                      </Suspense>
+                    ) : (
+                      <div className="flex h-36 w-full items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
+                        {t("routes.noMapPreview")}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div>
+                      <h2 className="text-lg font-medium text-gray-900">{route.name}</h2>
+                      <div className="mt-1 flex gap-4 text-sm text-gray-500">
+                        {route.distance != null && (
+                          <span>{(route.distance / 1000).toFixed(1)} km</span>
+                        )}
+                        {route.elevationGain != null && (
+                          <span>↑ {route.elevationGain} m</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm text-gray-400">
+                      <ClientDate iso={route.updatedAt} />
+                    </span>
+                  </div>
                 </div>
               </a>
             </li>

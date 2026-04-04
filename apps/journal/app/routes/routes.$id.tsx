@@ -1,15 +1,23 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense, lazy } from "react";
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
 import { getSessionUser } from "~/lib/auth.server";
-import { getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
+import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
+
+const RouteMapThumbnail = lazy(() =>
+  import("~/components/RouteMapThumbnail").then((m) => ({ default: m.RouteMapThumbnail })),
+);
 
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const route = await getRouteWithVersions(params.id);
-  if (!route) throw data({ error: "Route not found" }, { status: 404 });
+  const [routeWithVersions, routeWithGeojson] = await Promise.all([
+    getRouteWithVersions(params.id),
+    getRoute(params.id),
+  ]);
+  if (!routeWithVersions) throw data({ error: "Route not found" }, { status: 404 });
+  const route = routeWithVersions;
 
   const user = await getSessionUser(request);
   const isOwner = user?.id === route.ownerId;
@@ -24,6 +32,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       elevationLoss: route.elevationLoss,
       routingProfile: route.routingProfile,
       hasGpx: !!route.gpx,
+      geojson: routeWithGeojson?.geojson ?? null,
       createdAt: route.createdAt.toISOString(),
       updatedAt: route.updatedAt.toISOString(),
     },
@@ -149,6 +158,14 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
           </div>
         )}
       </div>
+
+      {route.geojson && (
+        <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
+          <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-100 text-gray-500">Loading map...</div>}>
+            <RouteMapThumbnail geojson={route.geojson} interactive className="h-full w-full" />
+          </Suspense>
+        </div>
+      )}
 
       {versions.length > 0 && (
         <div className="mt-8">

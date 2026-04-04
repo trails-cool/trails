@@ -123,6 +123,7 @@ export default {
       distance: "Strecke",
       elevationGain: "Höhenmeter",
       noRoutesYet: "Noch keine Routen. Erstelle deine erste Route!",
+      noMapPreview: "Keine Kartenvorschau",
       saveChanges: "Änderungen speichern",
     },
     activities: {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
@@ -59,16 +59,22 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
 export async function getActivity(id: string) {
   const db = getDb();
   const [activity] = await db.select().from(activities).where(eq(activities.id, id));
-  return activity ?? null;
+  if (!activity) return null;
+  const geojson = await getActivityGeojson(id);
+  return { ...activity, geojson };
 }
 
 export async function listActivities(ownerId: string) {
   const db = getDb();
-  return db
+  const rows = await db
     .select()
     .from(activities)
     .where(eq(activities.ownerId, ownerId))
     .orderBy(desc(activities.createdAt));
+
+  const ids = rows.map((r) => r.id);
+  const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();
+  return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
 }
 
 export async function linkActivityToRoute(activityId: string, routeId: string, _ownerId: string) {
@@ -105,4 +111,35 @@ export async function createRouteFromActivity(activityId: string, ownerId: strin
     .where(eq(activities.id, activityId));
 
   return routeId;
+}
+
+async function getActivityGeojson(id: string): Promise<string | null> {
+  try {
+    const db = getDb();
+    const result = await db.execute(
+      sql`SELECT ST_AsGeoJSON(geom) as geojson FROM journal.activities WHERE id = ${id} AND geom IS NOT NULL`,
+    );
+    const row = (result as unknown as Array<{ geojson: string }>)[0];
+    return row?.geojson ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function getSimplifiedActivityGeojsonBatch(ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  try {
+    const db = getDb();
+    await Promise.all(ids.map(async (id) => {
+      const result = await db.execute(
+        sql`SELECT ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson FROM journal.activities WHERE id = ${id} AND geom IS NOT NULL`,
+      );
+      const row = (result as unknown as Array<{ geojson: string }>)[0];
+      if (row?.geojson) map.set(id, row.geojson);
+    }));
+  } catch {
+    // Fallback: no geojson
+  }
+  return map;
 }
