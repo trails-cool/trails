@@ -67,6 +67,18 @@ Route geometries SHALL be stored as PostGIS LineString geometries extracted from
 - **WHEN** a GPX file is imported or a route is saved from the Planner
 - **THEN** the route geometry is extracted and stored as a PostGIS LineString for future spatial queries
 
+### Requirement: Route data includes geometry for rendering
+Route and activity loaders SHALL return GeoJSON geometry when available.
+
+#### Scenario: Route list returns simplified geometry
+- **WHEN** the routes list loader runs
+- **THEN** each route includes a `geojson` field containing the geometry as a GeoJSON string
+- **AND** the geometry is simplified server-side via `ST_Simplify()` for list page performance
+
+#### Scenario: Route detail returns full geometry
+- **WHEN** the route detail loader runs and the route has geometry
+- **THEN** the route includes a `geojson` field with the full-resolution GeoJSON geometry
+
 ### Requirement: Route metadata envelope
 Routes SHALL be stored with a metadata envelope containing computed statistics (distance, elevation gain/loss), routing profile, contributor list, and tags.
 

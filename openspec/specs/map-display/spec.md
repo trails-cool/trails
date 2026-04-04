@@ -77,6 +77,14 @@ Other participants' cursors on the map SHALL be clearly visible with proper styl
 - **WHEN** cursors are rendered
 - **THEN** they appear below map controls (zoom, layer switcher) in z-index
 
+### Requirement: Map components used in journal app
+The `@trails-cool/map` package's `MapView` and `RouteLayer` components SHALL be used in the journal app for route previews, in addition to the planner.
+
+#### Scenario: Journal uses shared map components
+- **WHEN** the journal renders a route map preview or detail map
+- **THEN** it uses `MapView` and `RouteLayer` from `@trails-cool/map`
+- **AND** no map code is duplicated between planner and journal
+
 ### Requirement: Map polygon drawing
 The Planner map SHALL support drawing and displaying no-go area polygons.
 
