@@ -169,6 +169,20 @@ export default {
         deleteConfirmPrompt: "Type \"{{username}}\" to confirm deletion:",
         confirmDelete: "Permanently Delete",
       },
+      services: {
+        title: "Connected Services",
+        connect: "Connect",
+        disconnect: "Disconnect",
+        connectedAs: "Connected (ID: {{id}})",
+      },
+    },
+    sync: {
+      import: "Import",
+      importFrom: "Import from {{provider}}",
+      imported: "Imported",
+      noWorkouts: "No workouts found.",
+      previous: "Previous",
+      next: "Next",
     },
     nav: {
       routes: "Routes",
