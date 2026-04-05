@@ -1,8 +1,10 @@
 import { Suspense, lazy } from "react";
 import { data, redirect } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities.$id";
 import { getSessionUser } from "~/lib/auth.server";
-import { getActivity, linkActivityToRoute, createRouteFromActivity } from "~/lib/activities.server";
+import { getActivity, deleteActivity, linkActivityToRoute, createRouteFromActivity } from "~/lib/activities.server";
+import { deleteImportByActivity } from "~/lib/sync/imports.server";
 import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
 
@@ -33,6 +35,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       geojson: activity.geojson ?? null,
       startedAt: activity.startedAt?.toISOString() ?? null,
       createdAt: activity.createdAt.toISOString(),
+      importSource: activity.importSource,
     },
     isOwner,
     routes: userRoutes.map((r) => ({ id: r.id, name: r.name })),
@@ -60,6 +63,13 @@ export async function action({ params, request }: Route.ActionArgs) {
     return data({ error: "No GPX data to create route from" }, { status: 400 });
   }
 
+  if (intent === "delete") {
+    await deleteImportByActivity(params.id);
+    const deleted = await deleteActivity(params.id, user.id);
+    if (deleted) return redirect("/activities");
+    return data({ error: "Activity not found" }, { status: 404 });
+  }
+
   return data({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -70,10 +80,18 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 
 export default function ActivityDetailPage({ loaderData }: Route.ComponentProps) {
   const { activity, isOwner, routes } = loaderData;
+  const { t } = useTranslation("journal");
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900">{activity.name}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">{activity.name}</h1>
+        {activity.importSource && (
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+            {t("activities.importedFrom", { provider: activity.importSource.provider })}
+          </span>
+        )}
+      </div>
       {activity.description && (
         <p className="mt-2 text-gray-600">{activity.description}</p>
       )}
@@ -128,7 +146,7 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
               <input type="hidden" name="intent" value="link-route" />
               <div className="flex-1">
                 <label htmlFor="routeId" className="block text-sm font-medium text-gray-700">
-                  Link to existing route
+                  {t("activities.linkToRoute")}
                 </label>
                 <select
                   id="routeId"
@@ -158,10 +176,24 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
                 type="submit"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
-                Create Route from Activity
+                {t("activities.createRouteFromActivity")}
               </button>
             </form>
           )}
+        </div>
+      )}
+
+      {isOwner && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <form method="post" onSubmit={(e) => { if (!confirm(t("activities.deleteConfirm"))) e.preventDefault(); }}>
+            <input type="hidden" name="intent" value="delete" />
+            <button
+              type="submit"
+              className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+            >
+              {t("activities.delete")}
+            </button>
+          </form>
         </div>
       )}
     </div>

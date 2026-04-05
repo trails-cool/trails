@@ -38,6 +38,11 @@ export async function isAlreadyImported(
   return !!row;
 }
 
+export async function deleteImportByActivity(activityId: string) {
+  const db = getDb();
+  await db.delete(syncImports).where(eq(syncImports.activityId, activityId));
+}
+
 export async function getImportedIds(
   userId: string,
   provider: string,

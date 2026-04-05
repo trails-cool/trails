@@ -134,6 +134,9 @@ export default {
       duration: "Duration",
       linkToRoute: "Link to Route",
       createRouteFromActivity: "Create Route from Activity",
+      delete: "Delete Activity",
+      deleteConfirm: "Are you sure you want to delete this activity?",
+      importedFrom: "Imported from {{provider}}",
     },
     settings: {
       title: "Settings",
@@ -181,6 +184,8 @@ export default {
       importFrom: "Import from {{provider}}",
       imported: "Imported",
       noWorkouts: "No workouts found.",
+      noGps: "No GPS",
+      noGpsTooltip: "{{provider}} does not provide route data for this activity",
       previous: "Previous",
       next: "Next",
     },

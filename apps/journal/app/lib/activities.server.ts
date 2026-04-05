@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
-import { activities, routes } from "@trails-cool/db/schema/journal";
+import { activities, routes, syncImports } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
 import { setGeomFromGpx } from "./routes.server.ts";
 
@@ -61,7 +61,26 @@ export async function getActivity(id: string) {
   const [activity] = await db.select().from(activities).where(eq(activities.id, id));
   if (!activity) return null;
   const geojson = await getActivityGeojson(id);
-  return { ...activity, geojson };
+  const importSource = await getImportSource(id);
+  return { ...activity, geojson, importSource };
+}
+
+export async function deleteActivity(id: string, ownerId: string): Promise<boolean> {
+  const db = getDb();
+  const [activity] = await db.select({ id: activities.id }).from(activities)
+    .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)));
+  if (!activity) return false;
+  await db.delete(activities).where(eq(activities.id, id));
+  return true;
+}
+
+async function getImportSource(activityId: string): Promise<{ provider: string; externalWorkoutId: string } | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({ provider: syncImports.provider, externalWorkoutId: syncImports.externalWorkoutId })
+    .from(syncImports)
+    .where(eq(syncImports.activityId, activityId));
+  return row ?? null;
 }
 
 export async function listActivities(ownerId: string) {
