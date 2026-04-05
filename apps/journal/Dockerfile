@@ -28,6 +28,7 @@ RUN addgroup --system app && adduser --system --ingroup app app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/journal/node_modules ./apps/journal/node_modules
 COPY --from=build /app/apps/journal/build ./apps/journal/build
+COPY --from=build /app/apps/journal/server.ts ./apps/journal/server.ts
 COPY --from=build /app/apps/journal/package.json ./apps/journal/package.json
 COPY --from=build /app/packages ./packages
 
@@ -35,4 +36,4 @@ WORKDIR /app/apps/journal
 USER app
 EXPOSE 3000
 ENV PORT=3000
-CMD ["npx", "react-router-serve", "./build/server/index.js"]
+CMD ["node", "--experimental-strip-types", "server.ts"]
