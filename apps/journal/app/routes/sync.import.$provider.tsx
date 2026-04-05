@@ -128,7 +128,17 @@ export default function SyncImportPage({ loaderData, actionData }: Route.Compone
               className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
             >
               <div>
-                <p className="font-medium text-gray-900">{w.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-gray-900">{w.name}</p>
+                  {!w.fileUrl && (
+                    <span
+                      className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                      title={t("sync.noGpsTooltip", { provider: provider.name })}
+                    >
+                      {t("sync.noGps")}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-1 flex gap-3 text-sm text-gray-500">
                   {w.startedAt && <ClientDate iso={w.startedAt} />}
                   {w.distance != null && <span>{(w.distance / 1000).toFixed(1)} km</span>}
