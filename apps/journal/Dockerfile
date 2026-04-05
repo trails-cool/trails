@@ -29,6 +29,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/journal/node_modules ./apps/journal/node_modules
 COPY --from=build /app/apps/journal/build ./apps/journal/build
 COPY --from=build /app/apps/journal/server.ts ./apps/journal/server.ts
+COPY --from=build /app/apps/journal/app/lib ./apps/journal/app/lib
 COPY --from=build /app/apps/journal/package.json ./apps/journal/package.json
 COPY --from=build /app/packages ./packages
 
