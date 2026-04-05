@@ -65,6 +65,9 @@ export async function action({ params, request }: Route.ActionArgs) {
   const workoutId = formData.get("workoutId") as string;
   const workoutName = formData.get("workoutName") as string;
   const fileUrl = formData.get("fileUrl") as string;
+  const startedAt = formData.get("startedAt") as string;
+  const distance = formData.get("distance") as string;
+  const duration = formData.get("duration") as string;
 
   // Refresh token if needed
   let tokens = {
@@ -77,18 +80,9 @@ export async function action({ params, request }: Route.ActionArgs) {
     await updateTokens(connection.id, tokens);
   }
 
-  const workout = {
-    id: workoutId,
-    name: workoutName,
-    type: "",
-    startedAt: "",
-    duration: null,
-    distance: null,
-    fileUrl: fileUrl || undefined,
-  };
-
   let gpx: string | null = null;
-  if (workout.fileUrl) {
+  if (fileUrl) {
+    const workout = { id: workoutId, name: workoutName, type: "", startedAt: "", duration: null, distance: null, fileUrl };
     const fileBuffer = await provider.downloadFile(tokens, workout);
     gpx = await provider.convertToGpx(fileBuffer);
   }
@@ -96,6 +90,9 @@ export async function action({ params, request }: Route.ActionArgs) {
   const activityId = await createActivity(user.id, {
     name: workoutName || `${provider.name} workout`,
     gpx: gpx ?? undefined,
+    distance: distance ? parseFloat(distance) : null,
+    duration: duration ? parseInt(duration) : null,
+    startedAt: startedAt ? new Date(startedAt) : null,
   });
 
   await recordImport(user.id, provider.id, workoutId, activityId);
@@ -151,6 +148,9 @@ function WorkoutRow({
           <input type="hidden" name="workoutId" value={workout.id} />
           <input type="hidden" name="workoutName" value={workout.name} />
           <input type="hidden" name="fileUrl" value={workout.fileUrl ?? ""} />
+          <input type="hidden" name="startedAt" value={workout.startedAt ?? ""} />
+          <input type="hidden" name="distance" value={workout.distance ?? ""} />
+          <input type="hidden" name="duration" value={workout.duration ?? ""} />
           <button
             type="submit"
             className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
@@ -161,6 +161,17 @@ function WorkoutRow({
       )}
     </li>
   );
+}
+
+function workoutFormData(w: { id: string; name: string; fileUrl?: string; startedAt: string; distance: number | null; duration: number | null }) {
+  const fd = new FormData();
+  fd.set("workoutId", w.id);
+  fd.set("workoutName", w.name);
+  fd.set("fileUrl", w.fileUrl ?? "");
+  fd.set("startedAt", w.startedAt ?? "");
+  fd.set("distance", w.distance != null ? String(w.distance) : "");
+  fd.set("duration", w.duration != null ? String(w.duration) : "");
+  return fd;
 }
 
 export default function SyncImportPage({ loaderData }: Route.ComponentProps) {
@@ -192,11 +203,7 @@ export default function SyncImportPage({ loaderData }: Route.ComponentProps) {
     }
 
     const w = importAllRef.current.workouts[nextIndex]!;
-    const formData = new FormData();
-    formData.set("workoutId", w.id);
-    formData.set("workoutName", w.name);
-    formData.set("fileUrl", w.fileUrl ?? "");
-    importAllFetcher.submit(formData, { method: "post" });
+    importAllFetcher.submit(workoutFormData(w), { method: "post" });
   }, [importAllActive, importAllFetcher.state, importAllFetcher.data]);
 
   const startImportAll = useCallback(() => {
@@ -205,12 +212,7 @@ export default function SyncImportPage({ loaderData }: Route.ComponentProps) {
     setImportAllIndex(0);
     setImportAllActive(true);
 
-    const w = importableWorkouts[0]!;
-    const formData = new FormData();
-    formData.set("workoutId", w.id);
-    formData.set("workoutName", w.name);
-    formData.set("fileUrl", w.fileUrl ?? "");
-    importAllFetcher.submit(formData, { method: "post" });
+    importAllFetcher.submit(workoutFormData(importableWorkouts[0]!), { method: "post" });
   }, [importableWorkouts, importAllFetcher]);
 
   return (
