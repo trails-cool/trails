@@ -23,7 +23,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
   let startedAt: Date | null = input.startedAt ?? null;
-  let duration: number | null = input.duration ?? null;
+  const duration: number | null = input.duration ?? null;
   if (input.gpx) {
     try {
       const gpxData = await parseGpxAsync(input.gpx);
