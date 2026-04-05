@@ -39,7 +39,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile,infrastructure/prometheus/prometheus.yml,infrastructure/loki/loki-config.yml,infrastructure/grafana/provisioning,infrastructure/grafana/dashboards"
+          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile,infrastructure/prometheus/prometheus.yml,infrastructure/loki/loki-config.yml,infrastructure/promtail/promtail-config.yml,infrastructure/grafana/provisioning,infrastructure/grafana/dashboards"
           target: /opt/trails-cool
           strip_components: 1
 
@@ -80,7 +80,7 @@ jobs:
               docker compose --env-file .env up -d --remove-orphans
             else
               # Restart infra services (except Caddy — just reload its config)
-              docker compose --env-file .env up -d postgres prometheus loki grafana postgres-exporter node-exporter cadvisor
+              docker compose --env-file .env up -d postgres prometheus loki promtail grafana postgres-exporter node-exporter cadvisor
               docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
             fi
 
