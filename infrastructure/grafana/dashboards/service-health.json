@@ -93,7 +93,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, pg_stat_statements_mean_time_seconds{datname=\"trails\"})",
+          "expr": "topk(10, pg_stat_statements_mean_time_seconds)",
           "legendFormat": "{{query}}",
           "format": "table",
           "instant": true
@@ -418,7 +418,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(caddy_http_responses_total[5m])) by (code)",
+          "expr": "sum(rate(caddy_http_response_duration_seconds_count[5m])) by (code)",
           "legendFormat": "{{code}}"
         }
       ]

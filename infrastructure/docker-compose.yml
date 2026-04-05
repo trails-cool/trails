@@ -99,6 +99,9 @@ services:
     restart: unless-stopped
     environment:
       DATA_SOURCE_NAME: postgresql://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails?sslmode=disable
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yml
+    volumes:
+      - ./postgres/queries.yml:/etc/postgres-exporter/queries.yml:ro
     depends_on:
       postgres:
         condition: service_healthy

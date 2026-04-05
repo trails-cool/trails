@@ -1,3 +1,6 @@
+-- Enable pg_stat_statements for query performance monitoring
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
 -- Read-only user for Grafana dashboards
 -- Password is set via: ALTER ROLE grafana_reader PASSWORD '<from SOPS>'
 -- Run by cd-infra deploy script after container start
