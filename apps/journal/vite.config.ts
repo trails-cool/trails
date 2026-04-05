@@ -11,6 +11,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     reactRouter(),
+    ...(process.env.HTTPS === "1" ? [import("@vitejs/plugin-basic-ssl").then((m) => m.default())] : []),
     sentryVitePlugin({
       org: "trails-qq",
       project: "journal",

@@ -85,6 +85,7 @@ export const wahooProvider: SyncProvider = {
         name: string;
         workout_type: string;
         starts: string;
+        fitness_app_id?: number;
         workout_summary?: {
           duration_active_accum?: number;
           distance_accum?: number;
@@ -96,8 +97,11 @@ export const wahooProvider: SyncProvider = {
       per_page: number;
     };
 
+    // Wahoo does not share workout data from third-party apps (fitness_app_id >= 1000)
+    const wahooWorkouts = data.workouts.filter((w) => !w.fitness_app_id || w.fitness_app_id < 1000);
+
     return {
-      workouts: data.workouts.map((w) => ({
+      workouts: wahooWorkouts.map((w) => ({
         id: String(w.id),
         name: w.name || `Workout ${w.id}`,
         type: w.workout_type ?? "unknown",
@@ -118,9 +122,7 @@ export const wahooProvider: SyncProvider = {
 
   async downloadFile(tokens: TokenSet, workout: Workout): Promise<Buffer> {
     if (!workout.fileUrl) throw new Error("No file URL for workout");
-    const resp = await fetch(workout.fileUrl, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-    });
+    const resp = await fetch(workout.fileUrl);
     if (!resp.ok) throw new Error(`Wahoo file download failed: ${resp.status}`);
     return Buffer.from(await resp.arrayBuffer());
   },
@@ -139,18 +141,17 @@ export const wahooProvider: SyncProvider = {
       position_lat?: number;
       position_long?: number;
       altitude?: number;
-      timestamp?: string;
+      timestamp?: string | Date;
     }>;
 
-    // FIT uses semicircles — convert to degrees
-    const SEMICIRCLE_TO_DEG = 180 / Math.pow(2, 31);
+    // fit-file-parser already converts semicircles to degrees
     const trackPoints = records
       .filter((r) => r.position_lat != null && r.position_long != null)
       .map((r) => ({
-        lat: r.position_lat! * SEMICIRCLE_TO_DEG,
-        lon: r.position_long! * SEMICIRCLE_TO_DEG,
+        lat: r.position_lat!,
+        lon: r.position_long!,
         ele: r.altitude,
-        time: r.timestamp,
+        time: r.timestamp instanceof Date ? r.timestamp.toISOString() : r.timestamp,
       }));
 
     if (trackPoints.length < 2) return null;
