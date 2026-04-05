@@ -7,7 +7,7 @@ import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/
 import { ClientDate } from "~/components/ClientDate";
 
 const RouteMapThumbnail = lazy(() =>
-  import("~/components/RouteMapThumbnail").then((m) => ({ default: m.RouteMapThumbnail })),
+  import("~/components/RouteMapThumbnail.client").then((m) => ({ default: m.RouteMapThumbnail })),
 );
 
 

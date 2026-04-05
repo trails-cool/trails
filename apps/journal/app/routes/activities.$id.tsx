@@ -9,7 +9,7 @@ import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
 
 const RouteMapThumbnail = lazy(() =>
-  import("~/components/RouteMapThumbnail").then((m) => ({ default: m.RouteMapThumbnail })),
+  import("~/components/RouteMapThumbnail.client").then((m) => ({ default: m.RouteMapThumbnail })),
 );
 
 export async function loader({ params, request }: Route.LoaderArgs) {
