@@ -12,14 +12,14 @@ All services SHALL be deployed via Docker Compose on the Hetzner server.
 
 #### Scenario: Start all services
 - **WHEN** `docker compose up -d` is run on the server
-- **THEN** the Journal, Planner, BRouter, PostgreSQL, and Garage containers start and are reachable
+- **THEN** the Journal, Planner, BRouter, and PostgreSQL containers start and are reachable
 
 ### Requirement: Service configuration
 Each service SHALL be configured via environment variables defined in Docker Compose, with security best practices including non-root execution and security headers.
 
 #### Scenario: Journal configuration
 - **WHEN** the Journal container starts
-- **THEN** it reads DOMAIN, DATABASE_URL, PLANNER_URL, S3_ENDPOINT, and S3_BUCKET from environment variables
+- **THEN** it reads DOMAIN, DATABASE_URL, PLANNER_URL, JWT_SECRET, SESSION_SECRET, and WAHOO_* credentials from environment variables
 
 #### Scenario: Planner configuration
 - **WHEN** the Planner container starts
@@ -127,7 +127,18 @@ All services SHALL be deployed via Docker Compose, including Grafana, Prometheus
 
 #### Scenario: Monitoring stack starts
 - **WHEN** `docker compose up -d` is run
-- **THEN** Grafana, Prometheus, Loki, and Promtail containers start alongside the application containers
+- **THEN** Grafana, Prometheus, Loki, Promtail, postgres-exporter, node-exporter, and cAdvisor containers start alongside the application containers
+
+### Requirement: Metrics collection
+Prometheus SHALL scrape metrics from all application and infrastructure services.
+
+#### Scenario: Exporter targets
+- **WHEN** Prometheus is running
+- **THEN** it scrapes metrics from journal (/api/metrics), planner (/metrics), postgres-exporter, node-exporter, cAdvisor, and Caddy (:2019)
+
+#### Scenario: pg_stat_statements
+- **WHEN** postgres-exporter scrapes PostgreSQL
+- **THEN** slow query metrics from pg_stat_statements are exposed with query text via a custom queries config
 
 ### Requirement: Container log shipping
 Promtail SHALL scrape all Docker container logs and push them to Loki for querying in Grafana.
