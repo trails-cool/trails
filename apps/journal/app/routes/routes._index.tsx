@@ -1,14 +1,10 @@
 import { data, redirect } from "react-router";
-import { Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes._index";
 import { getSessionUser } from "~/lib/auth.server";
 import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
-
-const RouteMapThumbnail = lazy(() =>
-  import("~/components/RouteMapThumbnail").then((m) => ({ default: m.RouteMapThumbnail })),
-);
+import { ClientMap } from "~/components/ClientMap";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
@@ -62,9 +58,7 @@ export default function RoutesListPage({ loaderData }: Route.ComponentProps) {
                 <div className="flex gap-4">
                   <div className="w-48 shrink-0">
                     {route.geojson ? (
-                      <Suspense fallback={<div className="h-36 w-full animate-pulse rounded bg-gray-100" />}>
-                        <RouteMapThumbnail geojson={route.geojson} />
-                      </Suspense>
+                      <ClientMap geojson={route.geojson} />
                     ) : (
                       <div className="flex h-36 w-full items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
                         {t("routes.noMapPreview")}
