@@ -127,7 +127,14 @@ All services SHALL be deployed via Docker Compose, including Grafana, Prometheus
 
 #### Scenario: Monitoring stack starts
 - **WHEN** `docker compose up -d` is run
-- **THEN** Grafana, Prometheus, and Loki containers start alongside the application containers
+- **THEN** Grafana, Prometheus, Loki, and Promtail containers start alongside the application containers
+
+### Requirement: Container log shipping
+Promtail SHALL scrape all Docker container logs and push them to Loki for querying in Grafana.
+
+#### Scenario: Logs visible in Grafana
+- **WHEN** a container writes to stdout or stderr
+- **THEN** the log line is available in Grafana Explore via Loki with container name labels
 
 ### Requirement: Caddy access logging
 Caddy SHALL emit structured JSON access logs for all requests.
