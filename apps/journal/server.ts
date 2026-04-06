@@ -4,6 +4,7 @@ import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import { logger } from "./app/lib/logger.server.ts";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
+import postgres from "postgres";
 
 const port = Number(process.env.PORT ?? 3000);
 const CLIENT_DIR = resolve(import.meta.dirname, "build", "client");
@@ -56,16 +57,16 @@ async function handleMetrics(_req: IncomingMessage, res: ServerResponse): Promis
 const version = process.env.SENTRY_RELEASE ?? "dev";
 
 async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const client = postgres(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails", { max: 1 });
   try {
-    const { createDb } = await import("@trails-cool/db");
-    const { sql } = await import("drizzle-orm");
-    const db = createDb();
-    await db.execute(sql`SELECT 1`);
+    await client`SELECT 1`;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version, db: "connected" }));
   } catch {
     res.writeHead(503, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "degraded", version, db: "unreachable" }));
+  } finally {
+    await client.end();
   }
 }
 
