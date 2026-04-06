@@ -13,8 +13,8 @@
   "dependencies": {
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
-    "@sentry/node": "^10.46.0",
-    "@sentry/react": "^10.46.0",
+    "@sentry/node": "^10.47.0",
+    "@sentry/react": "^10.47.0",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.0",
     "@trails-cool/db": "workspace:*",
