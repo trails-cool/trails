@@ -1,3 +1,7 @@
+## Purpose
+
+SOPS-encrypted secrets stored in the repository, split into app and infra files, decryptable with a single age key at deploy time.
+
 ## Requirements
 
 ### Requirement: Encrypted secrets in repository

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Server provisioning on Hetzner, Docker Compose deployment, CI/CD pipelines, database and BRouter management, TLS, Sentry, Grafana, and monitoring stack for the flagship instance.
+
+## Requirements
 
 ### Requirement: Terraform Hetzner provisioning
 Infrastructure SHALL be provisioned on Hetzner Cloud using Terraform with the Hetzner provider.

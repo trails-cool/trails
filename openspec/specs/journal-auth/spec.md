@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Authentication for the Journal app, including OAuth token storage for external services in the sync_connections table.
+
+## Requirements
 
 ### Requirement: Store external service tokens
 The journal auth system SHALL store OAuth tokens for external services alongside user credentials.

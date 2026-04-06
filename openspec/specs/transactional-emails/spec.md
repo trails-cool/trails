@@ -1,3 +1,7 @@
+## Purpose
+
+Transactional email sending with HTML and plain-text templates for magic links and welcome messages, using SMTP in production and console logging in dev.
+
 ## Requirements
 
 ### Requirement: Email sending interface

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Activity creation, chronological feed, detail views, and route linking in the Journal app.
+
+## Requirements
 
 ### Requirement: Create activity
 The Journal SHALL allow authenticated users to create an activity by uploading a GPX trace and adding a description.

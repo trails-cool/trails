@@ -1,3 +1,7 @@
+## Purpose
+
+Collaborative text notes in Planner sessions, synced in real-time via Yjs.
+
 ## Requirements
 
 ### Requirement: Collaborative session notes

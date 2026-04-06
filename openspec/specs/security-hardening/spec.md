@@ -1,3 +1,7 @@
+## Purpose
+
+Security headers, scanner path blocking, secret scanning, dependency auditing, non-root containers, and vulnerability disclosure policy.
+
 ## Requirements
 
 ### Requirement: Security response headers
