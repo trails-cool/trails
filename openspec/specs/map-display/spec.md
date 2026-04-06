@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Interactive map rendering with Leaflet and OSM tiles, waypoint editing, route visualization, elevation profiles, multiplayer cursors, and polygon drawing for both Planner and Journal apps.
+
+## Requirements
 
 ### Requirement: Map rendering with OSM tiles
 The Planner and Journal SHALL render interactive maps using Leaflet with OpenStreetMap tiles as the default base layer.

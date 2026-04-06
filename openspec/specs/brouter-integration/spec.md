@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Route computation between waypoints via the BRouter HTTP API, including routing host election, result broadcasting via Yjs, profile selection, and rate-limited proxying.
+
+## Requirements
 
 ### Requirement: Route computation from waypoints
 The Planner SHALL compute a route between ordered waypoints by calling the BRouter HTTP API with tiledesc enabled and returning the result as an EnrichedRoute, preserving per-point elevation, surface data, and segment boundary indices.

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+GPX file import in the Planner via home page file picker and in-session drag-and-drop, with client-side parsing and waypoint extraction.
+
+## Requirements
 
 ### Requirement: Import GPX from home page
 Users SHALL be able to import a GPX file from the planner home page to start a new planning session.
@@ -30,7 +34,9 @@ Users SHALL be able to drag a GPX file onto the map in an existing session.
 - **WHEN** a user drops a GPX file and the confirmation dialog appears
 - **THEN** clicking "Cancel" leaves the session unchanged
 
-### Requirement: Non-GPX files are rejected
+### Requirement: Non-GPX file rejection
+The Planner SHALL reject non-GPX files dropped on the map.
+
 #### Scenario: Drop non-GPX file
 - **WHEN** a user drops a non-GPX file on the map
 - **THEN** the file is ignored with a brief error toast

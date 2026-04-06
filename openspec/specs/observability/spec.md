@@ -1,3 +1,7 @@
+## Purpose
+
+Health endpoints, Prometheus metrics, structured logging, Grafana dashboards, and alerting for both apps and the flagship instance.
+
 ## Requirements
 
 ### Requirement: Health endpoints

@@ -1,3 +1,7 @@
+## Purpose
+
+Request rate limiting for Planner session creation and BRouter API calls to prevent abuse.
+
 ## Requirements
 
 ### Requirement: Session creation rate limit

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+One-command local development setup with PostgreSQL, BRouter, automatic schema migration, and segment downloading.
+
+## Requirements
 
 ### Requirement: One-command dev startup
 The project SHALL provide a single command that starts all services needed for local development.
