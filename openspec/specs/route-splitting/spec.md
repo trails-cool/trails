@@ -1,3 +1,7 @@
+## Purpose
+
+Waypoint insertion by clicking the ghost marker on the route polyline, splitting a segment into two.
+
 ## Requirements
 
 ### Requirement: Insert waypoint by clicking on route

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Route CRUD operations, GPX import/export, sequential versioning, PostGIS spatial storage, and route metadata in the Journal app.
+
+## Requirements
 
 ### Requirement: Create route
 The Journal SHALL allow authenticated users to create a new route with a name and optional description.

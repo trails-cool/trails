@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Shared TypeScript packages (@trails-cool/types, gpx, map, ui, i18n) used by both Planner and Journal apps.
+
+## Requirements
 
 ### Requirement: Shared types package
 The `@trails-cool/types` package SHALL export TypeScript interfaces for Route, Activity, Waypoint, RouteVersion, and RouteMetadata used by both apps.

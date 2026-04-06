@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Map thumbnails on route and activity list pages, and interactive maps with zoom and layer switching on detail pages.
+
+## Requirements
 
 ### Requirement: Route map preview on list pages
 Route and activity list pages SHALL show a small map thumbnail for each item that has geometry.

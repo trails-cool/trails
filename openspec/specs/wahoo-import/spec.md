@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Provider-agnostic activity sync framework with Wahoo as the first provider, supporting OAuth connection, webhook-based automatic sync, manual import, and FIT-to-GPX conversion.
+
+## Requirements
 
 ### Requirement: Provider-agnostic sync framework
 The system SHALL provide a common interface for external activity sync providers.

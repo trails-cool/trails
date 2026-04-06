@@ -1,3 +1,7 @@
+## Purpose
+
+Browser crash resilience via localStorage-based Yjs state persistence and recovery on reconnect.
+
 ## Requirements
 
 ### Requirement: localStorage crash recovery

@@ -10,25 +10,28 @@ export interface ActivityInput {
   description?: string;
   gpx?: string;
   routeId?: string;
+  distance?: number | null;
+  duration?: number | null;
+  startedAt?: Date | null;
 }
 
 export async function createActivity(ownerId: string, input: ActivityInput) {
   const db = getDb();
   const id = randomUUID();
 
-  let distance: number | null = null;
+  let distance: number | null = input.distance ?? null;
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
-  let startedAt: Date | null = null;
+  let startedAt: Date | null = input.startedAt ?? null;
+  const duration: number | null = input.duration ?? null;
   if (input.gpx) {
     try {
       const gpxData = await parseGpxAsync(input.gpx);
-      distance = gpxData.distance || null;
+      distance = gpxData.distance || distance;
       elevationGain = gpxData.elevation.gain;
       elevationLoss = gpxData.elevation.loss;
 
-      // Try to extract start time from first track point
-      if (gpxData.tracks[0]?.[0]?.time) {
+      if (!startedAt && gpxData.tracks[0]?.[0]?.time) {
         startedAt = new Date(gpxData.tracks[0][0].time);
       }
     } catch {
@@ -44,6 +47,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
     description: input.description ?? "",
     gpx: input.gpx,
     distance,
+    duration,
     elevationGain,
     elevationLoss,
     startedAt,

@@ -1,3 +1,7 @@
+## Purpose
+
+Multi-mode route visualization (plain, elevation gradient, surface type) with session-synced color mode selection.
+
 ## Requirements
 
 ### Requirement: Route color modes
