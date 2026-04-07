@@ -16,7 +16,7 @@ produces shareable social links.
 
 **Non-Goals:**
 - CMS or admin interface for writing entries
-- RSS feed (future, not now)
+- RSS/Atom feed for subscribing to updates
 - Email notifications for new entries
 - Per-entry images or rich media (just markdown text)
 - Bilingual entries (English only for now)
@@ -50,10 +50,29 @@ Store `changelog:lastSeen` timestamp in localStorage. If the newest entry's
 date is after this timestamp, show a dot on the nav "Changelog" link. Clicking
 the changelog page updates the timestamp. No server state needed.
 
+Users can permanently disable the "What's New" indicator by setting
+`changelog:disabled` in localStorage. A "Don't show again" option is available
+on the changelog page. When disabled, the dot never appears regardless of new
+entries. The setting can be re-enabled from the changelog page itself via a
+"Show new entry notifications" toggle. All client-side, no auth required.
+
 ### D4: Open Graph meta for social sharing
 
 Each `/changelog/:date` page sets `og:title`, `og:description` (first
 paragraph), and `og:url`. No og:image for now — text previews are fine.
+
+### D5: RSS/Atom feed at `/changelog/feed.xml`
+
+A standard Atom feed at `/changelog/feed.xml` so users and tools can subscribe.
+Generated server-side from the same changelog entries used by the HTML pages.
+Each `<entry>` includes the title, date, full markdown content rendered as HTML,
+and a link to the individual changelog page.
+
+The feed URL is advertised via a `<link rel="alternate" type="application/atom+xml">`
+tag in the `<head>` of the changelog pages, so feed readers auto-discover it.
+
+Atom over RSS 2.0 because Atom has a proper spec (RFC 4287), required dates,
+and better content handling. All major feed readers support both.
 
 ## Risks / Trade-offs
 

@@ -192,9 +192,16 @@ export default {
       previous: "Zurück",
       next: "Weiter",
     },
+    changelog: {
+      title: "Änderungsprotokoll",
+      subtitle: "Was gibt es Neues auf trails.cool",
+      backToList: "Zurück zum Änderungsprotokoll",
+      showNotifications: "Über neue Einträge benachrichtigen",
+    },
     nav: {
       routes: "Routen",
       activities: "Aktivitäten",
+      changelog: "Änderungen",
       login: "Anmelden",
       register: "Registrieren",
       profile: "Profil",

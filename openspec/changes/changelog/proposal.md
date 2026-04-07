@@ -22,7 +22,7 @@ project is alive and improving), and social followers (shareable updates).
 
 ### New Capabilities
 
-- `changelog`: Public changelog with dated entries, shareable individual pages with OG tags, "what's new" indicator
+- `changelog`: Public changelog with dated entries, shareable individual pages with OG tags, "what's new" indicator, RSS/Atom feed
 
 ### Modified Capabilities
 
@@ -30,8 +30,8 @@ project is alive and improving), and social followers (shareable updates).
 
 ## Impact
 
-- **Files**: New routes (`/changelog`, `/changelog/:slug`), markdown entry files
-  in `docs/changelog/` or `apps/journal/changelog/`, nav bar update
+- **Files**: New routes (`/changelog`, `/changelog/:slug`, `/changelog/feed.xml`),
+  markdown entry files in `apps/journal/changelog/`, nav bar update
 - **Dependencies**: A markdown renderer (could reuse `react-markdown` or render
   at build time)
 - **i18n**: Changelog entries written in English (primary audience), German
