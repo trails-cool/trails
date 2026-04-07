@@ -192,9 +192,16 @@ export default {
       previous: "Previous",
       next: "Next",
     },
+    changelog: {
+      title: "Changelog",
+      subtitle: "What's new on trails.cool",
+      backToList: "Back to Changelog",
+      showNotifications: "Notify me of new entries",
+    },
     nav: {
       routes: "Routes",
       activities: "Activities",
+      changelog: "Changelog",
       login: "Sign In",
       register: "Register",
       profile: "Profile",

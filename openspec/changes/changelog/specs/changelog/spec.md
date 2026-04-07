@@ -35,3 +35,24 @@ The system SHALL show a visual indicator when there are changelog entries the us
 #### Scenario: Indicator dismissed
 - **WHEN** a user visits the /changelog page
 - **THEN** the indicator is dismissed (localStorage timestamp updated)
+
+#### Scenario: Permanently disable indicator
+- **WHEN** a user clicks "Don't show again" on the changelog page
+- **THEN** `changelog:disabled` is set in localStorage
+- **AND** the "What's New" dot no longer appears for any future entries
+
+#### Scenario: Re-enable indicator
+- **WHEN** a user toggles "Show new entry notifications" on the changelog page
+- **THEN** `changelog:disabled` is removed from localStorage
+- **AND** the indicator resumes normal behavior
+
+### Requirement: RSS/Atom feed
+The system SHALL provide an Atom feed at `/changelog/feed.xml` for subscribing to changelog updates.
+
+#### Scenario: Subscribe to feed
+- **WHEN** a feed reader requests `/changelog/feed.xml`
+- **THEN** it receives a valid Atom feed with all changelog entries including title, date, content, and link
+
+#### Scenario: Feed auto-discovery
+- **WHEN** a browser or feed reader visits any `/changelog` page
+- **THEN** a `<link rel="alternate" type="application/atom+xml">` tag in the page head points to the feed URL

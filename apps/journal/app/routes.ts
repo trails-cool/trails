@@ -30,4 +30,7 @@ export default [
   route("api/sync/disconnect/:provider", "routes/api.sync.disconnect.$provider.ts"),
   route("api/sync/webhook/:provider", "routes/api.sync.webhook.$provider.ts"),
   route("privacy", "routes/privacy.tsx"),
+  route("changelog", "routes/changelog._index.tsx"),
+  route("changelog/feed.xml", "routes/changelog.feed[.xml].ts"),
+  route("changelog/:slug", "routes/changelog.$slug.tsx"),
 ] satisfies RouteConfig;

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useLocation, Form, Link } from "react-router";
+import { ChangelogLink } from "~/components/ChangelogIndicator";
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
@@ -34,12 +35,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const { getNewestDate } = await import("~/lib/changelog.server");
   const user = await getSessionUser(request);
   const locale = detectLocale(request);
-  return { user: user ? { id: user.id, username: user.username } : null, locale };
+  return { user: user ? { id: user.id, username: user.username } : null, locale, newestChangelogDate: getNewestDate() };
 }
 
-function NavBar({ user }: { user: { id: string; username: string } | null }) {
+function NavBar({ user, newestChangelogDate }: { user: { id: string; username: string } | null; newestChangelogDate: string | null }) {
   const { t } = useTranslation("journal");
   const location = useLocation();
 
@@ -60,6 +62,7 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
           <Link to="/" className="text-lg font-semibold text-gray-900">
             {t("title")}
           </Link>
+          <ChangelogLink newestDate={newestChangelogDate} className={() => linkClass("/changelog")} />
           {user && (
             <>
               <Link to="/routes" className={linkClass("/routes")}>
@@ -124,7 +127,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
 
   return (
     <LocaleProvider locale={locale}>
-      <NavBar user={user ?? null} />
+      <NavBar user={user ?? null} newestChangelogDate={loaderData?.newestChangelogDate ?? null} />
       <Outlet />
     </LocaleProvider>
   );
