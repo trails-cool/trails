@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { queryPois, OverpassRateLimitError, type Poi, type BBox } from "./overpass.ts";
 import { getCached, setCached } from "./poi-cache.ts";
-import { poiCategories, type PoiCategory } from "./poi-categories.ts";
+import { poiCategories } from "./poi-categories.ts";
 
 const MIN_ZOOM = 12;
 const DEBOUNCE_MS = 500;

@@ -33,17 +33,17 @@
 
 ## 6. POI Overlay Panel
 
-- [ ] 6.1 Create collapsible POI panel component with toggle button (map right side, below layer switcher)
-- [ ] 6.2 Render checkbox per POI category with icon, name, and visible count badge
-- [ ] 6.3 Show loading indicator while Overpass query is in flight
-- [ ] 6.4 Show empty/error states (no results, Overpass unavailable, zoom too low)
+- [x] 6.1 Create collapsible POI panel component with toggle button (map right side, below layer switcher)
+- [x] 6.2 Render checkbox per POI category with icon, name, and visible count badge
+- [x] 6.3 Show loading indicator while Overpass query is in flight
+- [x] 6.4 Show empty/error states (no results, Overpass unavailable, zoom too low)
 
 ## 7. POI Marker Rendering
 
-- [ ] 7.1 Render POI markers using `L.Marker` with `L.DivIcon` showing category icon
-- [ ] 7.2 Add click popup with POI name, category, opening hours, website, and OSM link
+- [x] 7.1 Render POI markers using `L.Marker` with `L.DivIcon` showing category icon
+- [x] 7.2 Add click popup with POI name, category, opening hours, website, and OSM link
 - [ ] 7.3 Add `leaflet.markercluster` for clustering dense POI areas (dynamic import to avoid bundle bloat)
-- [ ] 7.4 Set z-index so POI markers render below route polyline and waypoint markers
+- [x] 7.4 Set z-index so POI markers render below route polyline and waypoint markers
 
 ## 8. Profile-Aware Defaults
 

@@ -9,9 +9,11 @@ import { baseLayers, overlayLayers } from "@trails-cool/map";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
+import { usePois } from "~/lib/use-pois";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
+import { PoiPanel, PoiMarkers } from "./PoiPanel";
 import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
@@ -231,9 +233,30 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
+function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
+  const map = useMap();
+  useEffect(() => {
+    const refresh = () => {
+      const bounds = map.getBounds();
+      const zoom = map.getZoom();
+      poiState.refresh({
+        south: bounds.getSouth(),
+        west: bounds.getWest(),
+        north: bounds.getNorth(),
+        east: bounds.getEast(),
+      }, zoom);
+    };
+    map.on("moveend", refresh);
+    refresh();
+    return () => { map.off("moveend", refresh); };
+  }, [map, poiState.refresh]);
+  return null;
+}
+
 export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
+  const poiState = usePois();
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
@@ -468,6 +491,9 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       <CursorTracker awareness={yjs.awareness} />
       <NoGoAreaLayer noGoAreas={yjs.noGoAreas} doc={yjs.doc} enabled={noGoDrawing} onToggle={toggleNoGoDraw} />
       <NoGoAreaButton active={noGoDrawing} onClick={toggleNoGoDraw} />
+      <PoiRefresher poiState={poiState} />
+      <PoiMarkers poiState={poiState} />
+      <PoiPanel poiState={poiState} />
 
       {waypoints.map((wp, i) => (
         <Marker
