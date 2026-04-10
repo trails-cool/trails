@@ -58,7 +58,9 @@ function parseWaypoints(doc: Document): Waypoint[] {
     const lat = parseFloat(wpt.getAttribute("lat") ?? "0");
     const lon = parseFloat(wpt.getAttribute("lon") ?? "0");
     const name = wpt.querySelector("name")?.textContent ?? undefined;
-    return { lat, lon, name };
+    const type = wpt.querySelector("type")?.textContent ?? undefined;
+    const isDayBreak = type === "overnight" ? true : undefined;
+    return { lat, lon, name, isDayBreak };
   });
 }
 

@@ -32,6 +32,30 @@ test.describe("Integration: Journal ↔ Planner handoff", () => {
     expect(session.initialWaypoints).toHaveLength(2);
     expect(session.initialWaypoints[0].name).toBe("Berlin");
   });
+
+  test("GPX import with overnight waypoints preserves isDayBreak", async ({ request }) => {
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="52.52" lon="13.405"><name>Berlin</name></wpt>
+  <wpt lat="51.84" lon="12.243"><name>Dessau</name><type>overnight</type></wpt>
+  <wpt lat="50.98" lon="11.028"><name>Erfurt</name></wpt>
+  <trk><trkseg>
+    <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="51.84" lon="12.243"><ele>80</ele></trkpt>
+    <trkpt lat="50.98" lon="11.028"><ele>195</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+    const sessionResp = await request.post(`${PLANNER}/api/sessions`, {
+      data: { gpx },
+    });
+    expect(sessionResp.ok()).toBeTruthy();
+    const session = await sessionResp.json();
+    expect(session.initialWaypoints).toHaveLength(3);
+    expect(session.initialWaypoints[1].name).toBe("Dessau");
+    // isDayBreak should be preserved through GPX parsing
+    expect(session.initialWaypoints[1].isDayBreak).toBe(true);
+  });
 });
 
 test.describe("Integration: BRouter routing", () => {

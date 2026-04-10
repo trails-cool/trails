@@ -5,6 +5,7 @@ import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
 import { useRouting, type RouteError } from "~/lib/use-routing";
+import { useDays } from "~/lib/use-days";
 import { useUndo, useUndoShortcuts } from "~/lib/use-undo";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
@@ -141,7 +142,7 @@ function ColorModeToggle({ yjs }: { yjs: YjsState }) {
   );
 }
 
-function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"] }) {
+function SidebarTabs({ yjs, routeStats, days, onWaypointHover }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (index: number | null) => void }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
 
@@ -164,7 +165,7 @@ function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnTyp
       <div className="flex-1 overflow-hidden">
         {tab === "waypoints" ? (
           <Suspense fallback={null}>
-            <WaypointSidebar yjs={yjs} routeStats={routeStats} />
+            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={onWaypointHover} />
           </Suspense>
         ) : (
           <NotesPanel yjs={yjs} />
@@ -179,7 +180,7 @@ interface SessionViewProps {
   callbackUrl?: string;
   callbackToken?: string;
   returnUrl?: string;
-  initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+  initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>;
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
 }
 
@@ -190,7 +191,9 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
   const { canUndo, canRedo, undo, redo } = useUndo(yjs?.undoManager ?? null);
   useUndoShortcuts(yjs?.undoManager ?? null);
+  const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
+  const [highlightedWaypoint, setHighlightedWaypoint] = useState<number | null>(null);
   const { toasts, addToast } = useToasts();
   useAwarenessToasts(yjs, t, addToast);
 
@@ -283,14 +286,14 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} onImportError={(msg) => addToast(msg, "error")} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
-            <ElevationChart yjs={yjs} onHover={handleElevationHover} />
+            <ElevationChart yjs={yjs} onHover={handleElevationHover} days={days} />
           </Suspense>
         </main>
-        <SidebarTabs yjs={yjs} routeStats={routeStats} />
+        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} />
       </div>
       <YjsDebugPanel yjs={yjs} />
       {toasts.length > 0 && (

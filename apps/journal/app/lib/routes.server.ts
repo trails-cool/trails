@@ -19,11 +19,13 @@ export async function createRoute(ownerId: string, input: RouteInput) {
   let distance: number | null = null;
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
+  let dayBreaks: number[] = [];
   if (input.gpx) {
     const stats = await computeRouteStats(input.gpx);
     distance = stats.distance;
     elevationGain = stats.elevationGain;
     elevationLoss = stats.elevationLoss;
+    dayBreaks = stats.dayBreaks;
   }
 
   await db.insert(routes).values({
@@ -36,6 +38,7 @@ export async function createRoute(ownerId: string, input: RouteInput) {
     distance,
     elevationGain,
     elevationLoss,
+    dayBreaks,
   });
 
   if (input.gpx) {
@@ -110,6 +113,7 @@ export async function updateRoute(
     updateData.distance = stats.distance;
     updateData.elevationGain = stats.elevationGain;
     updateData.elevationLoss = stats.elevationLoss;
+    updateData.dayBreaks = stats.dayBreaks;
 
     // Get next version number
     const existingVersions = await db
@@ -151,13 +155,17 @@ export async function deleteRoute(id: string, ownerId: string) {
 async function computeRouteStats(gpxString: string) {
   try {
     const gpxData = await parseGpxAsync(gpxString);
+    const dayBreaks = gpxData.waypoints
+      .map((w, i) => (w.isDayBreak ? i : -1))
+      .filter((i) => i >= 0);
     return {
       distance: gpxData.distance,
       elevationGain: gpxData.elevation.gain,
       elevationLoss: gpxData.elevation.loss,
+      dayBreaks,
     };
   } catch {
-    return { distance: null, elevationGain: null, elevationLoss: null };
+    return { distance: null, elevationGain: null, elevationLoss: null, dayBreaks: [] as number[] };
   }
 }
 

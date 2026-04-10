@@ -3,25 +3,46 @@ import { MapContainer, TileLayer, LayersControl, Marker, CircleMarker, useMapEve
 import L from "leaflet";
 import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
+import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
 import { baseLayers } from "@trails-cool/map";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
+import { isOvernight } from "~/lib/overnight";
+import { setOvernight } from "~/lib/overnight";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
 import "leaflet/dist/leaflet.css";
 
-function waypointIcon(index: number): L.DivIcon {
+function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
+  const bg = overnight ? "#8B6D3A" : "#2563eb";
+  const scale = highlighted ? "scale(1.17)" : "scale(1)";
   return L.divIcon({
     className: "",
     html: `<div style="
       width:24px;height:24px;border-radius:50%;
-      background:#2563eb;color:white;
+      background:${bg};color:white;
       display:flex;align-items:center;justify-content:center;
       font-size:12px;font-weight:600;
       border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
-      transform:translate(-12px,-12px);
-    ">${index + 1}</div>`,
+      transform:translate(-12px,-12px) ${scale};
+      transition:transform 0.2s ease;
+    ">${overnight ? "☾" : index + 1}</div>`,
+    iconSize: [0, 0],
+  });
+}
+
+function dayLabelIcon(dayNumber: number, distanceKm: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="position:absolute;left:50%;transform:translate(-50%,-40px);">
+      <div style="
+        background:white;color:#1f2937;
+        padding:1px 6px;border-radius:8px;
+        font-size:10px;font-weight:600;white-space:nowrap;
+        box-shadow:0 1px 3px rgba(0,0,0,0.15);
+      ">Day ${dayNumber} · ${distanceKm} km</div>
+    </div>`,
     iconSize: [0, 0],
   });
 }
@@ -30,6 +51,7 @@ interface WaypointData {
   lat: number;
   lon: number;
   name?: string;
+  overnight: boolean;
 }
 
 function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
@@ -37,6 +59,7 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
     lat: yMap.get("lat") as number,
     lon: yMap.get("lon") as number,
     name: yMap.get("name") as string | undefined,
+    overnight: isOvernight(yMap),
   }));
 }
 
@@ -45,6 +68,8 @@ interface PlannerMapProps {
   onRouteRequest?: (waypoints: WaypointData[]) => void;
   onImportError?: (message: string) => void;
   highlightPosition?: [number, number] | null;
+  highlightedWaypoint?: number | null;
+  days?: DayStage[];
 }
 
 function MapExposer() {
@@ -206,7 +231,7 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
-export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportError }: PlannerMapProps) {
+export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const [draggingOver, setDraggingOver] = useState(false);
@@ -390,6 +415,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
           const yMap = new Y.Map();
           yMap.set("lat", wp.lat);
           yMap.set("lon", wp.lon);
+          if (wp.name) yMap.set("name", wp.name);
+          if (wp.isDayBreak) yMap.set("overnight", true);
           yjs.waypoints.push([yMap]);
         }
 
@@ -442,7 +469,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
           key={i}
           position={[wp.lat, wp.lon]}
           draggable
-          icon={waypointIcon(i)}
+          icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i)}
           eventHandlers={{
             mouseover: () => {
               routeInteractionSuspendedRef.current = true;
@@ -465,11 +492,30 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
             },
             contextmenu: (e) => {
               L.DomEvent.preventDefault(e as unknown as Event);
-              deleteWaypoint(i);
+              // Middle waypoints: toggle overnight. First/last: delete.
+              if (i > 0 && i < waypoints.length - 1) {
+                setOvernight(yjs, i, !wp.overnight);
+              } else {
+                deleteWaypoint(i);
+              }
             },
           }}
         />
       ))}
+
+      {/* Day boundary labels on map */}
+      {days && days.length > 1 && days.map((day) => {
+        const wp = waypoints[day.endWaypointIndex];
+        if (!wp || day.dayNumber === days.length) return null;
+        return (
+          <Marker
+            key={`day-${day.dayNumber}`}
+            position={[wp.lat, wp.lon]}
+            icon={dayLabelIcon(day.dayNumber, (day.distance / 1000).toFixed(1))}
+            interactive={false}
+          />
+        );
+      })}
 
       {routeCoordinates && routeCoordinates.length >= 2 && (
         <>

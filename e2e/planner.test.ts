@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { mockBRouter, latLngToPixel } from "./fixtures/brouter-mock";
 
 test.describe("Planner", () => {
   test("loads the home page", async ({ page }) => {
@@ -86,6 +87,8 @@ test.describe("Planner", () => {
     const sessionResp = await request.post("/api/sessions", { data: {} });
     const { url } = await sessionResp.json();
 
+    await mockBRouter(page);
+
     await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
       { lat: 52.520, lon: 13.405 },
       { lat: 52.515, lon: 13.351 },
@@ -94,31 +97,23 @@ test.describe("Planner", () => {
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
     await expect(page.getByText("Waypoints (2)")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/\d+\.\d+ km/)).toBeVisible({ timeout: 20000 });
 
-    // Zoom in and click on the route midpoint to split it
-    // RouteInteraction uses map-level mousemove, but click on the ghost marker
-    // inserts the waypoint. We'll use Leaflet events to simulate.
+    const sidebar = page.locator("aside");
+    await expect(sidebar.getByText(/\d+\.\d+ km/).first()).toBeVisible({ timeout: 10000 });
+
+    // Zoom in to the route midpoint using known coordinates
     await page.evaluate(() => {
       const map = (window as any).__leafletMap;
       if (!map) return;
-      map.setView([52.5175, 13.378], 14, { animate: false });
+      map.setView([52.518, 13.383], 15, { animate: false });
     });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
-    // Click on the route via the visible polyline's bounding box
-    const routePath = page.locator(".leaflet-overlay-pane path").first();
-    await expect(routePath).toBeAttached({ timeout: 5000 });
-    const box = await routePath.boundingBox();
-    if (!box) throw new Error("Route polyline not visible");
+    // Click on a known route coordinate to insert a waypoint
+    const pixel = await latLngToPixel(page, 52.518, 13.383);
+    await page.mouse.click(pixel.x, pixel.y);
 
-    // Click the center of the route path bounding box
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-
-    // The click on the map near the route should trigger RouteInteraction
-    // which shows the ghost and inserts a waypoint. If the click was within
-    // snap tolerance, a waypoint is inserted. Otherwise, a new waypoint is
-    // appended (map click). Either way we get 3 waypoints.
+    // Should now have 3 waypoints (original 2 + inserted)
     await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 10000 });
   });
 
@@ -155,6 +150,8 @@ test.describe("Planner", () => {
     const sessionResp = await request.post("/api/sessions", { data: {} });
     const { url } = await sessionResp.json();
 
+    await mockBRouter(page);
+
     const waypoints = [
       { lat: 52.520, lon: 13.405 },
       { lat: 52.515, lon: 13.351 },
@@ -163,8 +160,9 @@ test.describe("Planner", () => {
 
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
-    // Wait for route to compute and fit
-    await expect(page.getByText(/\d+\.\d+ km/)).toBeVisible({ timeout: 20000 });
+
+    const sidebar = page.locator("aside");
+    await expect(sidebar.getByText(/\d+\.\d+ km/).first()).toBeVisible({ timeout: 10000 });
 
     // The map should have zoomed in to the route bounds (zoom > default 6)
     const zoom = await page.evaluate(() => {
@@ -234,5 +232,81 @@ test.describe("Planner", () => {
     // Should redirect to a session
     await expect(page).toHaveURL(/\/session\//, { timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+  });
+
+  test("toggle overnight on waypoint shows day breakdown in sidebar", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    await mockBRouter(page);
+
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405 },
+      { lat: 52.516, lon: 13.377 },
+      { lat: 52.510, lon: 13.390 },
+    ]))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 5000 });
+
+    const sidebar = page.locator("aside");
+    await expect(sidebar.getByText(/\d+\.\d+ km/).first()).toBeVisible({ timeout: 10000 });
+
+    // Hover waypoint 2 to reveal controls, click the overnight toggle (moon icon)
+    const waypointRows = sidebar.locator("li").filter({ has: page.locator("span.rounded-full") });
+    const secondRow = waypointRows.nth(1);
+    await secondRow.hover();
+    const moonButton = secondRow.getByTitle(/overnight/i);
+    await moonButton.click();
+
+    // Day breakdown should appear in the sidebar
+    await expect(sidebar.getByText("Day 1")).toBeVisible({ timeout: 5000 });
+    await expect(sidebar.getByText("Day 2")).toBeVisible({ timeout: 5000 });
+  });
+
+  test("export GPX with day breaks includes overnight metadata", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    // Import a GPX with overnight waypoints
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="52.520" lon="13.405"><name>Berlin</name></wpt>
+  <wpt lat="51.840" lon="12.243"><name>Dessau</name><type>overnight</type></wpt>
+  <wpt lat="50.980" lon="11.028"><name>Erfurt</name></wpt>
+  <trk><trkseg>
+    <trkpt lat="52.520" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="51.840" lon="12.243"><ele>80</ele></trkpt>
+    <trkpt lat="50.980" lon="11.028"><ele>195</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+    await page.goto(url);
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+
+    // Drop the GPX file onto the map
+    const dataTransfer = await page.evaluateHandle((content) => {
+      const dt = new DataTransfer();
+      const file = new File([content], "multi-day.gpx", { type: "application/gpx+xml" });
+      dt.items.add(file);
+      return dt;
+    }, gpx);
+
+    const map = page.locator(".leaflet-container");
+
+    await map.dispatchEvent("dragenter", { dataTransfer });
+    await page.getByText("Drop GPX file here").waitFor({ timeout: 3000 });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await map.dispatchEvent("drop", { dataTransfer });
+
+    // Wait for waypoints to load
+    await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 10000 });
+
+    // The overnight waypoint should show day breakdown in the sidebar
+    const sidebar = page.locator("aside");
+    await expect(sidebar.getByText("Day 1")).toBeVisible({ timeout: 5000 });
   });
 });

@@ -33,7 +33,7 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") ?? undefined;
   const waypointsParam = searchParams.get("waypoints");
-  let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
+  let initialWaypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }> | undefined;
   if (waypointsParam) {
     try { initialWaypoints = JSON.parse(waypointsParam); } catch { /* ignore */ }
   }
