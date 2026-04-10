@@ -4,8 +4,8 @@ import { getCached, setCached } from "./poi-cache.ts";
 import { poiCategories } from "./poi-categories.ts";
 
 const MIN_ZOOM = 12;
-const DEBOUNCE_MS = 1000;
-const MIN_REQUEST_INTERVAL_MS = 3000;
+const DEBOUNCE_MS = 800;
+const MIN_REQUEST_INTERVAL_MS = 2000;
 const BACKOFF_BASE_MS = 10000;
 const MAX_BACKOFF_MS = 60000;
 
@@ -52,7 +52,7 @@ export function usePois(): PoiState {
       }
 
       const categories = poiCategories.filter((c) => enabledCategories.includes(c.id));
-      const categoriesKey = enabledCategories.sort().join(",");
+      const categoriesKey = [...enabledCategories].sort().join(",");
 
       // Check cache first
       const cached = getCached(bbox, categoriesKey);
@@ -61,6 +61,8 @@ export function usePois(): PoiState {
         setStatus("loaded");
         return;
       }
+
+      setStatus("loading");
 
       // Calculate delay: debounce + respect minimum interval
       const sinceLastRequest = Date.now() - lastRequestRef.current;
@@ -72,8 +74,6 @@ export function usePois(): PoiState {
         const controller = new AbortController();
         abortRef.current = controller;
         lastRequestRef.current = Date.now();
-
-        setStatus("loading");
 
         try {
           const result = await queryPois(bbox, categories, controller.signal);
