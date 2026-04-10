@@ -285,7 +285,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} onImportError={(msg) => addToast(msg, "error")} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>

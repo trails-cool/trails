@@ -13,9 +13,9 @@
 
 ## 3. Map Integration
 
-- [ ] 3.1 Add overnight marker variant to `PlannerMap`: amber-brown circle (`--stop` token) for overnight waypoints, replacing default olive marker
-- [ ] 3.2 Add day label DivIcon markers on route at day boundaries: white pill with "Day N . X km" text, positioned at overnight waypoint coordinates
-- [ ] 3.3 Add right-click context menu on waypoint markers with "Mark as overnight stop" / "Remove overnight stop" option
+- [x] 3.1 Add overnight marker variant to `PlannerMap`: amber-brown circle (`--stop` token) for overnight waypoints, replacing default olive marker
+- [x] 3.2 Add day label DivIcon markers on route at day boundaries: white pill with "Day N . X km" text, positioned at overnight waypoint coordinates
+- [x] 3.3 Add right-click context menu on waypoint markers with "Mark as overnight stop" / "Remove overnight stop" option
 
 ## 4. Elevation Chart
 
