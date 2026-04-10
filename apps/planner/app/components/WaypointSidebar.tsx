@@ -30,7 +30,7 @@ interface WaypointSidebarProps {
     elevationLoss?: number;
   };
   days: DayStage[];
-  onWaypointHover?: (position: [number, number] | null) => void;
+  onWaypointHover?: (index: number | null) => void;
 }
 
 export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: WaypointSidebarProps) {
@@ -90,7 +90,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: Wayp
     <li
       key={i}
       className="group flex items-center gap-2 px-4 py-2 hover:bg-gray-50"
-      onMouseEnter={() => onWaypointHover?.([wp.lat, wp.lon])}
+      onMouseEnter={() => onWaypointHover?.(i)}
       onMouseLeave={() => onWaypointHover?.(null)}
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">

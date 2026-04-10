@@ -142,7 +142,7 @@ function ColorModeToggle({ yjs }: { yjs: YjsState }) {
   );
 }
 
-function SidebarTabs({ yjs, routeStats, days, onWaypointHover }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (position: [number, number] | null) => void }) {
+function SidebarTabs({ yjs, routeStats, days, onWaypointHover }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (index: number | null) => void }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
 
@@ -193,6 +193,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   useUndoShortcuts(yjs?.undoManager ?? null);
   const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
+  const [highlightedWaypoint, setHighlightedWaypoint] = useState<number | null>(null);
   const { toasts, addToast } = useToasts();
   useAwarenessToasts(yjs, t, addToast);
 
@@ -285,14 +286,14 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} onImportError={(msg) => addToast(msg, "error")} days={days} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
             <ElevationChart yjs={yjs} onHover={handleElevationHover} days={days} />
           </Suspense>
         </main>
-        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightPosition} />
+        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} />
       </div>
       <YjsDebugPanel yjs={yjs} />
       {toasts.length > 0 && (

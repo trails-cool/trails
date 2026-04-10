@@ -14,17 +14,21 @@ import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRout
 import { RouteInteraction } from "./RouteInteraction";
 import "leaflet/dist/leaflet.css";
 
-function waypointIcon(index: number, overnight?: boolean): L.DivIcon {
+function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
   const bg = overnight ? "#8B6D3A" : "#2563eb";
+  const size = highlighted ? 30 : 24;
+  const offset = size / 2;
+  const ring = highlighted ? `outline:3px solid ${bg};outline-offset:2px;` : "";
   return L.divIcon({
     className: "",
     html: `<div style="
-      width:24px;height:24px;border-radius:50%;
+      width:${size}px;height:${size}px;border-radius:50%;
       background:${bg};color:white;
       display:flex;align-items:center;justify-content:center;
-      font-size:12px;font-weight:600;
+      font-size:${highlighted ? 14 : 12}px;font-weight:600;
       border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
-      transform:translate(-12px,-12px);
+      transform:translate(-${offset}px,-${offset}px);
+      ${ring}transition:all 0.15s ease;
     ">${overnight ? "☾" : index + 1}</div>`,
     iconSize: [0, 0],
   });
@@ -66,6 +70,7 @@ interface PlannerMapProps {
   onRouteRequest?: (waypoints: WaypointData[]) => void;
   onImportError?: (message: string) => void;
   highlightPosition?: [number, number] | null;
+  highlightedWaypoint?: number | null;
   days?: DayStage[];
 }
 
@@ -228,7 +233,7 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
-export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportError, days }: PlannerMapProps) {
+export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const [draggingOver, setDraggingOver] = useState(false);
@@ -466,7 +471,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
           key={i}
           position={[wp.lat, wp.lon]}
           draggable
-          icon={waypointIcon(i, wp.overnight)}
+          icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i)}
           eventHandlers={{
             mouseover: () => {
               routeInteractionSuspendedRef.current = true;
