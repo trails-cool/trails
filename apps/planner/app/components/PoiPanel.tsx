@@ -115,6 +115,13 @@ export function PoiMarkers({ poiState }: PoiPanelProps) {
       });
 
       const popupLines = [`<strong>${poi.name ?? cat.icon + " " + poi.category}</strong>`];
+      popupLines.push(`<span style="font-size:11px;color:#888">${cat.icon} ${cat.id.replace(/_/g, " ")}</span>`);
+      if (poi.tags.description) popupLines.push(`<span style="font-size:12px">${poi.tags.description}</span>`);
+      const addr = [poi.tags["addr:street"], poi.tags["addr:housenumber"]].filter(Boolean).join(" ");
+      const addrCity = [addr, poi.tags["addr:postcode"], poi.tags["addr:city"]].filter(Boolean).join(", ");
+      if (addrCity) popupLines.push(`📍 ${addrCity}`);
+      const phone = poi.tags.phone ?? poi.tags["contact:phone"];
+      if (phone) popupLines.push(`📞 <a href="tel:${phone}">${phone}</a>`);
       if (poi.tags.opening_hours) popupLines.push(`🕐 ${poi.tags.opening_hours}`);
       if (poi.tags.website) popupLines.push(`<a href="${poi.tags.website}" target="_blank" rel="noopener">Website</a>`);
       popupLines.push(`<a href="https://www.openstreetmap.org/node/${poi.id}" target="_blank" rel="noopener" style="font-size:11px;color:#666">OSM</a>`);
