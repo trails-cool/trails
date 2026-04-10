@@ -1,6 +1,7 @@
 import type { PoiCategory } from "./poi-categories.ts";
 
-const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+// overpass.kumi.systems has higher rate limits than overpass-api.de
+const OVERPASS_ENDPOINT = "https://overpass.kumi.systems/api/interpreter";
 
 export interface Poi {
   id: number;
