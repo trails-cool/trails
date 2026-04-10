@@ -5,7 +5,7 @@ import type { GpxData } from "./types.ts";
  * Uses explicit <wpt> elements if present, otherwise simplifies the
  * track using Douglas-Peucker to find significant turning points.
  */
-export function extractWaypoints(gpxData: GpxData): Array<{ lat: number; lon: number; name?: string }> {
+export function extractWaypoints(gpxData: GpxData): Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }> {
   if (gpxData.waypoints.length > 0) return gpxData.waypoints;
   if (gpxData.tracks.length === 0) return [];
 

@@ -411,6 +411,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, onImportErr
           const yMap = new Y.Map();
           yMap.set("lat", wp.lat);
           yMap.set("lon", wp.lon);
+          if (wp.name) yMap.set("name", wp.name);
+          if (wp.isDayBreak) yMap.set("overnight", true);
           yjs.waypoints.push([yMap]);
         }
 

@@ -45,6 +45,7 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
         lat: yMap.get("lat") as number,
         lon: yMap.get("lon") as number,
         name: yMap.get("name") as string | undefined,
+        isDayBreak: yMap.get("overnight") === true ? true : undefined,
       }));
 
       const gpx = generateGpx({ name: "trails.cool route", waypoints, tracks, noGoAreas });

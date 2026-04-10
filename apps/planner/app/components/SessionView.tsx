@@ -180,7 +180,7 @@ interface SessionViewProps {
   callbackUrl?: string;
   callbackToken?: string;
   returnUrl?: string;
-  initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+  initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>;
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
 }
 

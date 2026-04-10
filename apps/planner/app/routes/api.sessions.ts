@@ -19,7 +19,7 @@ export async function action({ request }: Route.ActionArgs) {
   return withDb(async () => {
     const session = await createSession({ callbackUrl, callbackToken });
 
-    let initialWaypoints: Array<{ lat: number; lon: number; name?: string }> | undefined;
+    let initialWaypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }> | undefined;
     let initialNoGoAreas: Array<{ points: Array<{ lat: number; lon: number }> }> | undefined;
     if (gpx) {
       try {
