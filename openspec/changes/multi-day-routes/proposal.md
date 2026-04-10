@@ -26,6 +26,12 @@ and deriving per-day stats from the segment data we already have.
   "Day 1 . 120 km".
 - **GPX export**: Day-break waypoints exported with a `<type>overnight</type>`
   element so the structure survives round-trips.
+- **Waypoint highlighting**: Hovering a waypoint in the sidebar highlights
+  the corresponding marker on the map with a smooth scale animation.
+- **Journal day interaction**: Hovering a day in the Journal route detail
+  highlights that segment on the map and flies the map to fit it.
+- **Per-day GPX export**: Each day in the Journal route detail has a GPX
+  download button that exports just that day's track segment.
 
 All state lives in Yjs. No database changes are needed -- the Planner remains
 stateless. The visual design is already specified in the `visual-redesign`
@@ -46,7 +52,9 @@ the data model, computation logic, and integration wiring.
 - `gpx-export`: Day-break metadata in exported GPX waypoints
 - `gpx-import`: Parse `<type>overnight</type>` waypoints to restore day breaks
 - `route-management`: Populate `dayBreaks` column on save, expose per-day stats
-- `journal-route-detail`: Day breakdown display with per-day stats and map segments
+- `journal-route-detail`: Day breakdown display with per-day stats, map segment
+  highlighting, fly-to-segment on hover, per-day GPX export
+- `planner-sidebar`: Waypoint hover highlights corresponding map marker
 
 ## Non-Goals
 
@@ -78,6 +86,9 @@ the data model, computation logic, and integration wiring.
 - **Journal route storage**: `updateRoute` populates `dayBreaks` column from
   parsed waypoint indices when saving GPX
 - **Journal route detail**: Day breakdown section with per-day stats (distance,
-  ascent, descent) when `dayBreaks` is non-empty
+  ascent, descent) when `dayBreaks` is non-empty. Hover highlights segment on
+  map and flies to fit. Per-day GPX download via `?day=N` query param.
+- **Sidebar hover**: Hovering waypoint rows highlights the marker on the map
+  with CSS `scale(1.17)` transition (0.2s ease)
 - **i18n**: New keys for day labels, overnight toggle, per-day stats (en + de)
   in both planner and journal namespaces

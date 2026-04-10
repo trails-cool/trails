@@ -40,12 +40,25 @@
 - [x] 7.1 Add Planner translation keys for en + de: day labels ("Day 1", "Tag 1"), overnight toggle ("Mark as overnight stop" / "Als Übernachtung markieren"), per-day stats, route summary
 - [x] 7.2 Add Journal translation keys for en + de: day breakdown header, per-day stats labels
 
-## 8. Testing
+## 8. Planner Waypoint Hover
 
-- [x] 8.1 Unit tests for `computeDays()`: single day (no overnight), two days, three days, empty route, single waypoint, overnight on first/last waypoint edge cases
-- [x] 8.2 Unit tests for `overnight.ts` helpers: set/clear/check overnight on Y.Map
-- [x] 8.3 Unit tests for GPX roundtrip: generate with `isDayBreak`, parse back, verify `isDayBreak` preserved
-- [x] 8.4 Unit tests for `dayBreaks` extraction in route update logic
-- [x] 8.5 E2E test: add waypoints, toggle overnight on one, verify sidebar shows day breakdown with correct stats
-- [x] 8.6 E2E test: export GPX with day breaks, verify downloaded file contains overnight metadata
-- [x] 8.7 E2E test: save multi-day route to Journal, verify day breakdown displays on route detail page
+- [x] 8.0a Add `onWaypointHover` callback to `WaypointSidebar`, emit waypoint index on row hover
+- [x] 8.0b Pass `highlightedWaypoint` index to `PlannerMap`, render highlighted marker with CSS `scale(1.17)` and 0.2s ease transition
+
+## 9. Journal Day Interaction
+
+- [x] 9.1 Add `highlightedDay` state to route detail page, pass to `RouteMapThumbnail`
+- [x] 9.2 Highlight hovered day segment on map: thicken active (weight 5), dim others (opacity 0.3)
+- [x] 9.3 Fly map to hovered day segment bounds (200ms), fly back to full route on mouse leave
+- [x] 9.4 Add per-day GPX download button on each day row in route detail breakdown
+- [x] 9.5 Extend `/api/routes/:id/gpx` with `?day=N` query param to export single day's track segment
+
+## 10. Testing
+
+- [x] 10.1 Unit tests for `computeDays()`: single day (no overnight), two days, three days, empty route, single waypoint, overnight on first/last waypoint edge cases
+- [x] 10.2 Unit tests for `overnight.ts` helpers: set/clear/check overnight on Y.Map
+- [x] 10.3 Unit tests for GPX roundtrip: generate with `isDayBreak`, parse back, verify `isDayBreak` preserved
+- [x] 10.4 Unit tests for `dayBreaks` extraction in route update logic
+- [x] 10.5 E2E test: add waypoints, toggle overnight on one, verify sidebar shows day breakdown with correct stats
+- [x] 10.6 E2E test: export GPX with day breaks, verify downloaded file contains overnight metadata
+- [x] 10.7 E2E test: save multi-day route to Journal, verify day breakdown displays on route detail page

@@ -280,6 +280,36 @@ function computeDays(
 The Planner's `useDays()` hook maps its Yjs waypoints + EnrichedRoute into
 this same shape before calling `computeDays`.
 
+### D13: Sidebar waypoint hover highlights map marker
+
+Hovering a waypoint row in the `WaypointSidebar` passes the waypoint index
+up to `SessionView` via an `onWaypointHover` callback. `PlannerMap` receives
+a `highlightedWaypoint` index and renders the corresponding marker with a
+CSS `scale(1.17)` transform (0.2s ease transition). This reuses the existing
+`waypointIcon` function with a `highlighted` parameter — no extra DOM
+elements or Leaflet layers needed.
+
+### D14: Journal route detail — day segment hover interaction
+
+Hovering a day row in the route detail day breakdown triggers two effects:
+
+1. **Map segment highlighting**: The hovered day's polyline thickens (weight 5,
+   opacity 1) while other days dim (weight 2, opacity 0.3). Implemented via
+   `highlightedDay` state passed to `DayColoredRoute`.
+
+2. **Fly-to-segment**: A `FlyToSegment` component calls `map.flyToBounds()`
+   on the hovered segment's bounds (200ms animation). On mouse leave it flies
+   back to the full route bounds. The full route bounds are cached on first
+   render to avoid recomputation.
+
+### D15: Per-day GPX export endpoint
+
+The existing `/api/routes/:id/gpx` endpoint gains an optional `?day=N` query
+parameter. When present, it parses the stored GPX, runs `computeDays()` to
+find the track point range for that day, and returns a GPX containing only
+that day's track segment. The filename includes the day number
+(`route_day1.gpx`).
+
 ## Risks / Trade-offs
 
 - **Segment boundary alignment**: The day computation relies on
