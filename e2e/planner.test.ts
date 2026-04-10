@@ -251,8 +251,8 @@ test.describe("Planner", () => {
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
     await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 5000 });
 
-    // Wait for route to compute
-    await expect(page.getByText(/\d+\.\d+ km/)).toBeVisible({ timeout: 20000 });
+    // Wait for route to compute — match the header summary which has "km ·"
+    await expect(page.getByText(/\d+\.\d+ km ·/)).toBeVisible({ timeout: 20000 });
 
     // Hover waypoint 2 to reveal controls, click the overnight toggle (moon icon)
     const waypointRows = page.locator("li").filter({ has: page.locator("span.rounded-full") });
@@ -261,9 +261,10 @@ test.describe("Planner", () => {
     const moonButton = secondRow.getByTitle(/overnight/i);
     await moonButton.click();
 
-    // Day breakdown should appear
-    await expect(page.getByText("Day 1")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("Day 2")).toBeVisible({ timeout: 5000 });
+    // Day breakdown should appear in the sidebar
+    const sidebar = page.locator("aside");
+    await expect(sidebar.getByText("Day 1")).toBeVisible({ timeout: 5000 });
+    await expect(sidebar.getByText("Day 2")).toBeVisible({ timeout: 5000 });
   });
 
   test("export GPX with day breaks includes overnight metadata", async ({ page, request }) => {
@@ -306,7 +307,8 @@ test.describe("Planner", () => {
     // Wait for waypoints to load
     await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 10000 });
 
-    // The overnight waypoint should show day breakdown
-    await expect(page.getByText("Day 1")).toBeVisible({ timeout: 5000 });
+    // The overnight waypoint should show day breakdown in the sidebar
+    const sidebar = page.locator("aside");
+    await expect(sidebar.getByText("Day 1")).toBeVisible({ timeout: 5000 });
   });
 });
