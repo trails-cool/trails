@@ -26,7 +26,7 @@ function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean)
       font-size:12px;font-weight:600;
       border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
       transform:translate(-12px,-12px) ${scale};
-      transition:transform 0.3s ease;
+      transition:transform 0.2s ease;
     ">${overnight ? "☾" : index + 1}</div>`,
     iconSize: [0, 0],
   });
