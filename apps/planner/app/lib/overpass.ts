@@ -1,7 +1,9 @@
 import type { PoiCategory } from "./poi-categories.ts";
 
-// overpass.kumi.systems has higher rate limits than overpass-api.de
-const OVERPASS_ENDPOINT = "https://overpass.kumi.systems/api/interpreter";
+const OVERPASS_ENDPOINTS = [
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+];
 
 export interface Poi {
   id: number;
@@ -25,7 +27,7 @@ export interface BBox {
 export function buildQuery(bbox: BBox, categories: PoiCategory[]): string {
   const bboxStr = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
   const unions = categories.map((c) => c.query).join("");
-  return `[out:json][timeout:15][bbox:${bboxStr}];(${unions});out center 200;`;
+  return `[out:json][timeout:10][maxsize:1048576][bbox:${bboxStr}];(${unions});out center qt 100;`;
 }
 
 /**
@@ -104,7 +106,31 @@ export async function queryPois(
   if (categories.length === 0) return [];
 
   const query = buildQuery(bbox, categories);
-  const response = await fetch(OVERPASS_ENDPOINT, {
+
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      return await fetchFromEndpoint(endpoint, query, categories, signal);
+    } catch (err) {
+      // If aborted, don't try fallback
+      if (signal?.aborted) throw err;
+      // If rate limited on all endpoints, throw
+      if (err instanceof OverpassRateLimitError && endpoint === OVERPASS_ENDPOINTS[OVERPASS_ENDPOINTS.length - 1]) throw err;
+      // Try next endpoint
+      if (endpoint !== OVERPASS_ENDPOINTS[OVERPASS_ENDPOINTS.length - 1]) continue;
+      throw err;
+    }
+  }
+
+  return [];
+}
+
+async function fetchFromEndpoint(
+  endpoint: string,
+  query: string,
+  categories: PoiCategory[],
+  signal?: AbortSignal,
+): Promise<Poi[]> {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `data=${encodeURIComponent(query)}`,
@@ -121,7 +147,6 @@ export async function queryPois(
 
   const text = await response.text();
 
-  // Overpass sometimes returns 200 with rate limit error in the body
   if (text.includes("rate_limited")) {
     throw new OverpassRateLimitError();
   }
