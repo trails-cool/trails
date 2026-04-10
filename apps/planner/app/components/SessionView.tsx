@@ -142,7 +142,7 @@ function ColorModeToggle({ yjs }: { yjs: YjsState }) {
   );
 }
 
-function SidebarTabs({ yjs, routeStats, days }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays> }) {
+function SidebarTabs({ yjs, routeStats, days, onWaypointHover }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (position: [number, number] | null) => void }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
 
@@ -165,7 +165,7 @@ function SidebarTabs({ yjs, routeStats, days }: { yjs: YjsState; routeStats: Ret
       <div className="flex-1 overflow-hidden">
         {tab === "waypoints" ? (
           <Suspense fallback={null}>
-            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} />
+            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={onWaypointHover} />
           </Suspense>
         ) : (
           <NotesPanel yjs={yjs} />
@@ -292,7 +292,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             <ElevationChart yjs={yjs} onHover={handleElevationHover} days={days} />
           </Suspense>
         </main>
-        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} />
+        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightPosition} />
       </div>
       <YjsDebugPanel yjs={yjs} />
       {toasts.length > 0 && (

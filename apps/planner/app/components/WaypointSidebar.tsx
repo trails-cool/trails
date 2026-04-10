@@ -30,9 +30,10 @@ interface WaypointSidebarProps {
     elevationLoss?: number;
   };
   days: DayStage[];
+  onWaypointHover?: (position: [number, number] | null) => void;
 }
 
-export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps) {
+export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: WaypointSidebarProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
 
@@ -86,7 +87,12 @@ export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps)
   const hasMultipleDays = days.length > 1;
 
   const renderWaypointRow = (wp: WaypointData, i: number) => (
-    <li key={i} className="group flex items-center gap-2 px-4 py-2 hover:bg-gray-50">
+    <li
+      key={i}
+      className="group flex items-center gap-2 px-4 py-2 hover:bg-gray-50"
+      onMouseEnter={() => onWaypointHover?.([wp.lat, wp.lon])}
+      onMouseLeave={() => onWaypointHover?.(null)}
+    >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">
         {i + 1}
       </span>
