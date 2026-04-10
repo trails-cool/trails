@@ -53,12 +53,12 @@
 
 ## 9. i18n
 
-- [ ] 9.1 Add translation keys for all overlay names, POI category names, and UI strings (en + de)
+- [x] 9.1 Add translation keys for all overlay names, POI category names, and UI strings (en + de)
 
 ## 10. Testing
 
-- [ ] 10.1 Unit tests for Overpass client: query building, response parsing, deduplication
-- [ ] 10.2 Unit tests for POI cache: tile quantization, TTL expiry, cache hit/miss
-- [ ] 10.3 Unit tests for profile-to-overlay mapping
+- [x] 10.1 Unit tests for Overpass client: query building, response parsing, deduplication
+- [x] 10.2 Unit tests for POI cache: tile quantization, TTL expiry, cache hit/miss
+- [x] 10.3 Unit tests for profile-to-overlay mapping
 - [ ] 10.4 E2E test: enable hillshading overlay, verify tile requests
 - [ ] 10.5 E2E test: enable POI category, verify markers appear (mock Overpass response)
