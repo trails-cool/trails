@@ -30,15 +30,15 @@
 
 ## 6. Journal Integration
 
-- [ ] 6.1 Update `updateRoute` in `apps/journal/app/lib/routes.server.ts` to extract `dayBreaks` indices from parsed GPX waypoints and write to `dayBreaks` column
-- [ ] 6.2 Expose `dayBreaks` and per-day stats in route detail loader (`routes.$id.tsx`)
-- [ ] 6.3 Add day breakdown section to route detail page: per-day distance, ascent, descent, start/end names — shown only when dayBreaks is non-empty
+- [x] 6.1 Update `updateRoute` in `apps/journal/app/lib/routes.server.ts` to extract `dayBreaks` indices from parsed GPX waypoints and write to `dayBreaks` column
+- [x] 6.2 Expose `dayBreaks` and per-day stats in route detail loader (`routes.$id.tsx`)
+- [x] 6.3 Add day breakdown section to route detail page: per-day distance, ascent, descent, start/end names — shown only when dayBreaks is non-empty
 - [ ] 6.4 Color route map segments per day (alternating colors) on the route detail map when dayBreaks exist
 
 ## 7. i18n
 
 - [x] 7.1 Add Planner translation keys for en + de: day labels ("Day 1", "Tag 1"), overnight toggle ("Mark as overnight stop" / "Als Übernachtung markieren"), per-day stats, route summary
-- [ ] 7.2 Add Journal translation keys for en + de: day breakdown header, per-day stats labels
+- [x] 7.2 Add Journal translation keys for en + de: day breakdown header, per-day stats labels
 
 ## 8. Testing
 

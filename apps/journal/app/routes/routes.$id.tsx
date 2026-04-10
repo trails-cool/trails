@@ -19,6 +19,19 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   const isOwner = user?.id === route.ownerId;
 
+  // Compute per-day stats if route has day breaks and GPX
+  let dayStats: Array<{ dayNumber: number; startName?: string; endName?: string; distance: number; ascent: number; descent: number }> = [];
+  if (route.dayBreaks && route.dayBreaks.length > 0 && route.gpx) {
+    try {
+      const { computeDays } = await import("@trails-cool/gpx");
+      const { parseGpxAsync } = await import("@trails-cool/gpx");
+      const gpxData = await parseGpxAsync(route.gpx);
+      dayStats = computeDays(gpxData.waypoints, gpxData.tracks);
+    } catch {
+      // Fall back to no day stats
+    }
+  }
+
   return data({
     route: {
       id: route.id,
@@ -29,10 +42,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       elevationLoss: route.elevationLoss,
       routingProfile: route.routingProfile,
       hasGpx: !!route.gpx,
+      dayBreaks: route.dayBreaks ?? [],
       geojson: routeWithGeojson?.geojson ?? null,
       createdAt: route.createdAt.toISOString(),
       updatedAt: route.updatedAt.toISOString(),
     },
+    dayStats,
     versions: route.versions.map((v) => ({
       version: v.version,
       changeDescription: v.changeDescription,
@@ -79,7 +94,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
-  const { route, versions, isOwner } = loaderData;
+  const { route, dayStats, versions, isOwner } = loaderData;
   const { t } = useTranslation("journal");
   const [editLoading, setEditLoading] = useState(false);
 
@@ -155,6 +170,35 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
           </div>
         )}
       </div>
+
+      {dayStats.length > 1 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">{t("routes.dayBreakdown")}</h2>
+          <div className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200">
+            {dayStats.map((day) => (
+              <div key={day.dayNumber} className="flex items-center gap-4 px-4 py-3">
+                <span className="text-sm font-medium text-gray-700">
+                  {t("routes.dayLabel", { n: day.dayNumber })}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm text-gray-500">
+                  {day.startName && day.endName
+                    ? `${day.startName} → ${day.endName}`
+                    : day.startName || day.endName || ""}
+                </span>
+                <span className="text-sm tabular-nums text-gray-700">
+                  {(day.distance / 1000).toFixed(1)} km
+                </span>
+                <span className="text-xs text-gray-500">
+                  ↑{day.ascent} m
+                </span>
+                <span className="text-xs text-gray-500">
+                  ↓{day.descent} m
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {route.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>

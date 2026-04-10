@@ -135,6 +135,8 @@ export default {
       delete: "Delete Route",
       distance: "Distance",
       elevationGain: "Elevation Gain",
+      dayBreakdown: "Day Breakdown",
+      dayLabel: "Day {{n}}",
       noRoutesYet: "No routes yet. Create your first route!",
       noMapPreview: "No map preview",
       saveChanges: "Save Changes",
