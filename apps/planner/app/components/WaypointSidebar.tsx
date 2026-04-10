@@ -33,7 +33,7 @@ interface WaypointSidebarProps {
 }
 
 export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps)
       </div>
       {wp.overnight && (
         <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200">
-          {t("planner.multiDay.overnight")}
+          {t("multiDay.overnight")}
         </span>
       )}
       <div className="flex gap-1 opacity-0 group-hover:opacity-100">
@@ -106,7 +106,7 @@ export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps)
           <button
             onClick={() => toggleOvernight(i)}
             className={`rounded p-1 ${wp.overnight ? "text-amber-600 hover:bg-amber-100" : "text-gray-400 hover:bg-gray-200 hover:text-gray-600"}`}
-            title={wp.overnight ? t("planner.multiDay.removeOvernight") : t("planner.multiDay.markOvernight")}
+            title={wp.overnight ? t("multiDay.removeOvernight") : t("multiDay.markOvernight")}
           >
             ☾
           </button>
@@ -145,13 +145,13 @@ export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps)
       {/* Header with route summary */}
       <div className="border-b border-gray-200 px-4 py-3">
         <h2 className="text-sm font-medium text-gray-900">
-          {t("planner.sidebar.waypoints")} ({waypoints.length})
+          {t("sidebar.waypoints")} ({waypoints.length})
         </h2>
         {routeStats && routeStats.distance !== undefined && (
           <p className="mt-0.5 text-xs text-gray-500">
             {(routeStats.distance / 1000).toFixed(1)} km
             {routeStats.elevationGain !== undefined && ` · ↑${routeStats.elevationGain} m`}
-            {hasMultipleDays && ` · ${t("planner.multiDay.dayCount", { count: days.length })}`}
+            {hasMultipleDays && ` · ${t("multiDay.dayCount", { count: days.length })}`}
           </p>
         )}
       </div>
@@ -185,14 +185,14 @@ export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps)
               <p className="font-medium text-gray-900">
                 {(routeStats.distance / 1000).toFixed(1)} km
               </p>
-              <p className="text-gray-500">{t("planner.multiDay.distance")}</p>
+              <p className="text-gray-500">{t("multiDay.distance")}</p>
             </div>
             {routeStats.elevationGain !== undefined && (
               <div>
                 <p className="font-medium text-gray-900">
                   ↑ {routeStats.elevationGain} m
                 </p>
-                <p className="text-gray-500">{t("planner.multiDay.ascent")}</p>
+                <p className="text-gray-500">{t("multiDay.ascent")}</p>
               </div>
             )}
             {routeStats.elevationLoss !== undefined && (
@@ -200,7 +200,7 @@ export function WaypointSidebar({ yjs, routeStats, days }: WaypointSidebarProps)
                 <p className="font-medium text-gray-900">
                   ↓ {routeStats.elevationLoss} m
                 </p>
-                <p className="text-gray-500">{t("planner.multiDay.descent")}</p>
+                <p className="text-gray-500">{t("multiDay.descent")}</p>
               </div>
             )}
           </div>
