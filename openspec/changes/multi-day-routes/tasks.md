@@ -19,8 +19,8 @@
 
 ## 4. Elevation Chart
 
-- [ ] 4.1 Add day divider rendering to `ElevationChart`: dashed vertical lines at overnight waypoint distances with "Day N" labels at top
-- [ ] 4.2 Show per-day distance ranges on x-axis labels (e.g. "120 km" at each day boundary)
+- [x] 4.1 Add day divider rendering to `ElevationChart`: dashed vertical lines at overnight waypoint distances with "Day N" labels at top
+- [x] 4.2 Show per-day distance ranges on x-axis labels (e.g. "120 km" at each day boundary)
 
 ## 5. GPX Roundtrip
 

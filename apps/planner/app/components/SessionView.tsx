@@ -142,10 +142,9 @@ function ColorModeToggle({ yjs }: { yjs: YjsState }) {
   );
 }
 
-function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"] }) {
+function SidebarTabs({ yjs, routeStats, days }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays> }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
-  const days = useDays(yjs);
 
   return (
     <aside className="hidden w-72 border-l border-gray-200 bg-white md:flex md:flex-col">
@@ -192,6 +191,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
   const { canUndo, canRedo, undo, redo } = useUndo(yjs?.undoManager ?? null);
   useUndoShortcuts(yjs?.undoManager ?? null);
+  const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const { toasts, addToast } = useToasts();
   useAwarenessToasts(yjs, t, addToast);
@@ -289,10 +289,10 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             </Suspense>
           </div>
           <Suspense fallback={null}>
-            <ElevationChart yjs={yjs} onHover={handleElevationHover} />
+            <ElevationChart yjs={yjs} onHover={handleElevationHover} days={days} />
           </Suspense>
         </main>
-        <SidebarTabs yjs={yjs} routeStats={routeStats} />
+        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} />
       </div>
       <YjsDebugPanel yjs={yjs} />
       {toasts.length > 0 && (

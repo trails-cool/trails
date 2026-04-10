@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
 import { elevationColor, type ColorMode } from "~/components/ColoredRoute";
 
@@ -55,9 +57,11 @@ const PADDING = { top: 10, right: 10, bottom: 25, left: 40 };
 interface ElevationChartProps {
   yjs: YjsState;
   onHover?: (position: [number, number] | null) => void;
+  days?: DayStage[];
 }
 
-export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
+export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
+  const { t } = useTranslation();
   const [points, setPoints] = useState<ElevationPoint[]>([]);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
@@ -170,6 +174,32 @@ export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
       ctx.fillText("0 km", PADDING.left, h - 4);
       ctx.fillText(`${(maxDist / 1000).toFixed(1)} km`, PADDING.left + chartW, h - 4);
 
+      // Day dividers
+      if (days && days.length > 1) {
+        for (let d = 0; d < days.length - 1; d++) {
+          const day = days[d]!;
+          // Find the point closest to the day boundary distance
+          const boundaryDist = days.slice(0, d + 1).reduce((sum, s) => sum + s.distance, 0);
+          const bx = toX(boundaryDist);
+
+          // Dashed vertical line
+          ctx.beginPath();
+          ctx.setLineDash([4, 3]);
+          ctx.moveTo(bx, PADDING.top);
+          ctx.lineTo(bx, PADDING.top + chartH);
+          ctx.strokeStyle = "#9A9484";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Day label at top
+          ctx.fillStyle = "#9A9484";
+          ctx.font = "9px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`${(boundaryDist / 1000).toFixed(0)} km`, bx, h - 4);
+        }
+      }
+
       // Hover crosshair + info
       if (highlightIdx !== null && highlightIdx >= 0 && highlightIdx < points.length) {
         const p = points[highlightIdx]!;
@@ -203,7 +233,7 @@ export function ElevationChart({ yjs, onHover }: ElevationChartProps) {
         ctx.fillText(label, labelX, PADDING.top + 10);
       }
     },
-    [points, colorMode],
+    [points, colorMode, days, t],
   );
 
   useEffect(() => {
