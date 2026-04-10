@@ -23,6 +23,7 @@ function getWaypoints(yjs: YjsState) {
     lat: yMap.get("lat") as number,
     lon: yMap.get("lon") as number,
     name: yMap.get("name") as string | undefined,
+    isDayBreak: yMap.get("overnight") === true ? true : undefined,
   }));
 }
 
