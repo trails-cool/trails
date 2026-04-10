@@ -10,7 +10,7 @@ import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
 import { usePois } from "~/lib/use-pois";
-import { Z_CURSOR, Z_WAYPOINT, Z_HIGHLIGHT } from "~/lib/z-index";
+import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "~/lib/z-index";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
@@ -520,7 +520,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
           key={i}
           position={[wp.lat, wp.lon]}
           draggable
-          zIndexOffset={Z_WAYPOINT}
+          zIndexOffset={highlightedWaypoint === i ? Z_WAYPOINT_HIGHLIGHTED : Z_WAYPOINT}
           icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i)}
           eventHandlers={{
             mouseover: () => {
