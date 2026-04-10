@@ -11,11 +11,11 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@geoman-io/leaflet-geoman-free": "^2.19.2",
+    "@geoman-io/leaflet-geoman-free": "^2.19.3",
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
-    "@sentry/node": "^10.47.0",
-    "@sentry/react": "^10.47.0",
+    "@sentry/node": "catalog:",
+    "@sentry/react": "catalog:",
     "@trails-cool/db": "workspace:*",
     "@trails-cool/gpx": "workspace:*",
     "@trails-cool/i18n": "workspace:*",
