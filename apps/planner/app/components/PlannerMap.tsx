@@ -33,14 +33,15 @@ function waypointIcon(index: number, overnight?: boolean): L.DivIcon {
 function dayLabelIcon(dayNumber: number, distanceKm: string): L.DivIcon {
   return L.divIcon({
     className: "",
-    html: `<div style="
-      background:white;color:#1f2937;
-      padding:2px 8px;border-radius:12px;
-      font-size:11px;font-weight:600;white-space:nowrap;
-      box-shadow:0 1px 4px rgba(0,0,0,0.15);
-    ">Day ${dayNumber} · ${distanceKm} km</div>`,
-    iconSize: [120, 20],
-    iconAnchor: [60, 44],
+    html: `<div style="position:absolute;left:50%;transform:translate(-50%,-40px);">
+      <div style="
+        background:white;color:#1f2937;
+        padding:1px 6px;border-radius:8px;
+        font-size:10px;font-weight:600;white-space:nowrap;
+        box-shadow:0 1px 3px rgba(0,0,0,0.15);
+      ">Day ${dayNumber} · ${distanceKm} km</div>
+    </div>`,
+    iconSize: [0, 0],
   });
 }
 
