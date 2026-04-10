@@ -3,7 +3,7 @@ import { queryPois, OverpassRateLimitError, type Poi, type BBox } from "./overpa
 import { getCached, setCached } from "./poi-cache.ts";
 import { poiCategories } from "./poi-categories.ts";
 
-const MIN_ZOOM = 12;
+const MIN_ZOOM = 10;
 const DEBOUNCE_MS = 800;
 const MIN_REQUEST_INTERVAL_MS = 2000;
 const BACKOFF_BASE_MS = 10000;
