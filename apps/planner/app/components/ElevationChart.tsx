@@ -177,7 +177,6 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
       // Day dividers
       if (days && days.length > 1) {
         for (let d = 0; d < days.length - 1; d++) {
-          const day = days[d]!;
           // Find the point closest to the day boundary distance
           const boundaryDist = days.slice(0, d + 1).reduce((sum, s) => sum + s.distance, 0);
           const bx = toX(boundaryDist);
