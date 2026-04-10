@@ -40,10 +40,10 @@ function FlyToSegment({ segments, highlightedDay, fullData }: {
       const latlngs = seg.coords.map((c) => L.latLng(c[1]!, c[0]!));
       const bounds = L.latLngBounds(latlngs);
       if (bounds.isValid()) {
-        map.flyToBounds(bounds, { padding: [40, 40], duration: 0.5 });
+        map.flyToBounds(bounds, { padding: [40, 40], duration: 0.2 });
       }
     } else if (fullBoundsRef.current?.isValid()) {
-      map.flyToBounds(fullBoundsRef.current, { padding: [20, 20], duration: 0.5 });
+      map.flyToBounds(fullBoundsRef.current, { padding: [20, 20], duration: 0.2 });
     }
   }, [highlightedDay, segments, fullData, map]);
 
