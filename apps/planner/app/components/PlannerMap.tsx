@@ -24,7 +24,7 @@ function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean)
       width:${size}px;height:${size}px;border-radius:50%;
       background:${bg};color:white;
       display:flex;align-items:center;justify-content:center;
-      font-size:12px;font-weight:600;
+      font-size:${highlighted ? 13 : 12}px;font-weight:600;
       border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
       transform:translate(-${offset}px,-${offset}px);
       transition:all 0.15s ease;
