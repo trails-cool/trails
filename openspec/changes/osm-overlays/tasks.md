@@ -13,23 +13,23 @@
 
 ## 3. Overpass Client
 
-- [ ] 3.1 Create `apps/planner/app/lib/overpass.ts` with `queryPois(bbox, categories)` function
-- [ ] 3.2 Build Overpass QL union queries from enabled POI category configs
-- [ ] 3.3 Parse `[out:json]` response into typed `Poi` objects (id, lat, lon, name, category, tags)
-- [ ] 3.4 Deduplicate results by OSM node ID (same node may match multiple tag queries)
+- [x] 3.1 Create `apps/planner/app/lib/overpass.ts` with `queryPois(bbox, categories)` function
+- [x] 3.2 Build Overpass QL union queries from enabled POI category configs
+- [x] 3.3 Parse `[out:json]` response into typed `Poi` objects (id, lat, lon, name, category, tags)
+- [x] 3.4 Deduplicate results by OSM node ID (same node may match multiple tag queries)
 
 ## 4. POI Caching & Rate Limiting
 
-- [ ] 4.1 Implement tile-based cache: quantize viewport to 0.1° grid cells, cache per cell with 10-minute TTL
-- [ ] 4.2 Add 500ms debounce on map `moveend` before triggering Overpass query
-- [ ] 4.3 Use AbortController to cancel in-flight requests when viewport changes
-- [ ] 4.4 Handle 429 responses with exponential backoff and user-visible message
-- [ ] 4.5 Enforce zoom >= 12 threshold — show "Zoom in to see POIs" message below
+- [x] 4.1 Implement tile-based cache: quantize viewport to 0.1° grid cells, cache per cell with 10-minute TTL
+- [x] 4.2 Add 500ms debounce on map `moveend` before triggering Overpass query
+- [x] 4.3 Use AbortController to cancel in-flight requests when viewport changes
+- [x] 4.4 Handle 429 responses with exponential backoff and user-visible message
+- [x] 4.5 Enforce zoom >= 12 threshold — show "Zoom in to see POIs" message below
 
 ## 5. POI Category Configuration
 
-- [ ] 5.1 Define `PoiCategory` type and initial category configs (water, shelter, camping, food, groceries, bike infra, accommodation, viewpoints, toilets)
-- [ ] 5.2 Map each category to Overpass QL tag queries, icon, color, and applicable routing profiles
+- [x] 5.1 Define `PoiCategory` type and initial category configs (water, shelter, camping, food, groceries, bike infra, accommodation, viewpoints, toilets)
+- [x] 5.2 Map each category to Overpass QL tag queries, icon, color, and applicable routing profiles
 
 ## 6. POI Overlay Panel
 
