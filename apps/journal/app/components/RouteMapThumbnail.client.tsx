@@ -19,7 +19,59 @@ function FitBounds({ data }: { data: GeoJsonObject }) {
   return null;
 }
 
+function FlyToSegment({ segments, highlightedDay, fullData }: {
+  segments: Array<{ coords: number[][] }>;
+  highlightedDay: number | null | undefined;
+  fullData: GeoJsonObject;
+}) {
+  const map = useMap();
+  const fullBoundsRef = useRef<L.LatLngBounds | null>(null);
+
+  useEffect(() => {
+    // Cache full route bounds on first render
+    if (!fullBoundsRef.current) {
+      const layer = L.geoJSON(fullData);
+      fullBoundsRef.current = layer.getBounds();
+    }
+
+    if (highlightedDay != null && highlightedDay >= 1 && highlightedDay <= segments.length) {
+      const seg = segments[highlightedDay - 1]!;
+      // coords are [lon, lat] GeoJSON format
+      const latlngs = seg.coords.map((c) => L.latLng(c[1]!, c[0]!));
+      const bounds = L.latLngBounds(latlngs);
+      if (bounds.isValid()) {
+        map.flyToBounds(bounds, { padding: [40, 40], duration: 0.5 });
+      }
+    } else if (fullBoundsRef.current?.isValid()) {
+      map.flyToBounds(fullBoundsRef.current, { padding: [20, 20], duration: 0.5 });
+    }
+  }, [highlightedDay, segments, fullData, map]);
+
+  return null;
+}
+
 const DAY_COLORS = ["#2563eb", "#8B6D3A", "#059669", "#9333ea", "#dc2626", "#0891b2"];
+
+function extractGeometry(data: GeoJsonObject): number[][] | null {
+  const coords = (data as { type: string; coordinates?: number[][] }).coordinates
+    ?? ((data as { features?: Array<{ geometry: { coordinates: number[][] } }> }).features?.[0]?.geometry?.coordinates);
+  return coords && coords.length >= 2 ? coords : null;
+}
+
+function splitGeometry(data: GeoJsonObject, numDays: number): Array<{ coords: number[][] }> {
+  const geometry = extractGeometry(data);
+  if (!geometry) return [];
+  const totalPoints = geometry.length;
+  const pointsPerDay = Math.ceil(totalPoints / numDays);
+  const segments: Array<{ coords: number[][] }> = [];
+  for (let d = 0; d < numDays; d++) {
+    const start = d * pointsPerDay;
+    const end = Math.min((d + 1) * pointsPerDay + 1, totalPoints);
+    if (start >= totalPoints) break;
+    segments.push({ coords: geometry.slice(start, end) });
+  }
+  return segments;
+}
 
 interface RouteMapProps {
   geojson: string;
@@ -55,36 +107,29 @@ export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks, 
         <GeoJSON data={data} style={{ color: "#2563eb", weight: 3, opacity: 0.8 }} />
       )}
       <FitBounds data={data} />
+      {dayBreaks && dayBreaks.length > 0 && (
+        <FlyToSegment
+          segments={splitGeometry(data, dayBreaks.length + 1)}
+          highlightedDay={highlightedDay}
+          fullData={data}
+        />
+      )}
     </MapContainer>
   );
 }
 
 function DayColoredRoute({ data, dayBreaks, highlightedDay }: { data: GeoJsonObject; dayBreaks: number[]; highlightedDay?: number | null }) {
-  // Extract coordinates from the GeoJSON LineString
-  const geometry = (data as { type: string; coordinates?: number[][] }).coordinates
-    ?? ((data as { features?: Array<{ geometry: { coordinates: number[][] } }> }).features?.[0]?.geometry?.coordinates);
-
-  if (!geometry || geometry.length < 2) {
+  const geometry = extractGeometry(data);
+  if (!geometry) {
     return <GeoJSON data={data} style={{ color: "#2563eb", weight: 3, opacity: 0.8 }} />;
   }
 
-  // Split coordinates into segments at approximate day break points
-  // dayBreaks are waypoint indices — we split the line evenly since we don't
-  // have exact waypoint-to-coordinate mapping in the Journal context
-  const totalPoints = geometry.length;
   const numDays = dayBreaks.length + 1;
-  const pointsPerDay = Math.ceil(totalPoints / numDays);
-
-  const segments: Array<{ coords: number[][]; color: string }> = [];
-  for (let d = 0; d < numDays; d++) {
-    const start = d * pointsPerDay;
-    const end = Math.min((d + 1) * pointsPerDay + 1, totalPoints);
-    if (start >= totalPoints) break;
-    segments.push({
-      coords: geometry.slice(start, end),
-      color: DAY_COLORS[d % DAY_COLORS.length]!,
-    });
-  }
+  const rawSegments = splitGeometry(data, numDays);
+  const segments = rawSegments.map((seg, i) => ({
+    ...seg,
+    color: DAY_COLORS[i % DAY_COLORS.length]!,
+  }));
 
   const isHighlighting = highlightedDay != null;
 
