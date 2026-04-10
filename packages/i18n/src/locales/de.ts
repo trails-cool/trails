@@ -58,6 +58,17 @@ export default {
       waypoints: "Wegpunkte",
       notes: "Notizen",
     },
+    multiDay: {
+      dayLabel: "Tag {{n}}",
+      dayCount: "{{count}} Tage",
+      dayCount_one: "1 Tag",
+      overnight: "Übernachtung",
+      markOvernight: "Als Übernachtung markieren",
+      removeOvernight: "Übernachtung entfernen",
+      distance: "Distanz",
+      ascent: "Anstieg",
+      descent: "Abstieg",
+    },
     noGoAreas: {
       draw: "Sperrgebiet zeichnen",
       cancel: "Sperrgebiet abbrechen",

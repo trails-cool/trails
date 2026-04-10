@@ -5,6 +5,7 @@ import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
 import { useRouting, type RouteError } from "~/lib/use-routing";
+import { useDays } from "~/lib/use-days";
 import { useUndo, useUndoShortcuts } from "~/lib/use-undo";
 import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
@@ -144,6 +145,7 @@ function ColorModeToggle({ yjs }: { yjs: YjsState }) {
 function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"] }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
+  const days = useDays(yjs);
 
   return (
     <aside className="hidden w-72 border-l border-gray-200 bg-white md:flex md:flex-col">
@@ -164,7 +166,7 @@ function SidebarTabs({ yjs, routeStats }: { yjs: YjsState; routeStats: ReturnTyp
       <div className="flex-1 overflow-hidden">
         {tab === "waypoints" ? (
           <Suspense fallback={null}>
-            <WaypointSidebar yjs={yjs} routeStats={routeStats} />
+            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} />
           </Suspense>
         ) : (
           <NotesPanel yjs={yjs} />

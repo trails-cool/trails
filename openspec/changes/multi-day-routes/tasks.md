@@ -6,10 +6,10 @@
 
 ## 2. Sidebar Day Breakdown
 
-- [ ] 2.1 Create `DayBreakdown` component: renders collapsible day sections with per-day stats (distance, ascent, estimated time), Day 1 expanded by default
-- [ ] 2.2 Add overnight toggle button (moon icon) to each waypoint row in `WaypointSidebar` — amber styling when active, calls `setOvernight()`
-- [ ] 2.3 Integrate `DayBreakdown` into `WaypointSidebar`: show day-grouped view when any waypoint has overnight, flat list otherwise
-- [ ] 2.4 Add route summary header to sidebar: total distance, ascent, number of days (e.g. "Berlin -> Erfurt  343 km  ^868m  2 days")
+- [x] 2.1 Create `DayBreakdown` component: renders collapsible day sections with per-day stats (distance, ascent, estimated time), Day 1 expanded by default
+- [x] 2.2 Add overnight toggle button (moon icon) to each waypoint row in `WaypointSidebar` — amber styling when active, calls `setOvernight()`
+- [x] 2.3 Integrate `DayBreakdown` into `WaypointSidebar`: show day-grouped view when any waypoint has overnight, flat list otherwise
+- [x] 2.4 Add route summary header to sidebar: total distance, ascent, number of days (e.g. "Berlin -> Erfurt  343 km  ^868m  2 days")
 
 ## 3. Map Integration
 
@@ -37,7 +37,7 @@
 
 ## 7. i18n
 
-- [ ] 7.1 Add Planner translation keys for en + de: day labels ("Day 1", "Tag 1"), overnight toggle ("Mark as overnight stop" / "Als Übernachtung markieren"), per-day stats, route summary
+- [x] 7.1 Add Planner translation keys for en + de: day labels ("Day 1", "Tag 1"), overnight toggle ("Mark as overnight stop" / "Als Übernachtung markieren"), per-day stats, route summary
 - [ ] 7.2 Add Journal translation keys for en + de: day breakdown header, per-day stats labels
 
 ## 8. Testing

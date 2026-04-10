@@ -58,6 +58,17 @@ export default {
       waypoints: "Waypoints",
       notes: "Notes",
     },
+    multiDay: {
+      dayLabel: "Day {{n}}",
+      dayCount: "{{count}} days",
+      dayCount_one: "1 day",
+      overnight: "Overnight",
+      markOvernight: "Mark as overnight stop",
+      removeOvernight: "Remove overnight stop",
+      distance: "Distance",
+      ascent: "Ascent",
+      descent: "Descent",
+    },
     noGoAreas: {
       draw: "Draw no-go area",
       cancel: "Cancel no-go area",
