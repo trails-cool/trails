@@ -16,18 +16,17 @@ import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
   const bg = overnight ? "#8B6D3A" : "#2563eb";
-  const size = highlighted ? 28 : 24;
-  const offset = size / 2;
+  const scale = highlighted ? "scale(1.17)" : "scale(1)";
   return L.divIcon({
     className: "",
     html: `<div style="
-      width:${size}px;height:${size}px;border-radius:50%;
+      width:24px;height:24px;border-radius:50%;
       background:${bg};color:white;
       display:flex;align-items:center;justify-content:center;
-      font-size:${highlighted ? 13 : 12}px;font-weight:600;
+      font-size:12px;font-weight:600;
       border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
-      transform:translate(-${offset}px,-${offset}px);
-      transition:all 0.15s ease;
+      transform:translate(-12px,-12px) ${scale};
+      transition:transform 0.15s ease;
     ">${overnight ? "☾" : index + 1}</div>`,
     iconSize: [0, 0],
   });
