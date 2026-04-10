@@ -46,6 +46,6 @@
 - [x] 8.2 Unit tests for `overnight.ts` helpers: set/clear/check overnight on Y.Map
 - [x] 8.3 Unit tests for GPX roundtrip: generate with `isDayBreak`, parse back, verify `isDayBreak` preserved
 - [x] 8.4 Unit tests for `dayBreaks` extraction in route update logic
-- [ ] 8.5 E2E test: add waypoints, toggle overnight on one, verify sidebar shows day breakdown with correct stats
-- [ ] 8.6 E2E test: export GPX with day breaks, verify downloaded file contains overnight metadata
-- [ ] 8.7 E2E test: save multi-day route to Journal, verify day breakdown displays on route detail page
+- [x] 8.5 E2E test: add waypoints, toggle overnight on one, verify sidebar shows day breakdown with correct stats
+- [x] 8.6 E2E test: export GPX with day breaks, verify downloaded file contains overnight metadata
+- [x] 8.7 E2E test: save multi-day route to Journal, verify day breakdown displays on route detail page

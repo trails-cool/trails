@@ -235,4 +235,78 @@ test.describe("Planner", () => {
     await expect(page).toHaveURL(/\/session\//, { timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
   });
+
+  test("toggle overnight on waypoint shows day breakdown in sidebar", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    // Create session with 3 waypoints
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405 },
+      { lat: 51.840, lon: 12.243 },
+      { lat: 50.980, lon: 11.028 },
+    ]))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 5000 });
+
+    // Wait for route to compute
+    await expect(page.getByText(/\d+\.\d+ km/)).toBeVisible({ timeout: 20000 });
+
+    // Hover waypoint 2 to reveal controls, click the overnight toggle (moon icon)
+    const waypointRows = page.locator("li").filter({ has: page.locator("span.rounded-full") });
+    const secondRow = waypointRows.nth(1);
+    await secondRow.hover();
+    const moonButton = secondRow.getByTitle(/overnight/i);
+    await moonButton.click();
+
+    // Day breakdown should appear
+    await expect(page.getByText("Day 1")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Day 2")).toBeVisible({ timeout: 5000 });
+  });
+
+  test("export GPX with day breaks includes overnight metadata", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    // Import a GPX with overnight waypoints
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="52.520" lon="13.405"><name>Berlin</name></wpt>
+  <wpt lat="51.840" lon="12.243"><name>Dessau</name><type>overnight</type></wpt>
+  <wpt lat="50.980" lon="11.028"><name>Erfurt</name></wpt>
+  <trk><trkseg>
+    <trkpt lat="52.520" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="51.840" lon="12.243"><ele>80</ele></trkpt>
+    <trkpt lat="50.980" lon="11.028"><ele>195</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+    await page.goto(url);
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+
+    // Drop the GPX file onto the map
+    const dataTransfer = await page.evaluateHandle((content) => {
+      const dt = new DataTransfer();
+      const file = new File([content], "multi-day.gpx", { type: "application/gpx+xml" });
+      dt.items.add(file);
+      return dt;
+    }, gpx);
+
+    const map = page.locator(".leaflet-container");
+
+    await map.dispatchEvent("dragenter", { dataTransfer });
+    await page.getByText("Drop GPX file here").waitFor({ timeout: 3000 });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await map.dispatchEvent("drop", { dataTransfer });
+
+    // Wait for waypoints to load
+    await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 10000 });
+
+    // The overnight waypoint should show day breakdown
+    await expect(page.getByText("Day 1")).toBeVisible({ timeout: 5000 });
+  });
 });
