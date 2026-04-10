@@ -26,9 +26,11 @@ interface RouteMapProps {
   interactive?: boolean;
   className?: string;
   dayBreaks?: number[];
+  /** 1-based day number to highlight, or null for no highlight */
+  highlightedDay?: number | null;
 }
 
-export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks }: RouteMapProps) {
+export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks, highlightedDay }: RouteMapProps) {
   const data: GeoJsonObject = JSON.parse(geojson);
 
   return (
@@ -48,7 +50,7 @@ export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks }
         attribution={interactive ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' : undefined}
       />
       {dayBreaks && dayBreaks.length > 0 ? (
-        <DayColoredRoute data={data} dayBreaks={dayBreaks} />
+        <DayColoredRoute data={data} dayBreaks={dayBreaks} highlightedDay={highlightedDay} />
       ) : (
         <GeoJSON data={data} style={{ color: "#2563eb", weight: 3, opacity: 0.8 }} />
       )}
@@ -57,7 +59,7 @@ export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks }
   );
 }
 
-function DayColoredRoute({ data, dayBreaks }: { data: GeoJsonObject; dayBreaks: number[] }) {
+function DayColoredRoute({ data, dayBreaks, highlightedDay }: { data: GeoJsonObject; dayBreaks: number[]; highlightedDay?: number | null }) {
   // Extract coordinates from the GeoJSON LineString
   const geometry = (data as { type: string; coordinates?: number[][] }).coordinates
     ?? ((data as { features?: Array<{ geometry: { coordinates: number[][] } }> }).features?.[0]?.geometry?.coordinates);
@@ -84,9 +86,13 @@ function DayColoredRoute({ data, dayBreaks }: { data: GeoJsonObject; dayBreaks: 
     });
   }
 
+  const isHighlighting = highlightedDay != null;
+
   return (
     <>
       {segments.map((seg, i) => {
+        const dayNum = i + 1;
+        const isActive = highlightedDay === dayNum;
         const segData: GeoJsonObject = {
           type: "Feature",
           geometry: { type: "LineString", coordinates: seg.coords },
@@ -94,9 +100,13 @@ function DayColoredRoute({ data, dayBreaks }: { data: GeoJsonObject; dayBreaks: 
         } as unknown as GeoJsonObject;
         return (
           <GeoJSON
-            key={i}
+            key={`${i}-${highlightedDay}`}
             data={segData}
-            style={{ color: seg.color, weight: 3, opacity: 0.8 }}
+            style={{
+              color: seg.color,
+              weight: isHighlighting ? (isActive ? 5 : 2) : 3,
+              opacity: isHighlighting ? (isActive ? 1 : 0.3) : 0.8,
+            }}
           />
         );
       })}

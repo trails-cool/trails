@@ -97,6 +97,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const { route, dayStats, versions, isOwner } = loaderData;
   const { t } = useTranslation("journal");
   const [editLoading, setEditLoading] = useState(false);
+  const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
 
   const handleEditInPlanner = useCallback(async () => {
     setEditLoading(true);
@@ -176,7 +177,12 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
           <h2 className="text-lg font-semibold text-gray-900">{t("routes.dayBreakdown")}</h2>
           <div className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200">
             {dayStats.map((day) => (
-              <div key={day.dayNumber} className="flex items-center gap-4 px-4 py-3">
+              <div
+                key={day.dayNumber}
+                className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors"
+                onMouseEnter={() => setHighlightedDay(day.dayNumber)}
+                onMouseLeave={() => setHighlightedDay(null)}
+              >
                 <span className="text-sm font-medium text-gray-700">
                   {t("routes.dayLabel", { n: day.dayNumber })}
                 </span>
@@ -194,6 +200,16 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
                 <span className="text-xs text-gray-500">
                   ↓{day.descent} m
                 </span>
+                {route.hasGpx && (
+                  <a
+                    href={`/api/routes/${route.id}/gpx?day=${day.dayNumber}`}
+                    download
+                    className="shrink-0 rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                    title={t("routes.exportGpx")}
+                  >
+                    GPX
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -202,7 +218,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
 
       {route.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
-          <ClientMap geojson={route.geojson} interactive className="h-full w-full" dayBreaks={route.dayBreaks.length > 0 ? route.dayBreaks : undefined} />
+          <ClientMap geojson={route.geojson} interactive className="h-full w-full" dayBreaks={route.dayBreaks.length > 0 ? route.dayBreaks : undefined} highlightedDay={highlightedDay} />
         </div>
       )}
 
