@@ -18,7 +18,6 @@ function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean)
   const bg = overnight ? "#8B6D3A" : "#2563eb";
   const size = highlighted ? 28 : 24;
   const offset = size / 2;
-  const ring = "";
   return L.divIcon({
     className: "",
     html: `<div style="
@@ -28,7 +27,7 @@ function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean)
       font-size:12px;font-weight:600;
       border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
       transform:translate(-${offset}px,-${offset}px);
-      ${ring}transition:all 0.15s ease;
+      transition:all 0.15s ease;
     ">${overnight ? "☾" : index + 1}</div>`,
     iconSize: [0, 0],
   });
