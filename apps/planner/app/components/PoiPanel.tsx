@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useMap } from "react-leaflet";
 import { poiCategories } from "~/lib/poi-categories";
 import type { PoiState } from "~/lib/use-pois";
+import { Z_POI_MARKER } from "~/lib/z-index";
 
 interface PoiPanelProps {
   poiState: PoiState;
@@ -111,7 +112,7 @@ export function PoiMarkers({ poiState }: PoiPanelProps) {
           ">${cat.icon}</div>`,
           iconSize: [0, 0],
         }),
-        zIndexOffset: -1000,
+        zIndexOffset: Z_POI_MARKER,
       });
 
       const popupLines = [`<strong>${poi.name ?? cat.icon + " " + poi.category}</strong>`];

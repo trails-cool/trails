@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, LayersControl, Marker, CircleMarker, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
 import { usePois } from "~/lib/use-pois";
+import { Z_CURSOR, Z_WAYPOINT, Z_HIGHLIGHT } from "~/lib/z-index";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
@@ -175,7 +176,7 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
         <Marker
           key={clientId}
           position={[cursor.lat, cursor.lng]}
-          zIndexOffset={-1000}
+          zIndexOffset={Z_CURSOR}
           icon={L.divIcon({
             className: "",
             html: `<div style="position:relative;z-index:400;pointer-events:none">
@@ -519,6 +520,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
           key={i}
           position={[wp.lat, wp.lon]}
           draggable
+          zIndexOffset={Z_WAYPOINT}
           icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i)}
           eventHandlers={{
             mouseover: () => {
@@ -585,10 +587,15 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       )}
 
       {highlightPosition && (
-        <CircleMarker
-          center={highlightPosition}
-          radius={6}
-          pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, weight: 2 }}
+        <Marker
+          position={highlightPosition}
+          zIndexOffset={Z_HIGHLIGHT}
+          interactive={false}
+          icon={L.divIcon({
+            className: "",
+            html: '<div style="width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3);transform:translate(-6px,-6px)"></div>',
+            iconSize: [0, 0],
+          })}
         />
       )}
     </MapContainer>
