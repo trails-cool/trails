@@ -192,6 +192,94 @@ Visual feedback follows visual-redesign tokens:
 - The "OVERNIGHT" badge uses `--stop` text on `--stop-bg` background with
   `--stop-border` border
 
+### D9: GPX parse recognizes overnight waypoints
+
+The `parseWaypoints` function in `packages/gpx/src/parse.ts` is extended to
+check for `<type>overnight</type>` inside `<wpt>` elements. When found, the
+returned `Waypoint` has `isDayBreak: true`.
+
+```typescript
+function parseWaypoints(doc: Document): Waypoint[] {
+  const wpts = doc.querySelectorAll("wpt");
+  return Array.from(wpts).map((wpt) => {
+    const lat = parseFloat(wpt.getAttribute("lat") ?? "0");
+    const lon = parseFloat(wpt.getAttribute("lon") ?? "0");
+    const name = wpt.querySelector("name")?.textContent ?? undefined;
+    const type = wpt.querySelector("type")?.textContent ?? undefined;
+    const isDayBreak = type === "overnight" ? true : undefined;
+    return { lat, lon, name, isDayBreak };
+  });
+}
+```
+
+This makes GPX round-tripping work: Planner exports overnight waypoints with
+`<type>overnight</type>` (D7), and any consumer — the Journal's `updateRoute`,
+the Planner's GPX import, or a future mobile app — gets `isDayBreak` back.
+
+### D10: Journal stores dayBreaks on route save
+
+The `dayBreaks` jsonb column on `journal.routes` already exists. When
+`updateRoute` receives GPX and calls `parseGpxAsync`, it extracts the indices
+of waypoints where `isDayBreak === true` and writes them to `dayBreaks`:
+
+```typescript
+const parsed = await parseGpxAsync(gpx);
+const dayBreaks = parsed.waypoints
+  .map((w, i) => (w.isDayBreak ? i : -1))
+  .filter((i) => i >= 0);
+```
+
+This is computed on write, not on read — the Journal doesn't need to re-parse
+GPX to know day structure. If the GPX has no overnight waypoints, `dayBreaks`
+is an empty array (single-day route).
+
+### D11: Journal route detail day breakdown
+
+When a route has non-empty `dayBreaks`, the route detail page shows a day
+breakdown section below the stats grid. Per-day stats (distance, ascent,
+descent) are computed from the stored GPX by splitting at day-break waypoints
+— reusing the same `computeDays` logic from D2, extracted into
+`@trails-cool/gpx` so both Planner and Journal can use it.
+
+```
+DAY 1: Berlin → Dessau    120 km  ↑340m  ↓180m
+DAY 2: Dessau → Erfurt    223 km  ↑528m  ↓490m
+```
+
+The map also colors each day segment differently (alternating two colors from
+the design tokens) so users can visually see where each day starts and ends.
+
+For single-day routes (no `dayBreaks`), nothing changes — the page renders
+exactly as it does today.
+
+### D12: computeDays as a shared package function
+
+The `computeDays` pure function (D2) is placed in `@trails-cool/gpx` rather
+than in the Planner app, since both the Planner (from Yjs + EnrichedRoute) and
+the Journal (from parsed GPX) need day computation. The function signature
+works with the `GpxData` tracks and waypoints returned by `parseGpx`:
+
+```typescript
+interface DayStage {
+  dayNumber: number;
+  startWaypointIndex: number;
+  endWaypointIndex: number;
+  startName?: string;
+  endName?: string;
+  distance: number;      // meters
+  ascent: number;        // meters
+  descent: number;       // meters
+}
+
+function computeDays(
+  waypoints: Waypoint[],
+  tracks: TrackPoint[][],
+): DayStage[];
+```
+
+The Planner's `useDays()` hook maps its Yjs waypoints + EnrichedRoute into
+this same shape before calling `computeDays`.
+
 ## Risks / Trade-offs
 
 - **Segment boundary alignment**: The day computation relies on
