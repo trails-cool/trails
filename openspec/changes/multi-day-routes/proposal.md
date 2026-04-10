@@ -44,6 +44,9 @@ the data model, computation logic, and integration wiring.
 - `planner-session`: Waypoints gain an `overnight` property in Yjs state
 - `map-display`: Day boundary labels on route, overnight marker styling
 - `gpx-export`: Day-break metadata in exported GPX waypoints
+- `gpx-import`: Parse `<type>overnight</type>` waypoints to restore day breaks
+- `route-management`: Populate `dayBreaks` column on save, expose per-day stats
+- `journal-route-detail`: Day breakdown display with per-day stats and map segments
 
 ## Non-Goals
 
@@ -52,8 +55,9 @@ the data model, computation logic, and integration wiring.
 - **Accommodation search**: No POI lookup for campsites or hotels. Out of scope.
 - **Per-day routing profiles**: All days use the same BRouter profile. Supporting
   different profiles per day would require rearchitecting the routing pipeline.
-- **Journal integration**: Saving multi-day routes to the Journal is a separate
-  concern (route-features change). This spec is Planner-only.
+- **Per-day activity tracking**: Linking individual activities to specific days
+  of a multi-day route (e.g. "Day 2 activity"). Activities remain linked to the
+  full route. Per-day activity chaining is a future concern.
 
 ## Impact
 
@@ -67,6 +71,13 @@ the data model, computation logic, and integration wiring.
   sections and overnight toggle buttons
 - **ElevationChart**: Canvas drawing extended with vertical day dividers
 - **Map**: New day-label layer and overnight marker variant
-- **GPX**: `generateGpx` extended to emit `<type>overnight</type>` on day-break
-  waypoints
+- **GPX generate**: `generateGpx` extended to emit `<type>overnight</type>` on
+  day-break waypoints
+- **GPX parse**: `parseGpx` extended to recognize `<type>overnight</type>` and
+  set `isDayBreak: true` on parsed waypoints
+- **Journal route storage**: `updateRoute` populates `dayBreaks` column from
+  parsed waypoint indices when saving GPX
+- **Journal route detail**: Day breakdown section with per-day stats (distance,
+  ascent, descent) when `dayBreaks` is non-empty
 - **i18n**: New keys for day labels, overnight toggle, per-day stats (en + de)
+  in both planner and journal namespaces
