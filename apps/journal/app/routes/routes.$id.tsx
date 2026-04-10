@@ -202,7 +202,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
 
       {route.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
-          <ClientMap geojson={route.geojson} interactive className="h-full w-full" />
+          <ClientMap geojson={route.geojson} interactive className="h-full w-full" dayBreaks={route.dayBreaks.length > 0 ? route.dayBreaks : undefined} />
         </div>
       )}
 
