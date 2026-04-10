@@ -1,8 +1,8 @@
 ## 1. Tile Overlay Definitions
 
-- [ ] 1.1 Add `overlayLayers` export to `packages/map/src/layers.ts` with hillshading, Waymarked Cycling, Waymarked Hiking, Waymarked MTB tile configs
-- [ ] 1.2 Add `LayersControl.Overlay` entries in `MapView.tsx` and `PlannerMap.tsx` for each overlay
-- [ ] 1.3 Verify overlay attribution updates correctly when toggling overlays on/off
+- [x] 1.1 Add `overlayLayers` export to `packages/map/src/layers.ts` with hillshading, Waymarked Cycling, Waymarked Hiking, Waymarked MTB tile configs
+- [x] 1.2 Add `LayersControl.Overlay` entries in `MapView.tsx` and `PlannerMap.tsx` for each overlay
+- [x] 1.3 Verify overlay attribution updates correctly when toggling overlays on/off
 
 ## 2. Overlay State Sync
 

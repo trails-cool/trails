@@ -5,6 +5,43 @@ export interface TileLayerConfig {
   maxZoom?: number;
 }
 
+export interface OverlayLayerConfig extends TileLayerConfig {
+  id: string;
+  opacity?: number;
+}
+
+export const overlayLayers: OverlayLayerConfig[] = [
+  {
+    id: "hillshading",
+    name: "Hillshading",
+    url: "https://tiles.wmflabs.org/hillshading/{z}/{x}/{y}.png",
+    attribution: "Hillshading: SRTM/Mapzen",
+    maxZoom: 17,
+    opacity: 0.5,
+  },
+  {
+    id: "waymarked-cycling",
+    name: "Cycling Routes",
+    url: "https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a> (CC-BY-SA)',
+    maxZoom: 18,
+  },
+  {
+    id: "waymarked-hiking",
+    name: "Hiking Routes",
+    url: "https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a> (CC-BY-SA)',
+    maxZoom: 18,
+  },
+  {
+    id: "waymarked-mtb",
+    name: "MTB Routes",
+    url: "https://tile.waymarkedtrails.org/mtb/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a> (CC-BY-SA)',
+    maxZoom: 18,
+  },
+];
+
 export const baseLayers: TileLayerConfig[] = [
   {
     name: "OpenStreetMap",

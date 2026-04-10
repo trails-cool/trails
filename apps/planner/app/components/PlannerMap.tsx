@@ -5,7 +5,7 @@ import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
-import { baseLayers } from "@trails-cool/map";
+import { baseLayers, overlayLayers } from "@trails-cool/map";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
@@ -454,6 +454,11 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
           <LayersControl.BaseLayer key={layer.name} checked={i === 0} name={layer.name}>
             <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} />
           </LayersControl.BaseLayer>
+        ))}
+        {overlayLayers.map((layer) => (
+          <LayersControl.Overlay key={layer.id} name={layer.name}>
+            <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} opacity={layer.opacity ?? 0.7} />
+          </LayersControl.Overlay>
         ))}
       </LayersControl>
 
