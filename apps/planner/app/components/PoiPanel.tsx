@@ -8,6 +8,7 @@ import { Z_POI_MARKER } from "~/lib/z-index";
 
 interface PoiPanelProps {
   poiState: PoiState;
+  onAddWaypoint?: (lat: number, lon: number, name?: string) => void;
 }
 
 export function PoiPanel({ poiState }: PoiPanelProps) {
@@ -79,7 +80,7 @@ export function PoiPanel({ poiState }: PoiPanelProps) {
   );
 }
 
-export function PoiMarkers({ poiState }: PoiPanelProps) {
+export function PoiMarkers({ poiState, onAddWaypoint }: PoiPanelProps) {
   const map = useMap();
   const layerRef = useRef<L.LayerGroup>(L.layerGroup());
 
@@ -87,6 +88,22 @@ export function PoiMarkers({ poiState }: PoiPanelProps) {
     layerRef.current.addTo(map);
     return () => { layerRef.current.remove(); };
   }, [map]);
+
+  // Event delegation for "Add as waypoint" buttons in popups
+  useEffect(() => {
+    const container = map.getContainer();
+    const handler = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest(".poi-add-wp") as HTMLElement | null;
+      if (!btn || !onAddWaypoint) return;
+      const lat = parseFloat(btn.dataset.lat!);
+      const lon = parseFloat(btn.dataset.lon!);
+      const name = btn.dataset.name || undefined;
+      onAddWaypoint(lat, lon, name);
+      map.closePopup();
+    };
+    container.addEventListener("click", handler);
+    return () => container.removeEventListener("click", handler);
+  }, [map, onAddWaypoint]);
 
   useEffect(() => {
     const group = layerRef.current;
@@ -126,6 +143,9 @@ export function PoiMarkers({ poiState }: PoiPanelProps) {
       if (poi.tags.opening_hours) popupLines.push(`🕐 ${poi.tags.opening_hours}`);
       if (poi.tags.website) popupLines.push(`<a href="${poi.tags.website}" target="_blank" rel="noopener">Website</a>`);
       popupLines.push(`<a href="https://www.openstreetmap.org/node/${poi.id}" target="_blank" rel="noopener" style="font-size:11px;color:#666">OSM</a>`);
+      if (onAddWaypoint) {
+        popupLines.push(`<button class="poi-add-wp" data-lat="${poi.lat}" data-lon="${poi.lon}" data-name="${(poi.name ?? "").replace(/"/g, "&quot;")}" style="margin-top:4px;padding:2px 8px;font-size:11px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer">+ Add as waypoint</button>`);
+      }
 
       marker.bindPopup(popupLines.join("<br>"), { maxWidth: 200 });
       group.addLayer(marker);

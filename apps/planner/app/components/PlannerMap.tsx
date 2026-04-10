@@ -361,11 +361,12 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   }, [yjs.routeData]);
 
   const addWaypoint = useCallback(
-    (lat: number, lng: number) => {
+    (lat: number, lng: number, name?: string) => {
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
         yMap.set("lat", lat);
         yMap.set("lon", lng);
+        if (name) yMap.set("name", name);
         yjs.waypoints.push([yMap]);
       }, "local");
     },
@@ -512,7 +513,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       <NoGoAreaLayer noGoAreas={yjs.noGoAreas} doc={yjs.doc} enabled={noGoDrawing} onToggle={toggleNoGoDraw} />
       <NoGoAreaButton active={noGoDrawing} onClick={toggleNoGoDraw} />
       <PoiRefresher poiState={poiState} />
-      <PoiMarkers poiState={poiState} />
+      <PoiMarkers poiState={poiState} onAddWaypoint={addWaypoint} />
       <PoiPanel poiState={poiState} />
 
       {waypoints.map((wp, i) => (
