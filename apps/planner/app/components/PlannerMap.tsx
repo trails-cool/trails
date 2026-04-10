@@ -10,6 +10,7 @@ import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
 import { usePois } from "~/lib/use-pois";
+import { snapToPoi } from "~/lib/poi-snap";
 import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "~/lib/z-index";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
@@ -362,15 +363,17 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
 
   const addWaypoint = useCallback(
     (lat: number, lng: number, name?: string) => {
+      const snap = name ? { lat, lon: lng, name, snapped: false } : snapToPoi(lat, lng, poiState.pois);
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
-        yMap.set("lat", lat);
-        yMap.set("lon", lng);
-        if (name) yMap.set("name", name);
+        yMap.set("lat", snap.lat);
+        yMap.set("lon", snap.snapped ? snap.lon : lng);
+        if (snap.name) yMap.set("name", snap.name);
+        else if (name) yMap.set("name", name);
         yjs.waypoints.push([yMap]);
       }, "local");
     },
-    [yjs.doc, yjs.waypoints],
+    [yjs.doc, yjs.waypoints, poiState.pois],
   );
 
   const insertWaypointAtSegment = useCallback(
@@ -396,15 +399,17 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
 
   const moveWaypoint = useCallback(
     (index: number, lat: number, lng: number) => {
+      const snap = snapToPoi(lat, lng, poiState.pois);
       const yMap = yjs.waypoints.get(index);
       if (yMap) {
         yjs.doc.transact(() => {
-          yMap.set("lat", lat);
-          yMap.set("lon", lng);
+          yMap.set("lat", snap.lat);
+          yMap.set("lon", snap.snapped ? snap.lon : lng);
+          if (snap.snapped && snap.name) yMap.set("name", snap.name);
         }, "local");
       }
     },
-    [yjs.waypoints, yjs.doc],
+    [yjs.waypoints, yjs.doc, poiState.pois],
   );
 
   const deleteWaypoint = useCallback(
