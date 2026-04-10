@@ -4,8 +4,9 @@ import { getCached, setCached } from "./poi-cache.ts";
 import { poiCategories } from "./poi-categories.ts";
 
 const MIN_ZOOM = 12;
-const DEBOUNCE_MS = 500;
-const BACKOFF_BASE_MS = 5000;
+const DEBOUNCE_MS = 1000;
+const MIN_REQUEST_INTERVAL_MS = 3000;
+const BACKOFF_BASE_MS = 10000;
 const MAX_BACKOFF_MS = 60000;
 
 export type PoiStatus = "idle" | "loading" | "loaded" | "zoom_too_low" | "rate_limited" | "error";
@@ -26,6 +27,7 @@ export function usePois(): PoiState {
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const backoffRef = useRef(0);
+  const lastRequestRef = useRef(0);
 
   const toggleCategory = useCallback((id: string) => {
     setEnabledCategories((prev) =>
@@ -60,11 +62,16 @@ export function usePois(): PoiState {
         return;
       }
 
+      // Calculate delay: debounce + respect minimum interval
+      const sinceLastRequest = Date.now() - lastRequestRef.current;
+      const delay = Math.max(DEBOUNCE_MS, MIN_REQUEST_INTERVAL_MS - sinceLastRequest);
+
       debounceRef.current = setTimeout(async () => {
         // Cancel previous request
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
+        lastRequestRef.current = Date.now();
 
         setStatus("loading");
 
@@ -89,7 +96,7 @@ export function usePois(): PoiState {
             setStatus("error");
           }
         }
-      }, DEBOUNCE_MS);
+      }, delay);
     },
     [enabledCategories],
   );

@@ -235,11 +235,14 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
 
 function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
   const map = useMap();
+  const refreshRef = useRef(poiState.refresh);
+  refreshRef.current = poiState.refresh;
+
   useEffect(() => {
     const refresh = () => {
       const bounds = map.getBounds();
       const zoom = map.getZoom();
-      poiState.refresh({
+      refreshRef.current({
         south: bounds.getSouth(),
         west: bounds.getWest(),
         north: bounds.getNorth(),
@@ -247,9 +250,25 @@ function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
       }, zoom);
     };
     map.on("moveend", refresh);
-    refresh();
+    // Don't call refresh() immediately — let moveend trigger it
     return () => { map.off("moveend", refresh); };
-  }, [map, poiState.refresh]);
+  }, [map]);
+
+  // Trigger refresh when categories change (but not on mount)
+  const prevCategories = useRef(poiState.enabledCategories);
+  useEffect(() => {
+    if (prevCategories.current === poiState.enabledCategories) return;
+    prevCategories.current = poiState.enabledCategories;
+    const bounds = map.getBounds();
+    const zoom = map.getZoom();
+    poiState.refresh({
+      south: bounds.getSouth(),
+      west: bounds.getWest(),
+      north: bounds.getNorth(),
+      east: bounds.getEast(),
+    }, zoom);
+  }, [map, poiState.enabledCategories, poiState.refresh]);
+
   return null;
 }
 
