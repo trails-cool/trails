@@ -28,7 +28,7 @@ export const poiCategories: PoiCategory[] = [
     name: "poi.camping",
     icon: "⛺",
     color: "#059669",
-    query: 'nwr["tourism"="camp_site"];nwr["tourism"="caravan_site"];nwr["tourism"="picnic_site"];',
+    query: 'nwr["tourism"="camp_site"];nwr["tourism"="caravan_site"];',
   },
   {
     id: "food",
