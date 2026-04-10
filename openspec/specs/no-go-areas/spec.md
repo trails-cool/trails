@@ -1,3 +1,7 @@
+## Purpose
+
+Polygon-based route avoidance areas drawn on the map, synced via Yjs, sent to BRouter as constraints, and persisted in GPX extensions.
+
 ## Requirements
 
 ### Requirement: Draw no-go areas
@@ -35,22 +39,16 @@ No-go areas SHALL be preserved when saving to the journal or exporting a plan.
 - **AND** the file is compatible with any GPX-consuming application
 
 ### Requirement: GPX extensions format
-No-go areas are stored in GPX using a custom XML namespace:
+No-go areas SHALL be stored in GPX using the `trails:planning` custom XML namespace with point-based polygon representation.
 
-```xml
-<gpx xmlns:trails="https://trails.cool/gpx/1">
-  <extensions>
-    <trails:planning>
-      <trails:nogo>
-        <trails:point lat="52.5" lon="13.3"/>
-        <trails:point lat="52.4" lon="13.4"/>
-        <trails:point lat="52.3" lon="13.2"/>
-      </trails:nogo>
-    </trails:planning>
-  </extensions>
-</gpx>
-```
+#### Scenario: Valid no-go area in GPX
+- **WHEN** a GPX file contains a `<trails:nogo>` element with 3+ `<trails:point>` child elements
+- **THEN** the parser creates a no-go area polygon from the point coordinates
 
-- Each `<trails:nogo>` element contains 3+ `<trails:point>` elements
-- Parser accepts both namespaced (`trails:nogo`) and non-namespaced (`nogo`) elements
-- Areas with fewer than 3 points are rejected on parse
+#### Scenario: Namespace-agnostic parsing
+- **WHEN** a GPX file contains non-namespaced `<nogo>` elements instead of `<trails:nogo>`
+- **THEN** the parser accepts them identically
+
+#### Scenario: Invalid no-go area rejected
+- **WHEN** a GPX file contains a no-go area with fewer than 3 points
+- **THEN** the parser rejects it

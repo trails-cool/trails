@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+User account settings page with connected services management, profile editing, and security controls.
+
+## Requirements
 
 ### Requirement: Connected Services section
 The settings page SHALL include a "Connected Services" section for managing external integrations.

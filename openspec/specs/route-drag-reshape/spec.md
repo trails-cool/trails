@@ -1,3 +1,7 @@
+## Purpose
+
+Ghost marker drag interaction for reshaping routes by inserting new waypoints mid-segment.
+
 ## Requirements
 
 ### Requirement: Ghost marker on route hover
