@@ -14,11 +14,8 @@ catalog:
   tailwindcss: ^4.1.7
   "@tailwindcss/vite": ^4.1.7
   typescript: ^5.8.3
-  vite: ^6.4.2
+  vite: ^8.0.8
   drizzle-orm: ^0.45.2
   drizzle-kit: ^0.31.0
   drizzle-postgis: ^1.1.0
   postgres: ^3.4.9
-
-overrides:
-  esbuild: ">=0.25.0"
