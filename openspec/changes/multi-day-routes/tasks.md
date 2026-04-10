@@ -1,8 +1,8 @@
 ## 1. Data Model & Computation
 
-- [ ] 1.1 Add `overnight` property support to Yjs waypoint Y.Maps: helper functions `setOvernight(yjs, index, value)` and `isOvernight(yMap)` in a new `apps/planner/app/lib/overnight.ts`
-- [ ] 1.2 Create `computeDays()` pure function in `packages/gpx/src/compute-days.ts`: takes `Waypoint[]` + `TrackPoint[][]`, returns `DayStage[]` (day number, waypoint range, distance, ascent, descent). Export from package index.
-- [ ] 1.3 Create `useDays()` hook in `apps/planner/app/lib/use-days.ts`: maps Yjs waypoints + EnrichedRoute into `computeDays()` input, returns reactive `DayStage[]`
+- [x] 1.1 Add `overnight` property support to Yjs waypoint Y.Maps: helper functions `setOvernight(yjs, index, value)` and `isOvernight(yMap)` in a new `apps/planner/app/lib/overnight.ts`
+- [x] 1.2 Create `computeDays()` pure function in `packages/gpx/src/compute-days.ts`: takes `Waypoint[]` + `TrackPoint[][]`, returns `DayStage[]` (day number, waypoint range, distance, ascent, descent). Export from package index.
+- [x] 1.3 Create `useDays()` hook in `apps/planner/app/lib/use-days.ts`: maps Yjs waypoints + EnrichedRoute into `computeDays()` input, returns reactive `DayStage[]`
 
 ## 2. Sidebar Day Breakdown
 
@@ -24,8 +24,8 @@
 
 ## 5. GPX Roundtrip
 
-- [ ] 5.1 Extend `generateGpx` in `@trails-cool/gpx` to emit `<type>overnight</type>` for waypoints with `isDayBreak: true`
-- [ ] 5.2 Extend `parseGpx` in `@trails-cool/gpx` to recognize `<type>overnight</type>` and set `isDayBreak: true` on parsed waypoints
+- [x] 5.1 Extend `generateGpx` in `@trails-cool/gpx` to emit `<type>overnight</type>` for waypoints with `isDayBreak: true`
+- [x] 5.2 Extend `parseGpx` in `@trails-cool/gpx` to recognize `<type>overnight</type>` and set `isDayBreak: true` on parsed waypoints
 - [ ] 5.3 Add multi-track export option: split track into one `<trk>` per day, each named "Day N: Start - End"
 
 ## 6. Journal Integration
