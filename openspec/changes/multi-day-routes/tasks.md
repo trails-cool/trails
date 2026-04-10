@@ -26,7 +26,7 @@
 
 - [x] 5.1 Extend `generateGpx` in `@trails-cool/gpx` to emit `<type>overnight</type>` for waypoints with `isDayBreak: true`
 - [x] 5.2 Extend `parseGpx` in `@trails-cool/gpx` to recognize `<type>overnight</type>` and set `isDayBreak: true` on parsed waypoints
-- [ ] 5.3 Add multi-track export option: split track into one `<trk>` per day, each named "Day N: Start - End"
+- [x] 5.3 Add multi-track export option: split track into one `<trk>` per day, each named "Day N: Start - End"
 
 ## 6. Journal Integration
 
