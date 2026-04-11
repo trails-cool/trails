@@ -477,8 +477,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             }
           }
         }
-        // If within ~200m of the route, insert after the segment's waypoint
-        if (bestDist < 0.002 && bestSegment >= 0) {
+        // If within ~1km of the route, insert after the segment's waypoint
+        if (bestDist < 0.01 && bestSegment >= 0) {
           insertIndex = bestSegment + 1;
         }
       }
