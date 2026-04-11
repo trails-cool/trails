@@ -11,6 +11,7 @@ import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
 import { usePois } from "~/lib/use-pois";
 import { useProfileDefaults } from "~/lib/use-profile-defaults";
+import { useYjsPoiSync } from "~/lib/use-yjs-poi-sync";
 import { snapToPoi } from "~/lib/poi-snap";
 import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "~/lib/z-index";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
@@ -280,6 +281,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const poiState = usePois();
   useProfileDefaults(yjs, poiState);
+  useYjsPoiSync(yjs, poiState);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);

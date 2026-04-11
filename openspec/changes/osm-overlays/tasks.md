@@ -6,10 +6,10 @@
 
 ## 2. Overlay State Sync
 
-- [ ] 2.1 Add `overlays` string array to Yjs `routeOptions` Y.Map for enabled tile overlay IDs
-- [ ] 2.2 Add `poiCategories` string array to Yjs `routeOptions` Y.Map for enabled POI category IDs
-- [ ] 2.3 Sync LayersControl state with Yjs — toggling overlay updates Yjs, Yjs changes toggle layers
-- [ ] 2.4 Include overlay state in crash recovery localStorage snapshot
+- [ ] 2.1 Add `overlays` string array to Yjs `routeOptions` Y.Map for enabled tile overlay IDs (deferred — tile overlays are visual-only)
+- [x] 2.2 Add `poiCategories` string array to Yjs `routeOptions` Y.Map for enabled POI category IDs
+- [x] 2.3 Sync LayersControl state with Yjs — toggling overlay updates Yjs, Yjs changes toggle layers
+- [x] 2.4 Include overlay state in crash recovery localStorage snapshot
 
 ## 3. Overpass Client
 
