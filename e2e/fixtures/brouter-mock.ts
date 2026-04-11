@@ -40,6 +40,10 @@ const MOCK_ROUTE_3WP = {
     "residential", "residential", "cycleway", "cycleway", "path",
     "path", "tertiary", "tertiary", "residential", "residential",
   ],
+  maxspeeds: [
+    "30", "30", "unknown", "unknown", "unknown",
+    "unknown", "50", "50", "30", "30",
+  ],
 };
 
 /**
@@ -75,6 +79,9 @@ const MOCK_ROUTE_2WP = {
   ],
   highways: [
     "secondary", "secondary", "cycleway", "cycleway", "residential", "residential",
+  ],
+  maxspeeds: [
+    "50", "50", "unknown", "unknown", "30", "30",
   ],
 };
 

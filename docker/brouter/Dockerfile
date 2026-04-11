@@ -20,6 +20,16 @@ RUN addgroup --system app && adduser --system --ingroup app app \
 RUN cp -r profiles2/* /data/profiles/ 2>/dev/null || true \
     && mv brouter-*-all.jar brouter.jar
 
+# Patch profiles to include maxspeed in WayTags output (for speed limit visualization)
+# Each tag needs its own assign statement to appear in tiledesc WayTags
+RUN for f in /data/profiles/*.brf; do \
+      if grep -q "dummyUsage" "$f" && ! grep -q "maxspeed" "$f"; then \
+        sed -i '/assign dummyUsage/a assign dummyUsage2 = maxspeed=' "$f"; \
+      elif ! grep -q "maxspeed" "$f" && grep -q "context:node" "$f"; then \
+        sed -i '/---context:node/i assign dummyUsage2 = maxspeed=' "$f"; \
+      fi; \
+    done
+
 USER app
 EXPOSE 17777
 
