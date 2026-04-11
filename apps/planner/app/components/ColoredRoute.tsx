@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Polyline } from "react-leaflet";
 import type L from "leaflet";
 
-export type ColorMode = "plain" | "elevation" | "surface";
+export type ColorMode = "plain" | "elevation" | "surface" | "grade";
 
 interface ColoredRouteProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]
@@ -31,6 +31,15 @@ const SURFACE_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_SURFACE_COLOR = "#9ca3af";
+
+export function routeGradeColor(grade: number): string {
+  const absGrade = Math.abs(grade);
+  if (absGrade < 3) return "#22c55e";
+  if (absGrade < 6) return "#eab308";
+  if (absGrade < 10) return "#f97316";
+  if (absGrade < 15) return "#ef4444";
+  return "#991b1b";
+}
 
 export function elevationColor(t: number): string {
   // green (0) → yellow (0.5) → red (1)
@@ -63,6 +72,27 @@ export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteP
             [coordinates[i + 1]![1], coordinates[i + 1]![0]],
           ],
           color: elevationColor(t),
+        });
+      }
+      return result;
+    }
+
+    if (colorMode === "grade") {
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const c0 = coordinates[i]!;
+        const c1 = coordinates[i + 1]!;
+        // Approximate distance in meters using lat/lon diff
+        const dLat = (c1[1] - c0[1]) * 111320;
+        const dLon = (c1[0] - c0[0]) * 111320 * Math.cos((c0[1] * Math.PI) / 180);
+        const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+        const grade = dist > 0 ? ((c1[2] - c0[2]) / dist) * 100 : 0;
+        result.push({
+          positions: [
+            [c0[1], c0[0]],
+            [c1[1], c1[0]],
+          ],
+          color: routeGradeColor(grade),
         });
       }
       return result;

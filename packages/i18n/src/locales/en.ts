@@ -101,6 +101,8 @@ export default {
       plain: "Plain",
       elevation: "Elevation",
       surface: "Surface",
+      grade: "Grade",
+      surfaceLegend: "Color by road surface type",
       surfaceUnavailable: "Surface data not available for this profile",
     },
     rateLimitExceeded: "Too many requests. Please try again later.",
@@ -108,6 +110,9 @@ export default {
       gain: "Elevation Gain",
       loss: "Elevation Loss",
       profile: "Elevation Profile",
+      grade: "Grade Profile",
+      low: "Low",
+      high: "High",
     },
     landing: {
       startPlanning: "Start Planning",
