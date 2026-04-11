@@ -152,14 +152,14 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
     const localId = awareness.clientID;
 
     const handleMouseMove = (e: L.LeafletMouseEvent) => {
-      awareness.setLocalStateField("cursor", {
+      awareness.setLocalStateField("mapCursor", {
         lat: e.latlng.lat,
         lng: e.latlng.lng,
       });
     };
 
     const handleMouseOut = () => {
-      awareness.setLocalStateField("cursor", null);
+      awareness.setLocalStateField("mapCursor", null);
     };
 
     map.on("mousemove", handleMouseMove);
@@ -169,10 +169,10 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
       const states = awareness.getStates();
       const newCursors = new Map<number, { lat: number; lng: number; color: string; name: string }>();
       states.forEach((state, clientId) => {
-        if (clientId !== localId && state.cursor && state.user) {
+        if (clientId !== localId && state.mapCursor && state.user) {
           newCursors.set(clientId, {
-            lat: state.cursor.lat,
-            lng: state.cursor.lng,
+            lat: state.mapCursor.lat,
+            lng: state.mapCursor.lng,
             color: state.user.color,
             name: state.user.name,
           });
