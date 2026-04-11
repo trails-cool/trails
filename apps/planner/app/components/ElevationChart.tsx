@@ -582,9 +582,35 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   return (
     <div className="border-t border-gray-200 px-2 py-2">
       <div className="mb-1 flex items-center gap-2 px-2">
-        <p className="shrink-0 text-xs font-medium text-gray-500">
-          {colorMode === "grade" ? t("elevation.grade") : colorMode === "highway" ? t("elevation.highway") : colorMode === "maxspeed" ? t("elevation.maxspeed") : colorMode === "smoothness" ? t("elevation.smoothness") : colorMode === "tracktype" ? t("elevation.tracktype") : colorMode === "cycleway" ? t("elevation.cycleway") : colorMode === "bikeroute" ? t("elevation.bikeroute") : t("elevation.profile")}
-        </p>
+        {(() => {
+          const osmLinks: Record<string, string> = {
+            highway: "https://wiki.openstreetmap.org/wiki/Key:highway",
+            maxspeed: "https://wiki.openstreetmap.org/wiki/Key:maxspeed",
+            surface: "https://wiki.openstreetmap.org/wiki/Key:surface",
+            smoothness: "https://wiki.openstreetmap.org/wiki/Key:smoothness",
+            tracktype: "https://wiki.openstreetmap.org/wiki/Key:tracktype",
+            cycleway: "https://wiki.openstreetmap.org/wiki/Key:cycleway",
+            bikeroute: "https://wiki.openstreetmap.org/wiki/Tag:route%3Dbicycle",
+          };
+          const titles: Record<string, string> = {
+            grade: t("elevation.grade"),
+            highway: t("elevation.highway"),
+            maxspeed: t("elevation.maxspeed"),
+            smoothness: t("elevation.smoothness"),
+            tracktype: t("elevation.tracktype"),
+            cycleway: t("elevation.cycleway"),
+            bikeroute: t("elevation.bikeroute"),
+          };
+          const title = titles[colorMode] ?? t("elevation.profile");
+          const link = osmLinks[colorMode];
+          return link ? (
+            <a href={link} target="_blank" rel="noopener" className="shrink-0 text-xs font-medium text-gray-500 hover:text-blue-600 hover:underline">
+              {title}
+            </a>
+          ) : (
+            <p className="shrink-0 text-xs font-medium text-gray-500">{title}</p>
+          );
+        })()}
         <div className="flex flex-1 items-center justify-center gap-1.5 text-[10px] text-gray-400">
           {colorMode === "grade" && (<>
             <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />{"<3%"}</span>
