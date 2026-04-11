@@ -15,7 +15,7 @@ export interface PoiState {
   pois: Poi[];
   status: PoiStatus;
   enabledCategories: string[];
-  setEnabledCategories: (ids: string[]) => void;
+  setEnabledCategories: React.Dispatch<React.SetStateAction<string[]>>;
   toggleCategory: (id: string) => void;
   refresh: (bbox: BBox, zoom: number) => void;
 }

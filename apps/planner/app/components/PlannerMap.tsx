@@ -10,6 +10,7 @@ import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
 import { usePois } from "~/lib/use-pois";
+import { useProfileDefaults } from "~/lib/use-profile-defaults";
 import { snapToPoi } from "~/lib/poi-snap";
 import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "~/lib/z-index";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
@@ -278,6 +279,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const poiState = usePois();
+  useProfileDefaults(yjs, poiState);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);

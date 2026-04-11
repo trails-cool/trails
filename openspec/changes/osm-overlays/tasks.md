@@ -47,9 +47,9 @@
 
 ## 8. Profile-Aware Defaults
 
-- [ ] 8.1 Define profile-to-overlay mapping (cycling → waymarked-cycling + bike POIs, hiking → waymarked-hiking + shelter + viewpoints, MTB → waymarked-mtb + bike POIs)
-- [ ] 8.2 Auto-enable mapped overlays on routing profile change (update Yjs arrays)
-- [ ] 8.3 Only auto-enable on explicit profile change, not on initial page load (respect existing Yjs state)
+- [x] 8.1 Define profile-to-overlay mapping (cycling → waymarked-cycling + bike POIs, hiking → waymarked-hiking + shelter + viewpoints, MTB → waymarked-mtb + bike POIs)
+- [x] 8.2 Auto-enable mapped overlays on routing profile change (update Yjs arrays)
+- [x] 8.3 Only auto-enable on explicit profile change, not on initial page load (respect existing Yjs state)
 
 ## 9. i18n
 
