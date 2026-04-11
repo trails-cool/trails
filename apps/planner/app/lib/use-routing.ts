@@ -129,9 +129,6 @@ export function useRouting(yjs: YjsState | null) {
           if (enriched.highways?.length) {
             yjs.routeData.set("highways", JSON.stringify(enriched.highways));
           }
-          if (enriched.maxspeeds?.length) {
-            yjs.routeData.set("maxspeeds", JSON.stringify(enriched.maxspeeds));
-          }
         });
       } catch {
         setRouteError("failed");

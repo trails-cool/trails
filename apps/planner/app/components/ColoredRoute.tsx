@@ -2,14 +2,13 @@ import { useMemo } from "react";
 import { Polyline } from "react-leaflet";
 import type L from "leaflet";
 
-export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway" | "maxspeed";
+export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway";
 
 interface ColoredRouteProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]
   colorMode: ColorMode;
   surfaces?: string[];
   highways?: string[];
-  maxspeeds?: string[];
 }
 
 const SURFACE_COLORS: Record<string, string> = {
@@ -64,22 +63,6 @@ const HIGHWAY_COLORS: Record<string, string> = {
 
 const DEFAULT_HIGHWAY_COLOR = "#9ca3af";
 
-export function maxspeedColor(speed: string): string {
-  const num = parseInt(speed, 10);
-  if (isNaN(num)) {
-    // Handle text values: "walk", "none", "unknown"
-    if (speed === "walk") return "#22c55e";
-    if (speed === "none") return "#991b1b";
-    return "#9ca3af";
-  }
-  if (num <= 20) return "#22c55e";    // green: walking pace
-  if (num <= 30) return "#16a34a";    // green: slow zone
-  if (num <= 50) return "#eab308";    // yellow: urban
-  if (num <= 70) return "#f97316";    // orange: suburban
-  if (num <= 100) return "#ef4444";   // red: rural
-  return "#991b1b";                    // dark red: highway
-}
-
 export function routeGradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
   if (absGrade < 3) return "#22c55e";
@@ -99,7 +82,7 @@ export function elevationColor(t: number): string {
   return `rgb(255, ${g}, 50)`;
 }
 
-export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxspeeds }: ColoredRouteProps) {
+export function ColoredRoute({ coordinates, colorMode, surfaces, highways }: ColoredRouteProps) {
   const segments = useMemo(() => {
     if (colorMode === "plain" || coordinates.length < 2) {
       return null;
@@ -164,23 +147,6 @@ export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxsp
       return result;
     }
 
-    // maxspeed mode
-    if (colorMode === "maxspeed") {
-      if (!maxspeeds || maxspeeds.length < coordinates.length) return null;
-
-      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
-      for (let i = 0; i < coordinates.length - 1; i++) {
-        result.push({
-          positions: [
-            [coordinates[i]![1], coordinates[i]![0]],
-            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
-          ],
-          color: maxspeedColor(maxspeeds[i] ?? "unknown"),
-        });
-      }
-      return result;
-    }
-
     // surface mode
     if (!surfaces || surfaces.length < coordinates.length) return null;
 
@@ -196,7 +162,7 @@ export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxsp
       });
     }
     return result;
-  }, [coordinates, colorMode, surfaces, highways, maxspeeds]);
+  }, [coordinates, colorMode, surfaces, highways]);
 
   const plainPositions = useMemo(
     () => coordinates.map((c) => [c[1], c[0]] as L.LatLngExpression),

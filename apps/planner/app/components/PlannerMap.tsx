@@ -376,7 +376,6 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const [segmentBoundaries, setSegmentBoundaries] = useState<number[]>([]);
   const [surfaces, setSurfaces] = useState<string[]>([]);
   const [highways, setHighways] = useState<string[]>([]);
-  const [maxspeeds, setMaxspeeds] = useState<string[]>([]);
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
   const [noGoDrawing, setNoGoDrawing] = useState(false);
   const toggleNoGoDraw = useCallback(() => setNoGoDrawing((v) => !v), []);
@@ -449,13 +448,6 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
         try { setHighways(JSON.parse(highwaysJson)); } catch { setHighways([]); }
       } else {
         setHighways([]);
-      }
-
-      const maxspeedsJson = yjs.routeData.get("maxspeeds") as string | undefined;
-      if (maxspeedsJson) {
-        try { setMaxspeeds(JSON.parse(maxspeedsJson)); } catch { setMaxspeeds([]); }
-      } else {
-        setMaxspeeds([]);
       }
 
       if (modeVal) setColorMode(modeVal);
@@ -739,7 +731,6 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             colorMode={colorMode}
             surfaces={surfaces}
             highways={highways}
-            maxspeeds={maxspeeds}
           />
           <RouteInteraction
             coordinates={routeCoordinates}
