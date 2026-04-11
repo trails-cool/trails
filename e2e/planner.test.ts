@@ -76,8 +76,8 @@ test.describe("Planner", () => {
 
     // Switch to Notes tab
     await page.getByRole("button", { name: "Notes" }).click();
-    // CodeMirror renders placeholder as a .cm-placeholder element, not an HTML placeholder attribute
-    await expect(page.locator(".cm-placeholder, .cm-content")).toBeVisible();
+    // CodeMirror editor should be visible with the placeholder text
+    await expect(page.getByText("Add notes for this session...")).toBeVisible();
 
     // Switch back to Waypoints tab
     await page.getByRole("button", { name: "Waypoints" }).click();
