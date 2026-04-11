@@ -237,6 +237,64 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
+function OverlaySync({ yjs, onOverlayChange }: { yjs: YjsState; onOverlayChange: (ids: string[]) => void }) {
+  const map = useMap();
+  const suppressRef = useRef(false);
+
+  // Map events → Yjs
+  useEffect(() => {
+    const handleAdd = (e: L.LayersControlEvent) => {
+      if (suppressRef.current) return;
+      const name = e.name;
+      const layer = overlayLayers.find((l) => l.name === name);
+      if (!layer) return;
+      const raw = yjs.routeData.get("overlays") as string | undefined;
+      const current: string[] = raw ? JSON.parse(raw) : [];
+      if (!current.includes(layer.id)) {
+        const updated = [...current, layer.id];
+        yjs.routeData.set("overlays", JSON.stringify(updated));
+        onOverlayChange(updated);
+      }
+    };
+
+    const handleRemove = (e: L.LayersControlEvent) => {
+      if (suppressRef.current) return;
+      const name = e.name;
+      const layer = overlayLayers.find((l) => l.name === name);
+      if (!layer) return;
+      const raw = yjs.routeData.get("overlays") as string | undefined;
+      const current: string[] = raw ? JSON.parse(raw) : [];
+      const updated = current.filter((id) => id !== layer.id);
+      yjs.routeData.set("overlays", JSON.stringify(updated));
+      onOverlayChange(updated);
+    };
+
+    map.on("overlayadd", handleAdd as L.LeafletEventHandlerFn);
+    map.on("overlayremove", handleRemove as L.LeafletEventHandlerFn);
+    return () => {
+      map.off("overlayadd", handleAdd as L.LeafletEventHandlerFn);
+      map.off("overlayremove", handleRemove as L.LeafletEventHandlerFn);
+    };
+  }, [map, yjs, onOverlayChange]);
+
+  // Yjs → Map: load initial state from Yjs
+  useEffect(() => {
+    const handleChange = () => {
+      const raw = yjs.routeData.get("overlays") as string | undefined;
+      if (!raw) return;
+      try {
+        const ids: string[] = JSON.parse(raw);
+        onOverlayChange(ids);
+      } catch { /* ignore */ }
+    };
+    yjs.routeData.observe(handleChange);
+    handleChange();
+    return () => yjs.routeData.unobserve(handleChange);
+  }, [yjs, onOverlayChange]);
+
+  return null;
+}
+
 function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
   const map = useMap();
   const refreshRef = useRef(poiState.refresh);
@@ -282,6 +340,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const poiState = usePois();
   useProfileDefaults(yjs, poiState);
   useYjsPoiSync(yjs, poiState);
+  const [enabledOverlays, setEnabledOverlays] = useState<string[]>([]);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
@@ -526,13 +585,14 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
           </LayersControl.BaseLayer>
         ))}
         {overlayLayers.map((layer) => (
-          <LayersControl.Overlay key={layer.id} name={layer.name}>
+          <LayersControl.Overlay key={layer.id} checked={enabledOverlays.includes(layer.id)} name={layer.name}>
             <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} opacity={layer.opacity ?? 0.7} />
           </LayersControl.Overlay>
         ))}
       </LayersControl>
 
       <MapExposer />
+      <OverlaySync yjs={yjs} onOverlayChange={setEnabledOverlays} />
       <RouteFitter coordinates={routeCoordinates} />
       <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} suppressRef={suppressMapClickRef} />
       <CursorTracker awareness={yjs.awareness} />
