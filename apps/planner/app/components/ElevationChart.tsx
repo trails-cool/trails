@@ -486,8 +486,8 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         >
           <option value="plain">{t("colorMode.plain")}</option>
           <option value="elevation">{t("colorMode.elevation")}</option>
-          <option value="surface">{t("colorMode.surface")}</option>
           <option value="grade">{t("colorMode.grade")}</option>
+          <option value="surface">{t("colorMode.surface")}</option>
           <option value="highway">{t("colorMode.highway")}</option>
           <option value="maxspeed">{t("colorMode.maxspeed")}</option>
         </select>
