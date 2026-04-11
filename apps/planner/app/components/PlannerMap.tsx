@@ -1,17 +1,22 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, LayersControl, Marker, CircleMarker, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
-import { baseLayers } from "@trails-cool/map";
+import { baseLayers, overlayLayers } from "@trails-cool/map";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { isOvernight } from "~/lib/overnight";
 import { setOvernight } from "~/lib/overnight";
+import { usePois } from "~/lib/use-pois";
+import { useProfileDefaults } from "~/lib/use-profile-defaults";
+import { snapToPoi } from "~/lib/poi-snap";
+import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "~/lib/z-index";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
+import { PoiPanel, PoiMarkers } from "./PoiPanel";
 import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
@@ -173,7 +178,7 @@ function CursorTracker({ awareness }: { awareness: YjsState["awareness"] }) {
         <Marker
           key={clientId}
           position={[cursor.lat, cursor.lng]}
-          zIndexOffset={-1000}
+          zIndexOffset={Z_CURSOR}
           icon={L.divIcon({
             className: "",
             html: `<div style="position:relative;z-index:400;pointer-events:none">
@@ -231,9 +236,50 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
+function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
+  const map = useMap();
+  const refreshRef = useRef(poiState.refresh);
+  refreshRef.current = poiState.refresh;
+
+  useEffect(() => {
+    const refresh = () => {
+      const bounds = map.getBounds();
+      const zoom = map.getZoom();
+      refreshRef.current({
+        south: bounds.getSouth(),
+        west: bounds.getWest(),
+        north: bounds.getNorth(),
+        east: bounds.getEast(),
+      }, zoom);
+    };
+    map.on("moveend", refresh);
+    // Don't call refresh() immediately — let moveend trigger it
+    return () => { map.off("moveend", refresh); };
+  }, [map]);
+
+  // Trigger refresh when categories change (but not on mount)
+  const prevCategories = useRef(poiState.enabledCategories);
+  useEffect(() => {
+    if (prevCategories.current === poiState.enabledCategories) return;
+    prevCategories.current = poiState.enabledCategories;
+    const bounds = map.getBounds();
+    const zoom = map.getZoom();
+    poiState.refresh({
+      south: bounds.getSouth(),
+      west: bounds.getWest(),
+      north: bounds.getNorth(),
+      east: bounds.getEast(),
+    }, zoom);
+  }, [map, poiState.enabledCategories, poiState.refresh]);
+
+  return null;
+}
+
 export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
+  const poiState = usePois();
+  useProfileDefaults(yjs, poiState);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
@@ -318,27 +364,36 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   }, [yjs.routeData]);
 
   const addWaypoint = useCallback(
-    (lat: number, lng: number) => {
+    (lat: number, lng: number, name?: string) => {
+      const snap = snapToPoi(lat, lng, poiState.pois);
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
-        yMap.set("lat", lat);
-        yMap.set("lon", lng);
+        yMap.set("lat", snap.lat);
+        yMap.set("lon", snap.snapped ? snap.lon : lng);
+        if (snap.name) yMap.set("name", snap.name);
+        else if (name) yMap.set("name", name);  // fallback for explicit name
+        if (snap.osmId) yMap.set("osmId", snap.osmId);
+        if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
         yjs.waypoints.push([yMap]);
       }, "local");
     },
-    [yjs.doc, yjs.waypoints],
+    [yjs.doc, yjs.waypoints, poiState.pois],
   );
 
   const insertWaypointAtSegment = useCallback(
     (segmentIndex: number, lat: number, lon: number) => {
+      const snap = snapToPoi(lat, lon, poiState.pois);
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
-        yMap.set("lat", lat);
-        yMap.set("lon", lon);
+        yMap.set("lat", snap.lat);
+        yMap.set("lon", snap.snapped ? snap.lon : lon);
+        if (snap.name) yMap.set("name", snap.name);
+        if (snap.osmId) yMap.set("osmId", snap.osmId);
+        if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
         yjs.waypoints.insert(segmentIndex + 1, [yMap]);
       }, "local");
     },
-    [yjs.doc, yjs.waypoints],
+    [yjs.doc, yjs.waypoints, poiState.pois],
   );
 
   const handleRouteInsert = useCallback(
@@ -352,15 +407,28 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
 
   const moveWaypoint = useCallback(
     (index: number, lat: number, lng: number) => {
+      const snap = snapToPoi(lat, lng, poiState.pois);
       const yMap = yjs.waypoints.get(index);
       if (yMap) {
         yjs.doc.transact(() => {
-          yMap.set("lat", lat);
-          yMap.set("lon", lng);
+          yMap.set("lat", snap.lat);
+          yMap.set("lon", snap.snapped ? snap.lon : lng);
+          if (snap.snapped && snap.name) {
+            yMap.set("name", snap.name);
+          } else {
+            yMap.delete("name");
+          }
+          if (snap.osmId) {
+            yMap.set("osmId", snap.osmId);
+            if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
+          } else {
+            yMap.delete("osmId");
+            yMap.delete("poiTags");
+          }
         }, "local");
       }
     },
-    [yjs.waypoints, yjs.doc],
+    [yjs.waypoints, yjs.doc, poiState.pois],
   );
 
   const deleteWaypoint = useCallback(
@@ -455,6 +523,11 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} />
           </LayersControl.BaseLayer>
         ))}
+        {overlayLayers.map((layer) => (
+          <LayersControl.Overlay key={layer.id} name={layer.name}>
+            <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} opacity={layer.opacity ?? 0.7} />
+          </LayersControl.Overlay>
+        ))}
       </LayersControl>
 
       <MapExposer />
@@ -463,12 +536,16 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       <CursorTracker awareness={yjs.awareness} />
       <NoGoAreaLayer noGoAreas={yjs.noGoAreas} doc={yjs.doc} enabled={noGoDrawing} onToggle={toggleNoGoDraw} />
       <NoGoAreaButton active={noGoDrawing} onClick={toggleNoGoDraw} />
+      <PoiRefresher poiState={poiState} />
+      <PoiMarkers poiState={poiState} onAddWaypoint={addWaypoint} />
+      <PoiPanel poiState={poiState} />
 
       {waypoints.map((wp, i) => (
         <Marker
           key={i}
           position={[wp.lat, wp.lon]}
           draggable
+          zIndexOffset={highlightedWaypoint === i ? Z_WAYPOINT_HIGHLIGHTED : Z_WAYPOINT}
           icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i)}
           eventHandlers={{
             mouseover: () => {
@@ -535,10 +612,15 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       )}
 
       {highlightPosition && (
-        <CircleMarker
-          center={highlightPosition}
-          radius={6}
-          pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, weight: 2 }}
+        <Marker
+          position={highlightPosition}
+          zIndexOffset={Z_HIGHLIGHT}
+          interactive={false}
+          icon={L.divIcon({
+            className: "",
+            html: '<div style="width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3);transform:translate(-6px,-6px)"></div>',
+            iconSize: [0, 0],
+          })}
         />
       )}
     </MapContainer>

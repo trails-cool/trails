@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import { Z_GHOST_WAYPOINT } from "~/lib/z-index";
 
 interface RouteInteractionProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]
@@ -89,7 +90,7 @@ export function RouteInteraction({
       icon: ghostIcon,
       draggable: true,
       interactive: true,
-      zIndexOffset: -100,
+      zIndexOffset: Z_GHOST_WAYPOINT,
     });
     markerRef.current = marker;
 

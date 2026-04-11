@@ -91,7 +91,7 @@ export function useRouting(yjs: YjsState | null) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             waypoints,
-            profile: (yjs.routeData.get("profile") as string) ?? "trekking",
+            profile: (yjs.routeData.get("profile") as string) ?? "fastbike",
             noGoAreas: noGoAreas.length > 0 ? noGoAreas : undefined,
           }),
         });

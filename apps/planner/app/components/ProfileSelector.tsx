@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { YjsState } from "~/lib/use-yjs";
 
-const PROFILE_IDS = ["trekking", "fastbike", "safety", "shortest", "car"] as const;
+const PROFILE_IDS = ["fastbike", "safety", "shortest", "car", "trekking"] as const;
 
 interface ProfileSelectorProps {
   yjs: YjsState;
@@ -10,7 +10,7 @@ interface ProfileSelectorProps {
 
 export function ProfileSelector({ yjs }: ProfileSelectorProps) {
   const { t } = useTranslation("planner");
-  const [profile, setProfile] = useState("trekking");
+  const [profile, setProfile] = useState("fastbike");
 
   useEffect(() => {
     const update = () => {
