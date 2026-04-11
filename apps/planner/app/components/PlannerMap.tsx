@@ -614,6 +614,12 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
           yMap.set("points", area.points);
           yjs.noGoAreas.push([yMap]);
         }
+
+        // Replace notes if GPX has a description
+        if (gpxData.description) {
+          yjs.notes.delete(0, yjs.notes.length);
+          yjs.notes.insert(0, gpxData.description);
+        }
       }, "local");
     } catch {
       onImportError?.(t("importGpxError"));

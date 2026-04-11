@@ -114,6 +114,9 @@ export async function updateRoute(
     updateData.elevationGain = stats.elevationGain;
     updateData.elevationLoss = stats.elevationLoss;
     updateData.dayBreaks = stats.dayBreaks;
+    if (stats.description && input.description === undefined) {
+      updateData.description = stats.description;
+    }
 
     // Get next version number
     const existingVersions = await db
@@ -163,9 +166,10 @@ async function computeRouteStats(gpxString: string) {
       elevationGain: gpxData.elevation.gain,
       elevationLoss: gpxData.elevation.loss,
       dayBreaks,
+      description: gpxData.description,
     };
   } catch {
-    return { distance: null, elevationGain: null, elevationLoss: null, dayBreaks: [] as number[] };
+    return { distance: null, elevationGain: null, elevationLoss: null, dayBreaks: [] as number[], description: undefined };
   }
 }
 

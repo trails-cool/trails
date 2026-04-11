@@ -69,7 +69,8 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
     const tracks = getTracks(yjs);
     const waypoints = getWaypoints(yjs);
     const noGoAreas = getNoGoAreas(yjs);
-    const gpx = generateGpx({ name: "trails.cool route", waypoints, tracks, noGoAreas });
+    const notes = yjs.notes.toString() || undefined;
+    const gpx = generateGpx({ name: "trails.cool route", description: notes, waypoints, tracks, noGoAreas });
     download(gpx, "route-plan.gpx");
     setOpen(false);
   }, [yjs]);

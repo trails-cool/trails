@@ -10,6 +10,7 @@ export interface NoGoArea {
 
 export function generateGpx(options: {
   name?: string;
+  description?: string;
   waypoints?: Waypoint[];
   tracks?: TrackPoint[][];
   noGoAreas?: NoGoArea[];
@@ -25,8 +26,11 @@ export function generateGpx(options: {
       ">",
   ];
 
-  if (options.name) {
-    lines.push("  <metadata>", `    <name>${escapeXml(options.name)}</name>`, "  </metadata>");
+  if (options.name || options.description) {
+    lines.push("  <metadata>");
+    if (options.name) lines.push(`    <name>${escapeXml(options.name)}</name>`);
+    if (options.description) lines.push(`    <desc>${escapeXml(options.description)}</desc>`);
+    lines.push("  </metadata>");
   }
 
   if (options.waypoints) {

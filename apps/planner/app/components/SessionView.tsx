@@ -152,12 +152,13 @@ interface SessionViewProps {
   returnUrl?: string;
   initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>;
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
+  initialNotes?: string;
 }
 
-export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints, initialNoGoAreas }: SessionViewProps) {
+export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints, initialNoGoAreas, initialNotes }: SessionViewProps) {
   const { t } = useTranslation("planner");
   useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
-  const yjs = useYjs(sessionId, initialWaypoints, initialNoGoAreas);
+  const yjs = useYjs(sessionId, initialWaypoints, initialNoGoAreas, initialNotes);
   const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
   const { canUndo, canRedo, undo, redo } = useUndo(yjs?.undoManager ?? null);
   useUndoShortcuts(yjs?.undoManager ?? null);
