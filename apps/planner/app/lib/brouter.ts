@@ -17,6 +17,7 @@ export interface EnrichedRoute {
   segmentBoundaries: number[];             // coordinate index where each waypoint segment starts
   surfaces: string[];                      // surface type per coordinate point (e.g. "asphalt", "gravel")
   highways: string[];                      // highway classification per coordinate point (e.g. "cycleway", "residential")
+  maxspeeds: string[];                    // speed limit per coordinate point (e.g. "30", "50", "none")
   totalLength: number;
   totalAscend: number;
   totalTime: number;
@@ -96,6 +97,7 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
   const allCoords: [number, number, number][] = [];
   const allSurfaces: string[] = [];
   const allHighways: string[] = [];
+  const allMaxspeeds: string[] = [];
   const segmentBoundaries: number[] = [];
   let totalLength = 0;
   let totalAscend = 0;
@@ -120,6 +122,7 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
       allCoords.push([c[0]!, c[1]!, c[2] ?? 0]);
       allSurfaces.push(wayTagData.surfaces.get(j) ?? wayTagData.surfaces.get(j - 1) ?? "unknown");
       allHighways.push(wayTagData.highways.get(j) ?? wayTagData.highways.get(j - 1) ?? "unknown");
+      allMaxspeeds.push(wayTagData.maxspeeds.get(j) ?? wayTagData.maxspeeds.get(j - 1) ?? "unknown");
     }
 
     // Accumulate stats
@@ -153,6 +156,7 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
     segmentBoundaries,
     surfaces: allSurfaces,
     highways: allHighways,
+    maxspeeds: allMaxspeeds,
     totalLength,
     totalAscend,
     totalTime,
@@ -163,6 +167,7 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
 interface WayTagData {
   surfaces: Map<number, string>;
   highways: Map<number, string>;
+  maxspeeds: Map<number, string>;
 }
 
 /**
@@ -173,12 +178,13 @@ interface WayTagData {
 function extractWayTagData(properties: Record<string, unknown>): WayTagData {
   const surfaces = new Map<number, string>();
   const highways = new Map<number, string>();
+  const maxspeeds = new Map<number, string>();
   const messages = properties.messages as string[][] | undefined;
-  if (!messages || messages.length < 2) return { surfaces, highways };
+  if (!messages || messages.length < 2) return { surfaces, highways, maxspeeds };
 
   const headers = messages[0]!;
   const wayTagsIdx = headers.indexOf("WayTags");
-  if (wayTagsIdx === -1) return { surfaces, highways };
+  if (wayTagsIdx === -1) return { surfaces, highways, maxspeeds };
 
   for (let i = 1; i < messages.length; i++) {
     const row = messages[i]!;
@@ -187,8 +193,17 @@ function extractWayTagData(properties: Record<string, unknown>): WayTagData {
     surfaces.set(i - 1, surfaceMatch ? surfaceMatch[1]! : "unknown");
     const highwayMatch = tags.match(/highway=(\S+)/);
     highways.set(i - 1, highwayMatch ? highwayMatch[1]! : "unknown");
+    // Handle maxspeed variants: maxspeed:forward, maxspeed:backward, maxspeed
+    const hasReverse = tags.includes("reversedirection=yes");
+    const forwardMatch = tags.match(/maxspeed:forward=(\S+)/);
+    const backwardMatch = tags.match(/maxspeed:backward=(\S+)/);
+    const plainMatch = tags.match(/(?<![:\w])maxspeed=(\S+)/);
+    const speed = hasReverse
+      ? (backwardMatch?.[1] ?? plainMatch?.[1] ?? "unknown")
+      : (forwardMatch?.[1] ?? plainMatch?.[1] ?? "unknown");
+    maxspeeds.set(i - 1, speed);
   }
-  return { surfaces, highways };
+  return { surfaces, highways, maxspeeds };
 }
 
 /**

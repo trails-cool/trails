@@ -138,8 +138,9 @@ test.describe("Planner", () => {
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
 
     // Wait for elevation chart to render with the color mode selector
-    const select = page.locator("select").last();
-    await expect(select).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("canvas")).toBeVisible({ timeout: 10000 });
+    const select = page.locator("select", { has: page.locator("option[value='highway']") });
+    await expect(select).toBeVisible({ timeout: 5000 });
     await expect(select).toHaveValue("plain");
 
     // Switch to elevation
@@ -364,9 +365,10 @@ test.describe("Planner", () => {
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
 
-    // Wait for elevation chart color mode selector
-    const select = page.locator("select").last();
-    await expect(select).toBeVisible({ timeout: 10000 });
+    // Wait for the elevation chart to render, then find the color mode select (has a "highway" option)
+    await expect(page.locator("canvas")).toBeVisible({ timeout: 10000 });
+    const select = page.locator("select", { has: page.locator("option[value='highway']") });
+    await expect(select).toBeVisible({ timeout: 5000 });
 
     // Switch to highway (road type) mode
     await select.selectOption("highway");
@@ -395,8 +397,9 @@ test.describe("Planner", () => {
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
 
     // Switch to highway mode
-    const select = page.locator("select").last();
-    await expect(select).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("canvas")).toBeVisible({ timeout: 10000 });
+    const select = page.locator("select", { has: page.locator("option[value='highway']") });
+    await expect(select).toBeVisible({ timeout: 5000 });
     await select.selectOption("highway");
 
     // Hover the canvas to trigger the hover label

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
-import { elevationColor, SURFACE_COLORS, DEFAULT_SURFACE_COLOR, HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR, type ColorMode } from "~/components/ColoredRoute";
+import { elevationColor, SURFACE_COLORS, DEFAULT_SURFACE_COLOR, HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR, maxspeedColor, type ColorMode } from "~/components/ColoredRoute";
 
 function gradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
@@ -76,6 +76,7 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
   const [surfaces, setSurfaces] = useState<string[]>([]);
   const [highways, setHighways] = useState<string[]>([]);
+  const [maxspeeds, setMaxspeeds] = useState<string[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<ElevationPoint[]>([]);
   pointsRef.current = points;
@@ -101,6 +102,12 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         try { setHighways(JSON.parse(highwaysJson)); } catch { setHighways([]); }
       } else {
         setHighways([]);
+      }
+      const maxspeedsJson = yjs.routeData.get("maxspeeds") as string | undefined;
+      if (maxspeedsJson) {
+        try { setMaxspeeds(JSON.parse(maxspeedsJson)); } catch { setMaxspeeds([]); }
+      } else {
+        setMaxspeeds([]);
       }
     };
     yjs.routeData.observe(update);
@@ -241,6 +248,29 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
           ctx.lineWidth = 2;
           ctx.stroke();
         }
+      } else if (colorMode === "maxspeed" && maxspeeds.length >= points.length) {
+        // Maxspeed-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const color = maxspeedColor(maxspeeds[i] ?? "unknown");
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       } else {
         // Plain fill and line
         ctx.beginPath();
@@ -339,12 +369,15 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         if (colorMode === "highway" && highways[highlightIdx]) {
           label += ` · ${highways[highlightIdx]}`;
         }
+        if (colorMode === "maxspeed" && maxspeeds[highlightIdx]) {
+          label += ` · ${maxspeeds[highlightIdx]} km/h`;
+        }
         const labelX = hx + 8 > w - 80 ? hx - 8 : hx + 8;
         ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
         ctx.fillText(label, labelX, PADDING.top + 10);
       }
     },
-    [points, colorMode, surfaces, highways, days, t],
+    [points, colorMode, surfaces, highways, maxspeeds, days, t],
   );
 
   useEffect(() => {
@@ -403,7 +436,7 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
     <div className="border-t border-gray-200 px-2 py-2">
       <div className="mb-1 flex items-center gap-2 px-2">
         <p className="shrink-0 text-xs font-medium text-gray-500">
-          {colorMode === "grade" ? t("elevation.grade") : colorMode === "highway" ? t("elevation.highway") : t("elevation.profile")}
+          {colorMode === "grade" ? t("elevation.grade") : colorMode === "highway" ? t("elevation.highway") : colorMode === "maxspeed" ? t("elevation.maxspeed") : t("elevation.profile")}
         </p>
         <div className="flex flex-1 items-center justify-center gap-1.5 text-[10px] text-gray-400">
           {colorMode === "grade" && (<>
@@ -436,6 +469,13 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
             ))}
             {[...new Set(highways)].length > 6 && <span>+{[...new Set(highways)].length - 6}</span>}
           </>)}
+          {colorMode === "maxspeed" && (<>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />≤30</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#eab308" }} />≤50</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#f97316" }} />≤70</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#ef4444" }} />≤100</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#991b1b" }} />100+</span>
+          </>)}
         </div>
         <select
           value={colorMode}
@@ -447,6 +487,7 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
           <option value="surface">{t("colorMode.surface")}</option>
           <option value="grade">{t("colorMode.grade")}</option>
           <option value="highway">{t("colorMode.highway")}</option>
+          <option value="maxspeed">{t("colorMode.maxspeed")}</option>
         </select>
       </div>
       <canvas
