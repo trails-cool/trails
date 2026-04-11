@@ -354,6 +354,15 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       />
+      {colorMode === "grade" && (
+        <div className="mt-1 flex items-center justify-center gap-2 px-2 text-[10px] text-gray-500">
+          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#22c55e" }} />{"<3%"}</span>
+          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#eab308" }} />{"<6%"}</span>
+          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#f97316" }} />{"<10%"}</span>
+          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#ef4444" }} />{"<15%"}</span>
+          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#991b1b" }} />{"15%+"}</span>
+        </div>
+      )}
     </div>
   );
 }
