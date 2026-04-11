@@ -18,6 +18,7 @@ import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";
 import { PoiPanel, PoiMarkers } from "./PoiPanel";
+import { WaypointContextMenu } from "./WaypointContextMenu";
 import "leaflet/dist/leaflet.css";
 
 /** Distance from a point to a line segment in degrees (approximate) */
@@ -368,6 +369,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   useYjsPoiSync(yjs, poiState);
   const [enabledOverlays, setEnabledOverlays] = useState<string[]>([]);
   const [selectedBaseLayer, setSelectedBaseLayer] = useState<string>(baseLayers[0]!.name);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: number } | null>(null);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
@@ -687,12 +689,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             },
             contextmenu: (e) => {
               L.DomEvent.preventDefault(e as unknown as Event);
-              // Middle waypoints: toggle overnight. First/last: delete.
-              if (i > 0 && i < waypoints.length - 1) {
-                setOvernight(yjs, i, !wp.overnight);
-              } else {
-                deleteWaypoint(i);
-              }
+              const orig = e.originalEvent as MouseEvent;
+              setContextMenu({ x: orig.clientX, y: orig.clientY, index: i });
             },
           }}
         />
@@ -742,6 +740,17 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
         />
       )}
     </MapContainer>
+      {contextMenu && (
+        <WaypointContextMenu
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          isFirst={contextMenu.index === 0}
+          isLast={contextMenu.index === waypoints.length - 1}
+          isOvernight={waypoints[contextMenu.index]?.overnight ?? false}
+          onDelete={() => deleteWaypoint(contextMenu.index)}
+          onToggleOvernight={() => setOvernight(yjs, contextMenu.index, !waypoints[contextMenu.index]?.overnight)}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

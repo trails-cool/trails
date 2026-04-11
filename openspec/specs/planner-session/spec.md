@@ -1,13 +1,24 @@
-## Purpose
+## MODIFIED Requirements
 
-Collaborative planning session management with Yjs CRDT synchronization, supporting initialization from URL parameters, journal handoff, and GPX file upload.
+### Requirement: Real-time collaborative editing
+The Planner SHALL synchronize waypoint edits, route options, and overlay preferences across all connected participants in real-time using Yjs CRDTs.
 
-## Requirements
+#### Scenario: Add waypoint
+- **WHEN** participant A adds a waypoint to the map
+- **THEN** participant B sees the waypoint appear within 500ms
 
-### Requirement: Session initialization from GPX
-The Planner SHALL support initializing sessions from a GPX file upload in addition to URL parameters and the journal handoff.
+#### Scenario: Reorder waypoints
+- **WHEN** participant A drags a waypoint to reorder it
+- **THEN** participant B sees the updated waypoint order within 500ms
 
-#### Scenario: Session created from GPX upload
-- **WHEN** a session is created via GPX file upload on the home page
-- **THEN** waypoints and no-go areas from the GPX are passed via URL parameters to the session page
-- **AND** the Yjs document is initialized with the extracted data on the client side
+#### Scenario: Concurrent edits
+- **WHEN** participant A and B both add waypoints simultaneously
+- **THEN** both waypoints appear for both participants without conflict
+
+#### Scenario: Overlay sync
+- **WHEN** participant A enables the "Hillshading" tile overlay
+- **THEN** participant B sees hillshading appear on their map within 500ms
+
+#### Scenario: POI category sync
+- **WHEN** participant A enables the "Drinking water" POI category
+- **THEN** participant B sees drinking water markers appear on their map
