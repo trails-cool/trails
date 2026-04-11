@@ -379,7 +379,7 @@ test.describe("Planner", () => {
 
     // Legend should show highway types from mock data
     await expect(page.getByText("secondary")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("cycleway")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("residential")).toBeVisible({ timeout: 5000 });
   });
 
   test("road type hover label shows highway type", async ({ page, request }) => {
