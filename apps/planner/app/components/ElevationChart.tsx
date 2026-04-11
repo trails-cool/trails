@@ -346,9 +346,9 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
             <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#991b1b" }} />{"15%+"}</span>
           </>)}
           {colorMode === "elevation" && (<>
-            <span>{t("elevation.low")}</span>
+            <span>{Math.round(Math.min(...points.map(p => p.elevation)))}m</span>
             <span className="inline-block h-1.5 w-16 rounded-sm" style={{ background: "linear-gradient(to right, rgb(0, 200, 50), rgb(255, 200, 50), rgb(255, 0, 50))" }} />
-            <span>{t("elevation.high")}</span>
+            <span>{Math.round(Math.max(...points.map(p => p.elevation)))}m</span>
           </>)}
           {colorMode === "surface" && (
             <span>{t("colorMode.surfaceLegend")}</span>
