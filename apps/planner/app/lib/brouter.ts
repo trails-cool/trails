@@ -18,6 +18,10 @@ export interface EnrichedRoute {
   surfaces: string[];                      // surface type per coordinate point (e.g. "asphalt", "gravel")
   highways: string[];                      // highway classification per coordinate point (e.g. "cycleway", "residential")
   maxspeeds: string[];                    // speed limit per coordinate point (e.g. "30", "50", "none")
+  smoothnesses: string[];                 // smoothness per coordinate point (e.g. "good", "bad")
+  tracktypes: string[];                   // track type per coordinate point (e.g. "grade1", "grade5")
+  cycleways: string[];                    // cycleway type per coordinate point (e.g. "track", "lane")
+  bikeroutes: string[];                   // bicycle route network per coordinate point (e.g. "icn", "lcn")
   totalLength: number;
   totalAscend: number;
   totalTime: number;
@@ -98,6 +102,10 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
   const allSurfaces: string[] = [];
   const allHighways: string[] = [];
   const allMaxspeeds: string[] = [];
+  const allSmoothnesses: string[] = [];
+  const allTracktypes: string[] = [];
+  const allCycleways: string[] = [];
+  const allBikeroutes: string[] = [];
   const segmentBoundaries: number[] = [];
   let totalLength = 0;
   let totalAscend = 0;
@@ -123,6 +131,10 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
       allSurfaces.push(wayTagData.surfaces.get(j) ?? wayTagData.surfaces.get(j - 1) ?? "unknown");
       allHighways.push(wayTagData.highways.get(j) ?? wayTagData.highways.get(j - 1) ?? "unknown");
       allMaxspeeds.push(wayTagData.maxspeeds.get(j) ?? wayTagData.maxspeeds.get(j - 1) ?? "unknown");
+      allSmoothnesses.push(wayTagData.smoothnesses.get(j) ?? wayTagData.smoothnesses.get(j - 1) ?? "unknown");
+      allTracktypes.push(wayTagData.tracktypes.get(j) ?? wayTagData.tracktypes.get(j - 1) ?? "unknown");
+      allCycleways.push(wayTagData.cycleways.get(j) ?? wayTagData.cycleways.get(j - 1) ?? "unknown");
+      allBikeroutes.push(wayTagData.bikeroutes.get(j) ?? wayTagData.bikeroutes.get(j - 1) ?? "none");
     }
 
     // Accumulate stats
@@ -157,6 +169,10 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
     surfaces: allSurfaces,
     highways: allHighways,
     maxspeeds: allMaxspeeds,
+    smoothnesses: allSmoothnesses,
+    tracktypes: allTracktypes,
+    cycleways: allCycleways,
+    bikeroutes: allBikeroutes,
     totalLength,
     totalAscend,
     totalTime,
@@ -168,6 +184,10 @@ interface WayTagData {
   surfaces: Map<number, string>;
   highways: Map<number, string>;
   maxspeeds: Map<number, string>;
+  smoothnesses: Map<number, string>;
+  tracktypes: Map<number, string>;
+  cycleways: Map<number, string>;
+  bikeroutes: Map<number, string>;
 }
 
 /**
@@ -179,12 +199,16 @@ function extractWayTagData(properties: Record<string, unknown>): WayTagData {
   const surfaces = new Map<number, string>();
   const highways = new Map<number, string>();
   const maxspeeds = new Map<number, string>();
+  const smoothnesses = new Map<number, string>();
+  const tracktypes = new Map<number, string>();
+  const cycleways = new Map<number, string>();
+  const bikeroutes = new Map<number, string>();
   const messages = properties.messages as string[][] | undefined;
-  if (!messages || messages.length < 2) return { surfaces, highways, maxspeeds };
+  if (!messages || messages.length < 2) return { surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes };
 
   const headers = messages[0]!;
   const wayTagsIdx = headers.indexOf("WayTags");
-  if (wayTagsIdx === -1) return { surfaces, highways, maxspeeds };
+  if (wayTagsIdx === -1) return { surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes };
 
   for (let i = 1; i < messages.length; i++) {
     const row = messages[i]!;
@@ -209,8 +233,39 @@ function extractWayTagData(properties: Record<string, unknown>): WayTagData {
       speed = plain ? plain[1]! : "unknown";
     }
     maxspeeds.set(i - 1, speed);
+
+    // Extract smoothness
+    const smoothnessMatch = tags.match(/smoothness=(\S+)/);
+    smoothnesses.set(i - 1, smoothnessMatch ? smoothnessMatch[1]! : "unknown");
+
+    // Extract tracktype
+    const tracktypeMatch = tags.match(/tracktype=(\S+)/);
+    tracktypes.set(i - 1, tracktypeMatch ? tracktypeMatch[1]! : "unknown");
+
+    // Extract cycleway with direction handling
+    let cycleway: string | null = null;
+    if (!reversedirection) {
+      const right = tags.match(/cycleway:right=(\S+)/);
+      if (right) cycleway = right[1]!;
+    } else {
+      const left = tags.match(/cycleway:left=(\S+)/);
+      if (left) cycleway = left[1]!;
+    }
+    if (!cycleway) {
+      const bare = tags.match(/cycleway=(\S+)/);
+      cycleway = bare ? bare[1]! : "unknown";
+    }
+    cycleways.set(i - 1, cycleway);
+
+    // Extract bicycle route network (priority: icn > ncn > rcn > lcn)
+    let bikeroute = "none";
+    if (/route_bicycle_icn=yes/.test(tags)) bikeroute = "icn";
+    else if (/route_bicycle_ncn=yes/.test(tags)) bikeroute = "ncn";
+    else if (/route_bicycle_rcn=yes/.test(tags)) bikeroute = "rcn";
+    else if (/route_bicycle_lcn=yes/.test(tags)) bikeroute = "lcn";
+    bikeroutes.set(i - 1, bikeroute);
   }
-  return { surfaces, highways, maxspeeds };
+  return { surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes };
 }
 
 /**

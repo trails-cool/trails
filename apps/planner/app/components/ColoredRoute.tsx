@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Polyline } from "react-leaflet";
 import type L from "leaflet";
 
-export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway" | "maxspeed";
+export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway" | "maxspeed" | "smoothness" | "tracktype" | "cycleway" | "bikeroute";
 
 interface ColoredRouteProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]
@@ -10,6 +10,10 @@ interface ColoredRouteProps {
   surfaces?: string[];
   highways?: string[];
   maxspeeds?: string[];
+  smoothnesses?: string[];
+  tracktypes?: string[];
+  cycleways?: string[];
+  bikeroutes?: string[];
 }
 
 const SURFACE_COLORS: Record<string, string> = {
@@ -64,6 +68,51 @@ const HIGHWAY_COLORS: Record<string, string> = {
 
 const DEFAULT_HIGHWAY_COLOR = "#9ca3af";
 
+const SMOOTHNESS_COLORS: Record<string, string> = {
+  excellent: "#22c55e",
+  good: "#16a34a",
+  intermediate: "#eab308",
+  bad: "#f97316",
+  very_bad: "#ef4444",
+  horrible: "#991b1b",
+  very_horrible: "#7f1d1d",
+  impassable: "#450a0a",
+};
+
+const DEFAULT_SMOOTHNESS_COLOR = "#9ca3af";
+
+const TRACKTYPE_COLORS: Record<string, string> = {
+  grade1: "#22c55e",
+  grade2: "#84cc16",
+  grade3: "#eab308",
+  grade4: "#f97316",
+  grade5: "#ef4444",
+};
+
+const DEFAULT_TRACKTYPE_COLOR = "#9ca3af";
+
+const CYCLEWAY_COLORS: Record<string, string> = {
+  track: "#22c55e",
+  lane: "#84cc16",
+  shared_lane: "#eab308",
+  share_busway: "#f97316",
+  opposite_lane: "#818cf8",
+  separate: "#16a34a",
+  no: "#ef4444",
+};
+
+const DEFAULT_CYCLEWAY_COLOR = "#9ca3af";
+
+const BIKEROUTE_COLORS: Record<string, string> = {
+  icn: "#dc2626",
+  ncn: "#f97316",
+  rcn: "#eab308",
+  lcn: "#22c55e",
+  none: "#d4d4d8",
+};
+
+const DEFAULT_BIKEROUTE_COLOR = "#d4d4d8";
+
 export function routeGradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
   if (absGrade < 3) return "#22c55e";
@@ -96,7 +145,7 @@ export function maxspeedColor(speed: string): string {
   return "#991b1b"; // >100 dark red
 }
 
-export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxspeeds }: ColoredRouteProps) {
+export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes }: ColoredRouteProps) {
   const segments = useMemo(() => {
     if (colorMode === "plain" || coordinates.length < 2) {
       return null;
@@ -179,6 +228,78 @@ export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxsp
       return result;
     }
 
+    // smoothness mode
+    if (colorMode === "smoothness") {
+      if (!smoothnesses || smoothnesses.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const smoothness = smoothnesses[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: SMOOTHNESS_COLORS[smoothness] ?? DEFAULT_SMOOTHNESS_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // tracktype mode
+    if (colorMode === "tracktype") {
+      if (!tracktypes || tracktypes.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const tracktype = tracktypes[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: TRACKTYPE_COLORS[tracktype] ?? DEFAULT_TRACKTYPE_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // cycleway mode
+    if (colorMode === "cycleway") {
+      if (!cycleways || cycleways.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const cycleway = cycleways[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: CYCLEWAY_COLORS[cycleway] ?? DEFAULT_CYCLEWAY_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // bikeroute mode
+    if (colorMode === "bikeroute") {
+      if (!bikeroutes || bikeroutes.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const bikeroute = bikeroutes[i] ?? "none";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: BIKEROUTE_COLORS[bikeroute] ?? DEFAULT_BIKEROUTE_COLOR,
+        });
+      }
+      return result;
+    }
+
     // surface mode
     if (!surfaces || surfaces.length < coordinates.length) return null;
 
@@ -194,7 +315,7 @@ export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxsp
       });
     }
     return result;
-  }, [coordinates, colorMode, surfaces, highways, maxspeeds]);
+  }, [coordinates, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes]);
 
   const plainPositions = useMemo(
     () => coordinates.map((c) => [c[1], c[0]] as L.LatLngExpression),
@@ -235,4 +356,11 @@ export function findSegmentForPoint(
   return 0;
 }
 
-export { SURFACE_COLORS, DEFAULT_SURFACE_COLOR, HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR };
+export {
+  SURFACE_COLORS, DEFAULT_SURFACE_COLOR,
+  HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR,
+  SMOOTHNESS_COLORS, DEFAULT_SMOOTHNESS_COLOR,
+  TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
+  CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
+  BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
+};

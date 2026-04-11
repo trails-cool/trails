@@ -44,6 +44,22 @@ const MOCK_ROUTE_3WP = {
     "30", "30", "unknown", "unknown", "unknown",
     "unknown", "50", "50", "30", "30",
   ],
+  smoothnesses: [
+    "good", "good", "intermediate", "intermediate", "bad",
+    "bad", "good", "good", "excellent", "excellent",
+  ],
+  tracktypes: [
+    "unknown", "unknown", "unknown", "unknown", "grade3",
+    "grade3", "unknown", "unknown", "unknown", "unknown",
+  ],
+  cycleways: [
+    "lane", "lane", "track", "track", "unknown",
+    "unknown", "shared_lane", "shared_lane", "lane", "lane",
+  ],
+  bikeroutes: [
+    "rcn", "rcn", "lcn", "lcn", "none",
+    "none", "ncn", "ncn", "rcn", "rcn",
+  ],
 };
 
 /**
@@ -82,6 +98,18 @@ const MOCK_ROUTE_2WP = {
   ],
   maxspeeds: [
     "50", "50", "unknown", "unknown", "30", "30",
+  ],
+  smoothnesses: [
+    "good", "good", "intermediate", "bad", "good", "good",
+  ],
+  tracktypes: [
+    "unknown", "unknown", "grade2", "grade4", "unknown", "unknown",
+  ],
+  cycleways: [
+    "lane", "lane", "track", "no", "shared_lane", "shared_lane",
+  ],
+  bikeroutes: [
+    "ncn", "ncn", "rcn", "none", "lcn", "lcn",
   ],
 };
 

@@ -377,6 +377,10 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const [surfaces, setSurfaces] = useState<string[]>([]);
   const [highways, setHighways] = useState<string[]>([]);
   const [maxspeeds, setMaxspeeds] = useState<string[]>([]);
+  const [smoothnesses, setSmoothnesses] = useState<string[]>([]);
+  const [tracktypes, setTracktypes] = useState<string[]>([]);
+  const [cycleways, setCycleways] = useState<string[]>([]);
+  const [bikeroutes, setBikeroutes] = useState<string[]>([]);
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
   const [noGoDrawing, setNoGoDrawing] = useState(false);
   const toggleNoGoDraw = useCallback(() => setNoGoDrawing((v) => !v), []);
@@ -456,6 +460,34 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
         try { setMaxspeeds(JSON.parse(maxspeedsJson)); } catch { setMaxspeeds([]); }
       } else {
         setMaxspeeds([]);
+      }
+
+      const smoothnessesJson = yjs.routeData.get("smoothnesses") as string | undefined;
+      if (smoothnessesJson) {
+        try { setSmoothnesses(JSON.parse(smoothnessesJson)); } catch { setSmoothnesses([]); }
+      } else {
+        setSmoothnesses([]);
+      }
+
+      const tracktypesJson = yjs.routeData.get("tracktypes") as string | undefined;
+      if (tracktypesJson) {
+        try { setTracktypes(JSON.parse(tracktypesJson)); } catch { setTracktypes([]); }
+      } else {
+        setTracktypes([]);
+      }
+
+      const cyclewaysJson = yjs.routeData.get("cycleways") as string | undefined;
+      if (cyclewaysJson) {
+        try { setCycleways(JSON.parse(cyclewaysJson)); } catch { setCycleways([]); }
+      } else {
+        setCycleways([]);
+      }
+
+      const bikeroutesJson = yjs.routeData.get("bikeroutes") as string | undefined;
+      if (bikeroutesJson) {
+        try { setBikeroutes(JSON.parse(bikeroutesJson)); } catch { setBikeroutes([]); }
+      } else {
+        setBikeroutes([]);
       }
 
       if (modeVal) setColorMode(modeVal);
@@ -740,6 +772,10 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             surfaces={surfaces}
             highways={highways}
             maxspeeds={maxspeeds}
+            smoothnesses={smoothnesses}
+            tracktypes={tracktypes}
+            cycleways={cycleways}
+            bikeroutes={bikeroutes}
           />
           <RouteInteraction
             coordinates={routeCoordinates}
