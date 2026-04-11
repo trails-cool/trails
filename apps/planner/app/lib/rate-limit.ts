@@ -6,7 +6,7 @@ interface RateLimitEntry {
 const store = new Map<string, RateLimitEntry>();
 
 const DEFAULT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const DEFAULT_MAX_REQUESTS = 60;
+const DEFAULT_MAX_REQUESTS = 300;
 
 // Clean up expired entries periodically
 setInterval(() => {
