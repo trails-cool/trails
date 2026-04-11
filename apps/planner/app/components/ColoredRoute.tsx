@@ -104,11 +104,11 @@ const CYCLEWAY_COLORS: Record<string, string> = {
 const DEFAULT_CYCLEWAY_COLOR = "#9ca3af";
 
 const BIKEROUTE_COLORS: Record<string, string> = {
-  icn: "#dc2626",
-  ncn: "#f97316",
-  rcn: "#eab308",
-  lcn: "#22c55e",
-  none: "#d4d4d8",
+  icn: "#7c3aed",    // purple — international
+  ncn: "#2563eb",    // blue — national
+  rcn: "#0891b2",    // teal — regional
+  lcn: "#059669",    // emerald — local
+  none: "#d4d4d8",   // gray — no route
 };
 
 const DEFAULT_BIKEROUTE_COLOR = "#d4d4d8";

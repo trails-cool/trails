@@ -517,7 +517,8 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
           label += ` · ${cycleways[highlightIdx]}`;
         }
         if (colorMode === "bikeroute" && bikeroutes[highlightIdx]) {
-          label += ` · ${bikeroutes[highlightIdx]}`;
+          const names: Record<string, string> = { icn: "International", ncn: "National", rcn: "Regional", lcn: "Local", none: "None" };
+          label += ` · ${names[bikeroutes[highlightIdx]!] ?? bikeroutes[highlightIdx]}`;
         }
         const labelX = hx + 8 > w - 80 ? hx - 8 : hx + 8;
         ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
@@ -675,11 +676,11 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
             {[...new Set(cycleways)].length > 6 && <span>+{[...new Set(cycleways)].length - 6}</span>}
           </>)}
           {colorMode === "bikeroute" && (<>
-            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#dc2626" }} />icn</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#f97316" }} />ncn</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#eab308" }} />rcn</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />lcn</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#d4d4d8" }} />none</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#7c3aed" }} />International</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#2563eb" }} />National</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#0891b2" }} />Regional</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#059669" }} />Local</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#d4d4d8" }} />None</span>
           </>)}
         </div>
         <select
