@@ -380,14 +380,18 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
 
   const insertWaypointAtSegment = useCallback(
     (segmentIndex: number, lat: number, lon: number) => {
+      const snap = snapToPoi(lat, lon, poiState.pois);
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
-        yMap.set("lat", lat);
-        yMap.set("lon", lon);
+        yMap.set("lat", snap.lat);
+        yMap.set("lon", snap.snapped ? snap.lon : lon);
+        if (snap.name) yMap.set("name", snap.name);
+        if (snap.osmId) yMap.set("osmId", snap.osmId);
+        if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
         yjs.waypoints.insert(segmentIndex + 1, [yMap]);
       }, "local");
     },
-    [yjs.doc, yjs.waypoints],
+    [yjs.doc, yjs.waypoints, poiState.pois],
   );
 
   const handleRouteInsert = useCallback(
