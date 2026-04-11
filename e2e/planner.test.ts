@@ -76,7 +76,8 @@ test.describe("Planner", () => {
 
     // Switch to Notes tab
     await page.getByRole("button", { name: "Notes" }).click();
-    await expect(page.getByPlaceholder("Add notes for this session...")).toBeVisible();
+    // CodeMirror editor should be visible with the placeholder text
+    await expect(page.getByText("Add notes for this session...")).toBeVisible();
 
     // Switch back to Waypoints tab
     await page.getByRole("button", { name: "Waypoints" }).click();

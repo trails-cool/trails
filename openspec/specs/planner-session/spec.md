@@ -22,3 +22,17 @@ The Planner SHALL synchronize waypoint edits, route options, and overlay prefere
 #### Scenario: POI category sync
 - **WHEN** participant A enables the "Drinking water" POI category
 - **THEN** participant B sees drinking water markers appear on their map
+
+#### Scenario: Collaborative notes editing
+- **WHEN** participant A types in the notes editor
+- **THEN** participant B sees the text appear character-by-character in real-time
+- **AND** participant B sees participant A's cursor position and name
+
+#### Scenario: Notes cursor awareness
+- **WHEN** participant A selects text in the notes editor
+- **THEN** participant B sees participant A's selection highlighted in A's assigned color
+
+#### Scenario: Notes persist across reload
+- **WHEN** a participant reloads the session page
+- **THEN** the notes content is restored from the Yjs document
+- **AND** the editor displays the existing text immediately
