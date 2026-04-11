@@ -11,7 +11,7 @@ describe("buildQuery", () => {
     expect(query).toContain("[out:json]");
     expect(query).toContain("[bbox:52.5,13.3,52.6,13.5]");
     expect(query).toContain('amenity"="drinking_water"');
-    expect(query).toContain("out center 200");
+    expect(query).toContain("out center qt 100");
   });
 
   it("combines multiple categories into a single union", () => {

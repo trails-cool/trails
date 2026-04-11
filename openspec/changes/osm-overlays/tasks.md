@@ -62,3 +62,19 @@
 - [x] 10.3 Unit tests for profile-to-overlay mapping
 - [ ] 10.4 E2E test: enable hillshading overlay, verify tile requests
 - [ ] 10.5 E2E test: enable POI category, verify markers appear (mock Overpass response)
+
+## 11. POI-Waypoint Integration
+
+- [x] 11.1 Add "Add as waypoint" button to POI popup — appends POI location + name as waypoint
+- [x] 11.2 Snap click-to-add waypoints to nearby POIs (50m threshold) with name + metadata
+- [x] 11.3 Snap dragged waypoints to nearby POIs, clear name/metadata when dragged away
+- [x] 11.4 Snap route-inserted waypoints to nearby POIs
+- [x] 11.5 Store osmId and poiTags on Yjs waypoint Y.Map for snapped POIs
+
+## 12. Resilience
+
+- [x] 12.1 Fallback Overpass endpoint (kumi.systems → overpass-api.de)
+- [x] 12.2 Handle Overpass rate limit returned as HTTP 200 with error body
+- [x] 12.3 Reduce query size (100 results, 1MB maxsize, 10s timeout)
+- [x] 12.4 Extract z-index constants into z-index.ts for consistent marker layering
+- [x] 12.5 Increase Planner route rate limit from 60 to 300 requests/hour

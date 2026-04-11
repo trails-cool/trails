@@ -8,7 +8,9 @@ The Planner shows three base tile layers (OSM, OpenTopoMap, CyclOSM) but no over
 - **POI overlay panel**: Add a collapsible panel to toggle categories of OSM points of interest (water, shelter, camping, food, bike infrastructure, accommodation) queried from the Overpass API within the current viewport
 - **POI markers**: Render POI results as categorized markers with icons, name labels, and popups showing OSM tags (opening hours, website, etc.)
 - **Profile-aware defaults**: Auto-enable relevant overlays based on the active routing profile (cycling → Waymarked Cycling + bike POIs; hiking → Waymarked Hiking + water/shelter POIs)
-- **Overpass client**: Shared utility for querying the Overpass API with caching, debouncing, and rate limit handling — reused by the waypoint-notes POI snap feature
+- **Overpass client**: Shared utility for querying the Overpass API with caching, debouncing, rate limit handling, and endpoint fallback (kumi.systems → overpass-api.de)
+- **POI → waypoint**: "Add as waypoint" button in POI popups, plus automatic snapping of placed/dragged waypoints to nearby POIs (50m threshold) with OSM metadata preserved
+- **POI metadata on waypoints**: Waypoints snapped to POIs store osmId and key tags (phone, address, website, opening hours) for future Journal display
 
 ## Capabilities
 

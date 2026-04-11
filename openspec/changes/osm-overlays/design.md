@@ -169,18 +169,46 @@ routeOptions.poiCategories = ["drinking_water", "camping", "bike_infra"]
 Array of string IDs. Changes sync to all participants. Persisted in crash
 recovery localStorage snapshot.
 
+### D10: POI-to-waypoint integration
+
+POIs can become waypoints through three paths, all using the same snap logic:
+
+1. **"Add as waypoint" button** in POI popup → appends to end of route
+2. **Click near a POI** (within 50m) → new waypoint snaps to POI position
+3. **Drag waypoint near a POI** → snaps on drop, clears name if dragged away
+
+When snapping, the waypoint's Yjs Y.Map stores:
+- `osmId`: OSM node ID for future cross-referencing
+- `poiTags`: Key tags (phone, address, website, opening hours, amenity type)
+
+This metadata persists through Yjs and will be available for Journal display.
+
+### D11: Overpass endpoint fallback
+
+Primary endpoint is `overpass.kumi.systems` (higher rate limits, same as
+brouter-web). Falls back to `overpass-api.de` if the primary fails. The
+Overpass API sometimes returns rate limit errors as HTTP 200 with
+"rate_limited" in the body — the client checks for this pattern.
+
+### D12: Z-index layering
+
+Marker z-index offsets centralized in `apps/planner/app/lib/z-index.ts`:
+- Cursors (-1000) < Ghost waypoint (-100) < Waypoints (1000) <
+  Waypoint highlighted (1200) < POI markers (1500) < Highlight dot (2000)
+
 ## Risks / Trade-offs
 
 - **Overpass API availability**: Public endpoint, no SLA. If down, POI overlays
-  fail gracefully (show message, tile overlays still work). → Could add
-  fallback endpoint (`overpass.kumi.systems`) later.
+  fail gracefully (show message, tile overlays still work). Fallback endpoint
+  (`overpass.kumi.systems` → `overpass-api.de`) implemented.
 - **Tile service availability**: Waymarked Trails and hillshading tiles are
   community-run. → Degrade gracefully if tiles 404. Consider self-hosting tiles
   if usage grows.
 - **Performance with many POIs**: Dense areas (cities) may return hundreds of
-  POIs. → Marker clustering + zoom threshold mitigate this. Limit Overpass
-  response to 200 elements per category.
-- **leaflet.markercluster dependency**: Adds ~40KB. → Only load when POI
-  overlays are enabled (dynamic import).
+  POIs. → Zoom threshold (>=10) + 100 element limit mitigate this. Marker
+  clustering deferred — can add later if density becomes an issue.
 - **Overpass query cost**: Combining many categories into one query is efficient
-  but returns large payloads. → Only query enabled categories, not all.
+  but returns large payloads. → Only query enabled categories, not all. 1MB
+  maxsize limit, 10s timeout.
+- **Routing rate limit**: Multi-waypoint routes with POI snapping can trigger
+  rapid recomputes. Increased rate limit from 60 to 300/hour to accommodate.
