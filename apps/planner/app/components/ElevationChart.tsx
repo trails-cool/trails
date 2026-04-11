@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
-import { elevationColor, type ColorMode } from "~/components/ColoredRoute";
+import { elevationColor, SURFACE_COLORS, DEFAULT_SURFACE_COLOR, type ColorMode } from "~/components/ColoredRoute";
 
 function gradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
@@ -74,6 +74,7 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   const [points, setPoints] = useState<ElevationPoint[]>([]);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
+  const [surfaces, setSurfaces] = useState<string[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<ElevationPoint[]>([]);
   pointsRef.current = points;
@@ -88,6 +89,12 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
       }
       const mode = yjs.routeData.get("colorMode") as ColorMode | undefined;
       setColorMode(mode ?? "plain");
+      const surfacesJson = yjs.routeData.get("surfaces") as string | undefined;
+      if (surfacesJson) {
+        try { setSurfaces(JSON.parse(surfacesJson)); } catch { setSurfaces([]); }
+      } else {
+        setSurfaces([]);
+      }
     };
     yjs.routeData.observe(update);
     update();
@@ -172,6 +179,30 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
           ctx.fill();
 
           // Line segment
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "surface" && surfaces.length >= points.length) {
+        // Surface-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const surface = surfaces[i] ?? "unknown";
+          const color = SURFACE_COLORS[surface] ?? DEFAULT_SURFACE_COLOR;
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
           ctx.beginPath();
           ctx.moveTo(toX(p0.distance), toY(p0.elevation));
           ctx.lineTo(toX(p1.distance), toY(p1.elevation));
@@ -276,7 +307,7 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         ctx.fillText(label, labelX, PADDING.top + 10);
       }
     },
-    [points, colorMode, days, t],
+    [points, colorMode, surfaces, days, t],
   );
 
   useEffect(() => {
