@@ -363,13 +363,15 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
 
   const addWaypoint = useCallback(
     (lat: number, lng: number, name?: string) => {
-      const snap = name ? { lat, lon: lng, name, snapped: false } : snapToPoi(lat, lng, poiState.pois);
+      const snap = snapToPoi(lat, lng, poiState.pois);
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
         yMap.set("lat", snap.lat);
         yMap.set("lon", snap.snapped ? snap.lon : lng);
         if (snap.name) yMap.set("name", snap.name);
-        else if (name) yMap.set("name", name);
+        else if (name) yMap.set("name", name);  // fallback for explicit name
+        if (snap.osmId) yMap.set("osmId", snap.osmId);
+        if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
         yjs.waypoints.push([yMap]);
       }, "local");
     },
@@ -409,6 +411,13 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             yMap.set("name", snap.name);
           } else {
             yMap.delete("name");
+          }
+          if (snap.osmId) {
+            yMap.set("osmId", snap.osmId);
+            if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
+          } else {
+            yMap.delete("osmId");
+            yMap.delete("poiTags");
           }
         }, "local");
       }

@@ -2,11 +2,15 @@ import type { Poi } from "./overpass.ts";
 
 const SNAP_DISTANCE_METERS = 50;
 
-interface SnapResult {
+export interface SnapResult {
   lat: number;
   lon: number;
   name?: string;
   snapped: boolean;
+  /** OSM node ID if snapped */
+  osmId?: number;
+  /** Key POI tags if snapped */
+  poiTags?: Record<string, string>;
 }
 
 /**
@@ -28,11 +32,22 @@ export function snapToPoi(lat: number, lon: number, pois: Poi[]): SnapResult {
   }
 
   if (bestPoi && bestDist <= SNAP_DISTANCE_METERS) {
+    // Pick key tags worth persisting with the waypoint
+    const keepTags = ["phone", "contact:phone", "website", "opening_hours",
+      "addr:street", "addr:housenumber", "addr:postcode", "addr:city",
+      "description", "amenity", "tourism", "shop"];
+    const poiTags: Record<string, string> = {};
+    for (const key of keepTags) {
+      if (bestPoi.tags[key]) poiTags[key] = bestPoi.tags[key];
+    }
+
     return {
       lat: bestPoi.lat,
       lon: bestPoi.lon,
       name: bestPoi.name,
       snapped: true,
+      osmId: bestPoi.id,
+      poiTags: Object.keys(poiTags).length > 0 ? poiTags : undefined,
     };
   }
 
