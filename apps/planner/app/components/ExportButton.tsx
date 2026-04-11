@@ -2,7 +2,7 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
-import { generateGpx } from "@trails-cool/gpx";
+import { generateGpx, computeDays } from "@trails-cool/gpx";
 import type { TrackPoint, NoGoArea } from "@trails-cool/gpx";
 
 function getTracks(yjs: YjsState): TrackPoint[][] {
@@ -74,6 +74,53 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
     setOpen(false);
   }, [yjs]);
 
+  const handleExportDays = useCallback(() => {
+    const tracks = getTracks(yjs);
+    const waypoints = getWaypoints(yjs);
+    const allPoints = tracks.flat();
+    if (allPoints.length === 0 || waypoints.length === 0) return;
+
+    const days = computeDays(waypoints, tracks);
+    if (days.length <= 1) {
+      // Single day — just export the full route
+      const gpx = generateGpx({ name: "trails.cool route", tracks });
+      download(gpx, "route.gpx");
+      setOpen(false);
+      return;
+    }
+
+    // Find closest track index for each waypoint
+    const wpTrackIndices = waypoints.map((wp) => {
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < allPoints.length; i++) {
+        const dx = allPoints[i]!.lat - wp.lat;
+        const dy = allPoints[i]!.lon - wp.lon;
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+      return bestIdx;
+    });
+
+    for (const day of days) {
+      const startIdx = wpTrackIndices[day.startWaypointIndex]!;
+      const endIdx = wpTrackIndices[day.endWaypointIndex]!;
+      const dayPoints = allPoints.slice(startIdx, endIdx + 1);
+      const dayName = day.startName && day.endName
+        ? `Day ${day.dayNumber}: ${day.startName} - ${day.endName}`
+        : `Day ${day.dayNumber}`;
+      const gpx = generateGpx({ name: dayName, tracks: [dayPoints] });
+      const filename = `day-${day.dayNumber}${day.startName ? `-${day.startName.toLowerCase().replace(/\s+/g, "-")}` : ""}.gpx`;
+      download(gpx, filename);
+    }
+    setOpen(false);
+  }, [yjs]);
+
+  const hasMultipleDays = (() => {
+    const waypoints = getWaypoints(yjs);
+    return waypoints.some((w) => w.isDayBreak);
+  })();
+
   return (
     <div ref={ref} className="relative z-[1001]">
       <div className="flex">
@@ -106,6 +153,15 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
             <span className="text-sm text-gray-700">{t("exportPlan")}</span>
             <span className="block text-xs text-gray-400">{t("exportPlanDesc")}</span>
           </button>
+          {hasMultipleDays && (
+            <button
+              onClick={handleExportDays}
+              className="block w-full px-3 py-1.5 text-left hover:bg-gray-100"
+            >
+              <span className="text-sm text-gray-700">{t("exportDays")}</span>
+              <span className="block text-xs text-gray-400">{t("exportDaysDesc")}</span>
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -22,6 +22,8 @@ export default {
     exportRouteDesc: "Clean GPX track for any app",
     exportPlan: "Export Plan",
     exportPlanDesc: "Includes waypoints and no-go areas",
+    exportDays: "Export Day Segments",
+    exportDaysDesc: "One GPX file per day",
     "undo.tooltip": "Undo (Ctrl+Z)",
     "redo.tooltip": "Redo (Ctrl+Shift+Z)",
     importGpx: "Import GPX",
