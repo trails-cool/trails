@@ -144,6 +144,83 @@ describe("mergeGeoJsonSegments", () => {
   });
 });
 
+describe("highway tag extraction", () => {
+  function makeSegmentWithTags(coords: number[][], tags: string[]) {
+    return {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        properties: {
+          "track-length": "100",
+          "filtered ascend": "0",
+          "total-time": "100",
+          messages: [
+            ["Longitude", "Latitude", "Elevation", "Distance", "CostPerKm", "ElevCost", "TurnCost", "NodeCost", "InitialCost", "WayTags"],
+            ...tags.map((t, i) => [String(coords[i]?.[0] ?? 0), String(coords[i]?.[1] ?? 0), "0", "100", "0", "0", "0", "0", "0", t]),
+          ],
+        },
+        geometry: { type: "LineString", coordinates: coords },
+      }],
+    };
+  }
+
+  it("extracts highway tags from WayTags", () => {
+    const seg = makeSegmentWithTags(
+      [[13.0, 52.0, 30], [13.1, 52.1, 40], [13.2, 52.2, 50]],
+      ["highway=cycleway surface=asphalt", "highway=residential surface=cobblestone", "highway=path surface=gravel"],
+    );
+
+    const result = mergeGeoJsonSegments([seg] as never[]);
+    expect(result.highways[0]).toBe("cycleway");
+    expect(result.highways[1]).toBe("residential");
+    expect(result.highways[2]).toBe("path");
+  });
+
+  it("extracts surface and highway tags together", () => {
+    const seg = makeSegmentWithTags(
+      [[13.0, 52.0, 30], [13.1, 52.1, 40]],
+      ["highway=tertiary surface=asphalt", "highway=cycleway surface=gravel"],
+    );
+
+    const result = mergeGeoJsonSegments([seg] as never[]);
+    expect(result.surfaces[0]).toBe("asphalt");
+    expect(result.highways[0]).toBe("tertiary");
+    expect(result.surfaces[1]).toBe("gravel");
+    expect(result.highways[1]).toBe("cycleway");
+  });
+
+  it("defaults to unknown when highway tag is missing", () => {
+    const seg = makeSegmentWithTags(
+      [[13.0, 52.0, 30], [13.1, 52.1, 40]],
+      ["surface=asphalt", "surface=gravel"],
+    );
+
+    const result = mergeGeoJsonSegments([seg] as never[]);
+    expect(result.highways[0]).toBe("unknown");
+    expect(result.highways[1]).toBe("unknown");
+  });
+
+  it("handles missing WayTags column", () => {
+    const seg = {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        properties: {
+          "track-length": "100",
+          "filtered ascend": "0",
+          "total-time": "100",
+          messages: [["Longitude", "Latitude"]],
+        },
+        geometry: { type: "LineString", coordinates: [[13.0, 52.0, 30], [13.1, 52.1, 40]] },
+      }],
+    };
+
+    const result = mergeGeoJsonSegments([seg] as never[]);
+    expect(result.highways[0]).toBe("unknown");
+    expect(result.highways[1]).toBe("unknown");
+  });
+});
+
 describe("waypoint to BRouter segments", () => {
   it("splits N waypoints into N-1 pairs", () => {
     const waypoints = [

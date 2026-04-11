@@ -32,7 +32,34 @@ const MOCK_ROUTE_3WP = {
   segmentBoundaries: [0, 4],
   totalLength: 3200,
   totalAscend: 8,
-  surfaces: [],
+  surfaces: [
+    "asphalt", "asphalt", "cobblestone", "cobblestone", "gravel",
+    "gravel", "asphalt", "asphalt", "asphalt", "asphalt",
+  ],
+  highways: [
+    "residential", "residential", "cycleway", "cycleway", "path",
+    "path", "tertiary", "tertiary", "residential", "residential",
+  ],
+  maxspeeds: [
+    "30", "30", "unknown", "unknown", "unknown",
+    "unknown", "50", "50", "30", "30",
+  ],
+  smoothnesses: [
+    "good", "good", "intermediate", "intermediate", "bad",
+    "bad", "good", "good", "excellent", "excellent",
+  ],
+  tracktypes: [
+    "unknown", "unknown", "unknown", "unknown", "grade3",
+    "grade3", "unknown", "unknown", "unknown", "unknown",
+  ],
+  cycleways: [
+    "lane", "lane", "track", "track", "unknown",
+    "unknown", "shared_lane", "shared_lane", "lane", "lane",
+  ],
+  bikeroutes: [
+    "rcn", "rcn", "lcn", "lcn", "none",
+    "none", "ncn", "ncn", "rcn", "rcn",
+  ],
 };
 
 /**
@@ -63,7 +90,27 @@ const MOCK_ROUTE_2WP = {
   segmentBoundaries: [0],
   totalLength: 3800,
   totalAscend: 6,
-  surfaces: [],
+  surfaces: [
+    "asphalt", "asphalt", "gravel", "gravel", "asphalt", "asphalt",
+  ],
+  highways: [
+    "secondary", "secondary", "cycleway", "cycleway", "residential", "residential",
+  ],
+  maxspeeds: [
+    "50", "50", "unknown", "unknown", "30", "30",
+  ],
+  smoothnesses: [
+    "good", "good", "intermediate", "bad", "good", "good",
+  ],
+  tracktypes: [
+    "unknown", "unknown", "grade2", "grade4", "unknown", "unknown",
+  ],
+  cycleways: [
+    "lane", "lane", "track", "no", "shared_lane", "shared_lane",
+  ],
+  bikeroutes: [
+    "ncn", "ncn", "rcn", "none", "lcn", "lcn",
+  ],
 };
 
 /**

@@ -2,7 +2,16 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
-import { elevationColor, SURFACE_COLORS, DEFAULT_SURFACE_COLOR, type ColorMode } from "~/components/ColoredRoute";
+import {
+  elevationColor, maxspeedColor,
+  SURFACE_COLORS, DEFAULT_SURFACE_COLOR,
+  HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR,
+  SMOOTHNESS_COLORS, DEFAULT_SMOOTHNESS_COLOR,
+  TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
+  CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
+  BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
+  type ColorMode,
+} from "~/components/ColoredRoute";
 
 function gradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
@@ -75,6 +84,12 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
   const [surfaces, setSurfaces] = useState<string[]>([]);
+  const [highways, setHighways] = useState<string[]>([]);
+  const [maxspeeds, setMaxspeeds] = useState<string[]>([]);
+  const [smoothnesses, setSmoothnesses] = useState<string[]>([]);
+  const [tracktypes, setTracktypes] = useState<string[]>([]);
+  const [cycleways, setCycleways] = useState<string[]>([]);
+  const [bikeroutes, setBikeroutes] = useState<string[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<ElevationPoint[]>([]);
   pointsRef.current = points;
@@ -94,6 +109,42 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         try { setSurfaces(JSON.parse(surfacesJson)); } catch { setSurfaces([]); }
       } else {
         setSurfaces([]);
+      }
+      const highwaysJson = yjs.routeData.get("highways") as string | undefined;
+      if (highwaysJson) {
+        try { setHighways(JSON.parse(highwaysJson)); } catch { setHighways([]); }
+      } else {
+        setHighways([]);
+      }
+      const maxspeedsJson = yjs.routeData.get("maxspeeds") as string | undefined;
+      if (maxspeedsJson) {
+        try { setMaxspeeds(JSON.parse(maxspeedsJson)); } catch { setMaxspeeds([]); }
+      } else {
+        setMaxspeeds([]);
+      }
+      const smoothnessesJson = yjs.routeData.get("smoothnesses") as string | undefined;
+      if (smoothnessesJson) {
+        try { setSmoothnesses(JSON.parse(smoothnessesJson)); } catch { setSmoothnesses([]); }
+      } else {
+        setSmoothnesses([]);
+      }
+      const tracktypesJson = yjs.routeData.get("tracktypes") as string | undefined;
+      if (tracktypesJson) {
+        try { setTracktypes(JSON.parse(tracktypesJson)); } catch { setTracktypes([]); }
+      } else {
+        setTracktypes([]);
+      }
+      const cyclewaysJson = yjs.routeData.get("cycleways") as string | undefined;
+      if (cyclewaysJson) {
+        try { setCycleways(JSON.parse(cyclewaysJson)); } catch { setCycleways([]); }
+      } else {
+        setCycleways([]);
+      }
+      const bikeroutesJson = yjs.routeData.get("bikeroutes") as string | undefined;
+      if (bikeroutesJson) {
+        try { setBikeroutes(JSON.parse(bikeroutesJson)); } catch { setBikeroutes([]); }
+      } else {
+        setBikeroutes([]);
       }
     };
     yjs.routeData.observe(update);
@@ -210,6 +261,150 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
           ctx.lineWidth = 2;
           ctx.stroke();
         }
+      } else if (colorMode === "highway" && highways.length >= points.length) {
+        // Highway-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const highway = highways[i] ?? "unknown";
+          const color = HIGHWAY_COLORS[highway] ?? DEFAULT_HIGHWAY_COLOR;
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "maxspeed" && maxspeeds.length >= points.length) {
+        // Maxspeed-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const speed = maxspeeds[i] ?? "unknown";
+          const color = maxspeedColor(speed);
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "smoothness" && smoothnesses.length >= points.length) {
+        // Smoothness-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const smoothness = smoothnesses[i] ?? "unknown";
+          const color = SMOOTHNESS_COLORS[smoothness] ?? DEFAULT_SMOOTHNESS_COLOR;
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "tracktype" && tracktypes.length >= points.length) {
+        // Track type-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const tracktype = tracktypes[i] ?? "unknown";
+          const color = TRACKTYPE_COLORS[tracktype] ?? DEFAULT_TRACKTYPE_COLOR;
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "cycleway" && cycleways.length >= points.length) {
+        // Cycleway-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const cycleway = cycleways[i] ?? "unknown";
+          const color = CYCLEWAY_COLORS[cycleway] ?? DEFAULT_CYCLEWAY_COLOR;
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "bikeroute" && bikeroutes.length >= points.length) {
+        // Bike route-colored segments
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const bikeroute = bikeroutes[i] ?? "none";
+          const color = BIKEROUTE_COLORS[bikeroute] ?? DEFAULT_BIKEROUTE_COLOR;
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       } else {
         // Plain fill and line
         ctx.beginPath();
@@ -305,12 +500,32 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         if (colorMode === "surface" && surfaces[highlightIdx]) {
           label += ` · ${surfaces[highlightIdx]}`;
         }
+        if (colorMode === "highway" && highways[highlightIdx]) {
+          label += ` · ${highways[highlightIdx]}`;
+        }
+        if (colorMode === "maxspeed" && maxspeeds[highlightIdx]) {
+          const s = maxspeeds[highlightIdx]!;
+          label += ` · ${s === "unknown" ? s : `${s} km/h`}`;
+        }
+        if (colorMode === "smoothness" && smoothnesses[highlightIdx]) {
+          label += ` · ${smoothnesses[highlightIdx]}`;
+        }
+        if (colorMode === "tracktype" && tracktypes[highlightIdx]) {
+          label += ` · ${tracktypes[highlightIdx]}`;
+        }
+        if (colorMode === "cycleway" && cycleways[highlightIdx]) {
+          label += ` · ${cycleways[highlightIdx]}`;
+        }
+        if (colorMode === "bikeroute" && bikeroutes[highlightIdx]) {
+          const names: Record<string, string> = { icn: "International", ncn: "National", rcn: "Regional", lcn: "Local", none: "None" };
+          label += ` · ${names[bikeroutes[highlightIdx]!] ?? bikeroutes[highlightIdx]}`;
+        }
         const labelX = hx + 8 > w - 80 ? hx - 8 : hx + 8;
         ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
         ctx.fillText(label, labelX, PADDING.top + 10);
       }
     },
-    [points, colorMode, surfaces, days, t],
+    [points, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes, days, t],
   );
 
   useEffect(() => {
@@ -368,9 +583,35 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   return (
     <div className="border-t border-gray-200 px-2 py-2">
       <div className="mb-1 flex items-center gap-2 px-2">
-        <p className="shrink-0 text-xs font-medium text-gray-500">
-          {colorMode === "grade" ? t("elevation.grade") : t("elevation.profile")}
-        </p>
+        {(() => {
+          const osmLinks: Record<string, string> = {
+            highway: "https://wiki.openstreetmap.org/wiki/Key:highway",
+            maxspeed: "https://wiki.openstreetmap.org/wiki/Key:maxspeed",
+            surface: "https://wiki.openstreetmap.org/wiki/Key:surface",
+            smoothness: "https://wiki.openstreetmap.org/wiki/Key:smoothness",
+            tracktype: "https://wiki.openstreetmap.org/wiki/Key:tracktype",
+            cycleway: "https://wiki.openstreetmap.org/wiki/Key:cycleway",
+            bikeroute: "https://wiki.openstreetmap.org/wiki/Tag:route%3Dbicycle",
+          };
+          const titles: Record<string, string> = {
+            grade: t("elevation.grade"),
+            highway: t("elevation.highway"),
+            maxspeed: t("elevation.maxspeed"),
+            smoothness: t("elevation.smoothness"),
+            tracktype: t("elevation.tracktype"),
+            cycleway: t("elevation.cycleway"),
+            bikeroute: t("elevation.bikeroute"),
+          };
+          const title = titles[colorMode] ?? t("elevation.profile");
+          const link = osmLinks[colorMode];
+          return link ? (
+            <a href={link} target="_blank" rel="noopener" className="shrink-0 text-xs font-medium text-gray-500 hover:text-blue-600 hover:underline">
+              {title}
+            </a>
+          ) : (
+            <p className="shrink-0 text-xs font-medium text-gray-500">{title}</p>
+          );
+        })()}
         <div className="flex flex-1 items-center justify-center gap-1.5 text-[10px] text-gray-400">
           {colorMode === "grade" && (<>
             <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />{"<3%"}</span>
@@ -393,6 +634,54 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
             ))}
             {[...new Set(surfaces)].length > 6 && <span>+{[...new Set(surfaces)].length - 6}</span>}
           </>)}
+          {colorMode === "highway" && highways.length > 0 && (<>
+            {[...new Set(highways)].slice(0, 6).map((h) => (
+              <span key={h} className="flex items-center gap-0.5">
+                <span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: HIGHWAY_COLORS[h] ?? DEFAULT_HIGHWAY_COLOR }} />
+                {h}
+              </span>
+            ))}
+            {[...new Set(highways)].length > 6 && <span>+{[...new Set(highways)].length - 6}</span>}
+          </>)}
+          {colorMode === "maxspeed" && (<>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />{"≤30"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#eab308" }} />{"≤50"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#f97316" }} />{"≤70"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#ef4444" }} />{"≤100"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#991b1b" }} />{"100+"}</span>
+          </>)}
+          {colorMode === "smoothness" && smoothnesses.length > 0 && (<>
+            {[...new Set(smoothnesses)].slice(0, 6).map((s) => (
+              <span key={s} className="flex items-center gap-0.5">
+                <span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: SMOOTHNESS_COLORS[s] ?? DEFAULT_SMOOTHNESS_COLOR }} />
+                {s}
+              </span>
+            ))}
+            {[...new Set(smoothnesses)].length > 6 && <span>+{[...new Set(smoothnesses)].length - 6}</span>}
+          </>)}
+          {colorMode === "tracktype" && (<>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />grade1</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#84cc16" }} />grade2</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#eab308" }} />grade3</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#f97316" }} />grade4</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#ef4444" }} />grade5</span>
+          </>)}
+          {colorMode === "cycleway" && cycleways.length > 0 && (<>
+            {[...new Set(cycleways)].slice(0, 6).map((c) => (
+              <span key={c} className="flex items-center gap-0.5">
+                <span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: CYCLEWAY_COLORS[c] ?? DEFAULT_CYCLEWAY_COLOR }} />
+                {c}
+              </span>
+            ))}
+            {[...new Set(cycleways)].length > 6 && <span>+{[...new Set(cycleways)].length - 6}</span>}
+          </>)}
+          {colorMode === "bikeroute" && (<>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#7c3aed" }} />International</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#2563eb" }} />National</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#0891b2" }} />Regional</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#059669" }} />Local</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#d4d4d8" }} />None</span>
+          </>)}
         </div>
         <select
           value={colorMode}
@@ -401,8 +690,14 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         >
           <option value="plain">{t("colorMode.plain")}</option>
           <option value="elevation">{t("colorMode.elevation")}</option>
-          <option value="surface">{t("colorMode.surface")}</option>
           <option value="grade">{t("colorMode.grade")}</option>
+          <option value="surface">{t("colorMode.surface")}</option>
+          <option value="highway">{t("colorMode.highway")}</option>
+          <option value="maxspeed">{t("colorMode.maxspeed")}</option>
+          <option value="smoothness">{t("colorMode.smoothness")}</option>
+          <option value="tracktype">{t("colorMode.tracktype")}</option>
+          <option value="cycleway">{t("colorMode.cycleway")}</option>
+          <option value="bikeroute">{t("colorMode.bikeroute")}</option>
         </select>
       </div>
       <canvas

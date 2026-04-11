@@ -126,6 +126,24 @@ export function useRouting(yjs: YjsState | null) {
           if (enriched.surfaces?.length) {
             yjs.routeData.set("surfaces", JSON.stringify(enriched.surfaces));
           }
+          if (enriched.highways?.length) {
+            yjs.routeData.set("highways", JSON.stringify(enriched.highways));
+          }
+          if (enriched.maxspeeds?.length) {
+            yjs.routeData.set("maxspeeds", JSON.stringify(enriched.maxspeeds));
+          }
+          if (enriched.smoothnesses?.length) {
+            yjs.routeData.set("smoothnesses", JSON.stringify(enriched.smoothnesses));
+          }
+          if (enriched.tracktypes?.length) {
+            yjs.routeData.set("tracktypes", JSON.stringify(enriched.tracktypes));
+          }
+          if (enriched.cycleways?.length) {
+            yjs.routeData.set("cycleways", JSON.stringify(enriched.cycleways));
+          }
+          if (enriched.bikeroutes?.length) {
+            yjs.routeData.set("bikeroutes", JSON.stringify(enriched.bikeroutes));
+          }
         });
       } catch {
         setRouteError("failed");

@@ -1,8 +1,4 @@
-## Purpose
-
-Multi-mode route visualization (plain, elevation gradient, surface type, grade, road type) with session-synced color mode selection. Both the route polyline on the map and the elevation chart reflect the selected color mode.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Route color modes
 The Planner SHALL support multiple route color modes that visualize per-point data along the route.
@@ -49,25 +45,6 @@ The Planner SHALL provide a UI control to switch between route color modes.
 #### Scenario: Color mode persists in session
 - **WHEN** a user changes the color mode
 - **THEN** the selection is stored in the Yjs routeData map and synced to all participants
-
-### Requirement: Elevation chart color sync
-The elevation profile chart SHALL use the same coloring as the route for each color mode.
-
-#### Scenario: Elevation mode chart coloring
-- **WHEN** the color mode is set to "Elevation"
-- **THEN** the elevation chart line and fill use the same green→yellow→red gradient as the route polyline
-
-#### Scenario: Surface mode chart coloring
-- **WHEN** the color mode is set to "Surface" and surface data is available
-- **THEN** the elevation chart segments are colored by surface type, matching the route
-
-#### Scenario: Grade mode chart coloring
-- **WHEN** the color mode is set to "Grade"
-- **THEN** the elevation chart segments are colored by steepness, matching the route
-
-#### Scenario: Plain mode chart coloring
-- **WHEN** the color mode is "Plain"
-- **THEN** the elevation chart uses the default blue color
 
 ### Requirement: Color legends
 The elevation chart SHALL display a legend matching the active color mode.

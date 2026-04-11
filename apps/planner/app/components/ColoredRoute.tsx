@@ -2,12 +2,18 @@ import { useMemo } from "react";
 import { Polyline } from "react-leaflet";
 import type L from "leaflet";
 
-export type ColorMode = "plain" | "elevation" | "surface" | "grade";
+export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway" | "maxspeed" | "smoothness" | "tracktype" | "cycleway" | "bikeroute";
 
 interface ColoredRouteProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]
   colorMode: ColorMode;
   surfaces?: string[];
+  highways?: string[];
+  maxspeeds?: string[];
+  smoothnesses?: string[];
+  tracktypes?: string[];
+  cycleways?: string[];
+  bikeroutes?: string[];
 }
 
 const SURFACE_COLORS: Record<string, string> = {
@@ -32,6 +38,81 @@ const SURFACE_COLORS: Record<string, string> = {
 
 const DEFAULT_SURFACE_COLOR = "#9ca3af";
 
+const HIGHWAY_COLORS: Record<string, string> = {
+  // Major roads — warm tones (caution for cyclists)
+  motorway: "#dc2626",
+  motorway_link: "#dc2626",
+  trunk: "#ea580c",
+  trunk_link: "#ea580c",
+  primary: "#f97316",
+  primary_link: "#f97316",
+  // Urban roads — neutral tones
+  secondary: "#6366f1",
+  secondary_link: "#6366f1",
+  tertiary: "#818cf8",
+  tertiary_link: "#818cf8",
+  residential: "#6b7280",
+  unclassified: "#9ca3af",
+  living_street: "#a78bfa",
+  // Paths & cycling infrastructure — green tones
+  cycleway: "#16a34a",
+  path: "#22c55e",
+  footway: "#4ade80",
+  track: "#65a30d",
+  bridleway: "#84cc16",
+  // Service & other — muted tones
+  service: "#d4d4d8",
+  pedestrian: "#c084fc",
+  steps: "#f472b6",
+};
+
+const DEFAULT_HIGHWAY_COLOR = "#9ca3af";
+
+const SMOOTHNESS_COLORS: Record<string, string> = {
+  excellent: "#22c55e",
+  good: "#16a34a",
+  intermediate: "#eab308",
+  bad: "#f97316",
+  very_bad: "#ef4444",
+  horrible: "#991b1b",
+  very_horrible: "#7f1d1d",
+  impassable: "#450a0a",
+};
+
+const DEFAULT_SMOOTHNESS_COLOR = "#9ca3af";
+
+const TRACKTYPE_COLORS: Record<string, string> = {
+  grade1: "#22c55e",
+  grade2: "#84cc16",
+  grade3: "#eab308",
+  grade4: "#f97316",
+  grade5: "#ef4444",
+};
+
+const DEFAULT_TRACKTYPE_COLOR = "#9ca3af";
+
+const CYCLEWAY_COLORS: Record<string, string> = {
+  track: "#22c55e",
+  lane: "#84cc16",
+  shared_lane: "#eab308",
+  share_busway: "#f97316",
+  opposite_lane: "#818cf8",
+  separate: "#16a34a",
+  no: "#ef4444",
+};
+
+const DEFAULT_CYCLEWAY_COLOR = "#9ca3af";
+
+const BIKEROUTE_COLORS: Record<string, string> = {
+  icn: "#7c3aed",    // purple — international
+  ncn: "#2563eb",    // blue — national
+  rcn: "#0891b2",    // teal — regional
+  lcn: "#059669",    // emerald — local
+  none: "#d4d4d8",   // gray — no route
+};
+
+const DEFAULT_BIKEROUTE_COLOR = "#d4d4d8";
+
 export function routeGradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
   if (absGrade < 3) return "#22c55e";
@@ -51,7 +132,20 @@ export function elevationColor(t: number): string {
   return `rgb(255, ${g}, 50)`;
 }
 
-export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteProps) {
+export function maxspeedColor(speed: string): string {
+  if (speed === "walk") return "#22c55e";
+  if (speed === "none") return "#991b1b";
+  const num = parseInt(speed, 10);
+  if (isNaN(num)) return "#9ca3af"; // unknown/gray
+  if (num <= 20) return "#22c55e";
+  if (num <= 30) return "#22c55e";
+  if (num <= 50) return "#eab308";
+  if (num <= 70) return "#f97316";
+  if (num <= 100) return "#ef4444";
+  return "#991b1b"; // >100 dark red
+}
+
+export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes }: ColoredRouteProps) {
   const segments = useMemo(() => {
     if (colorMode === "plain" || coordinates.length < 2) {
       return null;
@@ -98,6 +192,114 @@ export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteP
       return result;
     }
 
+    // highway mode
+    if (colorMode === "highway") {
+      if (!highways || highways.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const highway = highways[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: HIGHWAY_COLORS[highway] ?? DEFAULT_HIGHWAY_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // maxspeed mode
+    if (colorMode === "maxspeed") {
+      if (!maxspeeds || maxspeeds.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const speed = maxspeeds[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: maxspeedColor(speed),
+        });
+      }
+      return result;
+    }
+
+    // smoothness mode
+    if (colorMode === "smoothness") {
+      if (!smoothnesses || smoothnesses.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const smoothness = smoothnesses[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: SMOOTHNESS_COLORS[smoothness] ?? DEFAULT_SMOOTHNESS_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // tracktype mode
+    if (colorMode === "tracktype") {
+      if (!tracktypes || tracktypes.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const tracktype = tracktypes[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: TRACKTYPE_COLORS[tracktype] ?? DEFAULT_TRACKTYPE_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // cycleway mode
+    if (colorMode === "cycleway") {
+      if (!cycleways || cycleways.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const cycleway = cycleways[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: CYCLEWAY_COLORS[cycleway] ?? DEFAULT_CYCLEWAY_COLOR,
+        });
+      }
+      return result;
+    }
+
+    // bikeroute mode
+    if (colorMode === "bikeroute") {
+      if (!bikeroutes || bikeroutes.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const bikeroute = bikeroutes[i] ?? "none";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: BIKEROUTE_COLORS[bikeroute] ?? DEFAULT_BIKEROUTE_COLOR,
+        });
+      }
+      return result;
+    }
+
     // surface mode
     if (!surfaces || surfaces.length < coordinates.length) return null;
 
@@ -113,7 +315,7 @@ export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteP
       });
     }
     return result;
-  }, [coordinates, colorMode, surfaces]);
+  }, [coordinates, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes]);
 
   const plainPositions = useMemo(
     () => coordinates.map((c) => [c[1], c[0]] as L.LatLngExpression),
@@ -154,4 +356,11 @@ export function findSegmentForPoint(
   return 0;
 }
 
-export { SURFACE_COLORS, DEFAULT_SURFACE_COLOR };
+export {
+  SURFACE_COLORS, DEFAULT_SURFACE_COLOR,
+  HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR,
+  SMOOTHNESS_COLORS, DEFAULT_SMOOTHNESS_COLOR,
+  TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
+  CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
+  BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
+};
