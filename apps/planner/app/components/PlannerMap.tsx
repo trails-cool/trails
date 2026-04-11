@@ -405,7 +405,11 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
         yjs.doc.transact(() => {
           yMap.set("lat", snap.lat);
           yMap.set("lon", snap.snapped ? snap.lon : lng);
-          if (snap.snapped && snap.name) yMap.set("name", snap.name);
+          if (snap.snapped && snap.name) {
+            yMap.set("name", snap.name);
+          } else {
+            yMap.delete("name");
+          }
         }, "local");
       }
     },
