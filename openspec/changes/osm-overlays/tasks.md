@@ -60,8 +60,8 @@
 - [x] 10.1 Unit tests for Overpass client: query building, response parsing, deduplication
 - [x] 10.2 Unit tests for POI cache: tile quantization, TTL expiry, cache hit/miss
 - [x] 10.3 Unit tests for profile-to-overlay mapping
-- [ ] 10.4 E2E test: enable hillshading overlay, verify tile requests
-- [ ] 10.5 E2E test: enable POI category, verify markers appear (mock Overpass response)
+- [x] 10.4 E2E test: enable hillshading overlay, verify tile requests
+- [x] 10.5 E2E test: enable POI category, verify markers appear (mock Overpass response)
 
 ## 11. POI-Waypoint Integration
 

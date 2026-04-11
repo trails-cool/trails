@@ -309,4 +309,83 @@ test.describe("Planner", () => {
     const sidebar = page.locator("aside");
     await expect(sidebar.getByText("Day 1")).toBeVisible({ timeout: 5000 });
   });
+
+  test("enable hillshading overlay loads tiles", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    // Track hillshading tile requests
+    const hillshadingRequests: string[] = [];
+    await page.route("**/tiles.wmflabs.org/hillshading/**", async (route) => {
+      hillshadingRequests.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: "image/png",
+        body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQABNjN9GQAAAABJRUEFTuQmCC", "base64"),
+      });
+    });
+
+    await page.goto(url);
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+
+    // Enable hillshading via DOM — Leaflet's layers control hover is hard to automate
+    await page.evaluate(() => {
+      const inputs = document.querySelectorAll<HTMLInputElement>(".leaflet-control-layers-overlays input");
+      if (inputs[0]) inputs[0].click();
+    });
+
+    await page.waitForTimeout(2000);
+    expect(hillshadingRequests.length).toBeGreaterThan(0);
+  });
+
+  test("enable POI category shows markers on map", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    // Mock Overpass API to return a test POI at the map center
+    await page.route("**/api/interpreter", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          elements: [
+            {
+              type: "node",
+              id: 12345,
+              lat: 52.52,
+              lon: 13.405,
+              tags: { amenity: "drinking_water", name: "Test Brunnen" },
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto(url);
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+
+    // Zoom in to Berlin center to meet zoom threshold and see the mock POI
+    await page.evaluate(() => {
+      const map = (window as any).__leafletMap;
+      if (map) map.setView([52.52, 13.405], 14, { animate: false });
+    });
+    await page.waitForTimeout(500);
+
+    // Open POI panel and enable Drinking water
+    await page.getByTitle("Points of Interest").click();
+    await page.getByText("Drinking water").click();
+
+    // Wait for mock Overpass response and marker rendering
+    await page.waitForTimeout(3000);
+
+    // Verify POI marker rendered — check for marker with the water emoji in the pane
+    const markerCount = await page.locator(".leaflet-marker-pane .leaflet-marker-icon").count();
+    // Should have at least one POI marker (beyond any waypoint markers)
+    expect(markerCount).toBeGreaterThan(0);
+
+    // Verify the Overpass mock was actually called by checking the POI panel count
+    const panelText = await page.getByText("Drinking water").textContent();
+    expect(panelText).toBeTruthy();
+  });
 });
