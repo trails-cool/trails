@@ -302,6 +302,9 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
           const grade = dDist > 0 ? ((p.elevation - prev.elevation) / dDist) * 100 : 0;
           label += ` · ${grade > 0 ? "+" : ""}${grade.toFixed(1)}%`;
         }
+        if (colorMode === "surface" && surfaces[highlightIdx]) {
+          label += ` · ${surfaces[highlightIdx]}`;
+        }
         const labelX = hx + 8 > w - 80 ? hx - 8 : hx + 8;
         ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
         ctx.fillText(label, labelX, PADDING.top + 10);
@@ -381,9 +384,15 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
             <span className="inline-block h-1.5 w-16 rounded-sm" style={{ background: "linear-gradient(to right, rgb(0, 200, 50), rgb(255, 200, 50), rgb(255, 0, 50))" }} />
             <span>{Math.round(Math.max(...points.map(p => p.elevation)))}m</span>
           </>)}
-          {colorMode === "surface" && (
-            <span>{t("colorMode.surfaceLegend")}</span>
-          )}
+          {colorMode === "surface" && surfaces.length > 0 && (<>
+            {[...new Set(surfaces)].slice(0, 6).map((s) => (
+              <span key={s} className="flex items-center gap-0.5">
+                <span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: SURFACE_COLORS[s] ?? DEFAULT_SURFACE_COLOR }} />
+                {s}
+              </span>
+            ))}
+            {[...new Set(surfaces)].length > 6 && <span>+{[...new Set(surfaces)].length - 6}</span>}
+          </>)}
         </div>
         <select
           value={colorMode}
