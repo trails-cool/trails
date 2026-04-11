@@ -6,7 +6,7 @@
 
 ## 2. Overlay State Sync
 
-- [ ] 2.1 Add `overlays` string array to Yjs `routeOptions` Y.Map for enabled tile overlay IDs (deferred — tile overlays are visual-only)
+- [x] 2.1 Add `overlays` string array to Yjs `routeOptions` Y.Map for enabled tile overlay IDs
 - [x] 2.2 Add `poiCategories` string array to Yjs `routeOptions` Y.Map for enabled POI category IDs
 - [x] 2.3 Sync LayersControl state with Yjs — toggling overlay updates Yjs, Yjs changes toggle layers
 - [x] 2.4 Include overlay state in crash recovery localStorage snapshot
@@ -42,7 +42,7 @@
 
 - [x] 7.1 Render POI markers using `L.Marker` with `L.DivIcon` showing category icon
 - [x] 7.2 Add click popup with POI name, category, opening hours, website, and OSM link
-- [ ] 7.3 Add `leaflet.markercluster` for clustering dense POI areas (dynamic import to avoid bundle bloat)
+- [x] 7.3 Add `leaflet.markercluster` for clustering dense POI areas (dynamic import to avoid bundle bloat)
 - [x] 7.4 Set z-index so POI markers render below route polyline and waypoint markers
 
 ## 8. Profile-Aware Defaults

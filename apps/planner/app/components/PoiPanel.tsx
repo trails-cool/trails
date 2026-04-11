@@ -5,6 +5,8 @@ import { useMap } from "react-leaflet";
 import { poiCategories } from "~/lib/poi-categories";
 import type { PoiState } from "~/lib/use-pois";
 import { Z_POI_MARKER } from "~/lib/z-index";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 interface PoiPanelProps {
   poiState: PoiState;
@@ -82,11 +84,28 @@ export function PoiPanel({ poiState }: PoiPanelProps) {
 
 export function PoiMarkers({ poiState, onAddWaypoint }: PoiPanelProps) {
   const map = useMap();
-  const layerRef = useRef<L.LayerGroup>(L.layerGroup());
+  const layerRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
-    layerRef.current.addTo(map);
-    return () => { layerRef.current.remove(); };
+    let mounted = true;
+    // Dynamic import to avoid bundling markercluster when POIs aren't used
+    import("leaflet.markercluster").then(() => {
+      if (!mounted) return;
+      // After import, L.markerClusterGroup is available
+      const cluster = (L as unknown as { markerClusterGroup: (opts?: object) => L.LayerGroup }).markerClusterGroup({
+        maxClusterRadius: 40,
+        disableClusteringAtZoom: 15,
+        showCoverageOnHover: false,
+      });
+      layerRef.current = cluster;
+      cluster.addTo(map);
+    }).catch(() => {
+      // Fallback to plain layer group if markercluster fails to load
+      if (!mounted) return;
+      layerRef.current = L.layerGroup();
+      layerRef.current.addTo(map);
+    });
+    return () => { mounted = false; layerRef.current?.remove(); };
   }, [map]);
 
   // Event delegation for "Add as waypoint" buttons in popups
@@ -107,6 +126,7 @@ export function PoiMarkers({ poiState, onAddWaypoint }: PoiPanelProps) {
 
   useEffect(() => {
     const group = layerRef.current;
+    if (!group) return;
     group.clearLayers();
 
     const catMap = new Map(poiCategories.map((c) => [c.id, c]));

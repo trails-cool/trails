@@ -20,6 +20,22 @@ import { RouteInteraction } from "./RouteInteraction";
 import { PoiPanel, PoiMarkers } from "./PoiPanel";
 import "leaflet/dist/leaflet.css";
 
+/** Distance from a point to a line segment in degrees (approximate) */
+function pointToSegmentDist(
+  pLat: number, pLon: number,
+  aLat: number, aLon: number,
+  bLat: number, bLon: number,
+): number {
+  const dx = bLon - aLon;
+  const dy = bLat - aLat;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.sqrt((pLon - aLon) ** 2 + (pLat - aLat) ** 2);
+  const t = Math.max(0, Math.min(1, ((pLon - aLon) * dx + (pLat - aLat) * dy) / lenSq));
+  const projLon = aLon + t * dx;
+  const projLat = aLat + t * dy;
+  return Math.sqrt((pLon - projLon) ** 2 + (pLat - projLat) ** 2);
+}
+
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
   const bg = overnight ? "#8B6D3A" : "#2563eb";
   const scale = highlighted ? "scale(1.17)" : "scale(1)";
@@ -237,6 +253,74 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
+function OverlaySync({ yjs, onOverlayChange, onBaseLayerChange }: { yjs: YjsState; onOverlayChange: (ids: string[]) => void; onBaseLayerChange: (name: string) => void }) {
+  const map = useMap();
+  const suppressRef = useRef(false);
+
+  // Map events → Yjs
+  useEffect(() => {
+    const handleAdd = (e: L.LayersControlEvent) => {
+      if (suppressRef.current) return;
+      const name = e.name;
+      const layer = overlayLayers.find((l) => l.name === name);
+      if (!layer) return;
+      const raw = yjs.routeData.get("overlays") as string | undefined;
+      const current: string[] = raw ? JSON.parse(raw) : [];
+      if (!current.includes(layer.id)) {
+        const updated = [...current, layer.id];
+        yjs.routeData.set("overlays", JSON.stringify(updated));
+        onOverlayChange(updated);
+      }
+    };
+
+    const handleRemove = (e: L.LayersControlEvent) => {
+      if (suppressRef.current) return;
+      const name = e.name;
+      const layer = overlayLayers.find((l) => l.name === name);
+      if (!layer) return;
+      const raw = yjs.routeData.get("overlays") as string | undefined;
+      const current: string[] = raw ? JSON.parse(raw) : [];
+      const updated = current.filter((id) => id !== layer.id);
+      yjs.routeData.set("overlays", JSON.stringify(updated));
+      onOverlayChange(updated);
+    };
+
+    // Base layer change → Yjs
+    const handleBaseChange = (e: L.LayersControlEvent) => {
+      if (suppressRef.current) return;
+      yjs.routeData.set("baseLayer", e.name);
+    };
+
+    map.on("overlayadd", handleAdd as L.LeafletEventHandlerFn);
+    map.on("overlayremove", handleRemove as L.LeafletEventHandlerFn);
+    map.on("baselayerchange", handleBaseChange as L.LeafletEventHandlerFn);
+    return () => {
+      map.off("overlayadd", handleAdd as L.LeafletEventHandlerFn);
+      map.off("overlayremove", handleRemove as L.LeafletEventHandlerFn);
+      map.off("baselayerchange", handleBaseChange as L.LeafletEventHandlerFn);
+    };
+  }, [map, yjs, onOverlayChange]);
+
+  // Yjs → Map: load initial state from Yjs
+  useEffect(() => {
+    const handleChange = () => {
+      const raw = yjs.routeData.get("overlays") as string | undefined;
+      if (raw) {
+        try {
+          onOverlayChange(JSON.parse(raw));
+        } catch { /* ignore */ }
+      }
+      const base = yjs.routeData.get("baseLayer") as string | undefined;
+      if (base) onBaseLayerChange(base);
+    };
+    yjs.routeData.observe(handleChange);
+    handleChange();
+    return () => yjs.routeData.unobserve(handleChange);
+  }, [yjs, onOverlayChange, onBaseLayerChange]);
+
+  return null;
+}
+
 function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
   const map = useMap();
   const refreshRef = useRef(poiState.refresh);
@@ -282,6 +366,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const poiState = usePois();
   useProfileDefaults(yjs, poiState);
   useYjsPoiSync(yjs, poiState);
+  const [enabledOverlays, setEnabledOverlays] = useState<string[]>([]);
+  const [selectedBaseLayer, setSelectedBaseLayer] = useState<string>(baseLayers[0]!.name);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
@@ -368,18 +454,47 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const addWaypoint = useCallback(
     (lat: number, lng: number, name?: string) => {
       const snap = snapToPoi(lat, lng, poiState.pois);
+      const finalLat = snap.lat;
+      const finalLon = snap.snapped ? snap.lon : lng;
+
+      // Find the best insertion index: if the point is near the route,
+      // insert between the closest segment's waypoints instead of appending
+      let insertIndex = yjs.waypoints.length; // default: append
+      if (routeCoordinates && routeCoordinates.length >= 2 && segmentBoundaries.length > 0) {
+        let bestDist = Infinity;
+        let bestSegment = -1;
+        // For each segment, find the closest point on the route
+        for (let seg = 0; seg < segmentBoundaries.length; seg++) {
+          const start = segmentBoundaries[seg]!;
+          const end = seg + 1 < segmentBoundaries.length ? segmentBoundaries[seg + 1]! : routeCoordinates.length;
+          for (let i = start; i < end - 1; i++) {
+            const c1 = routeCoordinates[i]!;
+            const c2 = routeCoordinates[i + 1]!;
+            const dist = pointToSegmentDist(finalLat, finalLon, c1[1]!, c1[0]!, c2[1]!, c2[0]!);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestSegment = seg;
+            }
+          }
+        }
+        // If within ~1km of the route, insert after the segment's waypoint
+        if (bestDist < 0.01 && bestSegment >= 0) {
+          insertIndex = bestSegment + 1;
+        }
+      }
+
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
-        yMap.set("lat", snap.lat);
-        yMap.set("lon", snap.snapped ? snap.lon : lng);
+        yMap.set("lat", finalLat);
+        yMap.set("lon", finalLon);
         if (snap.name) yMap.set("name", snap.name);
-        else if (name) yMap.set("name", name);  // fallback for explicit name
+        else if (name) yMap.set("name", name);
         if (snap.osmId) yMap.set("osmId", snap.osmId);
         if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
-        yjs.waypoints.push([yMap]);
+        yjs.waypoints.insert(insertIndex, [yMap]);
       }, "local");
     },
-    [yjs.doc, yjs.waypoints, poiState.pois],
+    [yjs.doc, yjs.waypoints, poiState.pois, routeCoordinates, segmentBoundaries],
   );
 
   const insertWaypointAtSegment = useCallback(
@@ -520,19 +635,20 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       )}
     <MapContainer center={[50.1, 10.0]} zoom={6} className="h-full w-full">
       <LayersControl position="topright">
-        {baseLayers.map((layer, i) => (
-          <LayersControl.BaseLayer key={layer.name} checked={i === 0} name={layer.name}>
+        {baseLayers.map((layer) => (
+          <LayersControl.BaseLayer key={layer.name} checked={layer.name === selectedBaseLayer} name={layer.name}>
             <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} />
           </LayersControl.BaseLayer>
         ))}
         {overlayLayers.map((layer) => (
-          <LayersControl.Overlay key={layer.id} name={layer.name}>
+          <LayersControl.Overlay key={layer.id} checked={enabledOverlays.includes(layer.id)} name={layer.name}>
             <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} opacity={layer.opacity ?? 0.7} />
           </LayersControl.Overlay>
         ))}
       </LayersControl>
 
       <MapExposer />
+      <OverlaySync yjs={yjs} onOverlayChange={setEnabledOverlays} onBaseLayerChange={setSelectedBaseLayer} />
       <RouteFitter coordinates={routeCoordinates} />
       <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} suppressRef={suppressMapClickRef} />
       <CursorTracker awareness={yjs.awareness} />
