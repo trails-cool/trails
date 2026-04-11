@@ -237,7 +237,7 @@ function NoGoAreaButton({ active, onClick }: { active: boolean; onClick: () => v
   );
 }
 
-function OverlaySync({ yjs, onOverlayChange }: { yjs: YjsState; onOverlayChange: (ids: string[]) => void }) {
+function OverlaySync({ yjs, onOverlayChange, onBaseLayerChange }: { yjs: YjsState; onOverlayChange: (ids: string[]) => void; onBaseLayerChange: (name: string) => void }) {
   const map = useMap();
   const suppressRef = useRef(false);
 
@@ -269,11 +269,19 @@ function OverlaySync({ yjs, onOverlayChange }: { yjs: YjsState; onOverlayChange:
       onOverlayChange(updated);
     };
 
+    // Base layer change → Yjs
+    const handleBaseChange = (e: L.LayersControlEvent) => {
+      if (suppressRef.current) return;
+      yjs.routeData.set("baseLayer", e.name);
+    };
+
     map.on("overlayadd", handleAdd as L.LeafletEventHandlerFn);
     map.on("overlayremove", handleRemove as L.LeafletEventHandlerFn);
+    map.on("baselayerchange", handleBaseChange as L.LeafletEventHandlerFn);
     return () => {
       map.off("overlayadd", handleAdd as L.LeafletEventHandlerFn);
       map.off("overlayremove", handleRemove as L.LeafletEventHandlerFn);
+      map.off("baselayerchange", handleBaseChange as L.LeafletEventHandlerFn);
     };
   }, [map, yjs, onOverlayChange]);
 
@@ -281,16 +289,18 @@ function OverlaySync({ yjs, onOverlayChange }: { yjs: YjsState; onOverlayChange:
   useEffect(() => {
     const handleChange = () => {
       const raw = yjs.routeData.get("overlays") as string | undefined;
-      if (!raw) return;
-      try {
-        const ids: string[] = JSON.parse(raw);
-        onOverlayChange(ids);
-      } catch { /* ignore */ }
+      if (raw) {
+        try {
+          onOverlayChange(JSON.parse(raw));
+        } catch { /* ignore */ }
+      }
+      const base = yjs.routeData.get("baseLayer") as string | undefined;
+      if (base) onBaseLayerChange(base);
     };
     yjs.routeData.observe(handleChange);
     handleChange();
     return () => yjs.routeData.unobserve(handleChange);
-  }, [yjs, onOverlayChange]);
+  }, [yjs, onOverlayChange, onBaseLayerChange]);
 
   return null;
 }
@@ -341,6 +351,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   useProfileDefaults(yjs, poiState);
   useYjsPoiSync(yjs, poiState);
   const [enabledOverlays, setEnabledOverlays] = useState<string[]>([]);
+  const [selectedBaseLayer, setSelectedBaseLayer] = useState<string>(baseLayers[0]!.name);
   const [draggingOver, setDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number, number][] | null>(null);
@@ -579,8 +590,8 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       )}
     <MapContainer center={[50.1, 10.0]} zoom={6} className="h-full w-full">
       <LayersControl position="topright">
-        {baseLayers.map((layer, i) => (
-          <LayersControl.BaseLayer key={layer.name} checked={i === 0} name={layer.name}>
+        {baseLayers.map((layer) => (
+          <LayersControl.BaseLayer key={layer.name} checked={layer.name === selectedBaseLayer} name={layer.name}>
             <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} />
           </LayersControl.BaseLayer>
         ))}
@@ -592,7 +603,7 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
       </LayersControl>
 
       <MapExposer />
-      <OverlaySync yjs={yjs} onOverlayChange={setEnabledOverlays} />
+      <OverlaySync yjs={yjs} onOverlayChange={setEnabledOverlays} onBaseLayerChange={setSelectedBaseLayer} />
       <RouteFitter coordinates={routeCoordinates} />
       <MapClickHandler onAdd={noGoDrawing ? () => {} : addWaypoint} suppressRef={suppressMapClickRef} />
       <CursorTracker awareness={yjs.awareness} />
