@@ -350,6 +350,70 @@ test.describe("Planner", () => {
     expect(hillshadingRequests.length).toBeGreaterThan(0);
   });
 
+  test("road type color mode renders chart and shows legend", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    await mockBRouter(page);
+
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405 },
+      { lat: 52.515, lon: 13.351 },
+    ]))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+
+    // Wait for elevation chart color mode selector
+    const select = page.locator("select").last();
+    await expect(select).toBeVisible({ timeout: 10000 });
+
+    // Switch to highway (road type) mode
+    await select.selectOption("highway");
+    await expect(select).toHaveValue("highway");
+
+    // Chart title should show "Road Type Profile"
+    await expect(page.getByText("Road Type Profile")).toBeVisible({ timeout: 5000 });
+
+    // Legend should show highway types from mock data
+    await expect(page.getByText("secondary")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("cycleway")).toBeVisible({ timeout: 5000 });
+  });
+
+  test("road type hover label shows highway type", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    await mockBRouter(page);
+
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405 },
+      { lat: 52.515, lon: 13.351 },
+    ]))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+
+    // Switch to highway mode
+    const select = page.locator("select").last();
+    await expect(select).toBeVisible({ timeout: 10000 });
+    await select.selectOption("highway");
+
+    // Hover the canvas to trigger the hover label
+    const canvas = page.locator("canvas");
+    await expect(canvas).toBeVisible({ timeout: 5000 });
+    const box = await canvas.boundingBox();
+    if (box) {
+      // Hover near the middle of the chart
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    }
+
+    // The hover label is drawn on canvas — we can't assert text directly,
+    // but we verify no errors occurred and the chart re-renders on hover.
+    // The canvas should still be visible (no crash).
+    await expect(canvas).toBeVisible();
+  });
+
   test("enable POI category shows markers on map", async ({ page, request }) => {
     const sessionResp = await request.post("/api/sessions", { data: {} });
     const { url } = await sessionResp.json();

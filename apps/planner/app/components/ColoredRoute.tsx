@@ -2,12 +2,13 @@ import { useMemo } from "react";
 import { Polyline } from "react-leaflet";
 import type L from "leaflet";
 
-export type ColorMode = "plain" | "elevation" | "surface" | "grade";
+export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway";
 
 interface ColoredRouteProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]
   colorMode: ColorMode;
   surfaces?: string[];
+  highways?: string[];
 }
 
 const SURFACE_COLORS: Record<string, string> = {
@@ -32,6 +33,36 @@ const SURFACE_COLORS: Record<string, string> = {
 
 const DEFAULT_SURFACE_COLOR = "#9ca3af";
 
+const HIGHWAY_COLORS: Record<string, string> = {
+  // Major roads — warm tones (caution for cyclists)
+  motorway: "#dc2626",
+  motorway_link: "#dc2626",
+  trunk: "#ea580c",
+  trunk_link: "#ea580c",
+  primary: "#f97316",
+  primary_link: "#f97316",
+  // Urban roads — neutral tones
+  secondary: "#6366f1",
+  secondary_link: "#6366f1",
+  tertiary: "#818cf8",
+  tertiary_link: "#818cf8",
+  residential: "#6b7280",
+  unclassified: "#9ca3af",
+  living_street: "#a78bfa",
+  // Paths & cycling infrastructure — green tones
+  cycleway: "#16a34a",
+  path: "#22c55e",
+  footway: "#4ade80",
+  track: "#65a30d",
+  bridleway: "#84cc16",
+  // Service & other — muted tones
+  service: "#d4d4d8",
+  pedestrian: "#c084fc",
+  steps: "#f472b6",
+};
+
+const DEFAULT_HIGHWAY_COLOR = "#9ca3af";
+
 export function routeGradeColor(grade: number): string {
   const absGrade = Math.abs(grade);
   if (absGrade < 3) return "#22c55e";
@@ -51,7 +82,7 @@ export function elevationColor(t: number): string {
   return `rgb(255, ${g}, 50)`;
 }
 
-export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteProps) {
+export function ColoredRoute({ coordinates, colorMode, surfaces, highways }: ColoredRouteProps) {
   const segments = useMemo(() => {
     if (colorMode === "plain" || coordinates.length < 2) {
       return null;
@@ -98,6 +129,24 @@ export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteP
       return result;
     }
 
+    // highway mode
+    if (colorMode === "highway") {
+      if (!highways || highways.length < coordinates.length) return null;
+
+      const result: { positions: L.LatLngExpression[]; color: string }[] = [];
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const highway = highways[i] ?? "unknown";
+        result.push({
+          positions: [
+            [coordinates[i]![1], coordinates[i]![0]],
+            [coordinates[i + 1]![1], coordinates[i + 1]![0]],
+          ],
+          color: HIGHWAY_COLORS[highway] ?? DEFAULT_HIGHWAY_COLOR,
+        });
+      }
+      return result;
+    }
+
     // surface mode
     if (!surfaces || surfaces.length < coordinates.length) return null;
 
@@ -113,7 +162,7 @@ export function ColoredRoute({ coordinates, colorMode, surfaces }: ColoredRouteP
       });
     }
     return result;
-  }, [coordinates, colorMode, surfaces]);
+  }, [coordinates, colorMode, surfaces, highways]);
 
   const plainPositions = useMemo(
     () => coordinates.map((c) => [c[1], c[0]] as L.LatLngExpression),
@@ -154,4 +203,4 @@ export function findSegmentForPoint(
   return 0;
 }
 
-export { SURFACE_COLORS, DEFAULT_SURFACE_COLOR };
+export { SURFACE_COLORS, DEFAULT_SURFACE_COLOR, HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR };

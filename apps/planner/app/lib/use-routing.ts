@@ -126,6 +126,9 @@ export function useRouting(yjs: YjsState | null) {
           if (enriched.surfaces?.length) {
             yjs.routeData.set("surfaces", JSON.stringify(enriched.surfaces));
           }
+          if (enriched.highways?.length) {
+            yjs.routeData.set("highways", JSON.stringify(enriched.highways));
+          }
         });
       } catch {
         setRouteError("failed");

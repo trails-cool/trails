@@ -32,7 +32,14 @@ const MOCK_ROUTE_3WP = {
   segmentBoundaries: [0, 4],
   totalLength: 3200,
   totalAscend: 8,
-  surfaces: [],
+  surfaces: [
+    "asphalt", "asphalt", "cobblestone", "cobblestone", "gravel",
+    "gravel", "asphalt", "asphalt", "asphalt", "asphalt",
+  ],
+  highways: [
+    "residential", "residential", "cycleway", "cycleway", "path",
+    "path", "tertiary", "tertiary", "residential", "residential",
+  ],
 };
 
 /**
@@ -63,7 +70,12 @@ const MOCK_ROUTE_2WP = {
   segmentBoundaries: [0],
   totalLength: 3800,
   totalAscend: 6,
-  surfaces: [],
+  surfaces: [
+    "asphalt", "asphalt", "gravel", "gravel", "asphalt", "asphalt",
+  ],
+  highways: [
+    "secondary", "secondary", "cycleway", "cycleway", "residential", "residential",
+  ],
 };
 
 /**

@@ -16,6 +16,7 @@ export interface EnrichedRoute {
   coordinates: [number, number, number][]; // [lon, lat, ele]
   segmentBoundaries: number[];             // coordinate index where each waypoint segment starts
   surfaces: string[];                      // surface type per coordinate point (e.g. "asphalt", "gravel")
+  highways: string[];                      // highway classification per coordinate point (e.g. "cycleway", "residential")
   totalLength: number;
   totalAscend: number;
   totalTime: number;
@@ -94,6 +95,7 @@ interface GeoJsonCollection {
 export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): EnrichedRoute {
   const allCoords: [number, number, number][] = [];
   const allSurfaces: string[] = [];
+  const allHighways: string[] = [];
   const segmentBoundaries: number[] = [];
   let totalLength = 0;
   let totalAscend = 0;
@@ -108,15 +110,16 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
     segmentBoundaries.push(allCoords.length);
 
     const coords = feature.geometry.coordinates;
-    // Extract surface data from BRouter messages (tiledesc=true)
-    const surfaceMap = extractSurfacesFromMessages(feature.properties);
+    // Extract surface and highway data from BRouter messages (tiledesc=true)
+    const wayTagData = extractWayTagData(feature.properties);
 
     // Skip first point of subsequent segments to avoid duplicates
     const startIdx = i === 0 ? 0 : 1;
     for (let j = startIdx; j < coords.length; j++) {
       const c = coords[j]!;
       allCoords.push([c[0]!, c[1]!, c[2] ?? 0]);
-      allSurfaces.push(surfaceMap.get(j) ?? surfaceMap.get(j - 1) ?? "unknown");
+      allSurfaces.push(wayTagData.surfaces.get(j) ?? wayTagData.surfaces.get(j - 1) ?? "unknown");
+      allHighways.push(wayTagData.highways.get(j) ?? wayTagData.highways.get(j - 1) ?? "unknown");
     }
 
     // Accumulate stats
@@ -149,6 +152,7 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
     coordinates: allCoords,
     segmentBoundaries,
     surfaces: allSurfaces,
+    highways: allHighways,
     totalLength,
     totalAscend,
     totalTime,
@@ -156,27 +160,35 @@ export function mergeGeoJsonSegments(segments: Record<string, unknown>[]): Enric
   };
 }
 
+interface WayTagData {
+  surfaces: Map<number, string>;
+  highways: Map<number, string>;
+}
+
 /**
- * Extract surface type per message row from BRouter's tiledesc messages.
+ * Extract surface and highway type per message row from BRouter's tiledesc messages.
  * Messages is an array of arrays: first row is headers, subsequent rows are data.
- * We look for the "WayTags" column which contains OSM tags like "surface=asphalt".
+ * We look for the "WayTags" column which contains OSM tags like "surface=asphalt" and "highway=cycleway".
  */
-function extractSurfacesFromMessages(properties: Record<string, unknown>): Map<number, string> {
-  const result = new Map<number, string>();
+function extractWayTagData(properties: Record<string, unknown>): WayTagData {
+  const surfaces = new Map<number, string>();
+  const highways = new Map<number, string>();
   const messages = properties.messages as string[][] | undefined;
-  if (!messages || messages.length < 2) return result;
+  if (!messages || messages.length < 2) return { surfaces, highways };
 
   const headers = messages[0]!;
   const wayTagsIdx = headers.indexOf("WayTags");
-  if (wayTagsIdx === -1) return result;
+  if (wayTagsIdx === -1) return { surfaces, highways };
 
   for (let i = 1; i < messages.length; i++) {
     const row = messages[i]!;
     const tags = row[wayTagsIdx] ?? "";
     const surfaceMatch = tags.match(/surface=(\S+)/);
-    result.set(i - 1, surfaceMatch ? surfaceMatch[1]! : "unknown");
+    surfaces.set(i - 1, surfaceMatch ? surfaceMatch[1]! : "unknown");
+    const highwayMatch = tags.match(/highway=(\S+)/);
+    highways.set(i - 1, highwayMatch ? highwayMatch[1]! : "unknown");
   }
-  return result;
+  return { surfaces, highways };
 }
 
 /**
