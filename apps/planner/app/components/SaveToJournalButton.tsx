@@ -48,7 +48,8 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
         isDayBreak: yMap.get("overnight") === true ? true : undefined,
       }));
 
-      const gpx = generateGpx({ name: "trails.cool route", waypoints, tracks, noGoAreas });
+      const notes = yjs.notes.toString() || undefined;
+      const gpx = generateGpx({ name: "trails.cool route", description: notes, waypoints, tracks, noGoAreas });
 
       // POST to Journal callback
       const response = await fetch(callbackUrl, {

@@ -44,12 +44,13 @@ function parseGpxWithParser(parser: DOMParser, xml: string): GpxData {
   }
 
   const name = doc.querySelector("metadata > name")?.textContent ?? undefined;
+  const description = doc.querySelector("metadata > desc")?.textContent ?? undefined;
   const waypoints = parseWaypoints(doc);
   const tracks = parseTracks(doc);
   const noGoAreas = parseNoGoAreas(doc);
   const { totalDistance, ...elevation } = computeElevation(tracks);
 
-  return { name, waypoints, tracks, noGoAreas, distance: totalDistance, elevation };
+  return { name, description, waypoints, tracks, noGoAreas, distance: totalDistance, elevation };
 }
 
 function parseWaypoints(doc: Document): Waypoint[] {

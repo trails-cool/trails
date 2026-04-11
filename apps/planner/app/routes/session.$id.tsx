@@ -42,6 +42,7 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
   if (noGoParam) {
     try { initialNoGoAreas = JSON.parse(noGoParam); } catch { /* ignore */ }
   }
+  const initialNotes = searchParams.get("notes") ?? undefined;
 
   return (
     <div className="flex h-full flex-col">
@@ -67,6 +68,7 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
               returnUrl={returnUrl}
               initialWaypoints={initialWaypoints}
               initialNoGoAreas={initialNoGoAreas}
+              initialNotes={initialNotes}
             />
           </Suspense>
         )}

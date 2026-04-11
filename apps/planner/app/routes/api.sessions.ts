@@ -21,19 +21,21 @@ export async function action({ request }: Route.ActionArgs) {
 
     let initialWaypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }> | undefined;
     let initialNoGoAreas: Array<{ points: Array<{ lat: number; lon: number }> }> | undefined;
+    let initialNotes: string | undefined;
     if (gpx) {
       try {
         const gpxData = await parseGpxAsync(gpx);
         const wps = extractWaypoints(gpxData);
         if (wps.length > 0) initialWaypoints = wps;
         if (gpxData.noGoAreas.length > 0) initialNoGoAreas = gpxData.noGoAreas;
+        if (gpxData.description) initialNotes = gpxData.description;
       } catch {
         // Continue with empty session if GPX is invalid
       }
     }
 
     return data(
-      { sessionId: session.id, url: `/session/${session.id}`, initialWaypoints, initialNoGoAreas },
+      { sessionId: session.id, url: `/session/${session.id}`, initialWaypoints, initialNoGoAreas, initialNotes },
       { status: 201 },
     );
   });

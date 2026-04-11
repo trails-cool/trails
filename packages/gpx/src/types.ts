@@ -20,6 +20,7 @@ export interface NoGoArea {
 
 export interface GpxData {
   name?: string;
+  description?: string;
   waypoints: Waypoint[];
   tracks: TrackPoint[][];
   noGoAreas: NoGoArea[];

@@ -44,6 +44,7 @@ export function useYjs(
   sessionId: string,
   initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>,
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>,
+  initialNotes?: string,
 ): YjsState | null {
   const [state, setState] = useState<YjsState | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
@@ -115,6 +116,9 @@ export function useYjs(
                 yMap.set("points", area.points);
                 noGoAreas.push([yMap]);
               }
+            }
+            if (initialNotes && notes.length === 0) {
+              notes.insert(0, initialNotes);
             }
           });
         }

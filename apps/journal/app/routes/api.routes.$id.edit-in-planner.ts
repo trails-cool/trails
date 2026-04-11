@@ -37,6 +37,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     url: string;
     initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
     initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
+    initialNotes?: string;
   };
 
   // Encode planning data in URL params
@@ -46,6 +47,9 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
   if (session.initialNoGoAreas?.length) {
     urlParams.set("noGoAreas", JSON.stringify(session.initialNoGoAreas));
+  }
+  if (session.initialNotes) {
+    urlParams.set("notes", session.initialNotes);
   }
 
   return data({

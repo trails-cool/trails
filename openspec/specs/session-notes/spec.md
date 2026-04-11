@@ -34,3 +34,25 @@ The notes editor SHALL use CodeMirror 6 with y-codemirror.next for Yjs binding.
 #### Scenario: Awareness field isolation
 - **WHEN** the notes editor sets cursor awareness state
 - **THEN** it does not conflict with map cursor awareness (uses separate awareness fields)
+
+### Requirement: Notes in GPX export
+Notes SHALL be included in GPX exports as `<metadata><desc>`.
+
+#### Scenario: Export plan with notes
+- **WHEN** a user exports a plan GPX and notes are present
+- **THEN** the GPX contains `<metadata><desc>` with the notes text
+
+#### Scenario: Import GPX with notes
+- **WHEN** a GPX file with `<metadata><desc>` is imported
+- **THEN** the notes editor is populated with the description text
+
+### Requirement: Notes sync to Journal
+Notes SHALL be saved to the Journal route description when saving via callback.
+
+#### Scenario: Save to Journal with notes
+- **WHEN** a user saves a route to the Journal and notes are present
+- **THEN** the route's description field is set from the notes text
+
+#### Scenario: Edit in Planner restores notes
+- **WHEN** a user clicks "Edit in Planner" on a Journal route with a description
+- **THEN** the Planner session's notes editor is populated with the description
