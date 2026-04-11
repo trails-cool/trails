@@ -20,6 +20,22 @@ import { RouteInteraction } from "./RouteInteraction";
 import { PoiPanel, PoiMarkers } from "./PoiPanel";
 import "leaflet/dist/leaflet.css";
 
+/** Distance from a point to a line segment in degrees (approximate) */
+function pointToSegmentDist(
+  pLat: number, pLon: number,
+  aLat: number, aLon: number,
+  bLat: number, bLon: number,
+): number {
+  const dx = bLon - aLon;
+  const dy = bLat - aLat;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.sqrt((pLon - aLon) ** 2 + (pLat - aLat) ** 2);
+  const t = Math.max(0, Math.min(1, ((pLon - aLon) * dx + (pLat - aLat) * dy) / lenSq));
+  const projLon = aLon + t * dx;
+  const projLat = aLat + t * dy;
+  return Math.sqrt((pLon - projLon) ** 2 + (pLat - projLat) ** 2);
+}
+
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
   const bg = overnight ? "#8B6D3A" : "#2563eb";
   const scale = highlighted ? "scale(1.17)" : "scale(1)";
@@ -438,18 +454,47 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
   const addWaypoint = useCallback(
     (lat: number, lng: number, name?: string) => {
       const snap = snapToPoi(lat, lng, poiState.pois);
+      const finalLat = snap.lat;
+      const finalLon = snap.snapped ? snap.lon : lng;
+
+      // Find the best insertion index: if the point is near the route,
+      // insert between the closest segment's waypoints instead of appending
+      let insertIndex = yjs.waypoints.length; // default: append
+      if (routeCoordinates && routeCoordinates.length >= 2 && segmentBoundaries.length > 0) {
+        let bestDist = Infinity;
+        let bestSegment = -1;
+        // For each segment, find the closest point on the route
+        for (let seg = 0; seg < segmentBoundaries.length; seg++) {
+          const start = segmentBoundaries[seg]!;
+          const end = seg + 1 < segmentBoundaries.length ? segmentBoundaries[seg + 1]! : routeCoordinates.length;
+          for (let i = start; i < end - 1; i++) {
+            const c1 = routeCoordinates[i]!;
+            const c2 = routeCoordinates[i + 1]!;
+            const dist = pointToSegmentDist(finalLat, finalLon, c1[1]!, c1[0]!, c2[1]!, c2[0]!);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestSegment = seg;
+            }
+          }
+        }
+        // If within ~200m of the route, insert after the segment's waypoint
+        if (bestDist < 0.002 && bestSegment >= 0) {
+          insertIndex = bestSegment + 1;
+        }
+      }
+
       yjs.doc.transact(() => {
         const yMap = new Y.Map();
-        yMap.set("lat", snap.lat);
-        yMap.set("lon", snap.snapped ? snap.lon : lng);
+        yMap.set("lat", finalLat);
+        yMap.set("lon", finalLon);
         if (snap.name) yMap.set("name", snap.name);
-        else if (name) yMap.set("name", name);  // fallback for explicit name
+        else if (name) yMap.set("name", name);
         if (snap.osmId) yMap.set("osmId", snap.osmId);
         if (snap.poiTags) yMap.set("poiTags", snap.poiTags);
-        yjs.waypoints.push([yMap]);
+        yjs.waypoints.insert(insertIndex, [yMap]);
       }, "local");
     },
-    [yjs.doc, yjs.waypoints, poiState.pois],
+    [yjs.doc, yjs.waypoints, poiState.pois, routeCoordinates, segmentBoundaries],
   );
 
   const insertWaypointAtSegment = useCallback(
