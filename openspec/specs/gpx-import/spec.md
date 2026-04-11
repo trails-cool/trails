@@ -40,3 +40,15 @@ The Planner SHALL reject non-GPX files dropped on the map.
 #### Scenario: Drop non-GPX file
 - **WHEN** a user drops a non-GPX file on the map
 - **THEN** the file is ignored with a brief error toast
+
+### Requirement: Day break preservation
+GPX import SHALL preserve overnight waypoint metadata for multi-day routes.
+
+#### Scenario: Import GPX with overnight waypoints
+- **WHEN** a GPX file contains waypoints with `<type>overnight</type>`
+- **THEN** the imported waypoints have their `isDayBreak` / `overnight` flag set in Yjs
+- **AND** the day breakdown appears in the sidebar
+
+#### Scenario: Import GPX with POI metadata
+- **WHEN** a GPX file contains waypoints imported from POI snap (with name)
+- **THEN** the waypoint name is preserved on import
