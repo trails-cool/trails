@@ -43,7 +43,7 @@ test.describe("Planner", () => {
 
     const profileSelect = page.getByLabel("Profile:");
     await expect(profileSelect).toBeVisible();
-    await expect(profileSelect).toHaveValue("trekking");
+    await expect(profileSelect).toHaveValue("fastbike");
   });
 
   test("session has export GPX button", async ({ page, request }) => {
