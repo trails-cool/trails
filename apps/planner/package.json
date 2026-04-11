@@ -11,6 +11,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.41.0",
     "@geoman-io/leaflet-geoman-free": "^2.19.3",
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
@@ -22,6 +26,7 @@
     "@trails-cool/map": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "@trails-cool/ui": "workspace:*",
+    "codemirror": "^6.0.2",
     "drizzle-orm": "catalog:",
     "isbot": "^5.1.37",
     "lib0": "^0.2.117",
@@ -31,6 +36,7 @@
     "react-dom": "catalog:",
     "react-router": "catalog:",
     "ws": "^8.20.0",
+    "y-codemirror.next": "^0.3.5",
     "y-protocols": "^1.0.7",
     "y-websocket": "^3.0.0",
     "yjs": "^13.6.30"

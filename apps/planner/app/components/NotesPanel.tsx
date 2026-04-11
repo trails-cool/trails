@@ -1,66 +1,106 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+import { yCollab } from "y-codemirror.next";
 import type { YjsState } from "~/lib/use-yjs";
 
 interface NotesPanelProps {
   yjs: YjsState;
 }
 
+const theme = EditorView.theme({
+  "&": {
+    height: "100%",
+    fontSize: "13px",
+  },
+  ".cm-editor": {
+    height: "100%",
+  },
+  ".cm-scroller": {
+    overflow: "auto",
+    fontFamily: "inherit",
+  },
+  ".cm-content": {
+    padding: "12px",
+    caretColor: "#1f2937",
+  },
+  ".cm-line": {
+    lineHeight: "1.5",
+  },
+  "&.cm-focused": {
+    outline: "none",
+  },
+  // Remote cursor styling
+  ".cm-ySelectionInfo": {
+    fontSize: "10px",
+    fontFamily: "system-ui, sans-serif",
+    padding: "1px 4px",
+    borderRadius: "3px",
+    opacity: "0.9",
+    fontWeight: "500",
+    position: "absolute",
+    top: "-1.2em",
+    left: "-1px",
+    whiteSpace: "nowrap",
+  },
+});
+
 export function NotesPanel({ yjs }: NotesPanelProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isLocalChange = useRef(false);
+  const { t } = useTranslation("planner");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
 
-  // Sync Y.Text → textarea
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+    if (!containerRef.current) return;
 
-    // Set initial value
-    textarea.value = yjs.notes.toString();
+    // Set awareness user fields for cursor display
+    const localState = yjs.awareness.getLocalState() as Record<string, unknown> | null;
+    const user = localState?.user as { name: string; color: string } | undefined;
+    if (user) {
+      yjs.awareness.setLocalStateField("user", {
+        ...user,
+        colorLight: user.color + "30",
+      });
+    }
 
-    const observer = () => {
-      if (isLocalChange.current) return;
-      const pos = textarea.selectionStart;
-      textarea.value = yjs.notes.toString();
-      textarea.selectionStart = pos;
-      textarea.selectionEnd = pos;
+    const state = EditorState.create({
+      extensions: [
+        keymap.of([...defaultKeymap, ...historyKeymap]),
+        history(),
+        syntaxHighlighting(defaultHighlightStyle),
+        EditorView.lineWrapping,
+        placeholder(t("notes.placeholder")),
+        theme,
+        yCollab(yjs.notes, yjs.awareness, {
+          undoManager: yjs.undoManager,
+        }),
+      ],
+    });
+
+    const view = new EditorView({
+      state,
+      parent: containerRef.current,
+    });
+
+    viewRef.current = view;
+
+    return () => {
+      view.destroy();
+      viewRef.current = null;
     };
-
-    yjs.notes.observe(observer);
-    return () => yjs.notes.unobserve(observer);
-  }, [yjs.notes]);
-
-  // textarea → Y.Text
-  const handleInput = useCallback(
-    (e: React.FormEvent<HTMLTextAreaElement>) => {
-      const textarea = e.currentTarget;
-      const newValue = textarea.value;
-      const currentValue = yjs.notes.toString();
-
-      if (newValue === currentValue) return;
-
-      isLocalChange.current = true;
-      yjs.doc.transact(() => {
-        yjs.notes.delete(0, yjs.notes.length);
-        yjs.notes.insert(0, newValue);
-      }, "local");
-      isLocalChange.current = false;
-    },
-    [yjs.notes, yjs.doc],
-  );
+  }, [yjs]);
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-4 py-3">
-        <h2 className="text-sm font-medium text-gray-900">Notes</h2>
+        <h2 className="text-sm font-medium text-gray-900">
+          {t("sidebar.notes")}
+        </h2>
       </div>
-      <div className="flex-1 p-2">
-        <textarea
-          ref={textareaRef}
-          onInput={handleInput}
-          className="h-full w-full resize-none rounded border border-gray-200 p-3 text-sm text-gray-700 placeholder-gray-400 focus:border-blue-300 focus:outline-none"
-          placeholder="Add notes for this session..."
-        />
-      </div>
+      <div ref={containerRef} className="flex-1 overflow-hidden" />
     </div>
   );
 }
