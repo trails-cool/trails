@@ -123,14 +123,23 @@ test.describe("Planner", () => {
   // pointer events needed for the distance-based snap detection.
 
   test("session has color mode toggle", async ({ page, request }) => {
-    const response = await request.post("/api/sessions", { data: {} });
-    const { url } = await response.json();
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
 
-    await page.goto(url);
+    await mockBRouter(page);
+
+    // Need a route for the elevation chart (and color selector) to appear
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405 },
+      { lat: 52.515, lon: 13.351 },
+    ]))}`);
+
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
 
-    const select = page.getByTitle("Route Color");
-    await expect(select).toBeVisible();
+    // Wait for elevation chart to render with the color mode selector
+    const select = page.locator("select").last();
+    await expect(select).toBeVisible({ timeout: 10000 });
     await expect(select).toHaveValue("plain");
 
     // Switch to elevation
