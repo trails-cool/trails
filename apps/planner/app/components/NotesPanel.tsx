@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
-import { yCollab } from "y-codemirror.next";
+import { defaultKeymap } from "@codemirror/commands";
+import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
+import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 
 interface NotesPanelProps {
@@ -15,9 +15,6 @@ const theme = EditorView.theme({
   "&": {
     height: "100%",
     fontSize: "13px",
-  },
-  ".cm-editor": {
-    height: "100%",
   },
   ".cm-scroller": {
     overflow: "auto",
@@ -33,7 +30,6 @@ const theme = EditorView.theme({
   "&.cm-focused": {
     outline: "none",
   },
-  // Remote cursor styling
   ".cm-ySelectionInfo": {
     fontSize: "10px",
     fontFamily: "system-ui, sans-serif",
@@ -66,16 +62,18 @@ export function NotesPanel({ yjs }: NotesPanelProps) {
       });
     }
 
+    // Dedicated undo manager for notes (separate from waypoints undo)
+    const notesUndoManager = new Y.UndoManager(yjs.notes);
+
     const state = EditorState.create({
+      doc: yjs.notes.toString(),
       extensions: [
-        keymap.of([...defaultKeymap, ...historyKeymap]),
-        history(),
-        syntaxHighlighting(defaultHighlightStyle),
+        keymap.of([...yUndoManagerKeymap, ...defaultKeymap]),
         EditorView.lineWrapping,
         placeholder(t("notes.placeholder")),
         theme,
         yCollab(yjs.notes, yjs.awareness, {
-          undoManager: yjs.undoManager,
+          undoManager: notesUndoManager,
         }),
       ],
     });
@@ -89,6 +87,7 @@ export function NotesPanel({ yjs }: NotesPanelProps) {
 
     return () => {
       view.destroy();
+      notesUndoManager.destroy();
       viewRef.current = null;
     };
   }, [yjs]);
