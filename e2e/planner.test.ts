@@ -269,16 +269,18 @@ test.describe("Planner", () => {
     const sessionResp = await request.post("/api/sessions", { data: {} });
     const { url } = await sessionResp.json();
 
+    await mockBRouter(page);
+
     // Import a GPX with overnight waypoints
     const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
   <wpt lat="52.520" lon="13.405"><name>Berlin</name></wpt>
-  <wpt lat="51.840" lon="12.243"><name>Dessau</name><type>overnight</type></wpt>
-  <wpt lat="50.980" lon="11.028"><name>Erfurt</name></wpt>
+  <wpt lat="52.516" lon="13.377"><name>Mitte</name><type>overnight</type></wpt>
+  <wpt lat="52.510" lon="13.390"><name>Kreuzberg</name></wpt>
   <trk><trkseg>
     <trkpt lat="52.520" lon="13.405"><ele>34</ele></trkpt>
-    <trkpt lat="51.840" lon="12.243"><ele>80</ele></trkpt>
-    <trkpt lat="50.980" lon="11.028"><ele>195</ele></trkpt>
+    <trkpt lat="52.516" lon="13.377"><ele>40</ele></trkpt>
+    <trkpt lat="52.510" lon="13.390"><ele>35</ele></trkpt>
   </trkseg></trk>
 </gpx>`;
 
