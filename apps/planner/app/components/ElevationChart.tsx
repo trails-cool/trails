@@ -4,6 +4,15 @@ import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
 import { elevationColor, type ColorMode } from "~/components/ColoredRoute";
 
+function gradeColor(grade: number): string {
+  const absGrade = Math.abs(grade);
+  if (absGrade < 3) return "#22c55e";     // green: flat/gentle
+  if (absGrade < 6) return "#eab308";     // yellow: moderate
+  if (absGrade < 10) return "#f97316";    // orange: steep
+  if (absGrade < 15) return "#ef4444";    // red: very steep
+  return "#991b1b";                        // dark red: extreme
+}
+
 interface ElevationPoint {
   distance: number;
   elevation: number;
@@ -61,7 +70,7 @@ interface ElevationChartProps {
 }
 
 export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("planner");
   const [points, setPoints] = useState<ElevationPoint[]>([]);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [colorMode, setColorMode] = useState<ColorMode>("plain");
@@ -115,7 +124,36 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
 
       ctx.clearRect(0, 0, w, h);
 
-      if (colorMode === "elevation") {
+      if (colorMode === "grade") {
+        // Grade-colored segments: color by steepness
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[i]!;
+          const p1 = points[i + 1]!;
+          const dDist = p1.distance - p0.distance;
+          const grade = dDist > 0 ? ((p1.elevation - p0.elevation) / dDist) * 100 : 0;
+          const color = gradeColor(grade);
+
+          // Fill segment
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
+          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
+          ctx.closePath();
+          ctx.fillStyle = color.replace(")", ", 0.25)").replace("rgb", "rgba").replace("#", "");
+          // hex to rgba fill
+          ctx.fillStyle = color + "40";
+          ctx.fill();
+
+          // Line segment
+          ctx.beginPath();
+          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
+          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      } else if (colorMode === "elevation") {
         // Elevation-colored fill and line segments
         for (let i = 0; i < points.length - 1; i++) {
           const p0 = points[i]!;
@@ -226,7 +264,13 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         ctx.fillStyle = "#1f2937";
         ctx.font = "bold 10px sans-serif";
         ctx.textAlign = "left";
-        const label = `${Math.round(p.elevation)}m · ${(p.distance / 1000).toFixed(1)}km`;
+        let label = `${Math.round(p.elevation)}m · ${(p.distance / 1000).toFixed(1)}km`;
+        if (colorMode === "grade" && highlightIdx > 0) {
+          const prev = points[highlightIdx - 1]!;
+          const dDist = p.distance - prev.distance;
+          const grade = dDist > 0 ? ((p.elevation - prev.elevation) / dDist) * 100 : 0;
+          label += ` · ${grade > 0 ? "+" : ""}${grade.toFixed(1)}%`;
+        }
         const labelX = hx + 8 > w - 80 ? hx - 8 : hx + 8;
         ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
         ctx.fillText(label, labelX, PADDING.top + 10);
@@ -281,11 +325,29 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
     onHover?.(null);
   }, [onHover]);
 
+  const setMode = useCallback((mode: string) => {
+    yjs.routeData.set("colorMode", mode);
+  }, [yjs.routeData]);
+
   if (points.length < 2) return null;
 
   return (
     <div className="border-t border-gray-200 px-2 py-2">
-      <p className="mb-1 px-2 text-xs font-medium text-gray-500">Elevation Profile</p>
+      <div className="mb-1 flex items-center justify-between px-2">
+        <p className="text-xs font-medium text-gray-500">
+          {colorMode === "grade" ? t("elevation.grade") : t("elevation.profile")}
+        </p>
+        <select
+          value={colorMode}
+          onChange={(e) => setMode(e.target.value)}
+          className="rounded border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-500"
+        >
+          <option value="plain">{t("colorMode.plain")}</option>
+          <option value="elevation">{t("colorMode.elevation")}</option>
+          <option value="surface">{t("colorMode.surface")}</option>
+          <option value="grade">{t("colorMode.grade")}</option>
+        </select>
+      </div>
       <canvas
         ref={canvasRef}
         className="h-24 w-full cursor-crosshair"

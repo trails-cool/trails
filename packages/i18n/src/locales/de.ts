@@ -101,6 +101,7 @@ export default {
       plain: "Standard",
       elevation: "Höhe",
       surface: "Untergrund",
+      grade: "Steigung",
       surfaceUnavailable: "Untergrunddaten für dieses Profil nicht verfügbar",
     },
     rateLimitExceeded: "Zu viele Anfragen. Bitte versuche es später erneut.",
@@ -108,6 +109,7 @@ export default {
       gain: "Höhenmeter aufwärts",
       loss: "Höhenmeter abwärts",
       profile: "Höhenprofil",
+      grade: "Steigungsprofil",
     },
     landing: {
       startPlanning: "Planung starten",
