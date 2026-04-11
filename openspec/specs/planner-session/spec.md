@@ -31,3 +31,8 @@ The Planner SHALL synchronize waypoint edits, route options, and overlay prefere
 #### Scenario: Notes cursor awareness
 - **WHEN** participant A selects text in the notes editor
 - **THEN** participant B sees participant A's selection highlighted in A's assigned color
+
+#### Scenario: Notes persist across reload
+- **WHEN** a participant reloads the session page
+- **THEN** the notes content is restored from the Yjs document
+- **AND** the editor displays the existing text immediately
