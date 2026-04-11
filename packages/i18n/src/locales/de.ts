@@ -102,6 +102,7 @@ export default {
       elevation: "Höhe",
       surface: "Untergrund",
       grade: "Steigung",
+      surfaceLegend: "Farbe nach Straßenbelag",
       surfaceUnavailable: "Untergrunddaten für dieses Profil nicht verfügbar",
     },
     rateLimitExceeded: "Zu viele Anfragen. Bitte versuche es später erneut.",
@@ -110,6 +111,8 @@ export default {
       loss: "Höhenmeter abwärts",
       profile: "Höhenprofil",
       grade: "Steigungsprofil",
+      low: "Tief",
+      high: "Hoch",
     },
     landing: {
       startPlanning: "Planung starten",

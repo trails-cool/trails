@@ -333,14 +333,31 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
 
   return (
     <div className="border-t border-gray-200 px-2 py-2">
-      <div className="mb-1 flex items-center justify-between px-2">
-        <p className="text-xs font-medium text-gray-500">
+      <div className="mb-1 flex items-center gap-2 px-2">
+        <p className="shrink-0 text-xs font-medium text-gray-500">
           {colorMode === "grade" ? t("elevation.grade") : t("elevation.profile")}
         </p>
+        <div className="flex flex-1 items-center justify-center gap-1.5 text-[10px] text-gray-400">
+          {colorMode === "grade" && (<>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />{"<3%"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#eab308" }} />{"<6%"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#f97316" }} />{"<10%"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#ef4444" }} />{"<15%"}</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#991b1b" }} />{"15%+"}</span>
+          </>)}
+          {colorMode === "elevation" && (<>
+            <span>{t("elevation.low")}</span>
+            <span className="inline-block h-1.5 w-16 rounded-sm" style={{ background: "linear-gradient(to right, rgb(0, 200, 50), rgb(255, 200, 50), rgb(255, 0, 50))" }} />
+            <span>{t("elevation.high")}</span>
+          </>)}
+          {colorMode === "surface" && (
+            <span>{t("colorMode.surfaceLegend")}</span>
+          )}
+        </div>
         <select
           value={colorMode}
           onChange={(e) => setMode(e.target.value)}
-          className="rounded border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-500"
+          className="shrink-0 rounded border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-500"
         >
           <option value="plain">{t("colorMode.plain")}</option>
           <option value="elevation">{t("colorMode.elevation")}</option>
@@ -354,15 +371,6 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       />
-      {colorMode === "grade" && (
-        <div className="mt-1 flex items-center justify-center gap-2 px-2 text-[10px] text-gray-500">
-          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#22c55e" }} />{"<3%"}</span>
-          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#eab308" }} />{"<6%"}</span>
-          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#f97316" }} />{"<10%"}</span>
-          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#ef4444" }} />{"<15%"}</span>
-          <span className="flex items-center gap-0.5"><span className="inline-block h-2 w-3 rounded-sm" style={{ background: "#991b1b" }} />{"15%+"}</span>
-        </div>
-      )}
     </div>
   );
 }
