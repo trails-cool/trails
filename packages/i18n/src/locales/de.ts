@@ -22,6 +22,8 @@ export default {
     exportRouteDesc: "GPX-Track für jede App",
     exportPlan: "Plan exportieren",
     exportPlanDesc: "Mit Wegpunkten und Sperrzonen",
+    exportDays: "Tagesetappen exportieren",
+    exportDaysDesc: "Eine GPX-Datei pro Tag",
     "undo.tooltip": "Rückgängig (Strg+Z)",
     "redo.tooltip": "Wiederholen (Strg+Umschalt+Z)",
     importGpx: "GPX importieren",
