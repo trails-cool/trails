@@ -75,10 +75,13 @@ const PADDING = { top: 10, right: 10, bottom: 25, left: 40 };
 interface ElevationChartProps {
   yjs: YjsState;
   onHover?: (position: [number, number] | null) => void;
+  highlightDistance?: number | null;
+  onClickPosition?: (position: [number, number]) => void;
+  onDragSelect?: (bounds: [[number, number], [number, number]]) => void;
   days?: DayStage[];
 }
 
-export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
+export function ElevationChart({ yjs, onHover, highlightDistance, onClickPosition, onDragSelect, days }: ElevationChartProps) {
   const { t } = useTranslation("planner");
   const [points, setPoints] = useState<ElevationPoint[]>([]);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -93,6 +96,36 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<ElevationPoint[]>([]);
   pointsRef.current = points;
+  const isExternalHover = useRef(false);
+  const dragStartX = useRef<number | null>(null);
+  const dragStartClientX = useRef<number | null>(null);
+  const isDragging = useRef(false);
+  const dragCurrentX = useRef<number | null>(null);
+
+  // External highlight from map hover: find closest point by distance
+  useEffect(() => {
+    if (highlightDistance == null) {
+      if (isExternalHover.current) {
+        isExternalHover.current = false;
+        setHoverIdx(null);
+      }
+      return;
+    }
+    if (points.length < 2) return;
+
+    let closest = 0;
+    let minDiff = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const diff = Math.abs(points[i]!.distance - highlightDistance);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = i;
+      }
+    }
+    isExternalHover.current = true;
+    setHoverIdx(closest);
+    // Do NOT call onHover here to avoid feedback loop
+  }, [highlightDistance, points]);
 
   useEffect(() => {
     const update = () => {
@@ -524,6 +557,19 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
         ctx.fillText(label, labelX, PADDING.top + 10);
       }
+
+      // Drag selection overlay
+      if (isDragging.current && dragStartX.current != null && dragCurrentX.current != null) {
+        const x1 = Math.max(PADDING.left, Math.min(dragStartX.current, PADDING.left + chartW));
+        const x2 = Math.max(PADDING.left, Math.min(dragCurrentX.current, PADDING.left + chartW));
+        const selLeft = Math.min(x1, x2);
+        const selRight = Math.max(x1, x2);
+        ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
+        ctx.fillRect(selLeft, PADDING.top, selRight - selLeft, chartH);
+        ctx.strokeStyle = "rgba(59, 130, 246, 0.5)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(selLeft, PADDING.top, selRight - selLeft, chartH);
+      }
     },
     [points, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes, days, t],
   );
@@ -541,6 +587,17 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
       const mouseX = e.clientX - rect.left;
       const chartW = rect.width - PADDING.left - PADDING.right;
       const ratio = (mouseX - PADDING.left) / chartW;
+
+      // Handle drag selection
+      if (dragStartClientX.current != null) {
+        const dx = Math.abs(e.clientX - dragStartClientX.current);
+        if (dx > 5) {
+          isDragging.current = true;
+          dragCurrentX.current = mouseX;
+          drawChart(hoverIdx);
+          return;
+        }
+      }
 
       if (ratio < 0 || ratio > 1) {
         setHoverIdx(null);
@@ -562,17 +619,257 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
         }
       }
 
+      isExternalHover.current = false;
       setHoverIdx(closest);
       const p = points[closest]!;
       onHover?.([p.lat, p.lon]);
     },
-    [points, onHover],
+    [points, onHover, hoverIdx, drawChart],
   );
 
   const handleMouseLeave = useCallback(() => {
     setHoverIdx(null);
     onHover?.(null);
+    dragStartX.current = null;
+    dragStartClientX.current = null;
+    isDragging.current = false;
+    dragCurrentX.current = null;
   }, [onHover]);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      dragStartX.current = e.clientX - rect.left;
+      dragStartClientX.current = e.clientX;
+      isDragging.current = false;
+      dragCurrentX.current = null;
+    },
+    [],
+  );
+
+  const handleMouseUp = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas || points.length < 2) {
+        dragStartX.current = null;
+        dragStartClientX.current = null;
+        isDragging.current = false;
+        dragCurrentX.current = null;
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const chartW = rect.width - PADDING.left - PADDING.right;
+      const maxDist = points[points.length - 1]!.distance;
+
+      if (isDragging.current && dragStartX.current != null) {
+        // Drag-select: compute bounding box of selected range
+        const endX = e.clientX - rect.left;
+        const startRatio = Math.max(0, Math.min(1, (dragStartX.current - PADDING.left) / chartW));
+        const endRatio = Math.max(0, Math.min(1, (endX - PADDING.left) / chartW));
+        const startDist = Math.min(startRatio, endRatio) * maxDist;
+        const endDist = Math.max(startRatio, endRatio) * maxDist;
+
+        // Find all points in the selected distance range
+        let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+        let found = false;
+        for (const p of points) {
+          if (p.distance >= startDist && p.distance <= endDist) {
+            minLat = Math.min(minLat, p.lat);
+            maxLat = Math.max(maxLat, p.lat);
+            minLon = Math.min(minLon, p.lon);
+            maxLon = Math.max(maxLon, p.lon);
+            found = true;
+          }
+        }
+
+        if (found && onDragSelect) {
+          onDragSelect([[minLat, minLon], [maxLat, maxLon]]);
+        }
+      } else if (dragStartClientX.current != null) {
+        // Click (not drag): pan map to clicked point
+        const dx = Math.abs(e.clientX - dragStartClientX.current);
+        if (dx <= 5 && onClickPosition) {
+          const mouseX = e.clientX - rect.left;
+          const ratio = (mouseX - PADDING.left) / chartW;
+          if (ratio >= 0 && ratio <= 1) {
+            const targetDist = ratio * maxDist;
+            let closest = 0;
+            let minDiff = Infinity;
+            for (let i = 0; i < points.length; i++) {
+              const diff = Math.abs(points[i]!.distance - targetDist);
+              if (diff < minDiff) {
+                minDiff = diff;
+                closest = i;
+              }
+            }
+            const p = points[closest]!;
+            onClickPosition([p.lat, p.lon]);
+          }
+        }
+      }
+
+      dragStartX.current = null;
+      dragStartClientX.current = null;
+      isDragging.current = false;
+      dragCurrentX.current = null;
+      drawChart(hoverIdx);
+    },
+    [points, onClickPosition, onDragSelect, hoverIdx, drawChart],
+  );
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+
+      if (e.touches.length === 1) {
+        // Single touch: start scrub + potential drag
+        const x = e.touches[0]!.clientX - rect.left;
+        dragStartX.current = x;
+        dragStartClientX.current = e.touches[0]!.clientX;
+        isDragging.current = false;
+        dragCurrentX.current = null;
+        // Immediately show highlight at touch position
+        const chartW = rect.width - PADDING.left - PADDING.right;
+        const ratio = (x - PADDING.left) / chartW;
+        if (ratio >= 0 && ratio <= 1 && points.length >= 2) {
+          const maxDist = points[points.length - 1]!.distance;
+          const targetDist = ratio * maxDist;
+          let closest = 0;
+          let minDiff = Infinity;
+          for (let i = 0; i < points.length; i++) {
+            const diff = Math.abs(points[i]!.distance - targetDist);
+            if (diff < minDiff) { minDiff = diff; closest = i; }
+          }
+          isExternalHover.current = false;
+          setHoverIdx(closest);
+          const p = points[closest]!;
+          onHover?.([p.lat, p.lon]);
+        }
+      } else if (e.touches.length === 2) {
+        // Two fingers: range select
+        const x1 = e.touches[0]!.clientX - rect.left;
+        const x2 = e.touches[1]!.clientX - rect.left;
+        dragStartX.current = Math.min(x1, x2);
+        dragCurrentX.current = Math.max(x1, x2);
+        isDragging.current = true;
+        drawChart(hoverIdx);
+      }
+    },
+    [points, onHover, hoverIdx, drawChart],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas || points.length < 2) return;
+      const rect = canvas.getBoundingClientRect();
+
+      if (e.touches.length === 1 && !isDragging.current) {
+        // Single touch scrub: update highlight
+        const x = e.touches[0]!.clientX - rect.left;
+        const chartW = rect.width - PADDING.left - PADDING.right;
+        const ratio = (x - PADDING.left) / chartW;
+        if (ratio >= 0 && ratio <= 1) {
+          const maxDist = points[points.length - 1]!.distance;
+          const targetDist = ratio * maxDist;
+          let closest = 0;
+          let minDiff = Infinity;
+          for (let i = 0; i < points.length; i++) {
+            const diff = Math.abs(points[i]!.distance - targetDist);
+            if (diff < minDiff) { minDiff = diff; closest = i; }
+          }
+          isExternalHover.current = false;
+          setHoverIdx(closest);
+          const p = points[closest]!;
+          onHover?.([p.lat, p.lon]);
+        }
+      } else if (e.touches.length === 2) {
+        // Two finger range select: update selection
+        const x1 = e.touches[0]!.clientX - rect.left;
+        const x2 = e.touches[1]!.clientX - rect.left;
+        dragStartX.current = Math.min(x1, x2);
+        dragCurrentX.current = Math.max(x1, x2);
+        isDragging.current = true;
+        drawChart(hoverIdx);
+      }
+    },
+    [points, onHover, hoverIdx, drawChart],
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      if (isDragging.current && dragStartX.current != null && dragCurrentX.current != null && points.length >= 2) {
+        // Two finger range complete: zoom map
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const chartW = rect.width - PADDING.left - PADDING.right;
+          const maxDist = points[points.length - 1]!.distance;
+          const startRatio = Math.max(0, Math.min(1, (dragStartX.current - PADDING.left) / chartW));
+          const endRatio = Math.max(0, Math.min(1, (dragCurrentX.current - PADDING.left) / chartW));
+          const startDist = Math.min(startRatio, endRatio) * maxDist;
+          const endDist = Math.max(startRatio, endRatio) * maxDist;
+
+          let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+          let found = false;
+          for (const p of points) {
+            if (p.distance >= startDist && p.distance <= endDist) {
+              minLat = Math.min(minLat, p.lat);
+              maxLat = Math.max(maxLat, p.lat);
+              minLon = Math.min(minLon, p.lon);
+              maxLon = Math.max(maxLon, p.lon);
+              found = true;
+            }
+          }
+          if (found && onDragSelect) {
+            onDragSelect([[minLat, minLon], [maxLat, maxLon]]);
+          }
+        }
+      } else if (e.changedTouches.length === 1 && onClickPosition && dragStartClientX.current != null) {
+        // Single tap (no significant movement): pan map
+        const dx = Math.abs(e.changedTouches[0]!.clientX - dragStartClientX.current);
+        if (dx <= 10) {
+          // Treat as tap → pan
+          const canvas = canvasRef.current;
+          if (canvas && points.length >= 2) {
+            const rect = canvas.getBoundingClientRect();
+            const chartW = rect.width - PADDING.left - PADDING.right;
+            const mouseX = e.changedTouches[0]!.clientX - rect.left;
+            const ratio = (mouseX - PADDING.left) / chartW;
+            if (ratio >= 0 && ratio <= 1) {
+              const maxDist = points[points.length - 1]!.distance;
+              const targetDist = ratio * maxDist;
+              let closest = 0;
+              let minDiff = Infinity;
+              for (let i = 0; i < points.length; i++) {
+                const diff = Math.abs(points[i]!.distance - targetDist);
+                if (diff < minDiff) { minDiff = diff; closest = i; }
+              }
+              onClickPosition([points[closest]!.lat, points[closest]!.lon]);
+            }
+          }
+        }
+      }
+
+      // Clear highlight on touch end
+      setHoverIdx(null);
+      onHover?.(null);
+      dragStartX.current = null;
+      dragStartClientX.current = null;
+      isDragging.current = false;
+      dragCurrentX.current = null;
+      drawChart(null);
+    },
+    [points, onHover, onClickPosition, onDragSelect, drawChart],
+  );
 
   const setMode = useCallback((mode: string) => {
     yjs.routeData.set("colorMode", mode);
@@ -581,7 +878,7 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
   if (points.length < 2) return null;
 
   return (
-    <div className="border-t border-gray-200 px-2 py-2">
+    <div className="border-t border-gray-200 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="mb-1 flex items-center gap-2 px-2">
         {(() => {
           const osmLinks: Record<string, string> = {
@@ -702,9 +999,14 @@ export function ElevationChart({ yjs, onHover, days }: ElevationChartProps) {
       </div>
       <canvas
         ref={canvasRef}
-        className="h-24 w-full cursor-crosshair"
+        className="h-24 w-full cursor-crosshair touch-none"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
     </div>
   );

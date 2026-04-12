@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import L from "leaflet";
 import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
@@ -165,6 +166,8 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const [highlightedWaypoint, setHighlightedWaypoint] = useState<number | null>(null);
+  const [highlightChartDistance, setHighlightChartDistance] = useState<number | null>(null);
+  const [isZoomedByChart, setIsZoomedByChart] = useState(false);
   const { toasts, addToast } = useToasts();
   useAwarenessToasts(yjs, t, addToast);
 
@@ -185,6 +188,31 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
     setHighlightPosition(pos);
   }, []);
 
+  const handleChartClick = useCallback((position: [number, number]) => {
+    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    map?.panTo(position);
+  }, []);
+
+  const handleChartDragSelect = useCallback((bounds: [[number, number], [number, number]]) => {
+    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    map?.fitBounds(bounds, { padding: [30, 30] });
+    setIsZoomedByChart(true);
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    if (!map || !yjs) return;
+    const coordsJson = yjs.routeData.get("coordinates") as string | undefined;
+    if (!coordsJson) return;
+    try {
+      const coords: [number, number, number][] = JSON.parse(coordsJson);
+      if (coords.length < 2) return;
+      const latLngs = coords.map((c) => [c[1]!, c[0]!] as [number, number]);
+      map.fitBounds(L.latLngBounds(latLngs), { padding: [50, 50] });
+    } catch { /* ignore */ }
+    setIsZoomedByChart(false);
+  }, [yjs]);
+
   if (!yjs) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -195,14 +223,16 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
-        <div className="flex items-center gap-2 md:gap-4">
+      <header className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-4 sm:py-2">
+        <div className="flex items-center gap-1.5 sm:gap-4 min-w-0">
           <Link to="/" className="hidden text-lg font-semibold text-gray-900 hover:text-blue-600 sm:block">
             {t("title")}
           </Link>
           <ProfileSelector yjs={yjs} />
-          <ParticipantList yjs={yjs} />
-          <div className="flex gap-1">
+          <div className="hidden sm:block">
+            <ParticipantList yjs={yjs} />
+          </div>
+          <div className="hidden sm:flex gap-1">
             <button
               onClick={undo}
               disabled={!canUndo}
@@ -221,7 +251,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {callbackUrl && callbackToken && (
             <SaveToJournalButton
               yjs={yjs}
@@ -232,9 +262,9 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           )}
           <ExportButton yjs={yjs} />
           {computing && (
-            <span className="text-xs text-blue-600">{t("computingRoute")}</span>
+            <span className="hidden text-xs text-blue-600 sm:inline">{t("computingRoute")}</span>
           )}
-          <span className="text-sm text-gray-500">
+          <span className="hidden text-sm text-gray-500 sm:inline">
             {yjs.connected ? t("connected") : t("connecting")} · {sessionId.slice(0, 8)}
           </span>
         </div>
@@ -256,11 +286,21 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onImportError={(msg) => addToast(msg, "error")} days={days} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onRouteHover={setHighlightChartDistance} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
-            <ElevationChart yjs={yjs} onHover={handleElevationHover} days={days} />
+            <div className="relative">
+              <ElevationChart yjs={yjs} onHover={handleElevationHover} highlightDistance={highlightChartDistance} onClickPosition={handleChartClick} onDragSelect={handleChartDragSelect} days={days} />
+              {isZoomedByChart && (
+                <button
+                  onClick={handleResetZoom}
+                  className="absolute right-3 top-1 z-10 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow ring-1 ring-gray-200 hover:bg-gray-50"
+                >
+                  {t("elevation.resetZoom", "Reset zoom")}
+                </button>
+              )}
+            </div>
           </Suspense>
         </main>
         <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} />

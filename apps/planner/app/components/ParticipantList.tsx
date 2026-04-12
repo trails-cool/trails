@@ -109,7 +109,7 @@ export function ParticipantList({ yjs }: ParticipantListProps) {
               onBlur={commitEdit}
               onKeyDown={handleKeyDown}
               maxLength={20}
-              className="w-20 rounded border border-gray-300 px-1 py-0 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+              className="w-20 rounded border border-gray-300 px-1 py-0 text-base sm:text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
             />
           ) : (
             <button
