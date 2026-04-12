@@ -50,3 +50,30 @@ The elevation chart SHALL support touch-based interaction on mobile devices.
 #### Scenario: No page scroll on touch
 - **WHEN** a user touches the elevation chart
 - **THEN** page scrolling is prevented (touch-none CSS + preventDefault)
+
+### Requirement: iOS safe area support
+The Planner layout SHALL respect iOS safe area insets.
+
+#### Scenario: Notch/Dynamic Island clearance
+- **WHEN** the Planner is viewed on an iOS device with a notch or Dynamic Island
+- **THEN** the header bar is padded below the safe area inset
+
+#### Scenario: Home indicator clearance
+- **WHEN** the Planner is viewed on an iOS device without a physical home button
+- **THEN** the elevation chart area is padded above the home indicator
+
+#### Scenario: No accidental page zoom
+- **WHEN** a user pinches on the Planner UI
+- **THEN** the browser-level page zoom does not trigger (viewport user-scalable=no)
+
+### Requirement: Responsive mobile header
+The Planner header SHALL adapt to small screens by hiding secondary controls.
+
+#### Scenario: Small screen header
+- **WHEN** the Planner is viewed on a mobile device
+- **THEN** only the profile selector and export button are visible
+- **AND** participant list, undo/redo, connection status, and computing text are hidden
+
+#### Scenario: Desktop header
+- **WHEN** the Planner is viewed on a desktop screen
+- **THEN** all header controls are visible
