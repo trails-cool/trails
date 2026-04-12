@@ -17,6 +17,7 @@
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": false,
     "noEmit": true,
+    "erasableSyntaxOnly": true,
     "allowImportingTsExtensions": true
   },
   "exclude": ["node_modules", "build", "dist"]
