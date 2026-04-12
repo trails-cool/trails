@@ -19,7 +19,7 @@ export default function TabLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activities">
         <NativeTabs.Trigger.Icon
-          sf={{ default: "figure.hiking", selected: "figure.hiking" }}
+          sf={{ default: "bicycle", selected: "bicycle" }}
           md="directions_bike"
         />
         <NativeTabs.Trigger.Label>Activities</NativeTabs.Trigger.Label>
