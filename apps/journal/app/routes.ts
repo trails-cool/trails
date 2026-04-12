@@ -33,4 +33,13 @@ export default [
   route("api/sync/disconnect/:provider", "routes/api.sync.disconnect.$provider.ts"),
   route("api/sync/webhook/:provider", "routes/api.sync.webhook.$provider.ts"),
   route("privacy", "routes/privacy.tsx"),
+  // REST API v1
+  route("api/v1/routes", "routes/api.v1.routes._index.ts"),
+  route("api/v1/routes/compute", "routes/api.v1.routes.compute.ts"),
+  route("api/v1/routes/:id", "routes/api.v1.routes.$id.ts"),
+  route("api/v1/activities", "routes/api.v1.activities._index.ts"),
+  route("api/v1/activities/:id", "routes/api.v1.activities.$id.ts"),
+  route("api/v1/auth/devices", "routes/api.v1.auth.devices.ts"),
+  route("api/v1/auth/devices/:id", "routes/api.v1.auth.devices.$id.ts"),
+  route("api/v1/uploads", "routes/api.v1.uploads.ts"),
 ] satisfies RouteConfig;

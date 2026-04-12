@@ -31,11 +31,13 @@ export async function action({ request }: Route.ActionArgs) {
         return oauthErrorResponse("invalid_request", "Missing required parameters");
       }
 
+      const deviceName = body.get("device_name") as string | null;
       const tokens = await exchangeCodeForTokens({
         code,
         clientId,
         redirectUri,
         codeVerifier,
+        deviceName: deviceName ?? undefined,
       });
 
       return Response.json(tokens);
