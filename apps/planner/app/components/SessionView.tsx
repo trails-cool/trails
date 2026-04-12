@@ -262,7 +262,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           )}
           <ExportButton yjs={yjs} />
           {computing && (
-            <span className="text-xs text-blue-600">{t("computingRoute")}</span>
+            <span className="hidden text-xs text-blue-600 sm:inline">{t("computingRoute")}</span>
           )}
           <span className="hidden text-sm text-gray-500 sm:inline">
             {yjs.connected ? t("connected") : t("connecting")} · {sessionId.slice(0, 8)}
