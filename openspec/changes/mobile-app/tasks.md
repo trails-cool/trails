@@ -60,40 +60,40 @@
 
 ### 2.1 Auth & Discovery Endpoints
 
-- [ ] 2.1.1 Implement bearer token auth middleware for `/api/v1/*` routes
-- [ ] 2.1.2 Implement `GET /.well-known/trails-cool` discovery endpoint (apiVersion, instanceName, tileUrl, apiBaseUrl)
-- [ ] 2.1.3 Implement `POST /api/v1/auth/token` (OAuth2 code-to-token exchange, refresh grant)
+- [x] 2.1.1 Implement bearer token auth middleware for `/api/v1/*` routes
+- [x] 2.1.2 Implement `GET /.well-known/trails-cool` discovery endpoint (apiVersion, instanceName, tileUrl, apiBaseUrl)
+- [x] 2.1.3 Implement `POST /api/v1/auth/token` (OAuth2 code-to-token exchange, refresh grant)
 
 ### 2.2 Routes Endpoints
 
-- [ ] 2.2.1 Implement `GET /api/v1/routes` with cursor-based pagination
-- [ ] 2.2.2 Implement `GET /api/v1/routes/:id` with full route detail (GPX, waypoints, versions)
-- [ ] 2.2.3 Implement `POST /api/v1/routes` to create a new route
-- [ ] 2.2.4 Implement `PUT /api/v1/routes/:id` to update a route (new version)
-- [ ] 2.2.5 Implement `DELETE /api/v1/routes/:id`
+- [x] 2.2.1 Implement `GET /api/v1/routes` with cursor-based pagination
+- [x] 2.2.2 Implement `GET /api/v1/routes/:id` with full route detail (GPX, waypoints, versions)
+- [x] 2.2.3 Implement `POST /api/v1/routes` to create a new route
+- [x] 2.2.4 Implement `PUT /api/v1/routes/:id` to update a route (new version)
+- [x] 2.2.5 Implement `DELETE /api/v1/routes/:id`
 
 ### 2.3 Activities Endpoints
 
-- [ ] 2.3.1 Implement `GET /api/v1/activities` with cursor-based pagination
-- [ ] 2.3.2 Implement `GET /api/v1/activities/:id` with full activity detail
-- [ ] 2.3.3 Implement `POST /api/v1/activities` to create a new activity
-- [ ] 2.3.4 Implement `DELETE /api/v1/activities/:id`
+- [x] 2.3.1 Implement `GET /api/v1/activities` with cursor-based pagination
+- [x] 2.3.2 Implement `GET /api/v1/activities/:id` with full activity detail
+- [x] 2.3.3 Implement `POST /api/v1/activities` to create a new activity
+- [x] 2.3.4 Implement `DELETE /api/v1/activities/:id`
 
 ### 2.4 Supporting Endpoints
 
-- [ ] 2.4.1 Implement `POST /api/v1/routes/compute` BRouter proxy endpoint
-- [ ] 2.4.2 Implement `POST /api/v1/uploads` presigned URL endpoint
+- [x] 2.4.1 Implement `POST /api/v1/routes/compute` BRouter proxy endpoint
+- [x] 2.4.2 Implement `POST /api/v1/uploads` presigned URL endpoint
 
 ### 2.5 Device Management
 
-- [ ] 2.5.1 Store device name and last active timestamp on OAuth2 token use
-- [ ] 2.5.2 Implement `GET /api/v1/auth/devices` — list connected devices for the authenticated user
-- [ ] 2.5.3 Implement `DELETE /api/v1/auth/devices/:id` — revoke a device token
+- [x] 2.5.1 Store device name and last active timestamp on OAuth2 token use
+- [x] 2.5.2 Implement `GET /api/v1/auth/devices` — list connected devices for the authenticated user
+- [x] 2.5.3 Implement `DELETE /api/v1/auth/devices/:id` — revoke a device token
 
 ### 2.6 Validation & Testing
 
-- [ ] 2.6.1 Add Zod validation middleware using schemas from `@trails-cool/api`
-- [ ] 2.6.2 Unit tests for all API endpoints
+- [x] 2.6.1 Add Zod validation middleware using schemas from `@trails-cool/api`
+- [x] 2.6.2 Unit tests for all API endpoints
 
 ## Phase 3: Routes
 

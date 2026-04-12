@@ -85,6 +85,7 @@ export async function exchangeCodeForTokens(params: {
   clientId: string;
   redirectUri: string;
   codeVerifier: string;
+  deviceName?: string;
 }) {
   const db = getDb();
 
@@ -118,7 +119,7 @@ export async function exchangeCodeForTokens(params: {
     .set({ usedAt: new Date() })
     .where(eq(oauthCodes.id, record.id));
 
-  return issueTokens(record.userId, params.clientId);
+  return issueTokens(record.userId, params.clientId, params.deviceName);
 }
 
 // --- Refresh token ---
@@ -126,6 +127,7 @@ export async function exchangeCodeForTokens(params: {
 export async function refreshAccessToken(params: {
   refreshToken: string;
   clientId: string;
+  deviceName?: string;
 }) {
   const db = getDb();
 
@@ -151,12 +153,12 @@ export async function refreshAccessToken(params: {
     .where(eq(oauthTokens.id, record.id));
 
   // Issue fresh tokens (token rotation)
-  return issueTokens(record.userId, params.clientId);
+  return issueTokens(record.userId, params.clientId, params.deviceName ?? record.deviceName ?? undefined);
 }
 
 // --- Token issuance ---
 
-async function issueTokens(userId: string, clientId: string) {
+async function issueTokens(userId: string, clientId: string, deviceName?: string) {
   const db = getDb();
   const accessToken = generateToken();
   const refreshToken = generateToken();
@@ -168,6 +170,7 @@ async function issueTokens(userId: string, clientId: string) {
     refreshToken,
     userId,
     clientId,
+    deviceName: deviceName ?? null,
     expiresAt,
     lastActiveAt: new Date(),
   });
