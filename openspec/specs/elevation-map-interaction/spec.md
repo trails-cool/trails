@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Bidirectional interaction between the map and elevation chart, enabling users to explore route elevation by hovering, clicking, and dragging on either surface.
+
+## Requirements
 
 ### Requirement: Route hover highlights elevation chart
 Hovering over the route polyline on the map SHALL highlight the corresponding position on the elevation chart.

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+POI overlay panel for toggling OpenStreetMap point-of-interest categories on the Planner map, with viewport-scoped loading, caching, and profile-aware defaults.
+
+## Requirements
 
 ### Requirement: POI overlay panel
 The Planner SHALL provide a collapsible panel for toggling POI categories on the map.

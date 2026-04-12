@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Real-time collaborative editing sessions in the Planner using Yjs CRDTs, synchronizing waypoints, route options, and overlay preferences across all connected participants.
+
+## Requirements
 
 ### Requirement: Real-time collaborative editing
 The Planner SHALL synchronize waypoint edits, route options, and overlay preferences across all connected participants in real-time using Yjs CRDTs.

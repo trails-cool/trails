@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Tile-based map overlays (hillshading, Waymarked Trails cycling/hiking/MTB routes) with support for multiple simultaneous overlays, proper attribution, and profile-aware auto-enabling.
+
+## Requirements
 
 ### Requirement: Hillshading overlay
 The Planner map SHALL offer a hillshading tile overlay that visualizes terrain relief.

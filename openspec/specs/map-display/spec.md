@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Map tile layer display with base layer switching and independent overlay tile layers in the Planner.
+
+## Requirements
 
 ### Requirement: Base layer switching
 The map SHALL support switching between multiple base tile layers, and SHALL support toggling overlay tile layers independently.

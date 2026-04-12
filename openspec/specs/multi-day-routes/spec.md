@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Multi-day route planning with overnight waypoint markers, per-day statistics, day-aware UI, and day structure preserved in GPX exports.
+
+## Requirements
 
 ### Requirement: Overnight waypoint markers
 Any waypoint SHALL be toggleable as an overnight stop, creating day boundaries in the route.

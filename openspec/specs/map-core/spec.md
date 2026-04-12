@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Renderer-agnostic map configuration data (tile sources, route color palettes, POI categories) usable by any rendering engine without DOM or library dependencies.
+
+## Requirements
 
 ### Requirement: Renderer-agnostic map definitions
 The `@trails-cool/map-core` package SHALL provide map configuration data usable by any rendering engine.

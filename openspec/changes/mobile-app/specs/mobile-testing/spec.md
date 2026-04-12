@@ -24,3 +24,7 @@ The mobile app SHALL use Maestro for end-to-end flow testing on real/emulated de
 
 ### Requirement: No Vitest for mobile
 Vitest SHALL NOT be used for the mobile app. React Native Testing Library has incomplete Vitest support — Jest with jest-expo is the stable, Expo-recommended choice.
+
+#### Scenario: Vitest not used
+- **WHEN** unit or component tests are added to the mobile app
+- **THEN** they use Jest with jest-expo preset, not Vitest
