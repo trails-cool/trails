@@ -6,7 +6,7 @@
 - [x] 1.1.2 Configure pnpm workspace to include `apps/mobile` and resolve shared packages (`@trails-cool/types`, `@trails-cool/gpx`, `@trails-cool/i18n`)
 - [x] 1.1.3 Set up Expo Router with bottom tab navigation (Map, Routes, Activities, Profile) and placeholder screens
 - [x] 1.1.4 Add app icon, splash screen, and `app.config.ts` with bundle identifiers for iOS and Android
-- [ ] 1.1.5 Configure EAS Build for development and preview profiles
+- [x] 1.1.5 Configure EAS Build for development and preview profiles
 
 ### 1.2 API Contract Package
 
