@@ -4,7 +4,7 @@
   "description": "Collaborative route planning + federated activity sharing for outdoor enthusiasts",
   "type": "module",
   "license": "MIT",
-  "packageManager": "pnpm@10.6.5",
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20"
   },
