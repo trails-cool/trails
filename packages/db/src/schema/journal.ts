@@ -107,6 +107,49 @@ export const activities = journalSchema.table("activities", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// --- OAuth2 PKCE (mobile app auth) ---
+
+export const oauthClients = journalSchema.table("oauth_clients", {
+  clientId: text("client_id").primaryKey(),
+  redirectUri: text("redirect_uri").notNull(),
+  trusted: integer("trusted").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthCodes = journalSchema.table("oauth_codes", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => oauthClients.clientId, { onDelete: "cascade" }),
+  codeChallenge: text("code_challenge").notNull(),
+  codeChallengeMethod: text("code_challenge_method").notNull().default("S256"),
+  redirectUri: text("redirect_uri").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthTokens = journalSchema.table("oauth_tokens", {
+  id: text("id").primaryKey(),
+  accessToken: text("access_token").notNull().unique(),
+  refreshToken: text("refresh_token").notNull().unique(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => oauthClients.clientId, { onDelete: "cascade" }),
+  deviceName: text("device_name"),
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const syncConnections = journalSchema.table("sync_connections", {
   id: text("id").primaryKey(),
   userId: text("user_id")

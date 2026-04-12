@@ -21,7 +21,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const userId = await verifyMagicToken(token);
     const cookie = await createSession(userId, request);
-    return redirect("/?add-passkey=1", { headers: { "Set-Cookie": cookie } });
+    const returnTo = url.searchParams.get("returnTo");
+    const destination = returnTo?.startsWith("/") ? returnTo : "/?add-passkey=1";
+    return redirect(destination, { headers: { "Set-Cookie": cookie } });
   } catch (e) {
     return data({ error: (e as Error).message }, { status: 400 });
   }

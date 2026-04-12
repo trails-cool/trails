@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
   const { t } = useTranslation("journal");
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   const [supportsPasskey, setSupportsPasskey] = useState(true);
   const [mode, setMode] = useState<"passkey" | "magic-link">("passkey");
 
@@ -53,7 +56,7 @@ export default function LoginPage() {
       if (finishData.error) {
         setError(finishData.error);
       } else if (finishData.step === "done") {
-        window.location.href = "/";
+        window.location.href = returnTo ?? "/";
       }
     } catch (err) {
       const message = (err as Error).message;
@@ -84,7 +87,10 @@ export default function LoginPage() {
         setError(result.error);
       } else if (result.devLink) {
         // Dev mode: auto-redirect to magic link
-        window.location.href = result.devLink;
+        const devUrl = returnTo
+          ? `${result.devLink}&returnTo=${encodeURIComponent(returnTo)}`
+          : result.devLink;
+        window.location.href = devUrl;
       } else {
         setMagicLinkSent(true);
       }

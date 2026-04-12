@@ -92,6 +92,10 @@ const server = createServer((req, res) => {
   }
 });
 
-server.listen(port, () => {
+server.listen(port, async () => {
   logger.info({ port }, "Journal server listening");
+
+  // Seed first-party OAuth2 clients
+  const { seedOAuthClient } = await import("./app/lib/oauth.server.ts");
+  await seedOAuthClient("trails-cool-mobile", "trailscool://auth/callback", true);
 });

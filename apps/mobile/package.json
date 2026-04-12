@@ -25,8 +25,11 @@
     "@trails-cool/map-core": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "expo": "~55.0.14",
+    "expo-crypto": "~55.0.14",
     "expo-router": "~55.0.12",
+    "expo-secure-store": "~55.0.13",
     "expo-status-bar": "~55.0.5",
+    "expo-web-browser": "~55.0.14",
     "react": "19.2.0",
     "react-native": "0.83.4",
     "react-native-safe-area-context": "~5.6.2",
@@ -34,7 +37,7 @@
   },
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.2.14",
     "jest-expo": "^55.0.15",
     "typescript": "~5.9.2"

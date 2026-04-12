@@ -17,6 +17,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "cool.trails.app",
+    infoPlist: {
+      NSAppTransportSecurity: {
+        NSAllowsLocalNetworking: true,
+      },
+    },
   },
   android: {
     adaptiveIcon: {
@@ -28,5 +33,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router"],
+  plugins: ["expo-router", "expo-secure-store", "expo-web-browser"],
 });
