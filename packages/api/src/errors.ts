@@ -1,0 +1,26 @@
+import { z } from "zod";
+
+export const FieldErrorSchema = z.object({
+  field: z.string(),
+  message: z.string(),
+});
+
+export const ApiErrorResponseSchema = z.object({
+  error: z.string(),
+  code: z.string(),
+  fields: z.array(FieldErrorSchema).optional(),
+});
+
+export type FieldError = z.infer<typeof FieldErrorSchema>;
+export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
+
+/** Standard error codes */
+export const ERROR_CODES = {
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  NOT_FOUND: "NOT_FOUND",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  CONFLICT: "CONFLICT",
+  RATE_LIMITED: "RATE_LIMITED",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
+} as const;

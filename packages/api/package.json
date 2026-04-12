@@ -1,0 +1,10 @@
+{
+  "name": "@trails-cool/api",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "zod": "^3.25.0"
+  }
+}
