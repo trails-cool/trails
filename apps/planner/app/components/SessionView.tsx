@@ -223,14 +223,16 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
-        <div className="flex items-center gap-2 md:gap-4">
+      <header className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-4 sm:py-2">
+        <div className="flex items-center gap-1.5 sm:gap-4 min-w-0">
           <Link to="/" className="hidden text-lg font-semibold text-gray-900 hover:text-blue-600 sm:block">
             {t("title")}
           </Link>
           <ProfileSelector yjs={yjs} />
-          <ParticipantList yjs={yjs} />
-          <div className="flex gap-1">
+          <div className="hidden sm:block">
+            <ParticipantList yjs={yjs} />
+          </div>
+          <div className="hidden sm:flex gap-1">
             <button
               onClick={undo}
               disabled={!canUndo}
@@ -249,7 +251,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {callbackUrl && callbackToken && (
             <SaveToJournalButton
               yjs={yjs}
@@ -262,7 +264,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           {computing && (
             <span className="text-xs text-blue-600">{t("computingRoute")}</span>
           )}
-          <span className="text-sm text-gray-500">
+          <span className="hidden text-sm text-gray-500 sm:inline">
             {yjs.connected ? t("connected") : t("connecting")} · {sessionId.slice(0, 8)}
           </span>
         </div>
