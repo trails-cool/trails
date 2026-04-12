@@ -24,6 +24,7 @@
     "@trails-cool/gpx": "workspace:*",
     "@trails-cool/i18n": "workspace:*",
     "@trails-cool/map": "workspace:*",
+    "@trails-cool/map-core": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "@trails-cool/ui": "workspace:*",
     "codemirror": "^6.0.2",

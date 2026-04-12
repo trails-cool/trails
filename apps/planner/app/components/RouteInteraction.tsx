@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import { Z_GHOST_WAYPOINT } from "~/lib/z-index";
+import { Z_GHOST_WAYPOINT } from "@trails-cool/map-core";
 
 interface RouteInteractionProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]

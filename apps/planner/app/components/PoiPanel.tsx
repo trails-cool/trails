@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import { useTranslation } from "react-i18next";
 import { useMap } from "react-leaflet";
-import { poiCategories } from "~/lib/poi-categories";
+import { poiCategories, Z_POI_MARKER } from "@trails-cool/map-core";
 import type { PoiState } from "~/lib/use-pois";
-import { Z_POI_MARKER } from "~/lib/z-index";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 

@@ -1,6 +1,15 @@
 import { useMemo } from "react";
 import { Polyline } from "react-leaflet";
 import type L from "leaflet";
+import {
+  SURFACE_COLORS, DEFAULT_SURFACE_COLOR,
+  HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR,
+  SMOOTHNESS_COLORS, DEFAULT_SMOOTHNESS_COLOR,
+  TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
+  CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
+  BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
+  elevationColor, routeGradeColor, maxspeedColor,
+} from "@trails-cool/map-core";
 
 export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway" | "maxspeed" | "smoothness" | "tracktype" | "cycleway" | "bikeroute";
 
@@ -14,135 +23,6 @@ interface ColoredRouteProps {
   tracktypes?: string[];
   cycleways?: string[];
   bikeroutes?: string[];
-}
-
-const SURFACE_COLORS: Record<string, string> = {
-  asphalt: "#6b7280",
-  concrete: "#9ca3af",
-  paved: "#6b7280",
-  paving_stones: "#78716c",
-  cobblestone: "#a8a29e",
-  gravel: "#92400e",
-  compacted: "#b45309",
-  "fine_gravel": "#d97706",
-  ground: "#65a30d",
-  dirt: "#84cc16",
-  grass: "#22c55e",
-  sand: "#fbbf24",
-  mud: "#713f12",
-  wood: "#a16207",
-  unpaved: "#ca8a04",
-  path: "#16a34a",
-  track: "#ea580c",
-};
-
-const DEFAULT_SURFACE_COLOR = "#9ca3af";
-
-const HIGHWAY_COLORS: Record<string, string> = {
-  // Major roads — warm tones (caution for cyclists)
-  motorway: "#dc2626",
-  motorway_link: "#dc2626",
-  trunk: "#ea580c",
-  trunk_link: "#ea580c",
-  primary: "#f97316",
-  primary_link: "#f97316",
-  // Urban roads — neutral tones
-  secondary: "#6366f1",
-  secondary_link: "#6366f1",
-  tertiary: "#818cf8",
-  tertiary_link: "#818cf8",
-  residential: "#6b7280",
-  unclassified: "#9ca3af",
-  living_street: "#a78bfa",
-  // Paths & cycling infrastructure — green tones
-  cycleway: "#16a34a",
-  path: "#22c55e",
-  footway: "#4ade80",
-  track: "#65a30d",
-  bridleway: "#84cc16",
-  // Service & other — muted tones
-  service: "#d4d4d8",
-  pedestrian: "#c084fc",
-  steps: "#f472b6",
-};
-
-const DEFAULT_HIGHWAY_COLOR = "#9ca3af";
-
-const SMOOTHNESS_COLORS: Record<string, string> = {
-  excellent: "#22c55e",
-  good: "#16a34a",
-  intermediate: "#eab308",
-  bad: "#f97316",
-  very_bad: "#ef4444",
-  horrible: "#991b1b",
-  very_horrible: "#7f1d1d",
-  impassable: "#450a0a",
-};
-
-const DEFAULT_SMOOTHNESS_COLOR = "#9ca3af";
-
-const TRACKTYPE_COLORS: Record<string, string> = {
-  grade1: "#22c55e",
-  grade2: "#84cc16",
-  grade3: "#eab308",
-  grade4: "#f97316",
-  grade5: "#ef4444",
-};
-
-const DEFAULT_TRACKTYPE_COLOR = "#9ca3af";
-
-const CYCLEWAY_COLORS: Record<string, string> = {
-  track: "#22c55e",
-  lane: "#84cc16",
-  shared_lane: "#eab308",
-  share_busway: "#f97316",
-  opposite_lane: "#818cf8",
-  separate: "#16a34a",
-  no: "#ef4444",
-};
-
-const DEFAULT_CYCLEWAY_COLOR = "#9ca3af";
-
-const BIKEROUTE_COLORS: Record<string, string> = {
-  icn: "#7c3aed",    // purple — international
-  ncn: "#2563eb",    // blue — national
-  rcn: "#0891b2",    // teal — regional
-  lcn: "#059669",    // emerald — local
-  none: "#d4d4d8",   // gray — no route
-};
-
-const DEFAULT_BIKEROUTE_COLOR = "#d4d4d8";
-
-export function routeGradeColor(grade: number): string {
-  const absGrade = Math.abs(grade);
-  if (absGrade < 3) return "#22c55e";
-  if (absGrade < 6) return "#eab308";
-  if (absGrade < 10) return "#f97316";
-  if (absGrade < 15) return "#ef4444";
-  return "#991b1b";
-}
-
-export function elevationColor(t: number): string {
-  // green (0) → yellow (0.5) → red (1)
-  if (t <= 0.5) {
-    const r = Math.round(255 * (t * 2));
-    return `rgb(${r}, 200, 50)`;
-  }
-  const g = Math.round(200 * (1 - (t - 0.5) * 2));
-  return `rgb(255, ${g}, 50)`;
-}
-
-export function maxspeedColor(speed: string): string {
-  if (speed === "walk") return "#22c55e";
-  if (speed === "none") return "#991b1b";
-  const num = parseInt(speed, 10);
-  if (isNaN(num)) return "#9ca3af"; // unknown/gray
-  if (num <= 20) return "#22c55e";
-  if (num <= 30) return "#22c55e";
-  if (num <= 50) return "#eab308";
-  if (num <= 70) return "#f97316";
-  if (num <= 100) return "#ef4444";
-  return "#991b1b"; // >100 dark red
 }
 
 export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes }: ColoredRouteProps) {
@@ -356,11 +236,3 @@ export function findSegmentForPoint(
   return 0;
 }
 
-export {
-  SURFACE_COLORS, DEFAULT_SURFACE_COLOR,
-  HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR,
-  SMOOTHNESS_COLORS, DEFAULT_SMOOTHNESS_COLOR,
-  TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
-  CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
-  BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
-};

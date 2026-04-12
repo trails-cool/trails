@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCategoriesForProfile, profileOverlayDefaults, poiCategories } from "./poi-categories.ts";
+import { getCategoriesForProfile, profileOverlayDefaults, poiCategories } from "@trails-cool/map-core";
 
 describe("getCategoriesForProfile", () => {
   it("returns bike infra for cycling profiles", () => {
