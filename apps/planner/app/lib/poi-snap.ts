@@ -1,6 +1,5 @@
 import type { Poi } from "./overpass.ts";
-
-const SNAP_DISTANCE_METERS = 50;
+import { SNAP_DISTANCE_METERS } from "@trails-cool/map-core";
 
 export interface SnapResult {
   lat: number;

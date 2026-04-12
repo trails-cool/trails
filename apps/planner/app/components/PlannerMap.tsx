@@ -13,7 +13,7 @@ import { usePois } from "~/lib/use-pois";
 import { useProfileDefaults } from "~/lib/use-profile-defaults";
 import { useYjsPoiSync } from "~/lib/use-yjs-poi-sync";
 import { snapToPoi } from "~/lib/poi-snap";
-import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "~/lib/z-index";
+import { Z_CURSOR, Z_WAYPOINT, Z_WAYPOINT_HIGHLIGHTED, Z_HIGHLIGHT } from "@trails-cool/map-core";
 import { NoGoAreaLayer } from "./NoGoAreaLayer";
 import { ColoredRoute, findSegmentForPoint, type ColorMode } from "./ColoredRoute";
 import { RouteInteraction } from "./RouteInteraction";

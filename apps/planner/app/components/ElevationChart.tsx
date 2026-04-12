@@ -10,8 +10,8 @@ import {
   TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
   CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
   BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
-  type ColorMode,
-} from "~/components/ColoredRoute";
+} from "@trails-cool/map-core";
+import type { ColorMode } from "~/components/ColoredRoute";
 
 function gradeColor(grade: number): string {
   const absGrade = Math.abs(grade);

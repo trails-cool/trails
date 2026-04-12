@@ -1,4 +1,4 @@
-import type { PoiCategory } from "./poi-categories.ts";
+import type { PoiCategory } from "@trails-cool/map-core";
 
 const OVERPASS_ENDPOINTS = [
   "https://overpass.kumi.systems/api/interpreter",

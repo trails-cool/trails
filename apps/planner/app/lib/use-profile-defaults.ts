@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { YjsState } from "./use-yjs.ts";
 import type { PoiState } from "./use-pois.ts";
-import { getCategoriesForProfile } from "./poi-categories.ts";
+import { getCategoriesForProfile } from "@trails-cool/map-core";
 
 /**
  * Auto-enable relevant POI categories when the routing profile changes.

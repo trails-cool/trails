@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { queryPois, OverpassRateLimitError, type Poi, type BBox } from "./overpass.ts";
 import { getCached, setCached } from "./poi-cache.ts";
-import { poiCategories } from "./poi-categories.ts";
+import { poiCategories } from "@trails-cool/map-core";
 
 const MIN_ZOOM = 10;
 const DEBOUNCE_MS = 800;

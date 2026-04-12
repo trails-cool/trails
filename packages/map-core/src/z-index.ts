@@ -3,7 +3,7 @@
  * Higher values render on top of lower values.
  *
  * Rendering order (bottom to top):
- *   POI markers → cursor markers → ghost waypoint → waypoint markers → highlight dot
+ *   POI markers -> cursor markers -> ghost waypoint -> waypoint markers -> highlight dot
  */
 export const Z_CURSOR = -1000;
 export const Z_GHOST_WAYPOINT = -100;

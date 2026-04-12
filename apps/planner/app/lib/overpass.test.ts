@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildQuery, parseResponse, deduplicateById, type Poi } from "./overpass.ts";
-import { poiCategories } from "./poi-categories.ts";
+import { poiCategories } from "@trails-cool/map-core";
 
 describe("buildQuery", () => {
   it("builds Overpass QL with bbox and category union", () => {
