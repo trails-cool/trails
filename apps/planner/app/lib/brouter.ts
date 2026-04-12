@@ -68,12 +68,11 @@ export async function computeRoute(request: RouteRequest): Promise<EnrichedRoute
 }
 
 export class BRouterError extends Error {
-  constructor(
-    message: string,
-    public readonly statusCode: number,
-  ) {
+  readonly statusCode: number;
+  constructor(message: string, statusCode: number) {
     super(message);
     this.name = "BRouterError";
+    this.statusCode = statusCode;
   }
 }
 

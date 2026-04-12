@@ -61,7 +61,7 @@ groups:
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: prometheus
             model:
-              expr: (sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 0.001) * 100
+              expr: (sum(rate(caddy_http_request_duration_seconds_count{code=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count[5m])), 0.001) * 100
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -75,6 +75,106 @@ groups:
         for: 5m
         annotations:
           summary: "Error rate is above 5%"
+
+      - uid: container-restart-loop
+        title: Container restart loop
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: changes(container_start_time_seconds{name=~"trails-cool.*"}[5m])
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { params: [2], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 1m
+        annotations:
+          summary: "{{ $labels.name }} has restarted more than 2 times in 5 minutes"
+
+      - uid: db-connections-high
+        title: PostgreSQL connections > 80
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: sum(pg_stat_activity_count{datname="trails"})
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { params: [80], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 5m
+        annotations:
+          summary: "PostgreSQL active connections above 80 — approaching default max_connections limit"
+
+      - uid: app-crash-log
+        title: Application crash detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({service=~"journal|planner"} |~ "uncaughtException|unhandledRejection|ERR_|FATAL|segfault|OOMKilled"[5m]))
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 0s
+        noDataState: OK
+        annotations:
+          summary: "Crash signature detected in application logs"
+
+      - uid: caddy-502-rate
+        title: Caddy 502 errors detected
+        condition: B
+        noDataState: OK
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(caddy_http_request_duration_seconds_count{code="502"}[5m])) or vector(0)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 2m
+        annotations:
+          summary: "Caddy is returning 502 errors — journal or planner upstream unreachable"
 
 contactPoints:
   - orgId: 1
