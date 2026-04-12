@@ -13,22 +13,16 @@ import {
   TokenExchangeRequestSchema,
   TokenResponseSchema,
   DeviceSchema,
-  DeviceListResponseSchema,
   // Routes
   RouteSummarySchema,
-  RouteDetailSchema,
   RouteListResponseSchema,
   CreateRouteRequestSchema,
   UpdateRouteRequestSchema,
   ComputeRouteRequestSchema,
   // Activities
-  ActivitySummarySchema,
-  ActivityDetailSchema,
-  ActivityListResponseSchema,
   CreateActivityRequestSchema,
   // Uploads
   PresignedUploadRequestSchema,
-  PresignedUploadResponseSchema,
 } from "./index.ts";
 
 describe("API_VERSION", () => {

@@ -7,7 +7,16 @@
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc"
+  },
   "dependencies": {
-    "@trails-cool/types": "workspace:*"
+    "@trails-cool/types": "workspace:*",
+    "linkedom": "^0.18.12"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
   }
 }

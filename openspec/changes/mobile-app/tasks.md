@@ -19,11 +19,11 @@
 
 ### 1.3 Shared Package Compatibility
 
-- [ ] 1.3.1 Audit `@trails-cool/types` for DOM/Node.js dependencies — confirm it's pure TypeScript interfaces
-- [ ] 1.3.2 Refactor `@trails-cool/gpx` to use a platform-agnostic XML parser: use `linkedom` on Node.js and `DOMParser` on React Native/browser
-- [ ] 1.3.3 Write unit tests for `parseGpx()` and `generateGpx()` running in a jsdom-free environment to verify no DOM dependency
-- [ ] 1.3.4 Verify `@trails-cool/i18n` initializes in React Native — add an `initMobile()` export if the current init assumes a browser environment
-- [ ] 1.3.5 Add `apps/mobile` to Turborepo pipeline (`turbo.json`) for build and typecheck
+- [x] 1.3.1 Audit `@trails-cool/types` for DOM/Node.js dependencies — confirm it's pure TypeScript interfaces
+- [x] 1.3.2 Refactor `@trails-cool/gpx` to use a platform-agnostic XML parser: use `linkedom` on Node.js and `DOMParser` on React Native/browser
+- [x] 1.3.3 Write unit tests for `parseGpx()` and `generateGpx()` running in a jsdom-free environment to verify no DOM dependency
+- [x] 1.3.4 Verify `@trails-cool/i18n` initializes in React Native — add an `initMobile()` export if the current init assumes a browser environment
+- [x] 1.3.5 Add `apps/mobile` to Turborepo pipeline (`turbo.json`) for build and typecheck
 
 ### 1.4 Journal Auth (OAuth2 PKCE)
 
@@ -126,7 +126,7 @@
 
 ### 4.1 Unit & Component Tests
 
-- [ ] 4.1.1 Set up Jest + jest-expo + React Native Testing Library in `apps/mobile/`
+- [x] 4.1.1 Set up Jest + jest-expo + React Native Testing Library in `apps/mobile/`
 - [ ] 4.1.2 Write unit tests for API client (mocked fetch, auth refresh, error handling)
 - [ ] 4.1.3 Write component tests for route list, route detail, and route editor screens
 - [ ] 4.1.4 Write unit tests for offline SQLite storage layer

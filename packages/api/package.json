@@ -4,6 +4,11 @@
   "version": "0.0.1",
   "type": "module",
   "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc"
+  },
   "dependencies": {
     "zod": "^3.25.0"
   }
