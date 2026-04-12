@@ -878,7 +878,7 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
   if (points.length < 2) return null;
 
   return (
-    <div className="border-t border-gray-200 px-2 py-2">
+    <div className="border-t border-gray-200 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="mb-1 flex items-center gap-2 px-2">
         {(() => {
           const osmLinks: Record<string, string> = {
