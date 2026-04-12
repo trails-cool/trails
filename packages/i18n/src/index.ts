@@ -10,8 +10,8 @@ export const supportedLngs = ["en", "de"] as const;
 export type SupportedLng = (typeof supportedLngs)[number];
 
 export const resources = {
-  en: { common: en.common, planner: en.planner, journal: en.journal },
-  de: { common: de.common, planner: de.planner, journal: de.journal },
+  en: { common: en.common, planner: en.planner, journal: en.journal, mobile: en.mobile },
+  de: { common: de.common, planner: de.planner, journal: de.journal, mobile: de.mobile },
 } as const;
 
 const commonOptions = {

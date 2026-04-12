@@ -1,4 +1,16 @@
+import {
+  RouteListResponseSchema,
+  RouteDetailSchema,
+  ActivityListResponseSchema,
+  type RouteSummary,
+  type RouteDetail,
+  type RouteListResponse,
+  type ActivitySummary,
+  type ActivityListResponse,
+} from "@trails-cool/api";
 import { getServerUrl } from "./server-config";
+
+export type { RouteSummary, RouteDetail, RouteListResponse, ActivitySummary, ActivityListResponse };
 import { getAccessToken, refreshTokens, clearTokens } from "./auth";
 
 export class ApiError extends Error {
@@ -75,25 +87,27 @@ async function request<T>(
 
 // --- Routes ---
 
-export function listRoutes(cursor?: string, limit = 20) {
+export async function listRoutes(cursor?: string, limit = 20) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set("cursor", cursor);
-  return request<unknown>(`/routes?${params}`);
+  const data = await request<unknown>(`/routes?${params}`);
+  return RouteListResponseSchema.parse(data);
 }
 
-export function getRoute(id: string) {
-  return request<unknown>(`/routes/${id}`);
+export async function getRoute(id: string) {
+  const data = await request<unknown>(`/routes/${id}`);
+  return RouteDetailSchema.parse(data);
 }
 
 export function createRoute(data: { name: string; description?: string; gpx?: string }) {
-  return request<unknown>("/routes", {
+  return request<{ id: string }>("/routes", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
 export function updateRoute(id: string, data: { name?: string; description?: string; gpx?: string }) {
-  return request<unknown>(`/routes/${id}`, {
+  return request<{ ok: boolean }>(`/routes/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -101,14 +115,15 @@ export function updateRoute(id: string, data: { name?: string; description?: str
 
 // --- Activities ---
 
-export function listActivities(cursor?: string, limit = 20) {
+export async function listActivities(cursor?: string, limit = 20) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set("cursor", cursor);
-  return request<unknown>(`/activities?${params}`);
+  const data = await request<unknown>(`/activities?${params}`);
+  return ActivityListResponseSchema.parse(data);
 }
 
-export function getActivity(id: string) {
-  return request<unknown>(`/activities/${id}`);
+export async function getActivity(id: string) {
+  return request<ActivitySummary & { gpx: string | null; geojson: string | null }>(`/activities/${id}`);
 }
 
 export function createActivity(data: {
@@ -120,7 +135,7 @@ export function createActivity(data: {
   duration?: number;
   distance?: number;
 }) {
-  return request<unknown>("/activities", {
+  return request<{ id: string }>("/activities", {
     method: "POST",
     body: JSON.stringify(data),
   });

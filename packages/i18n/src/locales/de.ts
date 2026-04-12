@@ -274,4 +274,26 @@ export default {
       registerWithMagicLink: "Per Magic Link registrieren",
     },
   },
+  mobile: {
+    routes: {
+      empty: "Noch keine Routen",
+      emptyHint: "Erstelle deine erste Route im Planner",
+      retry: "Erneut versuchen",
+    },
+    activities: {
+      empty: "Noch keine Aktivitäten",
+      emptyHint: "Zeichne deine erste Aktivität auf oder importiere sie",
+    },
+    profile: {
+      logOut: "Abmelden",
+      switchServer: "Server wechseln",
+      switchServerConfirm: "Du wirst abgemeldet und lokale Daten werden gelöscht. Fortfahren?",
+    },
+    login: {
+      subtitle: "Bei deinem Journal anmelden",
+      signIn: "Anmelden",
+      connectDifferentServer: "Mit anderem Server verbinden",
+      serverUrl: "Server-URL",
+    },
+  },
 } as const;

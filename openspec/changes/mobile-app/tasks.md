@@ -99,10 +99,10 @@
 
 ### 3.1 Route List
 
-- [ ] 3.1.1 Build Routes tab screen with paginated route list fetched from Journal API
-- [ ] 3.1.2 Display route cards with name, distance, elevation, and thumbnail map preview
-- [ ] 3.1.3 Add pull-to-refresh and loading/error states
-- [ ] 3.1.4 Add i18n keys for route list strings (en + de)
+- [x] 3.1.1 Build Routes tab screen with paginated route list fetched from Journal API
+- [x] 3.1.2 Display route cards with name, distance, elevation, and thumbnail map preview
+- [x] 3.1.3 Add pull-to-refresh and loading/error states
+- [x] 3.1.4 Add i18n keys for route list strings (en + de)
 
 ### 3.2 Route Detail
 
