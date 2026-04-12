@@ -1,41 +1,36 @@
-import { Tabs } from "expo-router";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: "#4A6B40",
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Map",
-          tabBarIcon: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="routes"
-        options={{
-          title: "Routes",
-          tabBarIcon: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="activities"
-        options={{
-          title: "Activities",
-          tabBarIcon: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: () => null,
-        }}
-      />
-    </Tabs>
+    <NativeTabs>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "map", selected: "map.fill" }}
+          md="map"
+        />
+        <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="routes">
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "signpost.right", selected: "signpost.right.fill" }}
+          md="route"
+        />
+        <NativeTabs.Trigger.Label>Routes</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="activities">
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "figure.hiking", selected: "figure.hiking" }}
+          md="directions_bike"
+        />
+        <NativeTabs.Trigger.Label>Activities</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "person", selected: "person.fill" }}
+          md="person"
+        />
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
