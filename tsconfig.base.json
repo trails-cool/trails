@@ -15,6 +15,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": false,
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
