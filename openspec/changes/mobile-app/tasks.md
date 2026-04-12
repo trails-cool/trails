@@ -27,34 +27,34 @@
 
 ### 1.4 Journal Auth (OAuth2 PKCE)
 
-- [ ] 1.4.1 Add `journal.oauth_clients` table with client_id, redirect_uri, and trusted flag
-- [ ] 1.4.2 Add `journal.oauth_codes` table (code, userId, clientId, codeChallenge, codeChallengeMethod, expiresAt)
-- [ ] 1.4.3 Add `journal.oauth_tokens` table (accessToken, refreshToken, userId, clientId, expiresAt)
-- [ ] 1.4.4 Implement `GET /oauth/authorize` endpoint — show login UI, generate auth code on success, redirect to client
-- [ ] 1.4.5 Implement `POST /oauth/token` endpoint — validate PKCE code_verifier, issue access + refresh tokens
-- [ ] 1.4.6 Implement refresh token grant in `POST /oauth/token`
-- [ ] 1.4.7 Add middleware to validate OAuth2 bearer tokens on existing API routes
-- [ ] 1.4.8 Seed `trails-cool-mobile` as a trusted first-party OAuth2 client with `trailscool://` redirect URI
-- [ ] 1.4.9 Write unit tests for PKCE challenge validation, token issuance, and token refresh
+- [x] 1.4.1 Add `journal.oauth_clients` table with client_id, redirect_uri, and trusted flag
+- [x] 1.4.2 Add `journal.oauth_codes` table (code, userId, clientId, codeChallenge, codeChallengeMethod, expiresAt)
+- [x] 1.4.3 Add `journal.oauth_tokens` table (accessToken, refreshToken, userId, clientId, expiresAt)
+- [x] 1.4.4 Implement `GET /oauth/authorize` endpoint — show login UI, generate auth code on success, redirect to client
+- [x] 1.4.5 Implement `POST /oauth/token` endpoint — validate PKCE code_verifier, issue access + refresh tokens
+- [x] 1.4.6 Implement refresh token grant in `POST /oauth/token`
+- [x] 1.4.7 Add middleware to validate OAuth2 bearer tokens on existing API routes
+- [x] 1.4.8 Seed `trails-cool-mobile` as a trusted first-party OAuth2 client with `trailscool://` redirect URI
+- [x] 1.4.9 Write unit tests for PKCE challenge validation, token issuance, and token refresh
 
 ### 1.5 Server Configuration
 
-- [ ] 1.5.1 Add server URL input on login screen with "Connect to a different server" toggle (defaults to `https://trails.cool`)
-- [ ] 1.5.2 Add `GET /.well-known/trails-cool` discovery endpoint on the Journal — returns instance name, version, API base URL
-- [ ] 1.5.3 Validate entered server URL by fetching discovery endpoint before proceeding to login
-- [ ] 1.5.4 Check `apiVersion` semver from discovery against app's required minimum — block with upgrade prompt if server is too old
-- [ ] 1.5.5 Persist server URL in Expo SecureStore, use as base for all API calls and OAuth2 flow
-- [ ] 1.5.6 Re-check API version on app foreground (after background) — show banner if version mismatch detected
-- [ ] 1.5.7 Add "Switch server" option on Profile tab — logs out, clears local data, returns to login
+- [x] 1.5.1 Add server URL input on login screen with "Connect to a different server" toggle (defaults to `https://trails.cool`)
+- [x] 1.5.2 Add `GET /.well-known/trails-cool` discovery endpoint on the Journal — returns instance name, version, API base URL
+- [x] 1.5.3 Validate entered server URL by fetching discovery endpoint before proceeding to login
+- [x] 1.5.4 Check `apiVersion` semver from discovery against app's required minimum — block with upgrade prompt if server is too old
+- [x] 1.5.5 Persist server URL in Expo SecureStore, use as base for all API calls and OAuth2 flow
+- [x] 1.5.6 Re-check API version on app foreground (after background) — show banner if version mismatch detected
+- [x] 1.5.7 Add "Switch server" option on Profile tab — logs out, clears local data, returns to login
 
 ### 1.6 Journal API Client (Mobile)
 
-- [ ] 1.6.1 Create `apps/mobile/src/lib/api-client.ts` with base HTTP client, auth header injection, and 401 auto-refresh logic
-- [ ] 1.6.2 Create `apps/mobile/src/lib/auth.ts` with OAuth2 PKCE login flow using `expo-auth-session` and token storage via `expo-secure-store`
-- [ ] 1.6.3 Implement routes API methods: listRoutes, getRoute, updateRoute, createRoute
-- [ ] 1.6.4 Implement activities API methods: listActivities, getActivity, createActivity
-- [ ] 1.6.5 Add typed error handling for network failures, 401, and server errors
-- [ ] 1.6.6 Write unit tests for API client with mocked fetch responses
+- [x] 1.6.1 Create `apps/mobile/src/lib/api-client.ts` with base HTTP client, auth header injection, and 401 auto-refresh logic
+- [x] 1.6.2 Create `apps/mobile/src/lib/auth.ts` with OAuth2 PKCE login flow using `expo-auth-session` and token storage via `expo-secure-store`
+- [x] 1.6.3 Implement routes API methods: listRoutes, getRoute, updateRoute, createRoute
+- [x] 1.6.4 Implement activities API methods: listActivities, getActivity, createActivity
+- [x] 1.6.5 Add typed error handling for network failures, 401, and server errors
+- [x] 1.6.6 Write unit tests for API client with mocked fetch responses
 
 ## Phase 2: Journal REST API
 
