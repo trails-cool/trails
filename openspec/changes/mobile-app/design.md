@@ -96,14 +96,9 @@ No real-time collaboration on mobile. If the user needs full collaborative editi
 - Activities: Stored locally first, synced to Journal when online
 - Edit queue: Changes made offline queued and synced on reconnect (conflict resolution: last-write-wins, with a warning if the server version changed)
 
-### D6: Activity recording with expo-location
+### D6: Activity recording
 
-Use `expo-location` for GPS tracking in the foreground/background:
-- Start/stop recording from the active route view
-- Live stats: distance, duration, current speed, elevation gain
-- Track points stored locally, converted to GPX on stop
-- Save as Journal activity linked to the route
-- Export to HealthKit (iOS) / Health Connect (Android) via `expo-health`
+Activity recording (GPS tracking, HealthKit) is a separate change — see `mobile-activity-recording`.
 
 ### D7: Navigation structure
 
@@ -145,7 +140,40 @@ This aligns with the ActivityPub federation direction and matches how Mastodon c
 
 ### D13: State management
 
-TBD — to be discussed.
+Three layers, each with a clear responsibility:
+
+- **TanStack Query** for server state — routes, activities, user profile. Provides caching, background refetch, stale-while-revalidate, cursor pagination helpers, and optimistic updates. All Journal API data flows through TanStack Query hooks.
+- **Zustand** for local UI state — edit mode flags, recording state, offline queue status, selected map layer, download progress. Small, synchronous stores with no persistence (or optional persistence to AsyncStorage where needed).
+- **React Context** only for auth token and server URL — these are set once at login and consumed everywhere. No complex state, no frequent updates. Avoids prop drilling for the two values every API call needs.
+
+### D14: Tile hosting
+
+MapLibre needs a vector tile source. Default to **OpenFreeMap** — free, OSM-based, no API key required. This matches the project's principle of using open standards and avoiding vendor lock-in.
+
+Self-hosted instances can configure a custom tile URL in the discovery endpoint. The `/.well-known/trails-cool` response gains a `tileUrl` field (e.g., `"tileUrl": "https://tiles.example.org/{z}/{x}/{y}.pbf"`). When present, the mobile app and any future MapLibre web client use it instead of the default.
+
+Fallback: if vector tiles fail to load (offline, misconfigured URL), fall back to raster tiles from OpenStreetMap tile servers — the same approach the web Planner already uses with Leaflet.
+
+### D15: Photo/media handling
+
+Routes and activities can have photos. The upload flow avoids proxying large files through the Journal server:
+
+1. Client requests a presigned upload URL from `POST /api/v1/uploads` with filename and content type
+2. Client uploads the file directly to S3/Garage using the presigned URL
+3. Client confirms the upload via the API with the storage key (e.g., `POST /api/v1/routes/:id` or `PUT /api/v1/routes/:id` with the storage key in the photos array)
+
+Photos are stored as an array of URLs on the route or activity record. Thumbnails are generated server-side on upload confirmation — the Journal creates a resized version and stores it alongside the original. The API returns both `url` and `thumbnailUrl` for each photo.
+
+### D16: Journal REST API implementation
+
+The REST API endpoints (`/api/v1/*`) are implemented as React Router route modules under `apps/journal/app/routes/api.v1.*.ts`. This follows the existing routing pattern — both apps use explicit `routes.ts` for registration.
+
+Shared middleware handles:
+- **Bearer token validation**: Extracts and validates the OAuth2 access token from the `Authorization` header, attaches the authenticated user to the request context
+- **Zod body parsing**: Validates request bodies against schemas from `@trails-cool/api`, returns structured 400 errors on failure
+- **Error formatting**: Catches exceptions and returns the standard `ApiErrorResponse` shape
+
+Existing web routes (cookie-based auth, form actions, loaders) remain unchanged. The `/api/v1/*` routes use bearer tokens exclusively — no cookie sessions.
 
 ## Risks / Trade-offs
 
