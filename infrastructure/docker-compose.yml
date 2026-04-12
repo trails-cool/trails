@@ -35,7 +35,7 @@ services:
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))\""]
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -135,7 +135,7 @@ services:
     image: grafana/promtail:latest
     restart: unless-stopped
     volumes:
-      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
     command: ["-config.file=/etc/promtail/config.yml"]
