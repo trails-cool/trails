@@ -10,12 +10,12 @@
 
 ### 1.2 API Contract Package
 
-- [ ] 1.2.1 Create `packages/api/` with `API_VERSION` constant, endpoint path constants, and TypeScript types for all request/response shapes
-- [ ] 1.2.2 Define route types: `RouteListResponse`, `RouteDetailResponse`, `CreateRouteRequest`, `UpdateRouteRequest`
-- [ ] 1.2.3 Define activity types: `ActivityListResponse`, `ActivityDetailResponse`, `CreateActivityRequest`
-- [ ] 1.2.4 Define auth types: `TokenExchangeRequest`, `TokenResponse`, `DiscoveryResponse`
-- [ ] 1.2.5 Define shared error type: `ApiErrorResponse` with code, message, and optional field errors
-- [ ] 1.2.6 Export everything from package index, add to pnpm workspace and Turborepo pipeline
+- [x] 1.2.1 Create `packages/api/` with `API_VERSION` constant, endpoint path constants, and TypeScript types for all request/response shapes
+- [x] 1.2.2 Define route types: `RouteListResponse`, `RouteDetailResponse`, `CreateRouteRequest`, `UpdateRouteRequest`
+- [x] 1.2.3 Define activity types: `ActivityListResponse`, `ActivityDetailResponse`, `CreateActivityRequest`
+- [x] 1.2.4 Define auth types: `TokenExchangeRequest`, `TokenResponse`, `DiscoveryResponse`
+- [x] 1.2.5 Define shared error type: `ApiErrorResponse` with code, message, and optional field errors
+- [x] 1.2.6 Export everything from package index, add to pnpm workspace and Turborepo pipeline
 
 ### 1.3 Shared Package Compatibility
 
