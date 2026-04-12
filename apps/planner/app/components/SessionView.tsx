@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import L from "leaflet";
 import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
@@ -165,6 +166,8 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const [highlightedWaypoint, setHighlightedWaypoint] = useState<number | null>(null);
+  const [highlightChartDistance, setHighlightChartDistance] = useState<number | null>(null);
+  const [isZoomedByChart, setIsZoomedByChart] = useState(false);
   const { toasts, addToast } = useToasts();
   useAwarenessToasts(yjs, t, addToast);
 
@@ -184,6 +187,31 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const handleElevationHover = useCallback((pos: [number, number] | null) => {
     setHighlightPosition(pos);
   }, []);
+
+  const handleChartClick = useCallback((position: [number, number]) => {
+    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    map?.panTo(position);
+  }, []);
+
+  const handleChartDragSelect = useCallback((bounds: [[number, number], [number, number]]) => {
+    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    map?.fitBounds(bounds, { padding: [30, 30] });
+    setIsZoomedByChart(true);
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    if (!map || !yjs) return;
+    const coordsJson = yjs.routeData.get("coordinates") as string | undefined;
+    if (!coordsJson) return;
+    try {
+      const coords: [number, number, number][] = JSON.parse(coordsJson);
+      if (coords.length < 2) return;
+      const latLngs = coords.map((c) => [c[1]!, c[0]!] as [number, number]);
+      map.fitBounds(L.latLngBounds(latLngs), { padding: [50, 50] });
+    } catch { /* ignore */ }
+    setIsZoomedByChart(false);
+  }, [yjs]);
 
   if (!yjs) {
     return (
@@ -256,11 +284,21 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onImportError={(msg) => addToast(msg, "error")} days={days} />
+              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onRouteHover={setHighlightChartDistance} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
-            <ElevationChart yjs={yjs} onHover={handleElevationHover} days={days} />
+            <div className="relative">
+              <ElevationChart yjs={yjs} onHover={handleElevationHover} highlightDistance={highlightChartDistance} onClickPosition={handleChartClick} onDragSelect={handleChartDragSelect} days={days} />
+              {isZoomedByChart && (
+                <button
+                  onClick={handleResetZoom}
+                  className="absolute right-3 top-1 z-10 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow ring-1 ring-gray-200 hover:bg-gray-50"
+                >
+                  {t("elevation.resetZoom", "Reset zoom")}
+                </button>
+              )}
+            </div>
           </Suspense>
         </main>
         <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} />

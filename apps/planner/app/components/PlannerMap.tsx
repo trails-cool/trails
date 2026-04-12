@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, LayersControl, Marker, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
@@ -92,6 +92,7 @@ interface PlannerMapProps {
   onImportError?: (message: string) => void;
   highlightPosition?: [number, number] | null;
   highlightedWaypoint?: number | null;
+  onRouteHover?: (distance: number | null) => void;
   days?: DayStage[];
 }
 
@@ -361,7 +362,7 @@ function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
   return null;
 }
 
-export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onImportError, days }: PlannerMapProps) {
+export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onRouteHover, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const poiState = usePois();
@@ -607,6 +608,46 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
     [yjs.waypoints],
   );
 
+  const handleRoutePolylineHover = useCallback(
+    (e: L.LeafletMouseEvent) => {
+      if (!routeCoordinates || routeCoordinates.length < 2 || !onRouteHover) return;
+      const { lat, lng } = e.latlng;
+      // Find the closest coordinate index
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < routeCoordinates.length; i++) {
+        const c = routeCoordinates[i]!;
+        const dLat = c[1]! - lat;
+        const dLon = c[0]! - lng;
+        const dist = dLat * dLat + dLon * dLon;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = i;
+        }
+      }
+      // Compute cumulative distance to this point using haversine
+      let totalDist = 0;
+      for (let i = 1; i <= bestIdx; i++) {
+        const prev = routeCoordinates[i - 1]!;
+        const curr = routeCoordinates[i]!;
+        const R = 6371000;
+        const toRad = (d: number) => (d * Math.PI) / 180;
+        const dLat = toRad(curr[1]! - prev[1]!);
+        const dLon = toRad(curr[0]! - prev[0]!);
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(prev[1]!)) * Math.cos(toRad(curr[1]!)) * Math.sin(dLon / 2) ** 2;
+        totalDist += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+      onRouteHover(totalDist);
+    },
+    [routeCoordinates, onRouteHover],
+  );
+
+  const handleRoutePolylineOut = useCallback(() => {
+    onRouteHover?.(null);
+  }, [onRouteHover]);
+
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     dragCounterRef.current++;
@@ -784,6 +825,17 @@ export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlighted
             suspendedRef={routeInteractionSuspendedRef}
             disabled={noGoDrawing}
           />
+          {onRouteHover && (
+            <Polyline
+              positions={routeCoordinates.map((c) => [c[1]!, c[0]!] as [number, number])}
+              pathOptions={{ weight: 20, opacity: 0, interactive: true }}
+              eventHandlers={{
+                mouseover: handleRoutePolylineHover,
+                mousemove: handleRoutePolylineHover,
+                mouseout: handleRoutePolylineOut,
+              }}
+            />
+          )}
         </>
       )}
 
