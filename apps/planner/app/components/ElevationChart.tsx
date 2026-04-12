@@ -720,6 +720,157 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
     [points, onClickPosition, onDragSelect, hoverIdx, drawChart],
   );
 
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+
+      if (e.touches.length === 1) {
+        // Single touch: start scrub + potential drag
+        const x = e.touches[0]!.clientX - rect.left;
+        dragStartX.current = x;
+        dragStartClientX.current = e.touches[0]!.clientX;
+        isDragging.current = false;
+        dragCurrentX.current = null;
+        // Immediately show highlight at touch position
+        const chartW = rect.width - PADDING.left - PADDING.right;
+        const ratio = (x - PADDING.left) / chartW;
+        if (ratio >= 0 && ratio <= 1 && points.length >= 2) {
+          const maxDist = points[points.length - 1]!.distance;
+          const targetDist = ratio * maxDist;
+          let closest = 0;
+          let minDiff = Infinity;
+          for (let i = 0; i < points.length; i++) {
+            const diff = Math.abs(points[i]!.distance - targetDist);
+            if (diff < minDiff) { minDiff = diff; closest = i; }
+          }
+          isExternalHover.current = false;
+          setHoverIdx(closest);
+          const p = points[closest]!;
+          onHover?.([p.lat, p.lon]);
+        }
+      } else if (e.touches.length === 2) {
+        // Two fingers: range select
+        const x1 = e.touches[0]!.clientX - rect.left;
+        const x2 = e.touches[1]!.clientX - rect.left;
+        dragStartX.current = Math.min(x1, x2);
+        dragCurrentX.current = Math.max(x1, x2);
+        isDragging.current = true;
+        drawChart(hoverIdx);
+      }
+    },
+    [points, onHover, hoverIdx, drawChart],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas || points.length < 2) return;
+      const rect = canvas.getBoundingClientRect();
+
+      if (e.touches.length === 1 && !isDragging.current) {
+        // Single touch scrub: update highlight
+        const x = e.touches[0]!.clientX - rect.left;
+        const chartW = rect.width - PADDING.left - PADDING.right;
+        const ratio = (x - PADDING.left) / chartW;
+        if (ratio >= 0 && ratio <= 1) {
+          const maxDist = points[points.length - 1]!.distance;
+          const targetDist = ratio * maxDist;
+          let closest = 0;
+          let minDiff = Infinity;
+          for (let i = 0; i < points.length; i++) {
+            const diff = Math.abs(points[i]!.distance - targetDist);
+            if (diff < minDiff) { minDiff = diff; closest = i; }
+          }
+          isExternalHover.current = false;
+          setHoverIdx(closest);
+          const p = points[closest]!;
+          onHover?.([p.lat, p.lon]);
+        }
+      } else if (e.touches.length === 2) {
+        // Two finger range select: update selection
+        const x1 = e.touches[0]!.clientX - rect.left;
+        const x2 = e.touches[1]!.clientX - rect.left;
+        dragStartX.current = Math.min(x1, x2);
+        dragCurrentX.current = Math.max(x1, x2);
+        isDragging.current = true;
+        drawChart(hoverIdx);
+      }
+    },
+    [points, onHover, hoverIdx, drawChart],
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      if (isDragging.current && dragStartX.current != null && dragCurrentX.current != null && points.length >= 2) {
+        // Two finger range complete: zoom map
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const chartW = rect.width - PADDING.left - PADDING.right;
+          const maxDist = points[points.length - 1]!.distance;
+          const startRatio = Math.max(0, Math.min(1, (dragStartX.current - PADDING.left) / chartW));
+          const endRatio = Math.max(0, Math.min(1, (dragCurrentX.current - PADDING.left) / chartW));
+          const startDist = Math.min(startRatio, endRatio) * maxDist;
+          const endDist = Math.max(startRatio, endRatio) * maxDist;
+
+          let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+          let found = false;
+          for (const p of points) {
+            if (p.distance >= startDist && p.distance <= endDist) {
+              minLat = Math.min(minLat, p.lat);
+              maxLat = Math.max(maxLat, p.lat);
+              minLon = Math.min(minLon, p.lon);
+              maxLon = Math.max(maxLon, p.lon);
+              found = true;
+            }
+          }
+          if (found && onDragSelect) {
+            onDragSelect([[minLat, minLon], [maxLat, maxLon]]);
+          }
+        }
+      } else if (e.changedTouches.length === 1 && onClickPosition && dragStartClientX.current != null) {
+        // Single tap (no significant movement): pan map
+        const dx = Math.abs(e.changedTouches[0]!.clientX - dragStartClientX.current);
+        if (dx <= 10) {
+          // Treat as tap → pan
+          const canvas = canvasRef.current;
+          if (canvas && points.length >= 2) {
+            const rect = canvas.getBoundingClientRect();
+            const chartW = rect.width - PADDING.left - PADDING.right;
+            const mouseX = e.changedTouches[0]!.clientX - rect.left;
+            const ratio = (mouseX - PADDING.left) / chartW;
+            if (ratio >= 0 && ratio <= 1) {
+              const maxDist = points[points.length - 1]!.distance;
+              const targetDist = ratio * maxDist;
+              let closest = 0;
+              let minDiff = Infinity;
+              for (let i = 0; i < points.length; i++) {
+                const diff = Math.abs(points[i]!.distance - targetDist);
+                if (diff < minDiff) { minDiff = diff; closest = i; }
+              }
+              onClickPosition([points[closest]!.lat, points[closest]!.lon]);
+            }
+          }
+        }
+      }
+
+      // Clear highlight on touch end
+      setHoverIdx(null);
+      onHover?.(null);
+      dragStartX.current = null;
+      dragStartClientX.current = null;
+      isDragging.current = false;
+      dragCurrentX.current = null;
+      drawChart(null);
+    },
+    [points, onHover, onClickPosition, onDragSelect, drawChart],
+  );
+
   const setMode = useCallback((mode: string) => {
     yjs.routeData.set("colorMode", mode);
   }, [yjs.routeData]);
@@ -848,11 +999,14 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       </div>
       <canvas
         ref={canvasRef}
-        className="h-24 w-full cursor-crosshair"
+        className="h-24 w-full cursor-crosshair touch-none"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
     </div>
   );
