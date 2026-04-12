@@ -517,17 +517,21 @@ importers:
       '@trails-cool/map-core':
         specifier: workspace:*
         version: link:../map-core
-      leaflet:
-        specifier: '>=1.9'
-        version: 1.9.4
       react:
         specifier: '>=18'
         version: 19.2.5
       react-dom:
         specifier: '>=18'
         version: 19.2.5(react@19.2.5)
+    devDependencies:
+      '@types/leaflet':
+        specifier: ^1.9.21
+        version: 1.9.21
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       react-leaflet:
-        specifier: '>=5'
+        specifier: ^5.0.0
         version: 5.0.0(leaflet@1.9.4)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
 
   packages/map-core: {}
