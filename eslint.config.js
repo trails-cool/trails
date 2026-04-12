@@ -3,7 +3,7 @@ import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: ["**/build/", "**/dist/", "**/.react-router/", "**/node_modules/"] },
+  { ignores: ["**/build/", "**/dist/", "**/.react-router/", "**/.expo/", "**/node_modules/"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ *
+ * Tests the browser DOMParser path. The linkedom/node path is covered
+ * by parse-node.test.ts.
+ */
 import { describe, it, expect } from "vitest";
 import { parseGpxAsync } from "./parse.ts";
 

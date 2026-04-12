@@ -7,7 +7,16 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!(.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@trails-cool/.*))"
+    ]
   },
   "dependencies": {
     "@trails-cool/api": "workspace:*",
@@ -24,7 +33,10 @@
     "react-native-screens": "~4.23.0"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.14",
+    "jest-expo": "^55.0.15",
     "typescript": "~5.9.2"
   }
 }

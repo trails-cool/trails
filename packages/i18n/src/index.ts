@@ -54,6 +54,33 @@ export function initI18nClient() {
 }
 
 /**
+ * Initialize i18next for React Native.
+ * No browser language detector — pass the device locale directly.
+ * Use `expo-localization` to get the device locale:
+ *
+ * ```ts
+ * import { getLocales } from "expo-localization";
+ * initI18nMobile(getLocales()[0]?.languageCode ?? "en");
+ * ```
+ */
+export function initI18nMobile(deviceLanguage?: string) {
+  if (i18n.isInitialized) return;
+  const lng = matchSupportedLng(deviceLanguage);
+  i18n.use(initReactI18next).init({ ...commonOptions, lng });
+}
+
+function matchSupportedLng(lang?: string): SupportedLng {
+  if (!lang) return "en";
+  const lower = lang.toLowerCase();
+  for (const supported of supportedLngs) {
+    if (lower === supported || lower.startsWith(supported + "-")) {
+      return supported;
+    }
+  }
+  return "en";
+}
+
+/**
  * Detect the best supported language from a request's Accept-Language header.
  */
 export function detectLanguage(request: Request): SupportedLng {
