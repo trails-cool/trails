@@ -274,4 +274,26 @@ export default {
       registerWithMagicLink: "Register with Magic Link",
     },
   },
+  mobile: {
+    routes: {
+      empty: "No routes yet",
+      emptyHint: "Create your first route in the Planner",
+      retry: "Retry",
+    },
+    activities: {
+      empty: "No activities yet",
+      emptyHint: "Record or import your first activity",
+    },
+    profile: {
+      logOut: "Log Out",
+      switchServer: "Switch Server",
+      switchServerConfirm: "This will log you out and clear local data. Continue?",
+    },
+    login: {
+      subtitle: "Sign in to your Journal",
+      signIn: "Sign In",
+      connectDifferentServer: "Connect to a different server",
+      serverUrl: "Server URL",
+    },
+  },
 } as const;

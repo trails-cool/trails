@@ -99,17 +99,17 @@
 
 ### 3.1 Route List
 
-- [ ] 3.1.1 Build Routes tab screen with paginated route list fetched from Journal API
-- [ ] 3.1.2 Display route cards with name, distance, elevation, and thumbnail map preview
-- [ ] 3.1.3 Add pull-to-refresh and loading/error states
-- [ ] 3.1.4 Add i18n keys for route list strings (en + de)
+- [x] 3.1.1 Build Routes tab screen with paginated route list fetched from Journal API
+- [x] 3.1.2 Display route cards with name, distance, elevation, and thumbnail map preview
+- [x] 3.1.3 Add pull-to-refresh and loading/error states
+- [x] 3.1.4 Add i18n keys for route list strings (en + de)
 
 ### 3.2 Route Detail
 
-- [ ] 3.2.1 Build route detail screen with `react-native-maps` showing the route polyline and waypoint markers
-- [ ] 3.2.2 Display route metadata: name, distance, elevation gain, number of days, waypoint list
-- [ ] 3.2.3 Add "Edit", "Download Offline", and "Edit in Planner" action buttons
-- [ ] 3.2.4 Style map markers and polyline colors to match the web Planner
+- [x] 3.2.1 Build route detail screen with `react-native-maps` showing the route polyline and waypoint markers
+- [x] 3.2.2 Display route metadata: name, distance, elevation gain, number of days, waypoint list
+- [x] 3.2.3 Add "Edit", "Download Offline", and "Edit in Planner" action buttons
+- [x] 3.2.4 Style map markers and polyline colors to match the web Planner
 
 ### 3.3 Route Editing
 
