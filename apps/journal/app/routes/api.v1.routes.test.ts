@@ -32,6 +32,11 @@ function authRequest(path: string, init?: RequestInit) {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function routeArgs(request: Request, params: Record<string, string>, pattern: string): any {
+  return { request, params, context: {}, unstable_url: new URL(request.url), unstable_pattern: pattern };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetAuthenticatedUser.mockResolvedValue(mockUser);
@@ -50,7 +55,7 @@ describe("GET /api/v1/routes", () => {
     ]);
 
     const { loader } = await import("./api.v1.routes._index.ts");
-    const resp = await loader({ request: authRequest("/api/v1/routes"), params: {}, context: {} }) as Response;
+    const resp = await loader(routeArgs(authRequest("/api/v1/routes"), {}, "api/v1/routes")) as Response;
     const data = await resp.json();
 
     expect(data.routes).toHaveLength(1);
@@ -63,7 +68,7 @@ describe("GET /api/v1/routes", () => {
     const { loader } = await import("./api.v1.routes._index.ts");
 
     try {
-      await loader({ request: new Request("http://localhost:3000/api/v1/routes"), params: {}, context: {} });
+      await loader(routeArgs(new Request("http://localhost:3000/api/v1/routes"), {}, "api/v1/routes"));
       expect.fail("should throw");
     } catch (err) {
       expect(err).toBeInstanceOf(Response);
@@ -77,13 +82,12 @@ describe("POST /api/v1/routes", () => {
     mockCreateRoute.mockResolvedValue("new-id");
     const { action } = await import("./api.v1.routes._index.ts");
 
-    const resp = await action({
-      request: authRequest("/api/v1/routes", {
+    const resp = await action(routeArgs(
+      authRequest("/api/v1/routes", {
         method: "POST",
         body: JSON.stringify({ name: "New Route" }),
-      }),
-      params: {}, context: {},
-    }) as Response;
+      }), {}, "api/v1/routes",
+    )) as Response;
 
     expect(resp.status).toBe(201);
     const data = await resp.json();
@@ -92,13 +96,12 @@ describe("POST /api/v1/routes", () => {
 
   it("returns 400 on validation error", async () => {
     const { action } = await import("./api.v1.routes._index.ts");
-    const resp = await action({
-      request: authRequest("/api/v1/routes", {
+    const resp = await action(routeArgs(
+      authRequest("/api/v1/routes", {
         method: "POST",
         body: JSON.stringify({ name: "" }),
-      }),
-      params: {}, context: {},
-    }) as Response;
+      }), {}, "api/v1/routes",
+    )) as Response;
 
     expect(resp.status).toBe(400);
     const data = await resp.json();
@@ -118,10 +121,9 @@ describe("GET /api/v1/routes/:id", () => {
     });
 
     const { loader } = await import("./api.v1.routes.$id.ts");
-    const resp = await loader({
-      request: authRequest("/api/v1/routes/r1"),
-      params: { id: "r1" }, context: {},
-    }) as Response;
+    const resp = await loader(routeArgs(
+      authRequest("/api/v1/routes/r1"), { id: "r1" }, "api/v1/routes/:id",
+    )) as Response;
 
     const data = await resp.json();
     expect(data.id).toBe("r1");
@@ -132,10 +134,9 @@ describe("GET /api/v1/routes/:id", () => {
   it("returns 404 for missing route", async () => {
     mockGetRouteWithVersions.mockResolvedValue(null);
     const { loader } = await import("./api.v1.routes.$id.ts");
-    const resp = await loader({
-      request: authRequest("/api/v1/routes/missing"),
-      params: { id: "missing" }, context: {},
-    }) as Response;
+    const resp = await loader(routeArgs(
+      authRequest("/api/v1/routes/missing"), { id: "missing" }, "api/v1/routes/:id",
+    )) as Response;
 
     expect(resp.status).toBe(404);
   });
@@ -145,10 +146,9 @@ describe("DELETE /api/v1/routes/:id", () => {
   it("returns 204 on success", async () => {
     mockDeleteRoute.mockResolvedValue(true);
     const { action } = await import("./api.v1.routes.$id.ts");
-    const resp = await action({
-      request: authRequest("/api/v1/routes/r1", { method: "DELETE" }),
-      params: { id: "r1" }, context: {},
-    }) as Response;
+    const resp = await action(routeArgs(
+      authRequest("/api/v1/routes/r1", { method: "DELETE" }), { id: "r1" }, "api/v1/routes/:id",
+    )) as Response;
 
     expect(resp.status).toBe(204);
   });
@@ -156,10 +156,9 @@ describe("DELETE /api/v1/routes/:id", () => {
   it("returns 404 if not found", async () => {
     mockDeleteRoute.mockResolvedValue(false);
     const { action } = await import("./api.v1.routes.$id.ts");
-    const resp = await action({
-      request: authRequest("/api/v1/routes/missing", { method: "DELETE" }),
-      params: { id: "missing" }, context: {},
-    }) as Response;
+    const resp = await action(routeArgs(
+      authRequest("/api/v1/routes/missing", { method: "DELETE" }), { id: "missing" }, "api/v1/routes/:id",
+    )) as Response;
 
     expect(resp.status).toBe(404);
   });
