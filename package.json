@@ -21,9 +21,8 @@
     "db:studio": "drizzle-kit studio --config packages/db/drizzle.config.ts",
     "dev:services": "docker compose -f docker-compose.dev.yml up -d",
     "dev:full": "./scripts/dev.sh",
-    "dev:mobile": "pnpm --filter @trails-cool/mobile start",
-    "dev:mobile:ios": "pnpm --filter @trails-cool/mobile ios",
-    "dev:mobile:android": "pnpm --filter @trails-cool/mobile android"
+    "dev:ios": "pnpm --filter @trails-cool/mobile build:dev",
+    "dev:android": "pnpm --filter @trails-cool/mobile build:dev -- --platform android"
   },
   "pnpm": {
     "overrides": {

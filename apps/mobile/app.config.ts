@@ -34,7 +34,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router", "expo-secure-store", "expo-web-browser"],
+  plugins: [
+    "expo-router",
+    "expo-secure-store",
+    "expo-web-browser",
+    "@maplibre/maplibre-react-native",
+    "@sentry/react-native",
+    "expo-sqlite",
+  ],
   extra: {
     eas: {
       projectId: "93c75cae-fecf-4ce5-8cd8-c823760b12e2",

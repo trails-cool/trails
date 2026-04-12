@@ -5,7 +5,9 @@
   "main": "index.ts",
   "expo": {
     "install": {
-      "exclude": ["react"]
+      "exclude": [
+        "react"
+      ]
     }
   },
   "scripts": {
@@ -16,8 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "lint": "eslint .",
-    "build:dev": "eas build --profile development --platform ios",
-    "build:preview": "eas build --profile preview --platform all"
+    "build:dev": "npx eas-cli build:dev --platform ios",
+    "build:preview": "npx eas-cli build --profile preview --platform all"
   },
   "jest": {
     "preset": "jest-expo",
@@ -26,6 +28,8 @@
     ]
   },
   "dependencies": {
+    "@maplibre/maplibre-react-native": "^10.4.2",
+    "@sentry/react-native": "~7.11.0",
     "@trails-cool/api": "workspace:*",
     "@trails-cool/gpx": "workspace:*",
     "@trails-cool/i18n": "workspace:*",
@@ -36,14 +40,18 @@
     "expo-crypto": "~55.0.14",
     "expo-dev-client": "~55.0.27",
     "expo-linking": "~55.0.12",
+    "expo-location": "~55.1.8",
+    "expo-notifications": "~55.0.18",
     "expo-router": "~55.0.12",
     "expo-secure-store": "~55.0.13",
+    "expo-sqlite": "~55.0.15",
     "expo-status-bar": "~55.0.5",
     "expo-web-browser": "~55.0.14",
     "react": "catalog:",
     "react-native": "0.83.4",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
+    "use-latest-callback": "^0.3.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
