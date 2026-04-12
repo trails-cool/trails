@@ -39,7 +39,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-secure-store",
     "expo-web-browser",
     "@maplibre/maplibre-react-native",
-    "@sentry/react-native",
+    ["@sentry/react-native", {
+      organization: "trails-qq",
+      project: "mobile",
+    }],
     "expo-sqlite",
   ],
   extra: {
