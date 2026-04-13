@@ -418,10 +418,30 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(caddy_http_response_duration_seconds_count[5m])) by (code)",
+          "expr": "sum(rate(caddy_http_request_duration_seconds_count[5m])) by (code)",
           "legendFormat": "{{code}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/^2\\d\\d$/" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/^3\\d\\d$/" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/^4\\d\\d$/" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/^5\\d\\d$/" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          }
+        ]
+      }
     },
     {
       "title": "Caddy \u2014 Request Duration by Host",

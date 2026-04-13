@@ -52,7 +52,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(caddy_http_response_duration_seconds_count{code=~\"5..\"}[5m])) / sum(rate(caddy_http_response_duration_seconds_count[5m])) * 100",
+          "expr": "sum(rate(caddy_http_request_duration_seconds_count{code=~\"5..\"}[5m])) / sum(rate(caddy_http_request_duration_seconds_count[5m])) * 100",
           "legendFormat": "Error %"
         }
       ],
@@ -135,6 +135,45 @@
               }
             }
           ]
+        }
+      }
+    }
+    {
+      "title": "App Error Rate (from logs)",
+      "description": "Error-level log entries per second from Pino (level 50=error, 60=fatal). Captures crashes and unhandled errors that metrics may miss.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(rate({service=\"journal\"} |~ \"\\\"level\\\":(50|60)\" [5m])) or vector(0)",
+          "legendFormat": "journal"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(rate({service=\"planner\"} |~ \"\\\"level\\\":(50|60)\" [5m])) or vector(0)",
+          "legendFormat": "planner"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 15
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         }
       }
     }
