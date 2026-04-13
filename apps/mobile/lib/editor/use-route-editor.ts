@@ -21,9 +21,10 @@ export interface EditorState {
 export function useRouteEditor(route: RouteDetail) {
   const [state, setState] = useState<EditorState>(() => {
     const waypoints = extractWaypoints(route);
+    const segments = extractSegmentsFromGpx(route.gpx);
     return {
       waypoints,
-      segments: [],
+      segments,
       dirty: false,
       computing: false,
       saving: false,
@@ -169,6 +170,27 @@ function extractWaypoints(route: RouteDetail): Waypoint[] {
       });
     }
     return wpts;
+  } catch {
+    return [];
+  }
+}
+
+function extractSegmentsFromGpx(gpx: string | null): RouteSegment[] {
+  if (!gpx) return [];
+  try {
+    const segments: RouteSegment[] = [];
+    const trkptRegex = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"/g;
+    const coordinates: [number, number][] = [];
+    let match;
+    while ((match = trkptRegex.exec(gpx)) !== null) {
+      const lat = parseFloat(match[1]!);
+      const lon = parseFloat(match[2]!);
+      coordinates.push([lon, lat]); // GeoJSON order: [lon, lat]
+    }
+    if (coordinates.length > 0) {
+      segments.push({ coordinates });
+    }
+    return segments;
   } catch {
     return [];
   }
