@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Waypoint } from "@trails-cool/types";
 
 interface WaypointSheetProps {
@@ -16,6 +17,8 @@ export function WaypointSheet({
   onDelete,
   onToggleOvernight,
 }: WaypointSheetProps) {
+  const insets = useSafeAreaInsets();
+
   const handleDelete = () => {
     Alert.alert(
       "Delete Waypoint",
@@ -35,7 +38,7 @@ export function WaypointSheet({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: 16 + insets.bottom }]}>
       <View style={styles.handle} />
       <Text style={styles.title}>
         Waypoint {index + 1}{waypoint.name ? `: ${waypoint.name}` : ""}
@@ -75,7 +78,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 16,
-    paddingBottom: 32,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
