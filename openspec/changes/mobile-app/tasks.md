@@ -113,14 +113,14 @@
 
 ### 3.3 Route Editing
 
-- [ ] 3.3.1 Implement add-waypoint via long-press on map, inserting at the nearest route segment
-- [ ] 3.3.2 Implement drag-to-move for waypoint markers
-- [ ] 3.3.3 Implement waypoint deletion with confirmation
-- [ ] 3.3.4 Add overnight stop toggle in waypoint detail sheet
+- [x] 3.3.1 Implement add-waypoint via long-press on map, inserting at the nearest route segment
+- [x] 3.3.2 Implement drag-to-move for waypoint markers
+- [x] 3.3.3 Implement waypoint deletion with confirmation
+- [x] 3.3.4 Add overnight stop toggle in waypoint detail sheet
 - [ ] 3.3.5 Add POI snap suggestions when adding waypoints near known POIs
-- [ ] 3.3.6 Integrate BRouter routing via Journal API proxy — recompute route segments on waypoint changes
-- [ ] 3.3.7 Implement save: generate GPX from current waypoints + geometry, PUT to Journal API
-- [ ] 3.3.8 Add unsaved-changes guard when navigating away from the editor
+- [x] 3.3.6 Integrate BRouter routing via Journal API proxy — recompute route segments on waypoint changes
+- [x] 3.3.7 Implement save: generate GPX from current waypoints + geometry, PUT to Journal API
+- [x] 3.3.8 Add unsaved-changes guard when navigating away from the editor
 
 ## Phase 4: Testing
 
