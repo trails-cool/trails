@@ -152,6 +152,36 @@ groups:
         annotations:
           summary: "Crash signature detected in application logs"
 
+      - uid: background-job-failures
+        title: Background job failures
+        condition: C
+        noDataState: OK
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: postgres
+            model:
+              rawSql: "SELECT count(*) AS failed FROM pgboss.job WHERE state = 'failed' AND completedon > now() - interval '1 hour'"
+              format: table
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 0s
+        annotations:
+          summary: "Background jobs have failed in the last hour — check Grafana Service Health dashboard"
+
       - uid: caddy-502-rate
         title: Caddy 502 errors detected
         condition: B

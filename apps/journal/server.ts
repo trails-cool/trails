@@ -4,6 +4,7 @@ import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import { logger } from "./app/lib/logger.server.ts";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
+import { createBoss, startWorker } from "@trails-cool/jobs";
 import postgres from "postgres";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -98,4 +99,9 @@ server.listen(port, async () => {
   // Seed first-party OAuth2 clients
   const { seedOAuthClient } = await import("./app/lib/oauth.server.ts");
   await seedOAuthClient("trails-cool-mobile", "trailscool://auth/callback", true);
+
+  // Start background job worker (no jobs yet — placeholder for Komoot import and federation)
+  const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
+  await startWorker(boss, []);
+  logger.info("Background job worker started");
 });
