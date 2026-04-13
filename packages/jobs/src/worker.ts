@@ -3,7 +3,7 @@ import type { JobDefinition } from "./types.ts";
 
 export async function startWorker(
   boss: PgBoss,
-  jobs: JobDefinition[],
+  jobs: JobDefinition<any>[],
 ): Promise<void> {
   await boss.start();
 

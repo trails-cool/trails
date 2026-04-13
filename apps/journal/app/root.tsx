@@ -68,6 +68,9 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
               <Link to="/activities" className={linkClass("/activities")}>
                 {t("nav.activities")}
               </Link>
+              <Link to="/integrations" className={linkClass("/integrations")}>
+                {t("nav.integrations")}
+              </Link>
             </>
           )}
         </div>

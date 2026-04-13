@@ -32,6 +32,11 @@ export default [
   route("api/sync/callback/:provider", "routes/api.sync.callback.$provider.ts"),
   route("api/sync/disconnect/:provider", "routes/api.sync.disconnect.$provider.ts"),
   route("api/sync/webhook/:provider", "routes/api.sync.webhook.$provider.ts"),
+  route("integrations", "routes/integrations.tsx"),
+  route("api/integrations/komoot/connect", "routes/api.integrations.komoot.connect.ts"),
+  route("api/integrations/komoot/disconnect", "routes/api.integrations.komoot.disconnect.ts"),
+  route("api/integrations/komoot/import", "routes/api.integrations.komoot.import.ts"),
+  route("api/integrations/komoot/import-status", "routes/api.integrations.komoot.import-status.ts"),
   route("privacy", "routes/privacy.tsx"),
   // REST API v1
   route("api/v1/routes", "routes/api.v1.routes._index.ts"),
