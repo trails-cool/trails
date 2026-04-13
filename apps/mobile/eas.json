@@ -1,7 +1,8 @@
 {
   "cli": {
     "version": ">= 18.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
@@ -9,16 +10,10 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
-      },
-      "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
-      }
+      "distribution": "internal"
     },
     "production": {
       "autoIncrement": true
@@ -29,10 +24,7 @@
       "ios": {
         "simulator": true
       },
-      "environment": "development",
-      "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
-      }
+      "environment": "development"
     }
   },
   "submit": {

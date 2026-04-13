@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@maplibre/maplibre-react-native": "^10.4.2",
+    "@sentry/cli": "^3.3.5",
     "@sentry/react-native": "~7.11.0",
     "@trails-cool/api": "workspace:*",
     "@trails-cool/gpx": "workspace:*",
