@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@expo/fingerprint": "^0.16.6",
     "@playwright/test": "^1.59.1",
     "@react-router/dev": "catalog:",
     "@react-router/node": "catalog:",
