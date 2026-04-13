@@ -3,7 +3,7 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "trails.cool",
-  slug: "trails-cool",
+  slug: "mobile",
   version: "0.0.1",
   scheme: "trailscool",
   orientation: "portrait",
@@ -21,6 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSAppTransportSecurity: {
         NSAllowsLocalNetworking: true,
       },
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
@@ -33,5 +34,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router", "expo-secure-store", "expo-web-browser"],
+  plugins: [
+    "expo-router",
+    "expo-secure-store",
+    "expo-web-browser",
+    "@maplibre/maplibre-react-native",
+    ["@sentry/react-native", {
+      organization: "trails-qq",
+      project: "mobile",
+    }],
+    "expo-sqlite",
+  ],
+  extra: {
+    eas: {
+      projectId: "93c75cae-fecf-4ce5-8cd8-c823760b12e2",
+    },
+  },
 });

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Stack, router } from "expo-router";
+import { Sentry, initSentry } from "../lib/sentry";
 import { isAuthenticated } from "../lib/auth";
 import { startVersionCheck } from "../lib/version-check";
 
-export default function RootLayout() {
+initSentry();
+
+function RootLayout() {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -21,3 +24,5 @@ export default function RootLayout() {
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
+
+export default Sentry.wrap(RootLayout);
