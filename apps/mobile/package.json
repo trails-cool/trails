@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
+    "react-test-renderer": "^19.2.5",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.14",
     "jest-expo": "^55.0.15",
