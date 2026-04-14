@@ -31,5 +31,10 @@ BEGIN
     GRANT SELECT ON ALL TABLES IN SCHEMA journal TO grafana_reader;
     ALTER DEFAULT PRIVILEGES IN SCHEMA journal GRANT SELECT ON TABLES TO grafana_reader;
   END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'pgboss') THEN
+    GRANT USAGE ON SCHEMA pgboss TO grafana_reader;
+    GRANT SELECT ON ALL TABLES IN SCHEMA pgboss TO grafana_reader;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA pgboss GRANT SELECT ON TABLES TO grafana_reader;
+  END IF;
 END
 $$;
