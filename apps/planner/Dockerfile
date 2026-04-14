@@ -12,6 +12,7 @@ COPY packages/map/package.json packages/map/
 COPY packages/gpx/package.json packages/gpx/
 COPY packages/i18n/package.json packages/i18n/
 COPY packages/db/package.json packages/db/
+COPY packages/jobs/package.json packages/jobs/
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
@@ -30,6 +31,7 @@ COPY --from=deps /app/apps/planner/node_modules ./apps/planner/node_modules
 COPY --from=build /app/apps/planner/build ./apps/planner/build
 COPY --from=build /app/apps/planner/server.ts ./apps/planner/server.ts
 COPY --from=build /app/apps/planner/app/lib ./apps/planner/app/lib
+COPY --from=build /app/apps/planner/app/jobs ./apps/planner/app/jobs
 COPY --from=build /app/apps/planner/package.json ./apps/planner/package.json
 COPY --from=build /app/packages ./packages
 
