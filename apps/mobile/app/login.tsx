@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import { router } from "expo-router";
 import {
   setServerUrl,
@@ -9,9 +9,11 @@ import {
 } from "../lib/server-config";
 import { login } from "../lib/auth";
 
+const DEV_HOST = Platform.OS === "android" ? "10.0.2.2" : "localhost";
+
 export default function LoginScreen() {
   const [serverUrl, setServerUrlState] = useState(
-    __DEV__ ? "http://localhost:3000" : "https://trails.cool",
+    __DEV__ ? `http://${DEV_HOST}:3000` : "https://trails.cool",
   );
   const [showCustomServer, setShowCustomServer] = useState(false);
   const [loading, setLoading] = useState(false);
