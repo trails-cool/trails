@@ -6,6 +6,7 @@ function createMockBoss() {
   return {
     start: vi.fn().mockResolvedValue(undefined),
     stop: vi.fn().mockResolvedValue(undefined),
+    createQueue: vi.fn().mockResolvedValue(undefined),
     schedule: vi.fn().mockResolvedValue(undefined),
     work: vi.fn().mockResolvedValue("worker-id"),
   };
@@ -20,6 +21,16 @@ describe("startWorker", () => {
     const boss = createMockBoss();
     await startWorker(boss as never, []);
     expect(boss.start).toHaveBeenCalled();
+  });
+
+  it("creates queues before registering handlers", async () => {
+    const boss = createMockBoss();
+    const jobs: JobDefinition[] = [{ name: "test-job", handler: vi.fn() }];
+
+    await startWorker(boss as never, jobs);
+
+    expect(boss.createQueue).toHaveBeenCalledWith("test-job");
+    expect(boss.createQueue).toHaveBeenCalledBefore(boss.work);
   });
 
   it("registers job handlers", async () => {

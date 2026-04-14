@@ -8,6 +8,8 @@ export async function startWorker(
   await boss.start();
 
   for (const job of jobs) {
+    await boss.createQueue(job.name);
+
     if (job.cron) {
       await boss.schedule(job.name, job.cron, undefined, {
         retryLimit: job.retryLimit,
