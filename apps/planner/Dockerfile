@@ -11,6 +11,8 @@ COPY packages/ui/package.json packages/ui/
 COPY packages/map/package.json packages/map/
 COPY packages/gpx/package.json packages/gpx/
 COPY packages/i18n/package.json packages/i18n/
+COPY packages/api/package.json packages/api/
+COPY packages/map-core/package.json packages/map-core/
 COPY packages/db/package.json packages/db/
 COPY packages/jobs/package.json packages/jobs/
 RUN pnpm install --frozen-lockfile
