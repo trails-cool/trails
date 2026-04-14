@@ -28,6 +28,7 @@
     ]
   },
   "dependencies": {
+    "@gorhom/bottom-sheet": "^5.2.9",
     "@maplibre/maplibre-react-native": "^10.4.2",
     "@sentry/cli": "^3.3.5",
     "@sentry/react-native": "~7.11.0",
@@ -50,6 +51,8 @@
     "expo-web-browser": "~55.0.14",
     "react": "catalog:",
     "react-native": "0.83.4",
+    "react-native-gesture-handler": "^2.31.1",
+    "react-native-reanimated": "^4.3.0",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "use-latest-callback": "^0.3.3",
@@ -57,10 +60,10 @@
   },
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
-    "react-test-renderer": "^19.2.5",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.14",
     "jest-expo": "^55.0.15",
+    "react-test-renderer": "^19.2.5",
     "typescript": "~5.9.2"
   }
 }

@@ -172,15 +172,13 @@ function RouteDetailContent({ route }: { route: RouteDetail }) {
           )}
 
           {selectedWaypoint !== null && editor.waypoints[selectedWaypoint] && (
-            <View style={[styles.sheetOverlay, { paddingBottom: insets.bottom }]}>
-              <WaypointSheet
-                waypoint={editor.waypoints[selectedWaypoint]!}
-                index={selectedWaypoint}
-                onClose={() => setSelectedWaypoint(null)}
-                onDelete={editor.deleteWaypoint}
-                onToggleOvernight={editor.toggleOvernight}
-              />
-            </View>
+            <WaypointSheet
+              waypoint={editor.waypoints[selectedWaypoint]!}
+              index={selectedWaypoint}
+              onClose={() => setSelectedWaypoint(null)}
+              onDelete={editor.deleteWaypoint}
+              onToggleOvernight={editor.toggleOvernight}
+            />
           )}
         </View>
       ) : (
@@ -253,5 +251,4 @@ const styles = StyleSheet.create({
   actionSecondaryText: { color: "#333", fontSize: 16, fontWeight: "600" },
   errorBanner: { position: "absolute", bottom: 16, alignSelf: "center", backgroundColor: "rgba(220,38,38,0.9)", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 },
   errorBannerText: { color: "#fff", fontSize: 13 },
-  sheetOverlay: { position: "absolute", bottom: 0, left: 0, right: 0 },
 });
