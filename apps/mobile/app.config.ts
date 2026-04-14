@@ -44,7 +44,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       project: "mobile",
     }],
     "expo-sqlite",
-    "react-native-reanimated",
   ],
   extra: {
     eas: {

@@ -22,3 +22,5 @@ catalog:
   "@sentry/react": ^10.48.0
   postgres: ^3.4.9
   "@types/node": ^22.0.0
+
+nodeLinker: hoisted
