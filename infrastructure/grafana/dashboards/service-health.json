@@ -479,6 +479,69 @@
           "legendFormat": "in-flight"
         }
       ]
+    },
+    {
+      "title": "Job Queue \u2014 Status",
+      "description": "Background job counts by state from pg-boss. Queries the pgboss.job table via the PostgreSQL datasource.",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 72
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "postgres"
+          },
+          "rawSql": "SELECT state, count(*) AS count FROM pgboss.job GROUP BY state ORDER BY count DESC",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Job Queue \u2014 Failed Jobs (last 24h)",
+      "description": "Recently failed background jobs with error details.",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "postgres"
+          },
+          "rawSql": "SELECT name, state, createdon, completedon, output::text AS error FROM pgboss.job WHERE state = 'failed' AND completedon > now() - interval '24 hours' ORDER BY completedon DESC LIMIT 20",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Job Queue \u2014 Completed/hour",
+      "description": "Background jobs completed per hour over the last 24 hours.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "postgres"
+          },
+          "rawSql": "SELECT date_trunc('hour', completedon) AS time, name, count(*) AS completed FROM pgboss.job WHERE state = 'completed' AND completedon > now() - interval '24 hours' GROUP BY 1, 2 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
     }
   ]
 }

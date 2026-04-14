@@ -6,6 +6,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import { setupYjsWebSocket } from "./app/lib/yjs-server.ts";
+import { createBoss, startWorker } from "@trails-cool/jobs";
+import { expireSessionsJob } from "./app/jobs/expire-sessions.ts";
 import postgres from "postgres";
 
 const sentryEnvironment = process.env.CI ? "ci" : (process.env.NODE_ENV ?? "development");
@@ -113,7 +115,11 @@ const server = createServer((req, res) => {
 
 setupYjsWebSocket(server);
 
-server.listen(port, () => {
+server.listen(port, async () => {
   logger.info({ port }, "Planner server listening");
   logger.info({ port, path: "/sync/:sessionId" }, "Yjs WebSocket available");
+
+  const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
+  await startWorker(boss, [expireSessionsJob]);
+  logger.info("Background job worker started");
 });
