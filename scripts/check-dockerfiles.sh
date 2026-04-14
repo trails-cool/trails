@@ -18,10 +18,26 @@ for pkg_json in packages/*/package.json; do
   done
 done
 
+# Check that COPY paths from the build stage exist in the source tree.
+# These are app-specific paths (app/lib, app/jobs, etc.) that may not exist yet.
+for dockerfile in apps/*/Dockerfile; do
+  app_dir=$(dirname "$dockerfile")  # e.g. apps/journal
+  grep 'COPY --from=build /app/'"$app_dir"'/' "$dockerfile" | while read -r line; do
+    # Extract the source path from: COPY --from=build /app/apps/journal/app/jobs ./apps/journal/app/jobs
+    src_path=$(echo "$line" | sed 's|.*COPY --from=build /app/||; s| .*||')
+    # Skip build artifacts (created during docker build, not in source tree)
+    case "$src_path" in */build|*/build/*|*/node_modules|*/node_modules/*) continue ;; esac
+    if [ ! -e "$src_path" ]; then
+      echo "ERROR: $dockerfile references $src_path but it does not exist"
+      errors=$((errors + 1))
+    fi
+  done
+done
+
 if [ "$errors" -gt 0 ]; then
   echo ""
-  echo "$errors missing package(s) in Dockerfiles. Add COPY lines to the deps stage."
+  echo "$errors error(s) in Dockerfiles."
   exit 1
 fi
 
-echo "All workspace packages present in all Dockerfiles."
+echo "All Dockerfile references verified."
