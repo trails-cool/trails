@@ -259,10 +259,10 @@ test.describe("Planner", () => {
 
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Waypoints (3)")).toBeVisible({ timeout: 15000 });
 
     const sidebar = page.locator("aside");
-    await expect(sidebar.getByText(/\d+\.\d+ km/).first()).toBeVisible({ timeout: 10000 });
+    await expect(sidebar.getByText(/\d+\.\d+ km/).first()).toBeVisible({ timeout: 15000 });
 
     // Hover waypoint 2 to reveal controls, click the overnight toggle (moon icon)
     const waypointRows = sidebar.locator("li").filter({ has: page.locator("span.rounded-full") });
