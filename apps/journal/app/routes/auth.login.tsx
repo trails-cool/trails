@@ -17,6 +17,7 @@ export default function LoginPage() {
     });
   }, []);
   const [email, setEmail] = useState("");
+  const [loginCode, setLoginCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -65,6 +66,31 @@ export default function LoginPage() {
       } else {
         setError(message);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCodeVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const resp = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: "verify-code", email, code: loginCode }),
+      });
+      const result = await resp.json();
+
+      if (result.error) {
+        setError(result.error);
+      } else if (result.step === "done") {
+        window.location.href = returnTo ?? "/";
+      }
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -168,13 +194,36 @@ export default function LoginPage() {
       )}
 
       {magicLinkSent && (
-        <div className="mt-8 rounded-md bg-green-50 p-4">
-          <p className="text-sm text-green-800">
-            {t("auth.checkEmail")} <strong>{email}</strong>.
-          </p>
-          <p className="mt-2 text-xs text-green-600">
-            {t("auth.linkExpires")}
-          </p>
+        <div className="mt-8 space-y-4">
+          <div className="rounded-md bg-green-50 p-4">
+            <p className="text-sm text-green-800">
+              {t("auth.checkEmail")} <strong>{email}</strong>.
+            </p>
+            <p className="mt-2 text-xs text-green-600">
+              {t("auth.linkExpires")}
+            </p>
+          </div>
+
+          <form onSubmit={handleCodeVerify} className="space-y-3">
+            <p className="text-sm text-gray-600">{t("auth.codeHelp")}</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="000000"
+              value={loginCode}
+              onChange={(e) => setLoginCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="block w-full rounded-md border border-gray-300 px-3 py-3 text-center text-2xl font-mono tracking-[0.3em] shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              disabled={loading || loginCode.length !== 6}
+              className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
+            >
+              {loading ? t("auth.authenticating") : t("auth.verifyCode")}
+            </button>
+          </form>
         </div>
       )}
 
