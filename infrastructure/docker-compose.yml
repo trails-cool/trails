@@ -34,6 +34,7 @@ services:
       WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
+      INTEGRATION_SECRET: ${INTEGRATION_SECRET:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
       interval: 15s

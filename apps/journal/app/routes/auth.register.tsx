@@ -8,11 +8,14 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [supportsPasskey, setSupportsPasskey] = useState<boolean | null>(null);
+  const [usePasskey, setUsePasskey] = useState<boolean>(true);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   useEffect(() => {
     import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
-      setSupportsPasskey(browserSupportsWebAuthn());
+      const supported = browserSupportsWebAuthn();
+      setSupportsPasskey(supported);
+      setUsePasskey(supported);
     });
   }, []);
 
@@ -114,7 +117,7 @@ export default function RegisterPage() {
         {t("auth.registerDescription")}
       </p>
 
-      <form onSubmit={supportsPasskey ? handleRegisterPasskey : handleRegisterMagicLink} className="mt-8 space-y-4">
+      <form onSubmit={usePasskey ? handleRegisterPasskey : handleRegisterMagicLink} className="mt-8 space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             {t("auth.email")}
@@ -151,22 +154,42 @@ export default function RegisterPage() {
           <p className="text-sm text-red-600">{error}</p>
         )}
 
-        {supportsPasskey ? (
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? t("auth.creatingPasskey") : t("auth.registerWithPasskey")}
-          </button>
+        {usePasskey ? (
+          <>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? t("auth.creatingPasskey") : t("auth.registerWithPasskey")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setUsePasskey(false)}
+              className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
+            >
+              {t("auth.useMagicLinkInstead")}
+            </button>
+          </>
         ) : (
-          <button
-            type="submit"
-            disabled={loading || supportsPasskey === null}
-            className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
-          >
-            {loading ? t("auth.sending") : t("auth.registerWithMagicLink")}
-          </button>
+          <>
+            <button
+              type="submit"
+              disabled={loading || supportsPasskey === null}
+              className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
+            >
+              {loading ? t("auth.sending") : t("auth.registerWithMagicLink")}
+            </button>
+            {supportsPasskey && (
+              <button
+                type="button"
+                onClick={() => setUsePasskey(true)}
+                className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
+              >
+                {t("auth.usePasskeyInstead")}
+              </button>
+            )}
+          </>
         )}
 
         {supportsPasskey === false && (

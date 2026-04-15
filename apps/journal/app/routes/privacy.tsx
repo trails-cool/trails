@@ -94,6 +94,7 @@ export default function PrivacyPage() {
           <li><strong>OpenStreetMap</strong> — map tiles are loaded from OSM tile servers. OSM&apos;s <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" className="text-blue-600 hover:underline">privacy policy</a> applies to tile requests.</li>
           <li><strong>BRouter</strong> — routing requests are processed by our self-hosted BRouter instance. No data is sent to third parties for routing.</li>
           <li><strong>SMTP provider</strong> — transactional emails (magic link, welcome) are delivered via SMTP. Self-hosters configure their own provider.</li>
+          <li><strong>Komoot</strong> — when you connect your Komoot account, your email and password are sent to api.komoot.de for authentication and stored encrypted (AES-256-GCM) on the server. Tour data (name, date, distance, GPX track) is imported. Disconnecting deletes stored credentials.</li>
         </ul>
       </section>
 

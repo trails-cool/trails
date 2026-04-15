@@ -70,6 +70,7 @@ export const routes = journalSchema.table("routes", {
   elevationLoss: real("elevation_loss"),
   dayBreaks: jsonb("day_breaks").$type<number[]>(),
   tags: jsonb("tags").$type<string[]>(),
+  source: text("source"),
   plannerState: bytea("planner_state"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -160,7 +161,25 @@ export const syncConnections = journalSchema.table("sync_connections", {
   refreshToken: text("refresh_token").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   providerUserId: text("provider_user_id"),
+  encryptedCredentials: text("encrypted_credentials"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const importBatches = journalSchema.table("import_batches", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  connectionId: text("connection_id")
+    .notNull()
+    .references(() => syncConnections.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("running"),
+  totalFound: integer("total_found").default(0),
+  importedCount: integer("imported_count").default(0),
+  duplicateCount: integer("duplicate_count").default(0),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
 });
 
 export const syncImports = journalSchema.table("sync_imports", {
