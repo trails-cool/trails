@@ -1,8 +1,17 @@
 import { useRef, useCallback } from "react";
 import { StyleSheet, View, Text } from "react-native";
-import MapLibreGL from "@maplibre/maplibre-react-native";
 import type { Waypoint } from "@trails-cool/types";
 import type { RouteSegment } from "./use-route-editor";
+
+import type MapLibreRN from "@maplibre/maplibre-react-native";
+
+let MapLibreGL: typeof MapLibreRN | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  MapLibreGL = require("@maplibre/maplibre-react-native").default;
+} catch {
+  // Native module not available — will show fallback UI
+}
 
 const OSM_STYLE = {
   version: 8 as const,
@@ -40,7 +49,32 @@ export function RouteMap({
   onWaypointDragEnd: _onWaypointDragEnd,
   onWaypointPress,
 }: RouteMapProps) {
-  const cameraRef = useRef<MapLibreGL.CameraRef>(null);
+  if (!MapLibreGL) {
+    return (
+      <View style={styles.fallback}>
+        <Text style={styles.fallbackText}>Map</Text>
+        <Text style={styles.fallbackHint}>Requires a dev build with MapLibre</Text>
+      </View>
+    );
+  }
+
+  return <RouteMapInner
+    waypoints={waypoints} segments={segments} computing={computing}
+    onLongPress={onLongPress} onWaypointDragEnd={_onWaypointDragEnd}
+    onWaypointPress={onWaypointPress}
+  />;
+}
+
+function RouteMapInner({
+  waypoints,
+  segments,
+  computing,
+  onLongPress,
+  onWaypointDragEnd: _onWaypointDragEnd,
+  onWaypointPress,
+}: RouteMapProps) {
+  const ML = MapLibreGL!;
+  const cameraRef = useRef<MapLibreRN.CameraRef>(null);
 
   const handleLongPress = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +105,7 @@ export function RouteMap({
 
   return (
     <View style={styles.container}>
-      <MapLibreGL.MapView
+      <ML.MapView
         style={styles.map}
         mapStyle={OSM_STYLE}
         onLongPress={handleLongPress}
@@ -79,7 +113,7 @@ export function RouteMap({
         logoEnabled={false}
       >
         {bounds && (
-          <MapLibreGL.Camera
+          <ML.Camera
             ref={cameraRef}
             defaultSettings={{
               bounds: {
@@ -95,7 +129,7 @@ export function RouteMap({
         )}
 
         {!bounds && (
-          <MapLibreGL.Camera
+          <ML.Camera
             defaultSettings={{
               centerCoordinate: [10.0, 50.1],
               zoomLevel: 6,
@@ -104,8 +138,8 @@ export function RouteMap({
         )}
 
         {/* Route line */}
-        <MapLibreGL.ShapeSource id="route" shape={routeGeojson}>
-          <MapLibreGL.LineLayer
+        <ML.ShapeSource id="route" shape={routeGeojson}>
+          <ML.LineLayer
             id="route-line"
             style={{
               lineColor: "#2563eb",
@@ -113,11 +147,11 @@ export function RouteMap({
               lineOpacity: computing ? 0.4 : 1,
             }}
           />
-        </MapLibreGL.ShapeSource>
+        </ML.ShapeSource>
 
         {/* Waypoint markers */}
         {waypoints.map((wp, i) => (
-          <MapLibreGL.MarkerView
+          <ML.MarkerView
             key={`wp-${i}`}
             coordinate={[wp.lon, wp.lat]}
           >
@@ -126,9 +160,9 @@ export function RouteMap({
               isDayBreak={wp.isDayBreak}
               onPress={() => onWaypointPress(i)}
             />
-          </MapLibreGL.MarkerView>
+          </ML.MarkerView>
         ))}
-      </MapLibreGL.MapView>
+      </ML.MapView>
 
       {computing && (
         <View style={styles.computingBanner}>
@@ -186,6 +220,14 @@ function computeBounds(
 }
 
 const styles = StyleSheet.create({
+  fallback: {
+    flex: 1,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fallbackText: { fontSize: 16, color: "#9ca3af", fontWeight: "600" },
+  fallbackHint: { fontSize: 12, color: "#9ca3af", marginTop: 4 },
   container: { flex: 1 },
   map: { flex: 1 },
   computingBanner: {
