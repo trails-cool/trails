@@ -113,6 +113,13 @@ export function updateRoute(id: string, data: { name?: string; description?: str
   });
 }
 
+export function computeRoute(waypoints: Array<{ lat: number; lon: number }>, profile = "fastbike") {
+  return request<unknown>("/routes/compute", {
+    method: "POST",
+    body: JSON.stringify({ waypoints, profile }),
+  });
+}
+
 // --- Activities ---
 
 export async function listActivities(cursor?: string, limit = 20) {
