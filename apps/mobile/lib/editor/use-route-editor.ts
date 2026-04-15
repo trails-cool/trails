@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import type { Waypoint } from "@trails-cool/types";
 import type { RouteDetail } from "../api-client";
-import { updateRoute } from "../api-client";
-import { getServerUrl } from "../server-config";
+import { updateRoute, computeRoute as apiComputeRoute } from "../api-client";
 import { generateGpx } from "@trails-cool/gpx";
 
 export interface RouteSegment {
@@ -44,22 +43,10 @@ export function useRouteEditor(route: RouteDetail) {
     setState((s) => ({ ...s, computing: true, error: null }));
 
     try {
-      const serverUrl = await getServerUrl();
-      const resp = await fetch(`${serverUrl}/api/v1/routes/compute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          waypoints: waypoints.map((w) => ({ lat: w.lat, lon: w.lon })),
-          profile: route.routingProfile ?? "fastbike",
-        }),
-      });
-
-      if (!resp.ok) {
-        setState((s) => ({ ...s, computing: false, error: "Route computation failed" }));
-        return;
-      }
-
-      const geojson = await resp.json();
+      const geojson = await apiComputeRoute(
+        waypoints.map((w) => ({ lat: w.lat, lon: w.lon })),
+        route.routingProfile ?? "fastbike",
+      );
       const coords = extractCoordsFromGeojson(geojson);
       setState((s) => ({
         ...s,
