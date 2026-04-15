@@ -1,17 +1,8 @@
 import { useRef, useCallback } from "react";
 import { StyleSheet, View, Text } from "react-native";
+import MapLibreGL from "@maplibre/maplibre-react-native";
 import type { Waypoint } from "@trails-cool/types";
 import type { RouteSegment } from "./use-route-editor";
-
-import type MapLibreRN from "@maplibre/maplibre-react-native";
-
-let MapLibreGL: typeof MapLibreRN | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  MapLibreGL = require("@maplibre/maplibre-react-native").default;
-} catch {
-  // Native module not available — will show fallback UI
-}
 
 const OSM_STYLE = {
   version: 8 as const,
