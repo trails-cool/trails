@@ -229,7 +229,13 @@ export async function finishAuthentication(
 
 // --- Magic Links ---
 
-export async function createMagicToken(email: string): Promise<string> {
+function generateLoginCode(): string {
+  // 6-digit numeric code, zero-padded
+  const num = randomBytes(3).readUIntBE(0, 3) % 1_000_000;
+  return String(num).padStart(6, "0");
+}
+
+export async function createMagicToken(email: string): Promise<{ token: string; code: string }> {
   const db = getDb();
 
   // Check user exists
@@ -237,16 +243,47 @@ export async function createMagicToken(email: string): Promise<string> {
   if (!user) throw new Error("No account found for this email");
 
   const token = randomBytes(32).toString("base64url");
+  const code = generateLoginCode();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
   await db.insert(magicTokens).values({
     id: randomUUID(),
     email,
     token,
+    code,
     expiresAt,
   });
 
-  return token;
+  return { token, code };
+}
+
+export async function verifyLoginCode(email: string, code: string): Promise<string> {
+  const db = getDb();
+
+  const [record] = await db
+    .select()
+    .from(magicTokens)
+    .where(
+      and(
+        eq(magicTokens.email, email),
+        eq(magicTokens.code, code),
+        eq(magicTokens.purpose, "login"),
+        gt(magicTokens.expiresAt, new Date()),
+        isNull(magicTokens.usedAt),
+      ),
+    );
+
+  if (!record) throw new Error("Invalid or expired code");
+
+  await db
+    .update(magicTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(magicTokens.id, record.id));
+
+  const [user] = await db.select().from(users).where(eq(users.email, record.email));
+  if (!user) throw new Error("User not found");
+
+  return user.id;
 }
 
 export async function initiateEmailChange(userId: string, newEmail: string): Promise<string> {

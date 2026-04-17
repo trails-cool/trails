@@ -265,6 +265,8 @@ export default {
       backToPasskey: "Zurück zur Passkey-Anmeldung",
       checkEmail: "Prüfe deine E-Mails! Wir haben einen Anmeldelink gesendet an",
       linkExpires: "Der Link ist 15 Minuten gültig.",
+      codeHelp: "Oder gib den 6-stelligen Code aus der E-Mail ein:",
+      verifyCode: "Code bestätigen",
       noAccount: "Noch kein Konto?",
       registerDescription: "Registriere dich mit einem Passkey — kein Passwort nötig.",
       registerWithPasskey: "Mit Passkey registrieren",

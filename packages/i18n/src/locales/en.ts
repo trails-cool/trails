@@ -265,6 +265,8 @@ export default {
       backToPasskey: "Back to passkey login",
       checkEmail: "Check your email! We sent a login link to",
       linkExpires: "The link expires in 15 minutes.",
+      codeHelp: "Or enter the 6-digit code from the email:",
+      verifyCode: "Verify Code",
       noAccount: "Don't have an account?",
       registerDescription: "Register with a passkey — no password needed.",
       registerWithPasskey: "Register with Passkey",
