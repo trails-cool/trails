@@ -38,6 +38,7 @@
     "@trails-cool/gpx": "workspace:*",
     "@trails-cool/i18n": "workspace:*",
     "@trails-cool/map-core": "workspace:*",
+    "@trails-cool/sentry-config": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "expo": "~55.0.15",
     "expo-constants": "~55.0.14",

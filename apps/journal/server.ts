@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/node";
+import { nodeSentryConfig, drop404s } from "@trails-cool/sentry-config";
 import { createRequestListener } from "@react-router/node";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream, statSync } from "node:fs";
@@ -6,6 +8,12 @@ import { logger } from "./app/lib/logger.server.ts";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
 import postgres from "postgres";
+
+Sentry.init({
+  dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
+  ...nodeSentryConfig("journal server"),
+  beforeSend: drop404s,
+});
 
 const port = Number(process.env.PORT ?? 3000);
 const CLIENT_DIR = resolve(import.meta.dirname, "build", "client");
