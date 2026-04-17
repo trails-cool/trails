@@ -65,7 +65,7 @@ function RouteMapInner({
   onWaypointPress,
 }: RouteMapProps) {
   const ML = MapLibreGL!;
-  const cameraRef = useRef<MapLibreRN.CameraRef>(null);
+  const cameraRef = useRef<MapLibreGL.CameraRef>(null);
 
   const handleLongPress = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
