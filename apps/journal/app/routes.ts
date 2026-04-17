@@ -33,6 +33,9 @@ export default [
   route("api/sync/disconnect/:provider", "routes/api.sync.disconnect.$provider.ts"),
   route("api/sync/webhook/:provider", "routes/api.sync.webhook.$provider.ts"),
   route("privacy", "routes/privacy.tsx"),
+  route("legal/imprint", "routes/legal.imprint.tsx"),
+  route("legal/terms", "routes/legal.terms.tsx"),
+  route("legal/privacy", "routes/legal.privacy.tsx"),
   // REST API v1
   route("api/v1/routes", "routes/api.v1.routes._index.ts"),
   route("api/v1/routes/compute", "routes/api.v1.routes.compute.ts"),

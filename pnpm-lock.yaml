@@ -230,6 +230,9 @@ importers:
       '@trails-cool/map':
         specifier: workspace:*
         version: link:../../packages/map
+      '@trails-cool/sentry-config':
+        specifier: workspace:*
+        version: link:../../packages/sentry-config
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -327,6 +330,9 @@ importers:
       '@trails-cool/map-core':
         specifier: workspace:*
         version: link:../../packages/map-core
+      '@trails-cool/sentry-config':
+        specifier: workspace:*
+        version: link:../../packages/sentry-config
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -478,6 +484,9 @@ importers:
       '@trails-cool/map-core':
         specifier: workspace:*
         version: link:../../packages/map-core
+      '@trails-cool/sentry-config':
+        specifier: workspace:*
+        version: link:../../packages/sentry-config
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -634,6 +643,12 @@ importers:
         version: 5.0.0(leaflet@1.9.4)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
 
   packages/map-core: {}
+
+  packages/sentry-config:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.17
 
   packages/types: {}
 

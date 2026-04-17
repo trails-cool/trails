@@ -62,7 +62,7 @@ export default function LoginPage() {
     } catch (err) {
       const message = (err as Error).message;
       if (message.includes("timed out") || message.includes("not allowed")) {
-        setError("No passkey found for this site. Register a new account or use a magic link instead.");
+        setError(t("auth.passkeyNotFound"));
       } else {
         setError(message);
       }

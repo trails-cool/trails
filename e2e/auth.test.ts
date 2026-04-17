@@ -30,6 +30,8 @@ async function registerUser(page: Page, email: string, username: string) {
   // Verify both fields retained values before submitting
   await expect(page.getByLabel("Email")).toHaveValue(email);
   await expect(page.getByLabel("Username")).toHaveValue(username);
+  // Accept the Terms of Service (required)
+  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: /Register with Passkey/ }).click();
 }
 

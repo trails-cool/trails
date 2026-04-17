@@ -61,6 +61,9 @@ export default function Home() {
     <div className="flex h-full flex-col overflow-y-auto">
       {/* Hero */}
       <section className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+        <span className="mb-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-amber-800">
+          {t("landing.footer.alpha")}
+        </span>
         <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl">
           {t("title")}
         </h1>
@@ -129,10 +132,19 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-200 px-4 py-6">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 text-sm text-gray-400">
-          <span>{t("landing.footer.builtWith")}</span>
+          <span>
+            {t("landing.footer.builtWith")}
+            <span className="ml-2 text-xs">· {t("landing.footer.alpha")}</span>
+          </span>
           <div className="flex gap-4">
-            <a href="https://trails.cool/privacy" className="hover:text-gray-600">
+            <a href="https://trails.cool/legal/imprint" className="hover:text-gray-600">
+              {t("landing.footer.imprint")}
+            </a>
+            <a href="https://trails.cool/legal/privacy" className="hover:text-gray-600">
               {t("landing.footer.privacy")}
+            </a>
+            <a href="https://trails.cool/legal/terms" className="hover:text-gray-600">
+              {t("landing.footer.terms")}
             </a>
             <a href="https://github.com/trails-cool/trails" className="hover:text-gray-600">
               {t("landing.footer.source")}

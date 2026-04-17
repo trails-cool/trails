@@ -5,12 +5,15 @@ export default function RegisterPage() {
   const { t } = useTranslation("journal");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [supportsPasskey, setSupportsPasskey] = useState<boolean | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [hostname, setHostname] = useState("…");
 
   useEffect(() => {
+    setHostname(window.location.hostname);
     import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
       setSupportsPasskey(browserSupportsWebAuthn());
     });
@@ -18,6 +21,10 @@ export default function RegisterPage() {
 
   const handleRegisterPasskey = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!termsAccepted) {
+      setError(t("auth.termsRequired"));
+      return;
+    }
     setError(null);
     setLoading(true);
 
@@ -25,7 +32,7 @@ export default function RegisterPage() {
       const startResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "start", email, username }),
+        body: JSON.stringify({ step: "start", email, username, termsAccepted }),
       });
       const startData = await startResp.json();
 
@@ -45,6 +52,7 @@ export default function RegisterPage() {
           step: "finish",
           email,
           username,
+          termsAccepted,
           response: webAuthnResp,
           challenge: startData.options.challenge,
           userId: startData.userId,
@@ -66,6 +74,10 @@ export default function RegisterPage() {
 
   const handleRegisterMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!termsAccepted) {
+      setError(t("auth.termsRequired"));
+      return;
+    }
     setError(null);
     setLoading(true);
 
@@ -73,7 +85,7 @@ export default function RegisterPage() {
       const resp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "register-magic-link", email, username }),
+        body: JSON.stringify({ step: "register-magic-link", email, username, termsAccepted }),
       });
       const result = await resp.json();
 
@@ -143,9 +155,32 @@ export default function RegisterPage() {
             placeholder="alice"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Your handle will be @{username || "..."}@{typeof window !== "undefined" ? window.location.hostname : "trails.cool"}
+            {t("auth.handleWillBe", {
+              handle: `@${username || "…"}@${hostname}`,
+            })}
           </p>
         </div>
+
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            {t("auth.termsBefore")}
+            <a
+              href="/legal/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              {t("auth.termsLink")}
+            </a>
+            {t("auth.termsAfter")}
+          </span>
+        </label>
 
         {error && (
           <p className="text-sm text-red-600">{error}</p>
@@ -154,7 +189,7 @@ export default function RegisterPage() {
         {supportsPasskey ? (
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !termsAccepted}
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? t("auth.creatingPasskey") : t("auth.registerWithPasskey")}
@@ -162,7 +197,7 @@ export default function RegisterPage() {
         ) : (
           <button
             type="submit"
-            disabled={loading || supportsPasskey === null}
+            disabled={loading || supportsPasskey === null || !termsAccepted}
             className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
           >
             {loading ? t("auth.sending") : t("auth.registerWithMagicLink")}
@@ -177,7 +212,7 @@ export default function RegisterPage() {
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-500">
-        Already have an account?{" "}
+        {t("auth.alreadyHaveAccount")}{" "}
         <a href="/auth/login" className="text-blue-600 hover:underline">
           {t("auth.login")}
         </a>

@@ -7,6 +7,9 @@ import { useTranslation } from "react-i18next";
 import { detectLocale } from "@trails-cool/i18n";
 import { getSessionUser } from "~/lib/auth.server";
 import { LocaleProvider } from "~/components/LocaleContext";
+import { AlphaBanner } from "~/components/AlphaBanner";
+import { Footer } from "~/components/Footer";
+import { initSentryClient, stopSentryClient } from "~/lib/sentry.client";
 import stylesheet from "@trails-cool/ui/styles.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
@@ -116,16 +119,20 @@ export default function App({ loaderData }: Route.ComponentProps) {
   const locale = loaderData?.locale ?? "en";
   useEffect(() => {
     if (user) {
-      Sentry.setUser({ id: user.id, username: user.username });
+      initSentryClient();
+      Sentry.setUser({ id: user.id });
     } else {
       Sentry.setUser(null);
+      stopSentryClient();
     }
   }, [user]);
 
   return (
     <LocaleProvider locale={locale}>
+      <AlphaBanner />
       <NavBar user={user ?? null} />
       <Outlet />
+      <Footer />
     </LocaleProvider>
   );
 }
