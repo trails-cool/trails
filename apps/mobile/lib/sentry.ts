@@ -7,6 +7,7 @@ export function initSentry() {
     dsn: SENTRY_DSN,
     tracesSampleRate: __DEV__ ? 0 : 1.0,
     enabled: !__DEV__,
+    sendDefaultPii: false,
   });
 }
 

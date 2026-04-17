@@ -6,8 +6,14 @@ import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
-  const { step, email, username, response, challenge, userId } = body;
+  const { step, email, username, response, challenge, userId, termsAccepted } = body;
   const origin = process.env.ORIGIN ?? `http://localhost:3000`;
+
+  // Registration steps require terms acceptance
+  const requiresTerms = step === "start" || step === "finish" || step === "register-magic-link";
+  if (requiresTerms && !termsAccepted) {
+    return data({ error: "Terms of Service must be accepted" }, { status: 400 });
+  }
 
   try {
     if (step === "start") {

@@ -16,6 +16,7 @@ Sentry.init({
   environment: sentryEnvironment,
   tracesSampleRate: 1.0,
   enabled: process.env.NODE_ENV === "production" && !process.env.CI,
+  sendDefaultPii: false,
   beforeSend(event) {
     // Drop 404s — they're expected (scanners, typos), not bugs
     const serialized = event.extra?.__serialized__ as Record<string, unknown> | undefined;

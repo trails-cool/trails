@@ -26,18 +26,34 @@ const commonOptions = {
 /**
  * Initialize i18next for server-side rendering.
  * No language detector — language is determined from the request.
+ *
+ * Re-adds resource bundles on every call so dev-mode HMR edits to the
+ * locale files are reflected without a Node restart (the i18n singleton
+ * otherwise caches the resources from the first init call).
  */
 export function initI18nServer(lng: SupportedLng = "en") {
   if (i18n.isInitialized) {
+    syncResources();
     i18n.changeLanguage(lng);
     return;
   }
   i18n.use(initReactI18next).init({ ...commonOptions, lng });
 }
 
+function syncResources() {
+  for (const [lang, namespaces] of Object.entries(resources)) {
+    for (const [ns, bundle] of Object.entries(namespaces)) {
+      i18n.addResourceBundle(lang, ns, bundle, true, true);
+    }
+  }
+}
+
 /**
  * Initialize i18next for the client.
  * Uses LanguageDetector with htmlTag priority so hydration matches the server.
+ * No localStorage caching — we don't want to set non-essential storage
+ * without user consent. Language is resolved per-request from the server
+ * (Accept-Language → htmlTag) or the browser's navigator as a fallback.
  */
 export function initI18nClient() {
   if (i18n.isInitialized) return;
@@ -47,8 +63,8 @@ export function initI18nClient() {
     .init({
       ...commonOptions,
       detection: {
-        order: ["htmlTag", "localStorage", "navigator"],
-        caches: ["localStorage"],
+        order: ["htmlTag", "navigator"],
+        caches: [],
       },
     });
 }

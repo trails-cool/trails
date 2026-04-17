@@ -29,6 +29,7 @@ export const users = journalSchema.table("users", {
   displayName: text("display_name"),
   bio: text("bio"),
   domain: text("domain").notNull(),
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

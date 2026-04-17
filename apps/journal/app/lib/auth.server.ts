@@ -76,6 +76,7 @@ export async function finishRegistration(
     email,
     username,
     domain,
+    termsAcceptedAt: new Date(),
   });
 
   await db.insert(credentials).values({
@@ -158,7 +159,7 @@ export async function registerWithMagicLink(email: string, username: string): Pr
   const userId = randomUUID();
   const domain = process.env.DOMAIN ?? "localhost";
 
-  await db.insert(users).values({ id: userId, email, username, domain });
+  await db.insert(users).values({ id: userId, email, username, domain, termsAcceptedAt: new Date() });
 
   // Create magic token for verification
   const token = randomBytes(32).toString("base64url");
