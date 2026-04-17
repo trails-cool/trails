@@ -11,19 +11,24 @@ import { expireSessionsJob } from "./app/jobs/expire-sessions.ts";
 import postgres from "postgres";
 
 const sentryEnvironment = process.env.CI ? "ci" : (process.env.NODE_ENV ?? "development");
+const sentryEnabled = process.env.NODE_ENV === "production" && !process.env.CI;
 
 Sentry.init({
   dsn: "https://5215134cd78d5e6c199e29300b8425af@o4509530546634752.ingest.de.sentry.io/4511102546608208",
   release: process.env.SENTRY_RELEASE,
   environment: sentryEnvironment,
   tracesSampleRate: 1.0,
-  enabled: process.env.NODE_ENV === "production" && !process.env.CI,
+  enabled: sentryEnabled,
   beforeSend(event) {
     const serialized = event.extra?.__serialized__ as Record<string, unknown> | undefined;
     if (serialized?.status === 404) return null;
     return event;
   },
 });
+
+if (!sentryEnabled && !process.env.CI) {
+  console.debug(`[sentry] planner server init inert (env=${sentryEnvironment}); would send to Sentry in production`);
+}
 
 const port = Number(process.env.PORT ?? 3001);
 const CLIENT_DIR = resolve(import.meta.dirname, "build", "client");

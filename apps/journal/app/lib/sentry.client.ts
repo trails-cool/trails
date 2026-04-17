@@ -10,6 +10,7 @@ export function initSentryClient() {
 
   const sentryEnvironment = import.meta.env.VITE_SENTRY_ENVIRONMENT ??
     (import.meta.env.PROD ? "production" : "development");
+  const enabled = import.meta.env.PROD && sentryEnvironment !== "ci";
 
   Sentry.init({
     dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
@@ -24,7 +25,14 @@ export function initSentryClient() {
     ],
     environment: sentryEnvironment,
     tracesSampleRate: sentryEnvironment === "ci" ? 0 : 1.0,
-    enabled: import.meta.env.PROD && sentryEnvironment !== "ci",
+    enabled,
     sendDefaultPii: false,
+    // Session Replay is not installed; document the intent explicitly.
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
   });
+
+  if (!enabled && !import.meta.env.PROD) {
+    console.debug(`[sentry] journal client init inert (env=${sentryEnvironment}); would send to Sentry in production`);
+  }
 }

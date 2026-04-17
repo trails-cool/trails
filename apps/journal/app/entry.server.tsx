@@ -9,13 +9,14 @@ import { renderToPipeableStream } from "react-dom/server";
 import { initI18nServer, detectLanguage } from "@trails-cool/i18n";
 
 const sentryEnvironment = process.env.CI ? "ci" : (process.env.NODE_ENV ?? "development");
+const sentryEnabled = process.env.NODE_ENV === "production" && !process.env.CI;
 
 Sentry.init({
   dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
   release: process.env.SENTRY_RELEASE,
   environment: sentryEnvironment,
   tracesSampleRate: 1.0,
-  enabled: process.env.NODE_ENV === "production" && !process.env.CI,
+  enabled: sentryEnabled,
   sendDefaultPii: false,
   beforeSend(event) {
     // Drop 404s — they're expected (scanners, typos), not bugs
@@ -24,6 +25,10 @@ Sentry.init({
     return event;
   },
 });
+
+if (!sentryEnabled && !process.env.CI) {
+  console.debug(`[sentry] journal SSR init inert (env=${sentryEnvironment}); would send to Sentry in production`);
+}
 
 export const streamTimeout = 5_000;
 
