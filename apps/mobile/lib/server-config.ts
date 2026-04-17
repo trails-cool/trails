@@ -1,8 +1,10 @@
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { API_VERSION } from "@trails-cool/api";
 
 const STORE_KEY_SERVER_URL = "server_url";
-const DEFAULT_SERVER_URL = __DEV__ ? "http://localhost:3000" : "https://trails.cool";
+const DEV_HOST = Platform.OS === "android" ? "10.0.2.2" : "localhost";
+const DEFAULT_SERVER_URL = __DEV__ ? `http://${DEV_HOST}:3000` : "https://trails.cool";
 
 export interface DiscoveryResponse {
   apiVersion: string;
