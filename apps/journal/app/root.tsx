@@ -9,7 +9,7 @@ import { getSessionUser } from "~/lib/auth.server";
 import { LocaleProvider } from "~/components/LocaleContext";
 import { AlphaBanner } from "~/components/AlphaBanner";
 import { Footer } from "~/components/Footer";
-import { initSentryClient } from "~/lib/sentry.client";
+import { initSentryClient, stopSentryClient } from "~/lib/sentry.client";
 import stylesheet from "@trails-cool/ui/styles.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
@@ -123,6 +123,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
       Sentry.setUser({ id: user.id });
     } else {
       Sentry.setUser(null);
+      stopSentryClient();
     }
   }, [user]);
 

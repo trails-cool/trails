@@ -23,3 +23,16 @@ export function initSentryClient() {
     ...browserSentryConfig("journal client", import.meta.env),
   });
 }
+
+/**
+ * Tear down the Sentry client on logout. After this call, `Sentry.captureException`
+ * and other hub methods become no-ops until `initSentryClient` is called again.
+ *
+ * Fire-and-forget: the close flush happens async, but we don't want to block the
+ * logout UI on it.
+ */
+export function stopSentryClient() {
+  if (!initialized) return;
+  initialized = false;
+  void Sentry.close();
+}

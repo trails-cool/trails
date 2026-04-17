@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="mt-16 border-t border-gray-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-6 text-sm text-gray-500">
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <a href="/legal/imprint" className="hover:text-gray-700">
             {t("footer.imprint")}
           </a>
@@ -26,7 +26,7 @@ export function Footer() {
           <span className="ml-auto text-xs text-gray-400">
             {t("footer.alpha")}
           </span>
-        </nav>
+        </div>
       </div>
     </footer>
   );
