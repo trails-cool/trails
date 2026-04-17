@@ -1,0 +1,17 @@
+{
+  "name": "@trails-cool/sentry-config",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
+}
