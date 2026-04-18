@@ -2,6 +2,18 @@ import type { PoiCategory } from "@trails-cool/map-core";
 
 const OVERPASS_PROXY = "/api/overpass";
 
+// Snap bbox coordinates to this grid before building the query so that two
+// users looking at nearly-identical viewports produce byte-identical queries
+// and therefore share a server-side cache entry. Expansion is outward
+// (south/west floor, north/east ceil) so the user's viewport is always
+// covered. ~0.01° ≈ 1 km at mid-latitudes.
+const BBOX_GRID_STEP = 0.01;
+
+// Decimals used when formatting the quantized bbox into the query string.
+// 3 decimals → 0.001° precision (~111 m) which is well below BBOX_GRID_STEP,
+// so the string is a stable representation of the quantized cell.
+const BBOX_DECIMALS = 3;
+
 export interface Poi {
   id: number;
   lat: number;
@@ -19,10 +31,30 @@ export interface BBox {
 }
 
 /**
+ * Quantize a bbox to the grid defined by `BBOX_GRID_STEP`, expanding outward
+ * so the original bbox is fully contained. Returns a new BBox whose
+ * coordinates are cell-aligned.
+ */
+export function quantizeBbox(bbox: BBox, step: number = BBOX_GRID_STEP): BBox {
+  return {
+    south: Math.floor(bbox.south / step) * step,
+    west: Math.floor(bbox.west / step) * step,
+    north: Math.ceil(bbox.north / step) * step,
+    east: Math.ceil(bbox.east / step) * step,
+  };
+}
+
+/**
  * Build an Overpass QL query combining all enabled categories into a union.
+ * The bbox is quantized to a fixed grid and formatted with a fixed number of
+ * decimals so near-identical viewports produce a byte-identical query — which
+ * the `/api/overpass` server-side cache keys on.
  */
 export function buildQuery(bbox: BBox, categories: PoiCategory[]): string {
-  const bboxStr = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
+  const q = quantizeBbox(bbox);
+  const bboxStr = [q.south, q.west, q.north, q.east]
+    .map((n) => n.toFixed(BBOX_DECIMALS))
+    .join(",");
   const unions = categories.map((c) => c.query).join("");
   return `[out:json][timeout:10][maxsize:1048576][bbox:${bboxStr}];(${unions});out center qt 100;`;
 }
