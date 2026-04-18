@@ -1,9 +1,6 @@
 import type { PoiCategory } from "@trails-cool/map-core";
 
-const OVERPASS_ENDPOINTS = [
-  "https://overpass.private.coffee/api/interpreter",
-  "https://overpass-api.de/api/interpreter",
-];
+const OVERPASS_PROXY = "/api/overpass";
 
 export interface Poi {
   id: number;
@@ -97,6 +94,10 @@ export function deduplicateById(pois: Poi[]): Poi[] {
 
 /**
  * Query the Overpass API for POIs within a bounding box.
+ *
+ * All queries route through the Planner's own `/api/overpass` proxy, which
+ * adds a User-Agent identifying trails.cool, rate-limits per IP, and enforces
+ * same-origin. The client never talks to a public Overpass host directly.
  */
 export async function queryPois(
   bbox: BBox,
@@ -107,30 +108,7 @@ export async function queryPois(
 
   const query = buildQuery(bbox, categories);
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      return await fetchFromEndpoint(endpoint, query, categories, signal);
-    } catch (err) {
-      // If aborted, don't try fallback
-      if (signal?.aborted) throw err;
-      // If rate limited on all endpoints, throw
-      if (err instanceof OverpassRateLimitError && endpoint === OVERPASS_ENDPOINTS[OVERPASS_ENDPOINTS.length - 1]) throw err;
-      // Try next endpoint
-      if (endpoint !== OVERPASS_ENDPOINTS[OVERPASS_ENDPOINTS.length - 1]) continue;
-      throw err;
-    }
-  }
-
-  return [];
-}
-
-async function fetchFromEndpoint(
-  endpoint: string,
-  query: string,
-  categories: PoiCategory[],
-  signal?: AbortSignal,
-): Promise<Poi[]> {
-  const response = await fetch(endpoint, {
+  const response = await fetch(OVERPASS_PROXY, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `data=${encodeURIComponent(query)}`,

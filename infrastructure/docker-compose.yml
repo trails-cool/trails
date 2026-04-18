@@ -48,6 +48,7 @@ services:
     restart: unless-stopped
     environment:
       BROUTER_URL: http://brouter:17777
+      OVERPASS_URL: https://overpass.private.coffee/api/interpreter
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
       NODE_ENV: production
       PORT: 3001
