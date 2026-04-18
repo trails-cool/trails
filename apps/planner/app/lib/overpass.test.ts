@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildQuery, parseResponse, deduplicateById, type Poi } from "./overpass.ts";
+import { buildQuery, parseResponse, deduplicateById, quantizeBbox, type Poi } from "./overpass.ts";
 import { poiCategories } from "@trails-cool/map-core";
 
 describe("buildQuery", () => {
@@ -9,7 +9,7 @@ describe("buildQuery", () => {
     const query = buildQuery(bbox, categories);
 
     expect(query).toContain("[out:json]");
-    expect(query).toContain("[bbox:52.5,13.3,52.6,13.5]");
+    expect(query).toContain("[bbox:52.500,13.300,52.600,13.500]");
     expect(query).toContain('amenity"="drinking_water"');
     expect(query).toContain("out center qt 100");
   });
@@ -21,6 +21,45 @@ describe("buildQuery", () => {
 
     expect(query).toContain("drinking_water");
     expect(query).toContain("camp_site");
+  });
+
+  it("produces identical queries for near-identical viewports within one grid cell", () => {
+    const categories = poiCategories.filter((c) => c.id === "drinking_water");
+    const a = buildQuery(
+      { south: 52.5041, west: 13.3072, north: 52.5931, east: 13.4928 },
+      categories,
+    );
+    const b = buildQuery(
+      { south: 52.5039, west: 13.3078, north: 52.5925, east: 13.4921 },
+      categories,
+    );
+    expect(a).toBe(b);
+  });
+
+  it("expands the bbox outward so the original viewport is always covered", () => {
+    const categories = poiCategories.filter((c) => c.id === "drinking_water");
+    const query = buildQuery(
+      { south: 52.5041, west: 13.3072, north: 52.5931, east: 13.4928 },
+      categories,
+    );
+    expect(query).toContain("[bbox:52.500,13.300,52.600,13.500]");
+  });
+});
+
+describe("quantizeBbox", () => {
+  it("snaps south and west down, north and east up", () => {
+    const q = quantizeBbox({ south: 52.5041, west: 13.3072, north: 52.5931, east: 13.4928 }, 0.01);
+    expect(q.south).toBeCloseTo(52.5, 10);
+    expect(q.west).toBeCloseTo(13.3, 10);
+    expect(q.north).toBeCloseTo(52.6, 10);
+    expect(q.east).toBeCloseTo(13.5, 10);
+  });
+
+  it("is idempotent on already-aligned coordinates", () => {
+    const bbox = { south: 52.5, west: 13.3, north: 52.6, east: 13.5 };
+    const q = quantizeBbox(bbox, 0.01);
+    expect(q.south).toBeCloseTo(52.5, 10);
+    expect(q.north).toBeCloseTo(52.6, 10);
   });
 });
 
