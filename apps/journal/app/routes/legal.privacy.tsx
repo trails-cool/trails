@@ -13,16 +13,21 @@ export default function PrivacyPage() {
       <h1 className="text-3xl font-bold text-gray-900">
         Datenschutzerklärung / Privacy Policy
       </h1>
-      <p className="mt-2 text-sm text-gray-500">Last updated: 2026-04-18</p>
+      <p className="mt-2 text-sm text-gray-500">
+        Stand / Last updated: 2026-04-18. Die deutsche Fassung ist maßgeblich.
+        The German version is authoritative; English summaries follow each
+        section.
+      </p>
 
-      {/* GDPR formal sections */}
+      {/* ================================================================
+          1. Verantwortlicher / Data controller
+         ================================================================ */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-gray-900">
-          1. Verantwortliche Stelle / Data Controller
+          1. Verantwortlicher
         </h2>
-        <p className="mt-2 text-gray-600">
-          Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne
-          der DSGVO ist:
+        <p className="mt-2 text-gray-700">
+          Verantwortlich für die Datenverarbeitung im Sinne der DSGVO ist:
         </p>
         <address className="mt-2 not-italic text-gray-700">
           {operator.name}
@@ -38,69 +43,264 @@ export default function PrivacyPage() {
             {operator.email}
           </a>
         </address>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> Data controller under GDPR is the party named
+          above. Contact for any data-protection matter: {operator.email}.
+        </p>
       </section>
 
+      {/* ================================================================
+          2. Erhobene Daten & Zwecke / Data categories & purposes
+         ================================================================ */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-gray-900">
-          2. Rechtsgrundlagen / Legal Basis
+          2. Erhobene Daten und Zwecke
         </h2>
-        <p className="mt-2 text-gray-600">
-          Wir verarbeiten personenbezogene Daten auf Grundlage folgender
-          Rechtsgrundlagen:
+        <p className="mt-2 text-gray-700">
+          Wir verarbeiten nur die Daten, die für den Betrieb der jeweiligen
+          Funktion erforderlich sind. trails.cool besteht aus zwei Teilen:
+          dem <strong>Journal</strong> (trails.cool, mit Konto) und dem{" "}
+          <strong>Planner</strong> (planner.trails.cool, anonym).
         </p>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-2">
           <li>
-            <strong>Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO)</strong>:
-            Kontoverwaltung, Speicherung von Routen und Aktivitäten, Anmeldung
-            via Passkey / Magic Link.
+            <strong>Kontodaten (Journal):</strong> E-Mail-Adresse,
+            Benutzername, Anzeigename, Passkey-Public-Key. Zweck:
+            Kontoverwaltung und Anmeldung.
           </li>
           <li>
-            <strong>Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO)</strong>:
-            Fehlerüberwachung (Sentry) zur Sicherstellung der
-            Funktionsfähigkeit des Dienstes.
+            <strong>Nutzerinhalte (Journal):</strong> Routen (GPX-Daten,
+            Geometrie, Titel, Beschreibung) und Aktivitäten (Titel,
+            Beschreibung, Datum, Verknüpfung zu Routen). Zweck: Speicherung
+            und Anzeige innerhalb des Dienstes.
           </li>
           <li>
-            <strong>Einwilligung (Art. 6 Abs. 1 lit. a DSGVO)</strong>: Bei
-            ausdrücklicher Zustimmung zu den Nutzungsbedingungen während der
-            Registrierung.
+            <strong>Anmeldedaten (Journal):</strong> kurzlebige Magic-Link-Token
+            (zur E-Mail-basierten Anmeldung). Zweck: Authentifizierung.
+          </li>
+          <li>
+            <strong>Sitzungscookie (Journal):</strong> eine zufällige
+            Sitzungs-ID nach dem Einloggen. Zweck: Authentifizierung während
+            der Sitzung.
+          </li>
+          <li>
+            <strong>Planner-Sitzungsdaten:</strong> anonyme Sitzungs-ID,
+            kollaborativer Zustand (Wegpunkte, Notizen). Keine Zuordnung zu
+            einer Person. Zweck: gemeinsames Planen von Routen.
+          </li>
+          <li>
+            <strong>Server-Logfiles:</strong> IP-Adresse, Zeitstempel,
+            HTTP-Methode, Pfad, Statuscode, User-Agent. Zweck: Sicherheit,
+            Betrieb, Fehlersuche. Details siehe Abschnitt 4.
+          </li>
+          <li>
+            <strong>Fehlerdaten (Sentry):</strong> Stacktraces,
+            Fehlermeldungen, Browser-/OS-Information aus dem User-Agent,
+            Performance-Metriken. Bei eingeloggten Journal-Nutzer:innen
+            zusätzlich die Nutzer-ID (keine E-Mail, kein Benutzername).
+            Keine IP-Adressen, keine Cookies, keine Formulareingaben.
           </li>
         </ul>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> The Journal stores only what you provide (account
+          details and your own routes/activities) plus short-lived auth
+          artefacts. The Planner is anonymous and holds only ephemeral
+          session state. Server logs and Sentry error data are covered
+          separately below.
+        </p>
       </section>
 
+      {/* ================================================================
+          3. Rechtsgrundlagen / Legal bases
+         ================================================================ */}
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-gray-900">
-          3. Ihre Rechte / Your Rights
-        </h2>
-        <p className="mt-2 text-gray-600">
-          Als betroffene Person stehen Ihnen folgende Rechte nach DSGVO zu:
-        </p>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
-          <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
-          <li>Recht auf Berichtigung (Art. 16 DSGVO)</li>
-          <li>Recht auf Löschung (Art. 17 DSGVO)</li>
-          <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
-          <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
-          <li>Widerspruchsrecht (Art. 21 DSGVO)</li>
-          <li>Recht auf Widerruf einer Einwilligung (Art. 7 Abs. 3 DSGVO)</li>
+        <h2 className="text-xl font-semibold text-gray-900">3. Rechtsgrundlagen</h2>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-2">
+          <li>
+            <strong>Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung):</strong>{" "}
+            Kontoführung, Anmeldung per Passkey oder Magic Link, Speicherung
+            und Anzeige der von Ihnen erstellten Routen und Aktivitäten,
+            Versand notwendiger Transaktions-E-Mails, Bereitstellung anonymer
+            Planner-Sitzungen. Ein Konto sowie die Bestätigung der
+            Nutzungsbedingungen sind Bestandteil dieses Nutzungsvertrags –
+            sie sind <em>keine</em> Einwilligung im Sinne von Art. 6 Abs. 1
+            lit. a DSGVO.
+          </li>
+          <li>
+            <strong>Art. 6 Abs. 1 lit. f DSGVO (berechtigte Interessen):</strong>{" "}
+            kurzzeitige Server-Logfiles zur Sicherung des Betriebs und zur
+            Missbrauchsabwehr, Rate-Limiting, Fehlermonitoring über Sentry
+            zur Sicherstellung der Funktionsfähigkeit des Dienstes.
+          </li>
         </ul>
-        <p className="mt-3 text-gray-600">
-          Zur Ausübung dieser Rechte wenden Sie sich bitte an{" "}
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> Contract (Art. 6(1)(b)) covers everything
+          account- and content-related; legitimate interests (Art. 6(1)(f))
+          cover short-lived server logs, rate-limiting, and error monitoring.
+          We do <strong>not</strong> rely on consent for any of this.
+        </p>
+      </section>
+
+      {/* ================================================================
+          4. Server-Logfiles / Server logs
+         ================================================================ */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">4. Server-Logfiles</h2>
+        <p className="mt-2 text-gray-700">
+          Beim Aufruf der Dienste werden automatisch technische Informationen
+          protokolliert:
+        </p>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>IP-Adresse</li>
+          <li>Zeitstempel</li>
+          <li>HTTP-Methode, Pfad, Statuscode</li>
+          <li>User-Agent (Browser, Betriebssystem)</li>
+        </ul>
+        <p className="mt-3 text-gray-700">
+          <strong>Zweck:</strong> Sicherheit, Betrieb und Fehlersuche.{" "}
+          <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO.{" "}
+          <strong>Speicherdauer:</strong> maximal 14 Tage, danach automatische
+          Löschung. Eine Zusammenführung dieser Daten mit anderen Datenquellen
+          findet nicht statt.
+        </p>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> HTTP requests to our servers are logged (IP,
+          timestamp, method, path, status, user-agent) for up to 14 days for
+          operational and security purposes under Art. 6(1)(f), then deleted.
+        </p>
+      </section>
+
+      {/* ================================================================
+          5. Speicherdauer / Storage durations
+         ================================================================ */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">5. Speicherdauer</h2>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>Konto und zugehörige Inhalte: bis zur Löschung durch Sie</li>
+          <li>Planner-Sitzungen: automatische Löschung nach 7 Tagen Inaktivität</li>
+          <li>Magic-Link-Token: 15 Minuten</li>
+          <li>Server-Logfiles: maximal 14 Tage</li>
+          <li>Fehlerdaten (Sentry): 90 Tage</li>
+        </ul>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> Account and content kept until you delete them.
+          Ephemeral data (sessions, magic-link tokens, logs, Sentry events)
+          deleted automatically on the schedules above.
+        </p>
+      </section>
+
+      {/* ================================================================
+          6. Empfänger / Third parties
+         ================================================================ */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">6. Empfänger und Drittanbieter</h2>
+        <p className="mt-2 text-gray-700">
+          Wir geben personenbezogene Daten nur an die unten genannten
+          Auftragsverarbeiter und Dritten weiter, und auch dort nur im
+          jeweils notwendigen Umfang.
+        </p>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-3">
+          <li>
+            <strong>Sentry</strong> (Functional Software Inc.) – Fehler- und
+            Performance-Monitoring. Was übermittelt wird: Stacktraces,
+            Fehlertext, Browser-/OS-Informationen aus dem User-Agent,
+            Performance-Daten; bei eingeloggten Journal-Nutzer:innen
+            zusätzlich die Nutzer-ID. <strong>Nicht</strong> übermittelt:
+            IP-Adresse, Cookies, vollständige HTTP-Header
+            (<code>sendDefaultPii</code> ist deaktiviert). Keine
+            Session-Replays. Hosting innerhalb der EU (Frankfurt).
+          </li>
+          <li>
+            <strong>OpenStreetMap</strong> – Kartenkacheln werden beim Anzeigen
+            der Karten direkt vom Browser von OSM-Tile-Servern geladen. Dabei
+            werden <strong>IP-Adresse und User-Agent</strong> an OSM übertragen.
+            Dies ist notwendig, um überhaupt eine Karte darzustellen; es gilt
+            die{" "}
+            <a
+              className="text-blue-600 hover:underline"
+              href="https://wiki.osmfoundation.org/wiki/Privacy_Policy"
+            >
+              OSM Foundation Privacy Policy
+            </a>
+            .
+          </li>
+          <li>
+            <strong>Overpass API</strong> (POI-Daten) – POI-Abfragen laufen
+            serverseitig über unsere eigene Route <code>/api/overpass</code>.
+            Der Upstream-Dienst sieht nur unsere Server-IP, nicht die Ihrer
+            Nutzer:innen. Aktueller Upstream: <code>overpass.private.coffee</code>
+            , der ohne Query-Logs arbeitet. Eine selbst gehostete Instanz ist
+            geplant.
+          </li>
+          <li>
+            <strong>BRouter</strong> – Routenberechnung läuft auf einer von uns
+            selbst gehosteten Instanz. Keine Weitergabe an Dritte.
+          </li>
+          <li>
+            <strong>SMTP-Versand</strong> – Transaktions-E-Mails (Magic Link,
+            Willkommensnachricht) werden über einen SMTP-Dienst versendet.
+            Dabei wird die E-Mail-Adresse der Empfänger:in an den SMTP-Dienst
+            übergeben.
+          </li>
+          <li>
+            <strong>Hosting</strong> – Die Dienste werden in Rechenzentren
+            innerhalb der EU betrieben. Ein Auftragsverarbeitungsvertrag mit
+            dem Hoster besteht.
+          </li>
+        </ul>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> Third parties and what they receive: Sentry (error
+          details, no IPs/cookies, EU-hosted); OpenStreetMap tile servers
+          (your IP and user-agent, directly from your browser, to load map
+          tiles); Overpass (via our server-side proxy, so upstream only sees
+          our server); BRouter (self-hosted, no third party involved); SMTP
+          provider (your email address for magic link / welcome mail);
+          hosting provider in the EU under a DPA.
+        </p>
+      </section>
+
+      {/* ================================================================
+          7. Ihre Rechte / Rights
+         ================================================================ */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-gray-900">7. Ihre Rechte</h2>
+        <p className="mt-2 text-gray-700">
+          Als betroffene Person stehen Ihnen die folgenden Rechte zu:
+        </p>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>Auskunft (Art. 15 DSGVO)</li>
+          <li>Berichtigung (Art. 16 DSGVO)</li>
+          <li>Löschung (Art. 17 DSGVO)</li>
+          <li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+          <li>Datenübertragbarkeit (Art. 20 DSGVO)</li>
+          <li>Widerspruch gegen Verarbeitung auf Basis berechtigter Interessen (Art. 21 DSGVO)</li>
+        </ul>
+        <p className="mt-3 text-gray-700">
+          Zur Ausübung dieser Rechte genügt eine formlose E-Mail an{" "}
           <a className="text-blue-600 hover:underline" href={`mailto:${operator.email}`}>
             {operator.email}
           </a>
-          . Ein vollständiger Export Ihrer Daten ist jederzeit direkt über die
-          Einstellungen Ihres Kontos möglich (Routen als GPX, Aktivitäten als
-          GPX/JSON). Sie können Ihr Konto jederzeit selbst löschen.
+          . Einen vollständigen Export Ihrer Routen und Aktivitäten können Sie
+          jederzeit direkt in den Kontoeinstellungen herunterladen (GPX bzw.
+          JSON). Ihr Konto samt Inhalten können Sie dort ebenfalls selbst
+          löschen.
+        </p>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> You have the standard GDPR rights (access,
+          rectification, erasure, restriction, portability, objection). Email
+          us to exercise them. Data exports and account deletion are also
+          available directly in your account settings.
         </p>
       </section>
 
+      {/* ================================================================
+          8. Beschwerderecht / Complaint authority
+         ================================================================ */}
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-gray-900">
-          4. Beschwerderecht / Right to Complain
-        </h2>
-        <p className="mt-2 text-gray-600">
+        <h2 className="text-xl font-semibold text-gray-900">8. Beschwerderecht</h2>
+        <p className="mt-2 text-gray-700">
           Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehörde zu
-          beschweren. Zuständig für uns ist:
+          beschweren. Für uns zuständig ist:
         </p>
         <address className="mt-2 not-italic text-gray-700">
           Berliner Beauftragte für Datenschutz und Informationsfreiheit
@@ -116,135 +316,89 @@ export default function PrivacyPage() {
             www.datenschutz-berlin.de
           </a>
         </address>
+        <p className="mt-3 text-sm text-gray-600">
+          <em>English.</em> You have the right to lodge a complaint with a
+          supervisory authority; ours is the Berlin data-protection
+          commissioner (address above).
+        </p>
       </section>
 
-      <hr className="my-10 border-gray-200" />
+      <hr className="my-12 border-gray-200" />
 
-      {/* Existing privacy manifest (plain-language) */}
+      {/* ================================================================
+          Privacy Manifest (developer-friendly, plain language)
+         ================================================================ */}
       <h2 className="text-2xl font-bold text-gray-900">Privacy Manifest</h2>
-      <p className="mt-4 text-gray-600">
-        trails.cool is committed to privacy by design. This manifest documents
-        everything we collect, why, and how you can control it.
+      <p className="mt-4 text-gray-700">
+        A plain-language summary of what we do, for readers who prefer
+        behaviour over paragraphs. Binding text is above.
       </p>
 
-      <section className="mt-10">
+      <section className="mt-8">
         <h3 className="text-xl font-semibold text-gray-900">Planner (planner.trails.cool)</h3>
-        <p className="mt-2 text-gray-600">
-          The Planner collects <strong>no personal data</strong>. Sessions are anonymous —
-          there are no user accounts, no tracking, and no analytics on your routes.
+        <p className="mt-2 text-gray-700">
+          Anonymous by design. No account, no identifier, nothing persisted
+          past the session.
         </p>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
           <li>No cookies, no localStorage, no sessionStorage</li>
-          <li>No user accounts or login</li>
-          <li>No browser-side error tracking (Sentry is not loaded in the Planner)</li>
-          <li>No route data is stored permanently without your action</li>
-          <li>Session data is automatically deleted after 7 days of inactivity</li>
+          <li>No browser-side error tracking (Sentry is not loaded)</li>
+          <li>Session data is deleted automatically after 7 days of inactivity</li>
         </ul>
       </section>
 
-      <section className="mt-10">
+      <section className="mt-8">
         <h3 className="text-xl font-semibold text-gray-900">Journal (trails.cool)</h3>
-        <p className="mt-2 text-gray-600">
-          The Journal stores the data you explicitly provide:
+        <p className="mt-2 text-gray-700">
+          Holds only what you put in. Exportable any time, deletable any time.
         </p>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Account data</strong>: email, username, display name, passkey credentials</li>
-          <li><strong>Routes</strong>: name, description, GPX data, geometry</li>
-          <li><strong>Activities</strong>: title, description, date, linked routes</li>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>Account: email, username, display name, passkey public key</li>
+          <li>Routes: GPX, geometry, title, description</li>
+          <li>Activities: title, description, date, linked route</li>
+          <li>GPX / JSON export available per object and overall</li>
         </ul>
-        <p className="mt-3 text-gray-600">
-          All your data is exportable at any time in open formats (GPX, JSON).
-          You can self-host your own instance and migrate your data completely.
-        </p>
       </section>
 
-      <section className="mt-10">
-        <h3 className="text-xl font-semibold text-gray-900">Error Tracking (Sentry)</h3>
-        <p className="mt-2 text-gray-600">
-          We use <a href="https://sentry.io" className="text-blue-600 hover:underline">Sentry</a> for
-          error monitoring, scoped narrowly by design.
-        </p>
-        <h4 className="mt-4 font-medium text-gray-800">Where Sentry runs:</h4>
-        <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Journal, logged-out</strong>: server-side only. The browser-side Sentry SDK is not loaded until you log in.</li>
-          <li><strong>Journal, logged-in</strong>: Sentry initialises in the browser after login and is torn down on logout.</li>
-          <li><strong>Planner</strong>: server-side only. The browser-side Planner does not load Sentry at all.</li>
+      <section className="mt-8">
+        <h3 className="text-xl font-semibold text-gray-900">Sentry</h3>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>Journal server: always on</li>
+          <li>Journal browser: only after login, torn down on logout</li>
+          <li>Planner: server only; the browser never loads Sentry</li>
+          <li>No IPs, no cookies, no headers (<code>sendDefaultPii: false</code>)</li>
+          <li>No replays (replay integration not installed, sample rates 0)</li>
+          <li>User ID only (no email/username) on Journal-logged-in events</li>
         </ul>
-        <h4 className="mt-4 font-medium text-gray-800">What Sentry collects:</h4>
-        <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Error details</strong>: stack traces, error messages, browser/OS info derived from the User-Agent</li>
-          <li><strong>Performance traces</strong>: page load times, route navigation timing</li>
-          <li><strong>User ID</strong> (Journal, logged-in only): just the user ID — not username, email, or IP</li>
-        </ul>
-        <h4 className="mt-4 font-medium text-gray-800">What Sentry does NOT collect:</h4>
-        <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
-          <li>Session replays or DOM recordings — replay integration is not installed and sample rates are 0</li>
-          <li>IP addresses, cookies, or full HTTP headers — <code>sendDefaultPii</code> is set to <code>false</code> everywhere</li>
-          <li>Route or GPX data</li>
-          <li>Passwords or passkey credentials</li>
-          <li>Form input contents</li>
-        </ul>
-        <h4 className="mt-4 font-medium text-gray-800">Data retention:</h4>
-        <p className="mt-2 text-gray-600">
-          Sentry data is retained for 90 days and then automatically deleted.
-          Sentry&apos;s servers are hosted in the EU (Frankfurt).
-        </p>
       </section>
 
-      <section className="mt-10">
-        <h3 className="text-xl font-semibold text-gray-900">Email</h3>
-        <p className="mt-2 text-gray-600">
-          The Journal sends transactional emails for magic link login and welcome messages
-          via SMTP. On the official instance, emails are sent through our own mail server.
-        </p>
-        <h4 className="mt-4 font-medium text-gray-800">What is sent via email:</h4>
-        <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Magic link</strong>: a one-time login link sent to your email address</li>
-          <li><strong>Welcome email</strong>: a greeting after registration</li>
+      <section className="mt-8">
+        <h3 className="text-xl font-semibold text-gray-900">What we don&apos;t do</h3>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>Sell data</li>
+          <li>Show ads</li>
+          <li>Build user profiles</li>
+          <li>Run tracking pixels, analytics, or A/B tests</li>
         </ul>
-        <p className="mt-3 text-gray-600">
-          Self-hosted instances can configure their own SMTP server. No email content
-          is stored beyond what your mail server retains.
-        </p>
       </section>
 
-      <section className="mt-10">
-        <h3 className="text-xl font-semibold text-gray-900">Third Parties</h3>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Sentry</strong> (Functional Software Inc.) — error tracking, as described above</li>
-          <li><strong>OpenStreetMap</strong> — map tiles are loaded from OSM tile servers. OSM&apos;s <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" className="text-blue-600 hover:underline">privacy policy</a> applies to tile requests.</li>
-          <li><strong>BRouter</strong> — routing requests are processed by our self-hosted BRouter instance. No data is sent to third parties for routing.</li>
+      <section className="mt-8">
+        <h3 className="text-xl font-semibold text-gray-900">Security</h3>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>Auth via passkey (WebAuthn) or magic link — no passwords stored</li>
+          <li>HTTPS + HSTS preload on all origins; session cookies httpOnly + Secure</li>
+          <li>CSP, X-Frame-Options, X-Content-Type-Options on every response</li>
+          <li>Containers run non-root; host firewall restricts to HTTP/HTTPS/SSH</li>
+          <li>Gitleaks + dependency audit on every PR</li>
           <li>
-            <strong>Overpass API</strong> — POI overlay data is fetched via the Overpass API. Requests are proxied
-            through our own server (<code>/api/overpass</code>), so the upstream Overpass host sees our server rather
-            than end users&apos; IP addresses or browsers. The current upstream is{" "}
-            <a href="https://private.coffee" className="text-blue-600 hover:underline">overpass.private.coffee</a>,
-            which operates without query logging. A self-hosted Overpass instance is planned.
+            Vulnerability reports:{" "}
+            <a
+              className="text-blue-600 hover:underline"
+              href="https://github.com/trails-cool/trails/blob/main/SECURITY.md"
+            >
+              SECURITY.md
+            </a>
           </li>
-          <li><strong>SMTP provider</strong> — transactional emails (magic link, welcome) are delivered via SMTP. Self-hosters configure their own provider.</li>
-        </ul>
-      </section>
-
-      <section className="mt-10">
-        <h3 className="text-xl font-semibold text-gray-900">What We Don&apos;t Do</h3>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
-          <li>We don&apos;t sell data</li>
-          <li>We don&apos;t show ads</li>
-          <li>We don&apos;t build user profiles</li>
-          <li>We don&apos;t use tracking pixels or analytics</li>
-          <li>We don&apos;t share data with anyone except as listed above</li>
-        </ul>
-      </section>
-
-      <section className="mt-10">
-        <h3 className="text-xl font-semibold text-gray-900">Security Practices</h3>
-        <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Authentication</strong>: Passkey (WebAuthn) and magic link login. No passwords stored.</li>
-          <li><strong>Encryption</strong>: All traffic over HTTPS with HSTS preload. Cookies are httpOnly and secure.</li>
-          <li><strong>Headers</strong>: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options on all responses.</li>
-          <li><strong>Infrastructure</strong>: Docker containers run as non-root. Firewall restricts to HTTP/HTTPS/SSH only.</li>
-          <li><strong>CI/CD</strong>: Gitleaks secret scanning and dependency auditing on every pull request.</li>
-          <li><strong>Vulnerability reporting</strong>: See our <a href="https://github.com/trails-cool/trails/blob/main/SECURITY.md" className="text-blue-600 hover:underline">SECURITY.md</a> for responsible disclosure.</li>
         </ul>
       </section>
     </div>

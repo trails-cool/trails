@@ -10,84 +10,141 @@ export function meta() {
 export default function ImprintPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-3xl font-bold text-gray-900">Impressum</h1>
+      <h1 className="text-3xl font-bold text-gray-900">Impressum / Legal Notice</h1>
+      <p className="mt-2 text-xs text-gray-500">
+        Die deutsche Fassung ist maßgeblich. / The German version is authoritative.
+      </p>
 
-      <section className="mt-8 space-y-4 text-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Angaben gemäß § 5 TMG
-        </h2>
-        <address className="not-italic">
-          {operator.name}
-          <br />
-          {operator.address.street}
-          <br />
-          {operator.address.postalCode} {operator.address.city}
-          <br />
-          {operator.address.country}
-        </address>
+      {/* ------------------------------------------------------------------
+          Deutsche Fassung
+         ------------------------------------------------------------------ */}
 
-        <h2 className="text-lg font-semibold text-gray-900">Kontakt</h2>
-        <p>
-          E-Mail:{" "}
-          <a
-            className="text-blue-600 hover:underline"
-            href={`mailto:${operator.email}`}
-          >
-            {operator.email}
-          </a>
-        </p>
+      <section className="mt-10 space-y-6 text-gray-700">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Anbieter nach § 5 TMG
+          </h2>
+          <address className="mt-2 not-italic">
+            {operator.name}
+            <br />
+            {operator.address.street}
+            <br />
+            {operator.address.postalCode} {operator.address.city}
+            <br />
+            {operator.address.country}
+          </address>
+        </div>
 
-        <h2 className="text-lg font-semibold text-gray-900">
-          Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
-        </h2>
-        <address className="not-italic">
-          {operator.responsiblePerson}
-          <br />
-          {operator.address.street}
-          <br />
-          {operator.address.postalCode} {operator.address.city}
-        </address>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Kontakt</h2>
+          <p className="mt-2">
+            E-Mail:{" "}
+            <a className="text-blue-600 hover:underline" href={`mailto:${operator.email}`}>
+              {operator.email}
+            </a>
+          </p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-gray-900">Haftungsausschluss</h2>
-        <p className="text-sm">
-          Die Inhalte dieser Seiten wurden mit größtmöglicher Sorgfalt erstellt.
-          Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte
-          können wir jedoch keine Gewähr übernehmen. trails.cool befindet sich
-          in aktiver Entwicklung (Alpha) — Inhalte, Funktionen und Daten können
-          sich jederzeit ändern oder entfallen.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Inhaltlich verantwortlich nach § 18 Abs. 2 MStV
+          </h2>
+          <address className="mt-2 not-italic">
+            {operator.responsiblePerson}
+            <br />
+            {operator.address.street}, {operator.address.postalCode}{" "}
+            {operator.address.city}
+          </address>
+        </div>
 
-        <p className="text-sm">
-          Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte
-          auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach
-          §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht
-          verpflichtet, übermittelte oder gespeicherte fremde Informationen zu
-          überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige
-          Tätigkeit hinweisen.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Streitbeilegung</h2>
+          <p className="mt-2 text-sm">
+            Die Europäische Kommission stellt eine Plattform zur
+            Online-Streitbeilegung (OS) bereit:{" "}
+            <a
+              className="text-blue-600 hover:underline"
+              href="https://ec.europa.eu/consumers/odr"
+            >
+              https://ec.europa.eu/consumers/odr
+            </a>
+            .
+          </p>
+          <p className="mt-2 text-sm">
+            Wir sind nicht bereit oder verpflichtet, an
+            Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle
+            teilzunehmen.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Alpha-Status</h2>
+          <p className="mt-2 text-sm">
+            trails.cool befindet sich in aktiver Entwicklung (Alpha). Inhalte,
+            Funktionen und Daten können sich jederzeit ändern oder entfallen.
+          </p>
+        </div>
       </section>
 
       <hr className="my-12 border-gray-200" />
 
-      <section className="space-y-4 text-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Legal notice (English summary)
-        </h2>
-        <p className="text-sm">
-          trails.cool is operated from Germany by {operator.name}, reachable at
-          the address above and at{" "}
-          <a
-            className="text-blue-600 hover:underline"
-            href={`mailto:${operator.email}`}
-          >
-            {operator.email}
-          </a>
-          . The service is currently in alpha — see the{" "}
-          <a className="text-blue-600 hover:underline" href="/legal/terms">
-            Terms of Service
-          </a>{" "}
-          for details.
-        </p>
+      {/* ------------------------------------------------------------------
+          English version
+         ------------------------------------------------------------------ */}
+
+      <section className="space-y-6 text-gray-700">
+        <h2 className="text-xl font-semibold text-gray-900">English version</h2>
+
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">
+            Service provider (§ 5 TMG)
+          </h3>
+          <address className="mt-2 not-italic text-sm">
+            {operator.name}, {operator.address.street},{" "}
+            {operator.address.postalCode} {operator.address.city},{" "}
+            {operator.address.country}
+          </address>
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">Contact</h3>
+          <p className="mt-2 text-sm">
+            Email:{" "}
+            <a className="text-blue-600 hover:underline" href={`mailto:${operator.email}`}>
+              {operator.email}
+            </a>
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">
+            Content responsibility (§ 18 (2) MStV)
+          </h3>
+          <p className="mt-2 text-sm">{operator.responsiblePerson}, address as above.</p>
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">Dispute resolution</h3>
+          <p className="mt-2 text-sm">
+            The European Commission provides an online dispute resolution platform at{" "}
+            <a
+              className="text-blue-600 hover:underline"
+              href="https://ec.europa.eu/consumers/odr"
+            >
+              https://ec.europa.eu/consumers/odr
+            </a>
+            . We are not willing or obliged to participate in dispute resolution
+            proceedings before a consumer arbitration board.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">Alpha status</h3>
+          <p className="mt-2 text-sm">
+            trails.cool is under active development (alpha). Features and data
+            may change or be removed at any time.
+          </p>
+        </div>
       </section>
     </div>
   );
