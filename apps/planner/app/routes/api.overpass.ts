@@ -50,9 +50,16 @@ export async function action({ request }: Route.ActionArgs) {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  // Same-origin check. Trust Caddy's X-Forwarded-* headers when present so
+  // the check works behind the reverse proxy (request.url inside the container
+  // is http://planner:3001/..., but the browser Origin is https://planner.trails.cool).
   const origin = request.headers.get("origin");
   const requestUrl = new URL(request.url);
-  const expectedOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const host = forwardedHost ?? requestUrl.host;
+  const proto = forwardedProto ?? requestUrl.protocol.replace(":", "");
+  const expectedOrigin = `${proto}://${host}`;
   if (!origin || origin !== expectedOrigin) {
     return new Response("Forbidden", { status: 403 });
   }
