@@ -1,5 +1,11 @@
 import type { Route } from "./+types/api.overpass";
 import { checkRateLimit } from "~/lib/rate-limit";
+import {
+  overpassCacheEvents,
+  overpassCacheSize,
+  overpassUpstreamDuration,
+  overpassUpstreamRequests,
+} from "~/lib/metrics.server";
 
 const UPSTREAM_URL = process.env.OVERPASS_URL ?? "https://overpass.private.coffee/api/interpreter";
 const USER_AGENT = "trails.cool Planner (https://trails.cool; legal@trails.cool)";
@@ -36,6 +42,7 @@ function putInCache(key: string, body: string, contentType: string) {
     cache.delete(oldest);
   }
   cache.set(key, { body, contentType, expiresAt: Date.now() + CACHE_TTL_MS });
+  overpassCacheSize.set(cache.size);
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -56,6 +63,7 @@ export async function action({ request }: Route.ActionArgs) {
   // Cache hit: skip rate limit and upstream entirely
   const cached = getFromCache(cacheKey);
   if (cached) {
+    overpassCacheEvents.inc({ result: "hit" });
     return new Response(cached.body, {
       status: 200,
       headers: { "Content-Type": cached.contentType, "X-Cache": "hit" },
@@ -75,7 +83,9 @@ export async function action({ request }: Route.ActionArgs) {
   // same session don't each hit upstream for the identical bbox.
   let pending = inFlight.get(cacheKey);
   if (!pending) {
+    overpassCacheEvents.inc({ result: "miss" });
     pending = (async () => {
+      const start = Date.now();
       try {
         const upstream = await fetch(UPSTREAM_URL, {
           method: "POST",
@@ -85,6 +95,8 @@ export async function action({ request }: Route.ActionArgs) {
           },
           body,
         });
+        overpassUpstreamDuration.observe((Date.now() - start) / 1000);
+        overpassUpstreamRequests.inc({ status: String(upstream.status) });
         const responseBody = await upstream.text();
         const contentType = upstream.headers.get("content-type") ?? "application/json";
         const cacheable = upstream.status === 200 && !responseBody.includes("rate_limited");
@@ -94,12 +106,15 @@ export async function action({ request }: Route.ActionArgs) {
       }
     })();
     inFlight.set(cacheKey, pending);
+  } else {
+    overpassCacheEvents.inc({ result: "coalesced" });
   }
 
   let result;
   try {
     result = await pending;
   } catch {
+    overpassUpstreamRequests.inc({ status: "error" });
     return new Response("Upstream Overpass unavailable", { status: 502 });
   }
 
