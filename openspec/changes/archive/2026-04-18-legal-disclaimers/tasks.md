@@ -40,7 +40,7 @@
 
 ## 7. Review & Publish
 
-- [ ] 7.1 Get the drafted German and English legal text reviewed by a German IT lawyer before treating as final
-- [ ] 7.2 Deploy and verify all three legal pages render correctly at their URLs
-- [ ] 7.3 Verify registration blocks without acknowledgement and records the timestamp on success
-- [ ] 7.4 Verify the alpha banner appears and dismisses correctly
+- [x] 7.1 Get the drafted German and English legal text reviewed by a German IT lawyer before treating as final
+- [x] 7.2 Deploy and verify all three legal pages render correctly at their URLs
+- [x] 7.3 Verify registration blocks without acknowledgement and records the timestamp on success
+- [x] 7.4 Verify the alpha banner appears and dismisses correctly
