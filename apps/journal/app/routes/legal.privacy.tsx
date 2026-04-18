@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       <h1 className="text-3xl font-bold text-gray-900">
         Datenschutzerklärung / Privacy Policy
       </h1>
-      <p className="mt-2 text-sm text-gray-500">Last updated: 2026-04-17</p>
+      <p className="mt-2 text-sm text-gray-500">Last updated: 2026-04-18</p>
 
       {/* GDPR formal sections */}
       <section className="mt-10">
@@ -134,8 +134,9 @@ export default function PrivacyPage() {
           there are no user accounts, no tracking, and no analytics on your routes.
         </p>
         <ul className="mt-3 list-disc pl-6 text-gray-600 space-y-1">
-          <li>No cookies (except ephemeral session state)</li>
+          <li>No cookies, no localStorage, no sessionStorage</li>
           <li>No user accounts or login</li>
+          <li>No browser-side error tracking (Sentry is not loaded in the Planner)</li>
           <li>No route data is stored permanently without your action</li>
           <li>Session data is automatically deleted after 7 days of inactivity</li>
         </ul>
@@ -160,22 +161,28 @@ export default function PrivacyPage() {
       <section className="mt-10">
         <h3 className="text-xl font-semibold text-gray-900">Error Tracking (Sentry)</h3>
         <p className="mt-2 text-gray-600">
-          Both apps use <a href="https://sentry.io" className="text-blue-600 hover:underline">Sentry</a> for
-          error monitoring. This helps us find and fix bugs quickly.
+          We use <a href="https://sentry.io" className="text-blue-600 hover:underline">Sentry</a> for
+          error monitoring, scoped narrowly by design.
         </p>
+        <h4 className="mt-4 font-medium text-gray-800">Where Sentry runs:</h4>
+        <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
+          <li><strong>Journal, logged-out</strong>: server-side only. The browser-side Sentry SDK is not loaded until you log in.</li>
+          <li><strong>Journal, logged-in</strong>: Sentry initialises in the browser after login and is torn down on logout.</li>
+          <li><strong>Planner</strong>: server-side only. The browser-side Planner does not load Sentry at all.</li>
+        </ul>
         <h4 className="mt-4 font-medium text-gray-800">What Sentry collects:</h4>
         <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
-          <li><strong>Error details</strong>: stack traces, error messages, browser/OS info</li>
+          <li><strong>Error details</strong>: stack traces, error messages, browser/OS info derived from the User-Agent</li>
           <li><strong>Performance traces</strong>: page load times, route navigation timing</li>
-          <li><strong>Session replays on error</strong>: a recording of the session leading up to an error (DOM snapshots, not video)</li>
-          <li><strong>User context</strong> (Journal only): only the user ID (not username or email) is attached to errors for debugging</li>
-          <li><strong>Session ID</strong> (Planner only): the anonymous session ID is attached to errors</li>
+          <li><strong>User ID</strong> (Journal, logged-in only): just the user ID — not username, email, or IP</li>
         </ul>
         <h4 className="mt-4 font-medium text-gray-800">What Sentry does NOT collect:</h4>
         <ul className="mt-2 list-disc pl-6 text-gray-600 space-y-1">
+          <li>Session replays or DOM recordings — replay integration is not installed and sample rates are 0</li>
+          <li>IP addresses, cookies, or full HTTP headers — <code>sendDefaultPii</code> is set to <code>false</code> everywhere</li>
           <li>Route or GPX data</li>
           <li>Passwords or passkey credentials</li>
-          <li>Form input contents (masked in replays)</li>
+          <li>Form input contents</li>
         </ul>
         <h4 className="mt-4 font-medium text-gray-800">Data retention:</h4>
         <p className="mt-2 text-gray-600">
@@ -207,6 +214,13 @@ export default function PrivacyPage() {
           <li><strong>Sentry</strong> (Functional Software Inc.) — error tracking, as described above</li>
           <li><strong>OpenStreetMap</strong> — map tiles are loaded from OSM tile servers. OSM&apos;s <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" className="text-blue-600 hover:underline">privacy policy</a> applies to tile requests.</li>
           <li><strong>BRouter</strong> — routing requests are processed by our self-hosted BRouter instance. No data is sent to third parties for routing.</li>
+          <li>
+            <strong>Overpass API</strong> — POI overlay data is fetched via the Overpass API. Requests are proxied
+            through our own server (<code>/api/overpass</code>), so the upstream Overpass host sees our server rather
+            than end users&apos; IP addresses or browsers. The current upstream is{" "}
+            <a href="https://private.coffee" className="text-blue-600 hover:underline">overpass.private.coffee</a>,
+            which operates without query logging. A self-hosted Overpass instance is planned.
+          </li>
           <li><strong>SMTP provider</strong> — transactional emails (magic link, welcome) are delivered via SMTP. Self-hosters configure their own provider.</li>
         </ul>
       </section>
