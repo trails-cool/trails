@@ -1,6 +1,6 @@
 export function meta() {
   return [
-    { title: "Terms of Service — trails.cool" },
+    { title: "Nutzungsbedingungen — trails.cool" },
     { name: "robots", content: "noindex" },
   ];
 }
@@ -12,175 +12,217 @@ export default function TermsPage() {
         Nutzungsbedingungen / Terms of Service
       </h1>
       <p className="mt-2 text-sm text-gray-500">
-        Last updated: 2026-04-17 • Alpha version — subject to change
+        Stand / Last updated: 2026-04-18 • Alpha — subject to change. Die
+        deutsche Fassung ist maßgeblich. The German version is authoritative;
+        English summaries follow each section.
       </p>
 
-      {/* Deutsche Fassung (maßgebend) */}
-      <section className="mt-10 space-y-4 text-gray-700">
-        <h2 className="text-xl font-semibold text-gray-900">Deutsche Fassung</h2>
+      <section className="mt-10 space-y-6 text-gray-700">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            1. Gegenstand und Alpha-Status
+          </h2>
+          <p className="mt-2 text-sm">
+            trails.cool ist ein experimenteller, kostenloser Dienst zur Planung
+            und Dokumentation von Outdoor-Aktivitäten. Der Dienst befindet sich
+            in aktiver Entwicklung (Alpha). Funktionen, Schnittstellen und
+            gespeicherte Daten können jederzeit ohne Vorankündigung geändert,
+            unterbrochen, gelöscht oder eingestellt werden. Eine
+            Verfügbarkeitsgarantie besteht nicht.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> trails.cool is an experimental, free service in
+            active alpha development. Features, data, and availability can
+            change at any time without notice. No availability is guaranteed.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          1. Gegenstand und Alpha-Status
-        </h3>
-        <p className="text-sm">
-          trails.cool ist ein experimenteller Dienst zur Planung und Dokumentation
-          von Outdoor-Aktivitäten. Der Dienst befindet sich in aktiver Entwicklung
-          (Alpha). Funktionen, Schnittstellen und gespeicherte Daten können
-          jederzeit ohne Vorankündigung geändert, gelöscht oder eingestellt
-          werden. Eine Verfügbarkeitsgarantie besteht nicht.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            2. Mindestalter
+          </h2>
+          <p className="mt-2 text-sm">
+            Die Nutzung eines Journal-Kontos ist erst ab einem Alter von 16
+            Jahren zulässig. Anonyme Nutzung des Planners unterliegt keiner
+            Altersbeschränkung.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> A Journal account is available only to users
+            aged 16 or older. Anonymous use of the Planner has no age
+            requirement.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          2. Zurücksetzen der Datenbank
-        </h3>
-        <p className="text-sm">
-          Während der Alpha-Phase behält sich der Betreiber ausdrücklich das Recht
-          vor, die gesamte Datenbank zurückzusetzen oder einzelne Datensätze ohne
-          vorherige Benachrichtigung zu löschen. Nutzer:innen sollten wichtige
-          Routen und Aktivitäten selbstständig über die Export-Funktion (GPX)
-          sichern.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            3. Dienstverfügbarkeit
+          </h2>
+          <p className="mt-2 text-sm">
+            Der Betreiber kann den Dienst jederzeit ändern, einschränken,
+            unterbrechen oder einstellen, auch einzelne Funktionen oder
+            einzelne Konten. Wartungs- und Ausfallzeiten sind möglich.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> The operator may modify, limit, interrupt, or
+            discontinue the service (or parts of it, or individual accounts)
+            at any time. Downtime and maintenance windows may occur.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          3. Haftungsausschluss
-        </h3>
-        <p className="text-sm">
-          Der Dienst wird ohne jegliche Gewährleistung bereitgestellt. Eine Haftung
-          für Schäden, die durch die Nutzung oder Nichtverfügbarkeit des Dienstes
-          entstehen, ist ausgeschlossen, soweit dies gesetzlich zulässig ist. Bei
-          Vorsatz und grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper
-          und Gesundheit gelten die gesetzlichen Vorschriften.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            4. Zurücksetzen der Datenbank
+          </h2>
+          <p className="mt-2 text-sm">
+            Während der Alpha-Phase behält sich der Betreiber ausdrücklich das
+            Recht vor, die gesamte Datenbank zurückzusetzen oder einzelne
+            Datensätze ohne vorherige Benachrichtigung zu löschen.
+            Nutzer:innen sollten wichtige Routen und Aktivitäten selbstständig
+            über die Export-Funktion (GPX bzw. JSON) sichern.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> During alpha, the operator may reset the entire
+            database or delete individual records without notice. Back up
+            anything important via the GPX / JSON export.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          4. Nutzungsregeln
-        </h3>
-        <ul className="ml-6 list-disc space-y-1 text-sm">
-          <li>Keine Verbreitung rechtswidriger Inhalte</li>
-          <li>Keine missbräuchliche Nutzung (Spam, automatisierte Abfragen in
-            hoher Frequenz, Denial-of-Service)
-          </li>
-          <li>Kein Umgehen technischer Schutzmaßnahmen</li>
-        </ul>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            5. Eigenverantwortung für Daten
+          </h2>
+          <p className="mt-2 text-sm">
+            Nutzer:innen sind für die Sicherung ihrer Inhalte selbst
+            verantwortlich. GPX- und JSON-Exporte sind im Journal jederzeit
+            für jede Route und Aktivität verfügbar. Der Betreiber schuldet
+            keine Datenwiederherstellung.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> You are responsible for backing up your own
+            content. Exports are always available in the Journal; the
+            operator owes no data recovery.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          5. Eigenverantwortung für Daten
-        </h3>
-        <p className="text-sm">
-          Nutzer:innen sind dafür verantwortlich, regelmäßig Sicherungskopien ihrer
-          Routen und Aktivitäten anzufertigen. GPX-Exporte sind im Journal für
-          jede Route und Aktivität verfügbar.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            6. Inhalte und Nutzungsrechte
+          </h2>
+          <p className="mt-2 text-sm">
+            Die von Ihnen eingestellten Inhalte (Routen, Aktivitäten,
+            Beschreibungen, GPX-Dateien) bleiben Ihr Eigentum. Sie räumen dem
+            Betreiber lediglich das einfache, nicht übertragbare Recht ein,
+            diese Inhalte zum Zweck des Betriebs des Dienstes zu speichern,
+            zu verarbeiten und Ihnen wieder anzuzeigen. Eine darüber
+            hinausgehende Nutzung, Veröffentlichung oder Weitergabe findet
+            nicht statt.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> You retain ownership of everything you upload.
+            You grant the operator a limited, non-transferable licence to
+            store, process, and display your content solely for operating the
+            service; no other use, publication, or sharing.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          6. Beendigung
-        </h3>
-        <p className="text-sm">
-          Nutzer:innen können ihr Konto jederzeit über die Einstellungen löschen.
-          Der Betreiber kann Konten bei Verstößen gegen diese Bedingungen sperren
-          oder löschen.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            7. Nutzungsregeln
+          </h2>
+          <ul className="mt-2 ml-6 list-disc space-y-1 text-sm">
+            <li>Keine Verbreitung rechtswidriger Inhalte</li>
+            <li>
+              Keine missbräuchliche Nutzung (Spam, hochfrequente automatisierte
+              Abfragen, Denial-of-Service)
+            </li>
+            <li>Kein Umgehen technischer Schutzmaßnahmen</li>
+            <li>
+              Keine Verwendung des Dienstes zum Aufbau konkurrierender
+              Angebote durch massenhaftes Abziehen von Daten
+            </li>
+          </ul>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> No illegal content, no abuse (spam, flooding,
+            DoS), no circumvention of technical protections, no bulk scraping
+            to build competing services.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          7. Änderungen
-        </h3>
-        <p className="text-sm">
-          Diese Nutzungsbedingungen können sich während der Alpha-Phase ändern. Bei
-          wesentlichen Änderungen werden registrierte Nutzer:innen per E-Mail
-          informiert und müssen die neuen Bedingungen erneut bestätigen.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            8. Kontobeendigung
+          </h2>
+          <p className="mt-2 text-sm">
+            Sie können Ihr Konto jederzeit über die Einstellungen löschen;
+            damit werden auch die zugehörigen Inhalte gelöscht. Der Betreiber
+            kann Konten bei Verstößen gegen diese Bedingungen nach
+            angemessener Interessenabwägung sperren oder löschen.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> Delete your account (and its content) any time
+            via settings. The operator may suspend or delete accounts that
+            violate these terms, balancing interests reasonably.
+          </p>
+        </div>
 
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          8. Anwendbares Recht
-        </h3>
-        <p className="text-sm">
-          Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Verbraucher:innen
-          mit gewöhnlichem Aufenthalt in der EU genießen den zwingenden Schutz
-          ihres nationalen Verbraucherrechts.
-        </p>
-      </section>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            9. Haftung
+          </h2>
+          <p className="mt-2 text-sm">
+            Der Dienst wird ohne Gewährleistung bereitgestellt. Der Betreiber
+            haftet uneingeschränkt bei Vorsatz und grober Fahrlässigkeit sowie
+            bei Verletzung von Leben, Körper oder Gesundheit. Im Übrigen ist
+            die Haftung für leicht fahrlässige Pflichtverletzungen auf den
+            vertragstypischen, vorhersehbaren Schaden bei Verletzung
+            wesentlicher Vertragspflichten (Kardinalpflichten) begrenzt. Eine
+            darüber hinausgehende Haftung – insbesondere für Datenverlust –
+            ist ausgeschlossen, soweit gesetzlich zulässig.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> No warranty. Unlimited liability for intent,
+            gross negligence, and injury to life, body, or health. For
+            slight negligence, liability is limited to foreseeable damages
+            arising from breach of material contractual duties. Liability
+            beyond that — in particular for data loss — is excluded to the
+            extent permitted by law.
+          </p>
+        </div>
 
-      <hr className="my-12 border-gray-200" />
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            10. Änderungen der Bedingungen
+          </h2>
+          <p className="mt-2 text-sm">
+            Diese Nutzungsbedingungen können sich während der Alpha-Phase
+            ändern. Bei wesentlichen Änderungen werden registrierte
+            Nutzer:innen per E-Mail informiert und müssen die neuen
+            Bedingungen erneut bestätigen.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> These terms may change during alpha. Registered
+            users will be emailed about material changes and prompted to
+            re-accept.
+          </p>
+        </div>
 
-      {/* English translation (informational) */}
-      <section className="space-y-4 text-gray-700">
-        <h2 className="text-xl font-semibold text-gray-900">English version</h2>
-        <p className="text-xs text-gray-500">
-          The German version is authoritative. This English text is a translation
-          for convenience.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          1. Alpha status
-        </h3>
-        <p className="text-sm">
-          trails.cool is an experimental service for planning and documenting
-          outdoor activities. It is under active development (alpha). Features,
-          APIs, and stored data may change, be deleted, or be discontinued at any
-          time without notice. No availability is guaranteed.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          2. Database resets
-        </h3>
-        <p className="text-sm">
-          During alpha, the operator expressly reserves the right to reset the
-          entire database or delete individual records without prior notice. Users
-          should back up important routes and activities via the GPX export.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          3. No warranty
-        </h3>
-        <p className="text-sm">
-          The service is provided without any warranty. Liability for damages
-          arising from use or unavailability is excluded to the maximum extent
-          permitted by law. Statutory provisions apply for intent, gross
-          negligence, and injury to life, body, or health.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          4. Acceptable use
-        </h3>
-        <ul className="ml-6 list-disc space-y-1 text-sm">
-          <li>No illegal content</li>
-          <li>No abusive use (spam, high-frequency automated requests, denial of service)</li>
-          <li>No circumvention of technical protections</li>
-        </ul>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          5. Data responsibility
-        </h3>
-        <p className="text-sm">
-          Users are responsible for regularly backing up their routes and
-          activities. GPX exports are available in the Journal for every route
-          and activity.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          6. Termination
-        </h3>
-        <p className="text-sm">
-          Users can delete their account at any time via settings. The operator
-          may suspend or delete accounts that violate these terms.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          7. Changes
-        </h3>
-        <p className="text-sm">
-          These terms may change during alpha. Registered users will be notified
-          by email of material changes and must re-accept the updated terms.
-        </p>
-
-        <h3 className="mt-6 text-base font-semibold text-gray-900">
-          8. Governing law
-        </h3>
-        <p className="text-sm">
-          German law applies, excluding the UN Convention on Contracts for the
-          International Sale of Goods. Consumers habitually residing in the EU
-          retain the mandatory protection of their national consumer law.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            11. Anwendbares Recht
+          </h2>
+          <p className="mt-2 text-sm">
+            Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Für
+            Verbraucher:innen mit gewöhnlichem Aufenthalt in einem Mitgliedstaat
+            der Europäischen Union bleibt der zwingende Schutz des Rechts ihres
+            Aufenthaltslandes unberührt.
+          </p>
+          <p className="mt-2 text-xs text-gray-600">
+            <em>English.</em> German law applies, excluding the UN Convention
+            on Contracts for the International Sale of Goods. Consumers
+            habitually residing in an EU member state retain the mandatory
+            protection of their national law.
+          </p>
+        </div>
       </section>
     </div>
   );
