@@ -41,4 +41,35 @@ export const brouterRequestDuration = getOrCreate("brouter_request_duration_seco
   }),
 );
 
+export const overpassCacheEvents = getOrCreate("overpass_cache_events_total", () =>
+  new client.Counter({
+    name: "overpass_cache_events_total",
+    help: "Overpass proxy cache events",
+    labelNames: ["result"] as const, // hit | miss | coalesced
+  }),
+);
+
+export const overpassCacheSize = getOrCreate("overpass_cache_size", () =>
+  new client.Gauge({
+    name: "overpass_cache_size",
+    help: "Current number of entries in the Overpass proxy cache",
+  }),
+);
+
+export const overpassUpstreamDuration = getOrCreate("overpass_upstream_duration_seconds", () =>
+  new client.Histogram({
+    name: "overpass_upstream_duration_seconds",
+    help: "Duration of upstream Overpass API requests in seconds",
+    buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  }),
+);
+
+export const overpassUpstreamRequests = getOrCreate("overpass_upstream_requests_total", () =>
+  new client.Counter({
+    name: "overpass_upstream_requests_total",
+    help: "Upstream Overpass API requests by status",
+    labelNames: ["status"] as const,
+  }),
+);
+
 export const registry = client.register;
