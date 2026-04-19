@@ -22,7 +22,7 @@ import { logger } from "../lib/logger.server.ts";
  *    daily cap; on pass, insert one route+activity via `generateOneWalk`.
  */
 export const demoBotGenerateJob: JobDefinition = {
-  name: "demo-bot:generate",
+  name: "demo-bot-generate",
   cron: "0,30 * * * *",
   retryLimit: 1,
   expireInSeconds: 120,

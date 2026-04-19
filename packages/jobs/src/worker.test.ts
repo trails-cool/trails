@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { startWorker } from "./worker.ts";
+import { assertValidJobName, startWorker } from "./worker.ts";
 import type { JobDefinition } from "./types.ts";
 
 function createMockBoss() {
@@ -86,5 +86,50 @@ describe("startWorker", () => {
 
     expect(boss.work).toHaveBeenCalledTimes(2);
     expect(boss.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects queue names with characters that pg-boss v11+ forbids", async () => {
+    const boss = createMockBoss();
+    // `:` was allowed by pg-boss v10 and got us into trouble on upgrade
+    // (our queues were named demo-bot:generate / demo-bot:prune until we
+    // renamed them for v11+). Regression-guard that shape.
+    const jobs: JobDefinition[] = [{ name: "demo-bot:generate", handler: vi.fn() }];
+
+    await expect(startWorker(boss as never, jobs)).rejects.toThrow(
+      /Invalid pg-boss queue name/,
+    );
+    // start/createQueue/schedule/work must not have been called — we
+    // fail before any side effects.
+    expect(boss.start).not.toHaveBeenCalled();
+    expect(boss.createQueue).not.toHaveBeenCalled();
+    expect(boss.schedule).not.toHaveBeenCalled();
+    expect(boss.work).not.toHaveBeenCalled();
+  });
+});
+
+describe("assertValidJobName", () => {
+  it("accepts letters, numbers, hyphens, underscores, and periods", () => {
+    for (const name of [
+      "demo-bot-generate",
+      "expire_sessions",
+      "job.v2",
+      "DemoBot123",
+      "a",
+    ]) {
+      expect(() => assertValidJobName(name)).not.toThrow();
+    }
+  });
+
+  it("rejects colon, slash, whitespace, and other punctuation", () => {
+    for (const name of [
+      "demo-bot:generate",
+      "foo/bar",
+      "foo bar",
+      "foo@bar",
+      "foo#bar",
+      "",
+    ]) {
+      expect(() => assertValidJobName(name)).toThrow(/Invalid pg-boss queue name/);
+    }
   });
 });

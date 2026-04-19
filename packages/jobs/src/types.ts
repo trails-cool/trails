@@ -1,8 +1,8 @@
-import type PgBoss from "pg-boss";
+import type { Job } from "pg-boss";
 
-export interface JobDefinition<T = unknown> {
+export interface JobDefinition<T extends object = object> {
   name: string;
-  handler: (jobs: PgBoss.Job<T>[]) => Promise<unknown>;
+  handler: (jobs: Job<T>[]) => Promise<unknown>;
   cron?: string;
   retryLimit?: number;
   expireInSeconds?: number;
