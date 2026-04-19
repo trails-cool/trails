@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { z } from "zod";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes, users } from "@trails-cool/db/schema/journal";
@@ -11,10 +13,198 @@ import {
   demoBotSyntheticRoutesTotal,
 } from "./metrics.server.ts";
 
-export const DEMO_USERNAME = "bruno";
-export const DEMO_DISPLAY_NAME = "Bruno";
-export const DEMO_BIO =
-  "Professional park inspector. Currently accepting tennis balls.";
+// --- Persona configuration -----------------------------------------------
+
+export type DemoLocale = "en" | "de";
+
+export interface DemoPersonaContent {
+  names: { en?: string[]; de?: string[] };
+  descriptions: { en?: string[]; de?: string[] };
+}
+
+export interface DemoPersona {
+  username: string;
+  displayName: string;
+  bio: string;
+  locales: DemoLocale[];
+  content: DemoPersonaContent;
+}
+
+const LocaleSchema = z.enum(["en", "de"]);
+const PoolSchema = z.array(z.string().min(1)).min(3).max(50);
+
+const PersonaSchema = z
+  .object({
+    username: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,30}$/),
+    displayName: z.string().min(1).max(200),
+    bio: z.string().max(200),
+    locales: z.array(LocaleSchema).min(1),
+    content: z.object({
+      names: z.object({ en: PoolSchema.optional(), de: PoolSchema.optional() }),
+      descriptions: z.object({
+        en: PoolSchema.optional(),
+        de: PoolSchema.optional(),
+      }),
+    }),
+  })
+  .superRefine((p, ctx) => {
+    for (const loc of p.locales) {
+      if (!p.content.names[loc]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["content", "names", loc],
+          message: `missing name pool for declared locale '${loc}'`,
+        });
+      }
+      if (!p.content.descriptions[loc]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["content", "descriptions", loc],
+          message: `missing description pool for declared locale '${loc}'`,
+        });
+      }
+    }
+  });
+
+/**
+ * Built-in Bruno persona. Used verbatim when no `DEMO_BOT_PERSONA` is
+ * supplied or the supplied override fails validation. Moving these
+ * strings behind the persona abstraction means every reference to the
+ * bot's identity flows through one place.
+ */
+export const DEFAULT_PERSONA: DemoPersona = Object.freeze<DemoPersona>({
+  username: "bruno",
+  displayName: "Bruno",
+  bio: "Professional park inspector. Currently accepting tennis balls.",
+  locales: ["en", "de"],
+  content: {
+    names: {
+      en: [
+        "Grunewald north-loop patrol",
+        "Tiergarten perimeter audit",
+        "Tempelhof runway inspection",
+        "Spree embankment survey",
+        "Bruno's morning rounds",
+        "Sniff-check: Kreuzberg edition",
+        "Bruno found three sticks today",
+        "Dog-audit report: all squirrels present",
+        "Volkspark compliance walk",
+        "Tennis ball reconnaissance",
+        "Pretzel-crumb cleanup detail",
+        "Bruno vs. the pigeons",
+      ],
+      de: [
+        "Grunewald-Nordschleife-Patrouille",
+        "Tiergarten-Umfangsprüfung",
+        "Tempelhof-Startbahn-Inspektion",
+        "Spreeufer-Rundgang",
+        "Brunos Morgenrunde",
+        "Schnüffelkontrolle: Kreuzberg",
+        "Bruno hat heute drei Stöcke gefunden",
+        "Hundeprüfbericht: alle Eichhörnchen anwesend",
+        "Volkspark-Konformitätsgang",
+        "Tennisball-Aufklärung",
+        "Brezel-Krümel-Aufräumdienst",
+        "Bruno gegen die Tauben",
+      ],
+    },
+    descriptions: {
+      en: [
+        "Inspected several bushes. All present and accounted for.",
+        "Three squirrels successfully monitored. Two got away.",
+        "Good sticks: 2. Great sticks: 1. Excellent sticks: 0.",
+        "Pace was brisk. Sniffs were thorough.",
+        "Encountered another dog. Diplomacy established.",
+        "Weather: windy. Ears: flopping.",
+        "Pigeons stood their ground. A follow-up visit is required.",
+        "Finished the route ahead of schedule. Extra treats expected.",
+        "Investigated one suspicious paper bag. False alarm.",
+        "Logged one (1) successful puddle inspection.",
+      ],
+      de: [
+        "Mehrere Büsche inspiziert. Alle vorhanden.",
+        "Drei Eichhörnchen erfolgreich beobachtet. Zwei entkommen.",
+        "Gute Stöcke: 2. Großartige Stöcke: 1. Exzellente Stöcke: 0.",
+        "Tempo zügig. Schnüffeln gründlich.",
+        "Einen anderen Hund getroffen. Diplomatie hergestellt.",
+        "Wetter: windig. Ohren: flatternd.",
+        "Die Tauben hielten Stand. Ein Folgebesuch ist erforderlich.",
+        "Route vor dem Zeitplan abgeschlossen. Zusätzliche Leckerlis erwartet.",
+        "Eine verdächtige Papiertüte untersucht. Fehlalarm.",
+        "Eine (1) erfolgreiche Pfützen-Inspektion protokolliert.",
+      ],
+    },
+  },
+});
+
+// Sanity: the default persona itself must parse under the schema. Catch
+// accidental drift at module load rather than first invocation.
+PersonaSchema.parse(DEFAULT_PERSONA);
+
+let _cachedPersona: DemoPersona | null = null;
+
+/**
+ * Read the persona from `DEMO_BOT_PERSONA`. Accepts either inline JSON
+ * or `file:<absolute-path>`. Falls back to `DEFAULT_PERSONA` on any
+ * failure (unset, bad JSON, schema violation, unreadable file) with a
+ * single warn-level log line per process.
+ */
+export function loadPersona(): DemoPersona {
+  if (_cachedPersona) return _cachedPersona;
+  _cachedPersona = Object.freeze(loadPersonaUncached());
+  return _cachedPersona;
+}
+
+function loadPersonaUncached(): DemoPersona {
+  const raw = process.env.DEMO_BOT_PERSONA;
+  if (!raw) return DEFAULT_PERSONA;
+
+  let json: string;
+  if (raw.startsWith("file:")) {
+    const path = raw.slice("file:".length);
+    try {
+      json = readFileSync(path, "utf8");
+    } catch (err) {
+      logger.warn(
+        { path, err: (err as Error).message },
+        "DEMO_BOT_PERSONA file unreadable, using default",
+      );
+      return DEFAULT_PERSONA;
+    }
+  } else {
+    json = raw;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message },
+      "DEMO_BOT_PERSONA not valid JSON, using default",
+    );
+    return DEFAULT_PERSONA;
+  }
+
+  const result = PersonaSchema.safeParse(parsed);
+  if (!result.success) {
+    const first = result.error.issues[0];
+    logger.warn(
+      { path: first?.path.join("."), message: first?.message },
+      "DEMO_BOT_PERSONA schema violation, using default",
+    );
+    return DEFAULT_PERSONA;
+  }
+  return result.data;
+}
+
+/**
+ * Test-only hook to reset the cached persona between tests. Never call
+ * from application code.
+ */
+export function __resetPersonaCacheForTests() {
+  _cachedPersona = null;
+}
 
 /**
  * Inner Berlin (Tiergarten → Grunewald corridor). Keeps Bruno's walks
@@ -35,28 +225,59 @@ export function demoRetentionDays(): number {
 }
 
 /**
- * Idempotent insert of the Bruno demo user. Safe to call every worker
- * boot; relies on `users.username` uniqueness to short-circuit duplicates.
+ * Surfaced when the persona username already belongs to a real user.
+ * Callers (worker boot) treat this as a signal to skip scheduling the
+ * bot for this process instead of silently attaching to a human's
+ * account.
  */
-export async function ensureDemoUser(): Promise<string> {
+export class DemoPersonaUsernameClashError extends Error {
+  readonly kind = "username-clash";
+  readonly username: string;
+  constructor(username: string) {
+    super(`demo persona username '${username}' is already taken by a non-demo user`);
+    this.username = username;
+  }
+}
+
+function expectedSentinelEmail(persona: DemoPersona, domain: string): string {
+  return `${persona.username}@${domain}`;
+}
+
+/**
+ * Idempotent insert of the demo user described by `persona`. Safe to
+ * call every worker boot; relies on `users.username` uniqueness to
+ * short-circuit duplicates. Throws `DemoPersonaUsernameClashError` if
+ * the row exists but looks like a real account (email doesn't match
+ * the sentinel pattern) — callers should catch this and keep the bot
+ * disabled for the process.
+ */
+export async function ensureDemoUser(
+  persona: DemoPersona = loadPersona(),
+): Promise<string> {
   const db = getDb();
   const domain = process.env.DOMAIN ?? "localhost";
+  const sentinelEmail = expectedSentinelEmail(persona, domain);
 
   const [existing] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, email: users.email })
     .from(users)
-    .where(eq(users.username, DEMO_USERNAME));
-  if (existing) return existing.id;
+    .where(eq(users.username, persona.username));
+  if (existing) {
+    if (existing.email !== sentinelEmail) {
+      throw new DemoPersonaUsernameClashError(persona.username);
+    }
+    return existing.id;
+  }
 
   const id = randomUUID();
   await db
     .insert(users)
     .values({
       id,
-      username: DEMO_USERNAME,
-      email: `${DEMO_USERNAME}@${domain}`,
-      displayName: DEMO_DISPLAY_NAME,
-      bio: DEMO_BIO,
+      username: persona.username,
+      email: sentinelEmail,
+      displayName: persona.displayName,
+      bio: persona.bio,
       domain,
       termsAcceptedAt: new Date(),
       termsVersion: TERMS_VERSION,
@@ -65,10 +286,13 @@ export async function ensureDemoUser(): Promise<string> {
 
   // Re-read in case a concurrent insert won the race
   const [row] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, email: users.email })
     .from(users)
-    .where(eq(users.username, DEMO_USERNAME));
+    .where(eq(users.username, persona.username));
   if (!row) throw new Error("ensureDemoUser: insert succeeded but row not found");
+  if (row.email !== sentinelEmail) {
+    throw new DemoPersonaUsernameClashError(persona.username);
+  }
   return row.id;
 }
 
@@ -141,63 +365,7 @@ export function pickEndpoints(bbox: [number, number, number, number]): Endpoints
   return { start, end };
 }
 
-// --- Bruno-voiced copy --------------------------------------------------
-
-const NAME_POOL_EN = [
-  "Grunewald north-loop patrol",
-  "Tiergarten perimeter audit",
-  "Tempelhof runway inspection",
-  "Spree embankment survey",
-  "Bruno's morning rounds",
-  "Sniff-check: Kreuzberg edition",
-  "Bruno found three sticks today",
-  "Dog-audit report: all squirrels present",
-  "Volkspark compliance walk",
-  "Tennis ball reconnaissance",
-  "Pretzel-crumb cleanup detail",
-  "Bruno vs. the pigeons",
-];
-
-const NAME_POOL_DE = [
-  "Grunewald-Nordschleife-Patrouille",
-  "Tiergarten-Umfangsprüfung",
-  "Tempelhof-Startbahn-Inspektion",
-  "Spreeufer-Rundgang",
-  "Brunos Morgenrunde",
-  "Schnüffelkontrolle: Kreuzberg",
-  "Bruno hat heute drei Stöcke gefunden",
-  "Hundeprüfbericht: alle Eichhörnchen anwesend",
-  "Volkspark-Konformitätsgang",
-  "Tennisball-Aufklärung",
-  "Brezel-Krümel-Aufräumdienst",
-  "Bruno gegen die Tauben",
-];
-
-const DESCRIPTION_POOL_EN = [
-  "Inspected several bushes. All present and accounted for.",
-  "Three squirrels successfully monitored. Two got away.",
-  "Good sticks: 2. Great sticks: 1. Excellent sticks: 0.",
-  "Pace was brisk. Sniffs were thorough.",
-  "Encountered another dog. Diplomacy established.",
-  "Weather: windy. Ears: flopping.",
-  "Pigeons stood their ground. A follow-up visit is required.",
-  "Finished the route ahead of schedule. Extra treats expected.",
-  "Investigated one suspicious paper bag. False alarm.",
-  "Logged one (1) successful puddle inspection.",
-];
-
-const DESCRIPTION_POOL_DE = [
-  "Mehrere Büsche inspiziert. Alle vorhanden.",
-  "Drei Eichhörnchen erfolgreich beobachtet. Zwei entkommen.",
-  "Gute Stöcke: 2. Großartige Stöcke: 1. Exzellente Stöcke: 0.",
-  "Tempo zügig. Schnüffeln gründlich.",
-  "Einen anderen Hund getroffen. Diplomatie hergestellt.",
-  "Wetter: windig. Ohren: flatternd.",
-  "Die Tauben hielten Stand. Ein Folgebesuch ist erforderlich.",
-  "Route vor dem Zeitplan abgeschlossen. Zusätzliche Leckerlis erwartet.",
-  "Eine verdächtige Papiertüte untersucht. Fehlalarm.",
-  "Eine (1) erfolgreiche Pfützen-Inspektion protokolliert.",
-];
+// --- Persona-driven copy -------------------------------------------------
 
 function pickFrom<T>(pool: readonly T[], seed: number): T {
   const idx = Math.abs(Math.floor(seed)) % pool.length;
@@ -205,24 +373,44 @@ function pickFrom<T>(pool: readonly T[], seed: number): T {
 }
 
 /**
- * Deterministic-ish per day + per started-at minute, so same-day walks
- * don't land on the same name. Locale is chosen from the journal's
- * default — Bruno doesn't know German, but his walks come with German
- * subtitles when the reader expects them.
+ * Pull a route name from the persona's name pool for the given locale.
+ * Seeded by the start-time so same-day walks usually don't collide.
+ * Falls back to the first persona locale if the caller asked for a
+ * locale the persona doesn't support (defensive — the caller is
+ * expected to pick from `persona.locales`).
  */
-export function templateName(startedAt: Date, locale: "en" | "de" = "en"): string {
-  const pool = locale === "de" ? NAME_POOL_DE : NAME_POOL_EN;
+export function templateName(
+  startedAt: Date,
+  locale: DemoLocale,
+  persona: DemoPersona = loadPersona(),
+): string {
+  const pool = persona.content.names[locale] ?? persona.content.names[persona.locales[0]!]!;
   const seed = startedAt.getUTCDate() * 60 + startedAt.getUTCMinutes();
   return pickFrom(pool, seed);
 }
 
 export function templateDescription(
   startedAt: Date,
-  locale: "en" | "de" = "en",
+  locale: DemoLocale,
+  persona: DemoPersona = loadPersona(),
 ): string {
-  const pool = locale === "de" ? DESCRIPTION_POOL_DE : DESCRIPTION_POOL_EN;
+  const pool =
+    persona.content.descriptions[locale] ??
+    persona.content.descriptions[persona.locales[0]!]!;
   const seed = startedAt.getUTCDate() * 137 + startedAt.getUTCSeconds() * 7;
   return pickFrom(pool, seed);
+}
+
+/**
+ * Random locale from the persona's supported set. Used by the
+ * generation job so instances with `locales: ["en"]` never emit
+ * German-voiced walks.
+ */
+export function pickLocale(
+  persona: DemoPersona = loadPersona(),
+  rand: () => number = Math.random,
+): DemoLocale {
+  return persona.locales[Math.floor(rand() * persona.locales.length)]!;
 }
 
 // --- BRouter --------------------------------------------------------------
@@ -263,12 +451,14 @@ export async function requestBrouterGpx(
 
 export interface GenerateOptions {
   now?: Date;
-  /** Localise the walk name; defaults to random-ish. */
-  locale?: "en" | "de";
+  /** Override the locale; defaults to a random one from the persona. */
+  locale?: DemoLocale;
+  /** Test-only: inject a persona instead of reading the env. */
+  persona?: DemoPersona;
 }
 
 /**
- * Core generate step: insert one Bruno route + activity pair. Callers
+ * Core generate step: insert one demo route + activity pair. Callers
  * (the recurring job and the backfill loop) decide whether to invoke it.
  *
  * Returns the inserted route id on success, or `null` on BRouter failure
@@ -276,7 +466,11 @@ export interface GenerateOptions {
  */
 export async function generateOneWalk(
   ownerId: string,
-  { now = new Date(), locale = Math.random() < 0.5 ? "en" : "de" }: GenerateOptions = {},
+  {
+    now = new Date(),
+    persona = loadPersona(),
+    locale = pickLocale(persona),
+  }: GenerateOptions = {},
 ): Promise<string | null> {
   const region = loadRegion();
   const endpoints = pickEndpoints(region.bbox);
@@ -287,8 +481,8 @@ export async function generateOneWalk(
     return null;
   }
 
-  const name = templateName(now, locale);
-  const description = templateDescription(now, locale);
+  const name = templateName(now, locale, persona);
+  const description = templateDescription(now, locale, persona);
 
   let distance: number;
   let elevationGain: number;

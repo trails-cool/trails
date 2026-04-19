@@ -34,13 +34,13 @@ services:
       WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
-      # Demo-activity-bot (Bruno). Disabled by default everywhere; flip to
-      # "true" only in prod to let the background worker generate public
-      # demo routes + activities and prune old ones. Region is a JSON blob
-      # `{"bbox":[w,s,e,n]}`; retention is in days (default 14).
+      # Demo-activity-bot. Disabled by default everywhere; flip to "true"
+      # only in prod. When unset, DEMO_BOT_PERSONA uses the built-in
+      # Bruno/Berlin persona. See docs/demo-persona.md for the schema.
       DEMO_BOT_ENABLED: ${DEMO_BOT_ENABLED:-}
       DEMO_BOT_RETENTION_DAYS: ${DEMO_BOT_RETENTION_DAYS:-}
       DEMO_BOT_REGION: ${DEMO_BOT_REGION:-}
+      DEMO_BOT_PERSONA: ${DEMO_BOT_PERSONA:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
       interval: 15s
