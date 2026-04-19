@@ -5,6 +5,7 @@ import {
   PaginationQuerySchema,
   CreateRouteRequestSchema,
   ERROR_CODES,
+  zodIssuesToFieldErrors,
 } from "@trails-cool/api";
 
 /** GET /api/v1/routes — paginated route list */
@@ -58,7 +59,7 @@ export async function action({ request }: Route.ActionArgs) {
   const parsed = CreateRouteRequestSchema.safeParse(body);
   if (!parsed.success) {
     return apiError(400, ERROR_CODES.VALIDATION_ERROR, "Validation failed",
-      parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })));
+      zodIssuesToFieldErrors(parsed.error));
   }
 
   const id = await createRoute(user.id, parsed.data);

@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.v1.routes.$id";
 import { requireApiUser, apiError } from "~/lib/api-guard.server";
 import { getRouteWithVersions, updateRoute, deleteRoute } from "~/lib/routes.server";
-import { UpdateRouteRequestSchema, ERROR_CODES } from "@trails-cool/api";
+import { UpdateRouteRequestSchema, ERROR_CODES, zodIssuesToFieldErrors } from "@trails-cool/api";
 
 /** GET /api/v1/routes/:id — full route detail */
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -45,7 +45,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const parsed = UpdateRouteRequestSchema.safeParse(body);
     if (!parsed.success) {
       return apiError(400, ERROR_CODES.VALIDATION_ERROR, "Validation failed",
-        parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })));
+        zodIssuesToFieldErrors(parsed.error));
     }
 
     await updateRoute(params.id, user.id, parsed.data);

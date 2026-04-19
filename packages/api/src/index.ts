@@ -4,6 +4,7 @@ export { ENDPOINTS } from "./endpoints.ts";
 // Error schemas
 export {
   ApiErrorResponseSchema, FieldErrorSchema, ERROR_CODES,
+  zodIssuesToFieldErrors,
   type ApiErrorResponse, type FieldError,
 } from "./errors.ts";
 
