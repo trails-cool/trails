@@ -28,7 +28,7 @@
     "@trails-cool/types": "workspace:*",
     "@trails-cool/ui": "workspace:*",
     "drizzle-orm": "catalog:",
-    "isbot": "^5.1.37",
+    "isbot": "^5.1.39",
     "jose": "^6.2.2",
     "nodemailer": "^8.0.5",
     "pino": "^10.3.1",
