@@ -33,7 +33,7 @@
     "@gorhom/bottom-sheet": "^5.2.9",
     "@maplibre/maplibre-react-native": "^11.0.0",
     "@sentry/cli": "^3.3.5",
-    "@sentry/react-native": "~7.11.0",
+    "@sentry/react-native": "~8.8.0",
     "@trails-cool/api": "workspace:*",
     "@trails-cool/gpx": "workspace:*",
     "@trails-cool/i18n": "workspace:*",
