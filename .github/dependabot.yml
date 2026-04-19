@@ -12,6 +12,18 @@ updates:
       development:
         dependency-type: "development"
     open-pull-requests-limit: 10
+    ignore:
+      # Keep @types/* aligned with the runtime major. Mismatched type
+      # packages (e.g. @types/jest 30 while jest is still 29) break
+      # typecheck without buying us anything.
+      - dependency-name: "@types/jest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # react-native is pinned by the Expo SDK — upgrade it via an Expo
+      # SDK bump, not on its own. Community react-native-* libraries are
+      # intentionally NOT ignored here; they can be bumped independently.
+      - dependency-name: "react-native"
 
   - package-ecosystem: "github-actions"
     directory: "/"
