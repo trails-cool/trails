@@ -13,17 +13,17 @@ import {
 import { logger } from "../lib/logger.server.ts";
 
 /**
- * Generate job. Fires every 90 minutes via pg-boss cron. Handler steps:
+ * Generate job. Fires every 30 minutes via pg-boss cron. Handler steps:
  *
  * 1. Bail if `DEMO_BOT_ENABLED` is not "true".
  * 2. On first run (no synthetic rows yet) produce a small backfill so the
  *    demo user's profile has content immediately.
- * 3. Otherwise apply the decide-to-walk gate (local hour + p=0.12) and
+ * 3. Otherwise apply the decide-to-walk gate (local hour + p=0.09) and
  *    daily cap; on pass, insert one route+activity via `generateOneWalk`.
  */
 export const demoBotGenerateJob: JobDefinition = {
   name: "demo-bot:generate",
-  cron: "*/90 * * * *",
+  cron: "0,30 * * * *",
   retryLimit: 1,
   expireInSeconds: 120,
   async handler() {
