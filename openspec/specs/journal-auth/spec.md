@@ -32,3 +32,26 @@ The registration form SHALL require explicit acknowledgement of the Terms of Ser
 #### Scenario: Missing version rejected
 - **WHEN** a registration request arrives without a non-empty `termsVersion` field
 - **THEN** the server responds with HTTP 400 and does not create a user
+
+### Requirement: Re-accept updated Terms on next visit
+Logged-in users whose stored `terms_version` does not match the currently-published version SHALL be prompted to accept the current Terms before accessing any non-allow-listed page.
+
+#### Scenario: Stale version redirects to accept-terms page
+- **WHEN** a logged-in user whose `users.terms_version` is NULL or differs from the current `TERMS_VERSION` requests any page outside the allow-list (`/auth/accept-terms`, `/auth/logout`, `/legal/*`)
+- **THEN** the server redirects them to `/auth/accept-terms?returnTo=<original path>`
+
+#### Scenario: Allow-list keeps Terms and logout reachable
+- **WHEN** the same user requests `/legal/terms`, `/legal/privacy`, `/legal/imprint`, `/auth/accept-terms`, or `/auth/logout`
+- **THEN** the request is served normally without being redirected
+
+#### Scenario: Successful re-acceptance updates both fields
+- **WHEN** a user submits the acceptance form with the required checkbox ticked
+- **THEN** the server updates `users.terms_version` to the current version and `users.terms_accepted_at` to the current timestamp, then redirects to the `returnTo` path (or `/`)
+
+#### Scenario: Re-acceptance rejects missing consent
+- **WHEN** the form is submitted without the checkbox ticked
+- **THEN** the server responds with HTTP 400 and does not update the user row
+
+#### Scenario: returnTo is restricted to same-origin paths
+- **WHEN** a `returnTo` value is not a same-origin absolute path (missing leading `/`, or starting with `//`)
+- **THEN** the server redirects to `/` instead, preventing open-redirect abuse

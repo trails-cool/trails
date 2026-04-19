@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useLocation, Form, Link } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useLocation, Form, Link, redirect } from "react-router";
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
@@ -10,7 +10,16 @@ import { LocaleProvider } from "~/components/LocaleContext";
 import { AlphaBanner } from "~/components/AlphaBanner";
 import { Footer } from "~/components/Footer";
 import { initSentryClient, stopSentryClient } from "~/lib/sentry.client";
+import { TERMS_VERSION } from "~/lib/legal";
 import stylesheet from "@trails-cool/ui/styles.css?url";
+
+// Paths that must stay reachable even when the user has a stale
+// terms_version, so they can read the Terms, accept them, or log out.
+const TERMS_GATE_ALLOWLIST = [
+  "/auth/accept-terms",
+  "/auth/logout",
+  "/legal/",
+];
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
 
@@ -39,6 +48,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   const locale = detectLocale(request);
+
+  // Gate logged-in users with stale / missing terms_version: send them to the
+  // re-accept page on any request that isn't already on an allow-listed path.
+  if (user && user.termsVersion !== TERMS_VERSION) {
+    const pathname = new URL(request.url).pathname;
+    const onAllowlistedPath = TERMS_GATE_ALLOWLIST.some((p) =>
+      p.endsWith("/") ? pathname.startsWith(p) : pathname === p,
+    );
+    if (!onAllowlistedPath) {
+      const returnTo = encodeURIComponent(pathname + new URL(request.url).search);
+      throw redirect(`/auth/accept-terms?returnTo=${returnTo}`);
+    }
+  }
+
   return { user: user ? { id: user.id, username: user.username } : null, locale };
 }
 

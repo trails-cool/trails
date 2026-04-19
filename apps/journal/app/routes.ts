@@ -9,6 +9,7 @@ export default [
   route("auth/login", "routes/auth.login.tsx"),
   route("auth/verify", "routes/auth.verify.tsx"),
   route("auth/logout", "routes/auth.logout.tsx"),
+  route("auth/accept-terms", "routes/auth.accept-terms.tsx"),
   route("api/auth/register", "routes/api.auth.register.ts"),
   route("api/auth/login", "routes/api.auth.login.ts"),
   route("routes", "routes/routes._index.tsx"),
