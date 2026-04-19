@@ -1,0 +1,50 @@
+name: Dependabot dedupe
+
+# Dependabot opens a PR after a bump, but `pnpm install` alone doesn't
+# dedupe peer copies of packages (e.g. two versions of i18next, each
+# holding their own singleton state). That split caused a hydration
+# mismatch on #272 until a manual `pnpm dedupe` collapsed them.
+#
+# This workflow fires on every dependabot PR, runs `pnpm dedupe`, and
+# pushes the resulting lockfile update back to the PR branch so the
+# subsequent CI run tests the deduped tree.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  dedupe:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          # Use a PAT-like token so the follow-up push re-triggers CI
+          # (pushes made with GITHUB_TOKEN do not trigger workflow runs).
+          # Falls back to GITHUB_TOKEN in environments that don't have
+          # the PAT configured — still pushes, just without re-running CI.
+          token: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN || secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile=false
+      - run: pnpm dedupe
+      - name: Commit dedupe changes
+        run: |
+          if [ -n "$(git status --porcelain pnpm-lock.yaml)" ]; then
+            git config user.name "dependabot[bot]"
+            git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml
+            git commit -m "pnpm dedupe"
+            git push
+            echo "Deduped lockfile pushed."
+          else
+            echo "Lockfile already deduped."
+          fi
