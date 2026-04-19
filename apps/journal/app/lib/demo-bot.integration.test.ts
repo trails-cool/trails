@@ -3,11 +3,14 @@ import { sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes, users } from "@trails-cool/db/schema/journal";
 import {
-  DEMO_USERNAME,
+  DEFAULT_PERSONA,
+  DemoPersonaUsernameClashError,
+  __resetPersonaCacheForTests,
   ensureDemoUser,
   generateOneWalk,
   pruneSynthetic,
 } from "./demo-bot.server.ts";
+import { randomUUID } from "node:crypto";
 
 // Opt-in: these tests talk to a real Postgres and are skipped unless
 // `DEMO_BOT_INTEGRATION=1` is set. CI gates them behind the same flag
@@ -41,6 +44,10 @@ describe.skipIf(!runIntegration)("demo-bot integration", () => {
 
   afterEach(async () => {
     await wipeSynthetic();
+    // Scrub any test-inserted Bruno so the next test starts clean.
+    const db = getDb();
+    await db.execute(sql`DELETE FROM journal.users WHERE username = ${DEFAULT_PERSONA.username}`);
+    __resetPersonaCacheForTests();
     vi.restoreAllMocks();
   });
 
@@ -53,8 +60,25 @@ describe.skipIf(!runIntegration)("demo-bot integration", () => {
     const rows = await db
       .select()
       .from(users)
-      .where(sql`${users.username} = ${DEMO_USERNAME}`);
+      .where(sql`${users.username} = ${DEFAULT_PERSONA.username}`);
     expect(rows.length).toBe(1);
+  });
+
+  it("ensureDemoUser throws username-clash when a real user owns the persona name", async () => {
+    const db = getDb();
+    const domain = process.env.DOMAIN ?? "localhost";
+    const realUserId = randomUUID();
+    // Create a real user at the persona username with a NON-sentinel email.
+    await db.execute(sql`
+      INSERT INTO journal.users (id, email, username, domain, terms_accepted_at, terms_version)
+      VALUES (${realUserId}, ${`real-${Date.now()}@${domain}`}, ${DEFAULT_PERSONA.username}, ${domain}, now(), '2026-04-19')
+    `);
+
+    try {
+      await expect(ensureDemoUser()).rejects.toBeInstanceOf(DemoPersonaUsernameClashError);
+    } finally {
+      await db.execute(sql`DELETE FROM journal.users WHERE id = ${realUserId}`);
+    }
   });
 
   it("generateOneWalk inserts a public synthetic route + activity", async () => {

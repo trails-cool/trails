@@ -1,11 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+  DEFAULT_PERSONA,
+  __resetPersonaCacheForTests,
   berlinHour,
+  loadPersona,
   loadRegion,
   pickEndpoints,
+  pickLocale,
   shouldWalkNow,
   templateDescription,
   templateName,
+  type DemoPersona,
 } from "./demo-bot.server.ts";
 
 describe("pickEndpoints", () => {
@@ -115,5 +123,158 @@ describe("berlinHour", () => {
     const h = berlinHour(new Date("2026-06-17T10:00:00Z"));
     expect(h).toBeGreaterThanOrEqual(0);
     expect(h).toBeLessThanOrEqual(23);
+  });
+});
+
+// --- Persona configuration -------------------------------------------------
+
+function minimalPersona(overrides: Partial<DemoPersona> = {}): DemoPersona {
+  return {
+    username: "test-demo",
+    displayName: "Test",
+    bio: "test bio",
+    locales: ["en"],
+    content: {
+      names: {
+        en: ["alpha walk", "bravo walk", "charlie walk"],
+      },
+      descriptions: {
+        en: ["alpha desc", "bravo desc", "charlie desc"],
+      },
+    },
+    ...overrides,
+  };
+}
+
+describe("loadPersona", () => {
+  const envKey = "DEMO_BOT_PERSONA";
+  let savedEnv: string | undefined;
+
+  beforeEach(() => {
+    savedEnv = process.env[envKey];
+    delete process.env[envKey];
+    __resetPersonaCacheForTests();
+  });
+
+  afterEach(() => {
+    if (savedEnv === undefined) delete process.env[envKey];
+    else process.env[envKey] = savedEnv;
+    __resetPersonaCacheForTests();
+  });
+
+  it("returns the default persona when unset", () => {
+    const p = loadPersona();
+    expect(p.username).toBe(DEFAULT_PERSONA.username);
+  });
+
+  it("caches the result across calls", () => {
+    const a = loadPersona();
+    const b = loadPersona();
+    expect(a).toBe(b);
+  });
+
+  it("parses a valid inline JSON override", () => {
+    process.env[envKey] = JSON.stringify(minimalPersona({ username: "hamish" }));
+    const p = loadPersona();
+    expect(p.username).toBe("hamish");
+    expect(p.locales).toEqual(["en"]);
+  });
+
+  it("falls back to the default on invalid JSON", () => {
+    process.env[envKey] = "{not json";
+    const p = loadPersona();
+    expect(p.username).toBe(DEFAULT_PERSONA.username);
+  });
+
+  it("falls back when the username violates the pattern", () => {
+    process.env[envKey] = JSON.stringify(minimalPersona({ username: "Has Spaces" }));
+    const p = loadPersona();
+    expect(p.username).toBe(DEFAULT_PERSONA.username);
+  });
+
+  it("falls back when a declared locale has no content pool", () => {
+    process.env[envKey] = JSON.stringify(
+      minimalPersona({
+        locales: ["en", "de"],
+        // intentionally omit de pools
+      }),
+    );
+    const p = loadPersona();
+    expect(p.username).toBe(DEFAULT_PERSONA.username);
+  });
+
+  it("falls back when a pool has fewer than 3 entries", () => {
+    process.env[envKey] = JSON.stringify(
+      minimalPersona({
+        content: {
+          names: { en: ["only", "two"] },
+          descriptions: { en: ["d1", "d2", "d3"] },
+        },
+      }),
+    );
+    const p = loadPersona();
+    expect(p.username).toBe(DEFAULT_PERSONA.username);
+  });
+
+  it("reads a persona from a file: path", () => {
+    const dir = mkdtempSync(join(tmpdir(), "demo-persona-"));
+    const path = join(dir, "persona.json");
+    writeFileSync(path, JSON.stringify(minimalPersona({ username: "from-file" })));
+    try {
+      process.env[envKey] = `file:${path}`;
+      const p = loadPersona();
+      expect(p.username).toBe("from-file");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back when a file: path is unreadable", () => {
+    process.env[envKey] = "file:/nonexistent/does-not-exist.json";
+    const p = loadPersona();
+    expect(p.username).toBe(DEFAULT_PERSONA.username);
+  });
+});
+
+describe("templateName / templateDescription with custom persona", () => {
+  it("draws from the supplied persona's pool and never leaks entries from the default", () => {
+    const persona = minimalPersona();
+    const bannedSubstring = "Grunewald"; // present in DEFAULT_PERSONA but not in `persona`
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(2026, 3, 1 + (i % 28), i % 24, i % 60, i);
+      const name = templateName(d, "en", persona);
+      const desc = templateDescription(d, "en", persona);
+      expect(persona.content.names.en).toContain(name);
+      expect(persona.content.descriptions.en).toContain(desc);
+      expect(name).not.toContain(bannedSubstring);
+      expect(desc).not.toContain(bannedSubstring);
+    }
+  });
+});
+
+describe("pickLocale", () => {
+  it("only returns locales declared by the persona", () => {
+    const persona = minimalPersona({ locales: ["en"] });
+    for (let i = 0; i < 10; i++) {
+      expect(pickLocale(persona)).toBe("en");
+    }
+  });
+
+  it("distributes across declared locales", () => {
+    const persona = minimalPersona({
+      locales: ["en", "de"],
+      content: {
+        names: {
+          en: ["en1", "en2", "en3"],
+          de: ["de1", "de2", "de3"],
+        },
+        descriptions: {
+          en: ["d1", "d2", "d3"],
+          de: ["ds1", "ds2", "ds3"],
+        },
+      },
+    });
+    expect(pickLocale(persona, () => 0)).toBe("en");
+    expect(pickLocale(persona, () => 0.99)).toBe("de");
   });
 });
