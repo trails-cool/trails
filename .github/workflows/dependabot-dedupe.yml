@@ -8,6 +8,14 @@ name: Dependabot dedupe
 # This workflow fires on every dependabot PR, runs `pnpm dedupe`, and
 # pushes the resulting lockfile update back to the PR branch so the
 # subsequent CI run tests the deduped tree.
+#
+# Requires `DEPENDABOT_DEDUPE_TOKEN` — a repo secret holding a
+# fine-grained PAT (or GitHub App token) with `contents: write` on
+# this repo. The default `GITHUB_TOKEN` would work for the push but
+# would NOT trigger a subsequent CI run on that push (GitHub's
+# anti-loop safeguard), leaving the PR with stale green CI from
+# before the dedupe commit. A PAT re-triggers CI so the reviewer
+# sees test results for the state they'd actually be merging.
 
 on:
   pull_request:
@@ -21,14 +29,23 @@ jobs:
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
+      - name: Require DEPENDABOT_DEDUPE_TOKEN
+        env:
+          TOKEN: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::DEPENDABOT_DEDUPE_TOKEN is not set. This workflow"
+            echo "::error::requires a PAT so the dedupe commit re-triggers CI."
+            echo "::error::See .github/workflows/dependabot-dedupe.yml header."
+            exit 1
+          fi
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
-          # Use a PAT-like token so the follow-up push re-triggers CI
-          # (pushes made with GITHUB_TOKEN do not trigger workflow runs).
-          # Falls back to GITHUB_TOKEN in environments that don't have
-          # the PAT configured — still pushes, just without re-running CI.
-          token: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN || secrets.GITHUB_TOKEN }}
+          # Persist this token in .git/config's http.extraheader so the
+          # later `git push` authenticates as the PAT. That's what makes
+          # the dedupe commit trigger CI.
+          token: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
