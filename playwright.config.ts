@@ -40,6 +40,14 @@ export default defineConfig({
       },
     },
     {
+      name: "public-content",
+      testMatch: "public-content.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
+    {
       name: "integration",
       testMatch: "integration.test.ts",
       use: {

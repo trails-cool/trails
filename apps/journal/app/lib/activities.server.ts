@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes, syncImports } from "@trails-cool/db/schema/journal";
+import type { Visibility } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
 import { setGeomFromGpx } from "./routes.server.ts";
 
@@ -13,6 +14,21 @@ export interface ActivityInput {
   distance?: number | null;
   duration?: number | null;
   startedAt?: Date | null;
+  visibility?: Visibility;
+}
+
+export async function updateActivityVisibility(
+  id: string,
+  ownerId: string,
+  visibility: Visibility,
+): Promise<boolean> {
+  const db = getDb();
+  const result = await db
+    .update(activities)
+    .set({ visibility })
+    .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)))
+    .returning({ id: activities.id });
+  return result.length > 0;
 }
 
 export async function createActivity(ownerId: string, input: ActivityInput) {
@@ -93,6 +109,24 @@ export async function listActivities(ownerId: string) {
     .select()
     .from(activities)
     .where(eq(activities.ownerId, ownerId))
+    .orderBy(desc(activities.createdAt));
+
+  const ids = rows.map((r) => r.id);
+  const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();
+  return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
+}
+
+/**
+ * List the *public* activities of a given owner. Used for cross-user
+ * listings (the public profile page); never includes `unlisted` or
+ * `private` content.
+ */
+export async function listPublicActivitiesForOwner(ownerId: string) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(activities)
+    .where(and(eq(activities.ownerId, ownerId), eq(activities.visibility, "public")))
     .orderBy(desc(activities.createdAt));
 
   const ids = rows.map((r) => r.id);

@@ -13,6 +13,7 @@ import type {
 } from "@simplewebauthn/types";
 import { getDb } from "./db.ts";
 import { users, credentials, magicTokens } from "@trails-cool/db/schema/journal";
+import type { Visibility } from "@trails-cool/db/schema/journal";
 
 const RP_NAME = "trails.cool";
 const RP_ID = process.env.DOMAIN ?? "localhost";
@@ -409,6 +410,45 @@ export const sessionStorage = createCookieSessionStorage({
     secrets: [sessionSecret],
   },
 });
+
+/**
+ * A row that carries the minimum a visibility check needs.
+ */
+export interface Viewable {
+  ownerId: string;
+  visibility: Visibility;
+}
+
+/**
+ * The caller's identity. `null` represents a logged-out visitor.
+ */
+export interface Viewer {
+  id: string;
+}
+
+/**
+ * Decide whether a viewer may see a piece of content.
+ *
+ * - `public` content is viewable by anyone.
+ * - `unlisted` content is viewable only on direct-link access — listings
+ *   should omit it. Callers rendering a detail page pass `asDirectLink:
+ *   true`; listings default to `false`.
+ * - `private` content is viewable only by the owner.
+ *
+ * Centralised here so detail loaders and listing queries use the same
+ * rule. Intentionally does not throw; callers handle the `false` case
+ * (usually by returning HTTP 404 rather than 403 to avoid leaking
+ * existence).
+ */
+export function canView(
+  content: Viewable,
+  viewer: Viewer | null,
+  { asDirectLink = false }: { asDirectLink?: boolean } = {},
+): boolean {
+  if (content.visibility === "public") return true;
+  if (content.visibility === "unlisted" && asDirectLink) return true;
+  return viewer?.id === content.ownerId;
+}
 
 /**
  * Record the user's acceptance of the current Terms version. Updates both

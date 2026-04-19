@@ -1,7 +1,11 @@
 import { data, redirect } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id.edit";
 import { getSessionUser } from "~/lib/auth.server";
 import { getRoute, updateRoute } from "~/lib/routes.server";
+import type { Visibility } from "@trails-cool/db/schema/journal";
+
+const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
@@ -12,7 +16,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (route.ownerId !== user.id) throw data({ error: "Not authorized" }, { status: 403 });
 
   return data({
-    route: { id: route.id, name: route.name, description: route.description },
+    route: {
+      id: route.id,
+      name: route.name,
+      description: route.description,
+      visibility: route.visibility,
+    },
   });
 }
 
@@ -24,12 +33,16 @@ export async function action({ params, request }: Route.ActionArgs) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const gpxFile = formData.get("gpx") as File | null;
+  const visibilityRaw = formData.get("visibility") as string | null;
 
-  const input: { name?: string; description?: string; gpx?: string } = {};
+  const input: { name?: string; description?: string; gpx?: string; visibility?: Visibility } = {};
   if (name) input.name = name;
   if (description !== null) input.description = description;
   if (gpxFile && gpxFile.size > 0) {
     input.gpx = await gpxFile.text();
+  }
+  if (visibilityRaw && VISIBILITY_VALUES.has(visibilityRaw as Visibility)) {
+    input.visibility = visibilityRaw as Visibility;
   }
 
   await updateRoute(params.id, user.id, input);
@@ -42,6 +55,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function EditRoutePage({ loaderData }: Route.ComponentProps) {
   const { route } = loaderData;
+  const { t } = useTranslation("journal");
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -73,6 +87,27 @@ export default function EditRoutePage({ loaderData }: Route.ComponentProps) {
             defaultValue={route.description ?? ""}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
+        </div>
+
+        <div>
+          <label htmlFor="visibility" className="block text-sm font-medium text-gray-700">
+            {t("routes.visibility.label")}
+          </label>
+          <select
+            id="visibility"
+            name="visibility"
+            defaultValue={route.visibility}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="private">{t("routes.visibility.private")}</option>
+            <option value="unlisted">{t("routes.visibility.unlisted")}</option>
+            <option value="public">{t("routes.visibility.public")}</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            {route.visibility === "private" && t("routes.visibility.privateHelp")}
+            {route.visibility === "unlisted" && t("routes.visibility.unlistedHelp")}
+            {route.visibility === "public" && t("routes.visibility.publicHelp")}
+          </p>
         </div>
 
         <div>

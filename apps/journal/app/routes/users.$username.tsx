@@ -1,9 +1,13 @@
 import { data } from "react-router";
 import type { Route } from "./+types/users.$username";
+import { useTranslation } from "react-i18next";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
 import { eq } from "drizzle-orm";
 import { getSessionUser } from "~/lib/auth.server";
+import { listPublicRoutesForOwner } from "~/lib/routes.server";
+import { listPublicActivitiesForOwner } from "~/lib/activities.server";
+import { ClientDate } from "~/components/ClientDate";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const db = getDb();
@@ -13,8 +17,19 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data({ error: "User not found" }, { status: 404 });
   }
 
-  const currentUser = await getSessionUser(request);
+  const [publicRoutes, publicActivities, currentUser] = await Promise.all([
+    listPublicRoutesForOwner(user.id),
+    listPublicActivitiesForOwner(user.id),
+    getSessionUser(request),
+  ]);
+
   const isOwn = currentUser?.id === user.id;
+
+  // 404 for users with no public content at all, to prevent account
+  // enumeration. Owners still see their own profile even when empty.
+  if (!isOwn && publicRoutes.length === 0 && publicActivities.length === 0) {
+    throw data({ error: "User not found" }, { status: 404 });
+  }
 
   return data({
     user: {
@@ -24,20 +39,54 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       domain: user.domain,
       createdAt: user.createdAt.toISOString(),
     },
+    routes: publicRoutes.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      distance: r.distance,
+      elevationGain: r.elevationGain,
+      updatedAt: r.updatedAt.toISOString(),
+    })),
+    activities: publicActivities.map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      distance: a.distance,
+      duration: a.duration,
+      startedAt: a.startedAt?.toISOString() ?? null,
+      createdAt: a.createdAt.toISOString(),
+    })),
     isOwn,
   });
 }
 
 export function meta({ data: loaderData }: Route.MetaArgs) {
-  const username = (loaderData as { user: { username: string } })?.user?.username ?? "User";
-  return [{ title: `@${username} — trails.cool` }];
+  const user = (loaderData as { user?: { username: string; displayName: string | null; domain: string; bio: string | null } })?.user;
+  const displayName = user?.displayName ?? user?.username ?? "Profile";
+  const title = `${displayName} (@${user?.username}) — trails.cool`;
+  const description = user?.bio && user.bio.length > 0
+    ? user.bio.slice(0, 280)
+    : `${displayName} on trails.cool`;
+
+  if (!user) return [{ title }];
+  return [
+    { title },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:type", content: "profile" },
+    { property: "og:site_name", content: "trails.cool" },
+    { name: "twitter:card", content: "summary" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+  ];
 }
 
 export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, isOwn } = loaderData;
+  const { user, routes, activities, isOwn } = loaderData;
+  const { t } = useTranslation("journal");
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex items-start gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-600">
           {user.username[0]?.toUpperCase()}
@@ -54,22 +103,77 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
       </div>
 
       {isOwn && (
-        <div className="mt-6 flex gap-2">
-          <form action="/auth/logout" method="post">
-            <button
-              type="submit"
-              className="rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200"
-            >
-              Log out
-            </button>
-          </form>
+        <div className="mt-6 rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
+          {t("profile.ownNote")}{" "}
+          <a href="/settings" className="underline hover:text-blue-900">
+            {t("profile.goToSettings")}
+          </a>
         </div>
       )}
 
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">Routes</h2>
-        <p className="mt-2 text-sm text-gray-500">No routes yet.</p>
-      </div>
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900">
+          {t("routes.title")} ({routes.length})
+        </h2>
+        {routes.length === 0 ? (
+          <p className="mt-2 text-sm text-gray-500">{t("profile.noPublicRoutes")}</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200">
+            {routes.map((r) => (
+              <li key={r.id} className="px-4 py-3">
+                <a href={`/routes/${r.id}`} className="block hover:bg-gray-50">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="font-medium text-gray-900">{r.name}</span>
+                    {r.distance != null && (
+                      <span className="shrink-0 text-sm tabular-nums text-gray-600">
+                        {(r.distance / 1000).toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
+                  {r.description && (
+                    <p className="mt-1 line-clamp-1 text-sm text-gray-500">{r.description}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-400">
+                    <ClientDate iso={r.updatedAt} />
+                  </p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900">
+          {t("activities.title")} ({activities.length})
+        </h2>
+        {activities.length === 0 ? (
+          <p className="mt-2 text-sm text-gray-500">{t("profile.noPublicActivities")}</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200">
+            {activities.map((a) => (
+              <li key={a.id} className="px-4 py-3">
+                <a href={`/activities/${a.id}`} className="block hover:bg-gray-50">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="font-medium text-gray-900">{a.name}</span>
+                    {a.distance != null && (
+                      <span className="shrink-0 text-sm tabular-nums text-gray-600">
+                        {(a.distance / 1000).toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
+                  {a.description && (
+                    <p className="mt-1 line-clamp-1 text-sm text-gray-500">{a.description}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-400">
+                    <ClientDate iso={a.startedAt ?? a.createdAt} />
+                  </p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

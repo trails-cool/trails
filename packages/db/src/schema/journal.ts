@@ -58,6 +58,15 @@ export const magicTokens = journalSchema.table("magic_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Visibility for routes and activities. Stored as a plain text column so we
+ * can extend without a migration. See spec `public-content-visibility`.
+ *  - private: only the owner can view
+ *  - unlisted: anyone with the direct URL can view; excluded from listings
+ *  - public: anyone can view; appears in listings and profiles
+ */
+export type Visibility = "private" | "unlisted" | "public";
+
 export const routes = journalSchema.table("routes", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id")
@@ -74,6 +83,7 @@ export const routes = journalSchema.table("routes", {
   dayBreaks: jsonb("day_breaks").$type<number[]>(),
   tags: jsonb("tags").$type<string[]>(),
   plannerState: bytea("planner_state"),
+  visibility: text("visibility").$type<Visibility>().notNull().default("private"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -107,6 +117,7 @@ export const activities = journalSchema.table("activities", {
   elevationLoss: real("elevation_loss"),
   photos: jsonb("photos").$type<string[]>(),
   participants: jsonb("participants").$type<string[]>(),
+  visibility: text("visibility").$type<Visibility>().notNull().default("private"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

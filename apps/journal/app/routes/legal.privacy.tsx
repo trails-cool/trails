@@ -375,6 +375,14 @@ export default function PrivacyPage() {
           <li>Routes: GPX, geometry, title, description</li>
           <li>Activities: title, description, date, linked route</li>
           <li>GPX / JSON export available per object and overall</li>
+          <li>
+            Routes and activities each carry a visibility setting
+            (<code>private</code> / <code>unlisted</code> / <code>public</code>)
+            that defaults to <code>private</code>. Content you explicitly mark
+            <code> public</code> is visible to anyone on the internet,
+            including on your public profile at <code>/users/&lt;you&gt;</code>
+            and on search engines that index those pages.
+          </li>
         </ul>
       </section>
 
