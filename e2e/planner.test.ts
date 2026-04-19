@@ -421,8 +421,10 @@ test.describe("Planner", () => {
     const sessionResp = await request.post("/api/sessions", { data: {} });
     const { url } = await sessionResp.json();
 
-    // Mock Overpass API to return a test POI at the map center
-    await page.route("**/api/interpreter", async (route) => {
+    // The browser queries POIs through the planner's `/api/overpass`
+    // proxy (not the upstream Overpass directly), so that's what we
+    // intercept here. Response body is the same Overpass JSON shape.
+    await page.route("**/api/overpass", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
