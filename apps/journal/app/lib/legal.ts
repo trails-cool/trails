@@ -16,4 +16,4 @@ export const TERMS_VERSION = "2026-04-19";
  * require re-acceptance (the policy is informational, not contract), so this
  * is display-only — not persisted.
  */
-export const PRIVACY_LAST_UPDATED = "2026-04-19";
+export const PRIVACY_LAST_UPDATED = "2026-04-20";

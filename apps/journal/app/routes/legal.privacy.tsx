@@ -73,7 +73,14 @@ export default function PrivacyPage() {
             <strong>Nutzerinhalte (Journal):</strong> Routen (GPX-Daten,
             Geometrie, Titel, Beschreibung) und Aktivitäten (Titel,
             Beschreibung, Datum, Verknüpfung zu Routen). Zweck: Speicherung
-            und Anzeige innerhalb des Dienstes.
+            und Anzeige innerhalb des Dienstes. Jede Route und jede
+            Aktivität hat eine Sichtbarkeits-Einstellung
+            (<code>privat</code> / <code>nicht gelistet</code> / <code>öffentlich</code>),
+            die standardmäßig auf <code>privat</code> gesetzt ist. Inhalte,
+            die Sie ausdrücklich auf <code>öffentlich</code> setzen, sind
+            weltweit abrufbar – einschließlich auf Ihrem öffentlichen
+            Profil unter <code>/users/&lt;benutzername&gt;</code> – und
+            können von Suchmaschinen indexiert werden.
           </li>
           <li>
             <strong>Anmeldedaten (Journal):</strong> kurzlebige Magic-Link-Token
@@ -106,9 +113,13 @@ export default function PrivacyPage() {
         <p className="mt-3 text-sm text-gray-600">
           <em>English.</em> The Journal stores only what you provide (account
           details and your own routes/activities) plus short-lived auth
-          artefacts. The Planner is anonymous and holds only ephemeral
-          session state. Server logs and Sentry error data are covered
-          separately below.
+          artefacts. Each route and activity has a visibility setting
+          (<code>private</code> / <code>unlisted</code> / <code>public</code>)
+          that defaults to <code>private</code>; content you mark{" "}
+          <code>public</code> is world-visible (on your public profile and
+          indexable by search engines). The Planner is anonymous and holds
+          only ephemeral session state. Server logs and Sentry error data
+          are covered separately below.
         </p>
       </section>
 
@@ -375,6 +386,14 @@ export default function PrivacyPage() {
           <li>Routes: GPX, geometry, title, description</li>
           <li>Activities: title, description, date, linked route</li>
           <li>GPX / JSON export available per object and overall</li>
+          <li>
+            Routes and activities each carry a visibility setting
+            (<code>private</code> / <code>unlisted</code> / <code>public</code>)
+            that defaults to <code>private</code>. Content you explicitly mark
+            <code> public</code> is visible to anyone on the internet,
+            including on your public profile at <code>/users/&lt;you&gt;</code>
+            and on search engines that index those pages.
+          </li>
         </ul>
       </section>
 

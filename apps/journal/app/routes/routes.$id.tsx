@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
-import { getSessionUser } from "~/lib/auth.server";
+import { canView, getSessionUser } from "~/lib/auth.server";
 import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
@@ -18,6 +18,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   const user = await getSessionUser(request);
   const isOwner = user?.id === route.ownerId;
+
+  // Visibility gate: public always renders, unlisted renders on direct link,
+  // private requires ownership. Return 404 (not 403) to avoid leaking existence.
+  if (!canView(route, user, { asDirectLink: true })) {
+    throw data({ error: "Route not found" }, { status: 404 });
+  }
 
   // Compute per-day stats if route has day breaks and GPX
   let dayStats: Array<{ dayNumber: number; startName?: string; endName?: string; distance: number; ascent: number; descent: number }> = [];
@@ -44,6 +50,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       hasGpx: !!route.gpx,
       dayBreaks: route.dayBreaks ?? [],
       geojson: routeWithGeojson?.geojson ?? null,
+      visibility: route.visibility,
       createdAt: route.createdAt.toISOString(),
       updatedAt: route.updatedAt.toISOString(),
     },
@@ -89,8 +96,29 @@ export async function action({ params, request }: Route.ActionArgs) {
 }
 
 export function meta({ data: loaderData }: Route.MetaArgs) {
-  const name = (loaderData as { route: { name: string } })?.route?.name ?? "Route";
-  return [{ title: `${name} — trails.cool` }];
+  const route = (loaderData as { route?: { name: string; description: string | null; visibility: string } })?.route;
+  const name = route?.name ?? "Route";
+  const title = `${name} — trails.cool`;
+  const tags: Array<Record<string, string>> = [{ title }];
+
+  // Only emit Open Graph / Twitter Card tags for publicly-reachable content.
+  // Private routes are gated before meta is even called, but belt-and-braces.
+  if (route && (route.visibility === "public" || route.visibility === "unlisted")) {
+    const description = (route.description && route.description.length > 0)
+      ? route.description.slice(0, 280)
+      : `A route on trails.cool`;
+    tags.push(
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "article" },
+      { property: "og:site_name", content: "trails.cool" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    );
+  }
+
+  return tags;
 }
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {

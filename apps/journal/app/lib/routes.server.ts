@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { routes, routeVersions } from "@trails-cool/db/schema/journal";
+import type { Visibility } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
 import { sql } from "drizzle-orm";
 
@@ -10,6 +11,7 @@ export interface RouteInput {
   description?: string;
   gpx?: string;
   routingProfile?: string;
+  visibility?: Visibility;
 }
 
 export async function createRoute(ownerId: string, input: RouteInput) {
@@ -96,6 +98,23 @@ export async function listRoutes(ownerId: string) {
   return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
 }
 
+/**
+ * List the *public* routes of a given owner. Used for cross-user listings
+ * (the public profile page); never includes `unlisted` or `private` content.
+ */
+export async function listPublicRoutesForOwner(ownerId: string) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(routes)
+    .where(and(eq(routes.ownerId, ownerId), eq(routes.visibility, "public")))
+    .orderBy(desc(routes.updatedAt));
+
+  const ids = rows.map((r) => r.id);
+  const geojsonMap = ids.length > 0 ? await getSimplifiedGeojsonBatch(ids) : new Map();
+  return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
+}
+
 export async function updateRoute(
   id: string,
   ownerId: string,
@@ -106,6 +125,7 @@ export async function updateRoute(
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
+  if (input.visibility !== undefined) updateData.visibility = input.visibility;
 
   if (input.gpx) {
     updateData.gpx = input.gpx;

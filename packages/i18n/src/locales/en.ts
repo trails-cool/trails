@@ -186,6 +186,21 @@ export default {
         openInPlanner: "Open in Planner",
         uploadGpx: "or upload a GPX file",
       },
+      visibility: {
+        label: "Visibility",
+        private: "Private",
+        unlisted: "Unlisted (only people with the link)",
+        public: "Public (anyone on the internet)",
+        privateHelp: "Only you can see this route.",
+        unlistedHelp: "Anyone with the URL can view it; it won't appear on your public profile.",
+        publicHelp: "Visible to anyone, including logged-out visitors; listed on your public profile.",
+      },
+    },
+    profile: {
+      ownNote: "This is your profile — visitors see only what you've marked public.",
+      goToSettings: "Go to settings",
+      noPublicRoutes: "No public routes yet.",
+      noPublicActivities: "No public activities yet.",
     },
     activities: {
       title: "Activities",
@@ -196,6 +211,12 @@ export default {
       delete: "Delete Activity",
       deleteConfirm: "Are you sure you want to delete this activity?",
       importedFrom: "Imported from {{provider}}",
+      visibility: {
+        label: "Visibility",
+        private: "Private",
+        unlisted: "Unlisted (only people with the link)",
+        public: "Public (anyone on the internet)",
+      },
     },
     settings: {
       title: "Settings",
