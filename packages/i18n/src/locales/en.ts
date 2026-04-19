@@ -179,6 +179,13 @@ export default {
       noRoutesYet: "No routes yet. Create your first route!",
       noMapPreview: "No map preview",
       saveChanges: "Save Changes",
+      empty: {
+        heading: "This route is empty",
+        bodyOwner: "You haven't planned any waypoints yet. Open it in the Planner to sketch a path, or upload a GPX file.",
+        bodyViewer: "This route doesn't have any waypoints yet.",
+        openInPlanner: "Open in Planner",
+        uploadGpx: "or upload a GPX file",
+      },
     },
     activities: {
       title: "Activities",

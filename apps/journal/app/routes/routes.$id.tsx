@@ -99,6 +99,11 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const [editLoading, setEditLoading] = useState(false);
   const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
 
+  // A route is "empty" when it has no geometry and no computed distance —
+  // i.e. nobody has planned any waypoints yet. Surfaced as a dedicated
+  // empty-state below so the page isn't a dead end.
+  const isEmpty = !route.geojson && route.distance == null;
+
   const handleEditInPlanner = useCallback(async () => {
     setEditLoading(true);
     try {
@@ -121,7 +126,7 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
             <p className="mt-2 text-gray-600">{route.description}</p>
           )}
         </div>
-        {isOwner && (
+        {isOwner && !isEmpty && (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={handleEditInPlanner}
@@ -219,6 +224,35 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
       {route.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
           <ClientMap geojson={route.geojson} interactive className="h-full w-full" dayBreaks={route.dayBreaks.length > 0 ? route.dayBreaks : undefined} highlightedDay={highlightedDay} />
+        </div>
+      )}
+
+      {isEmpty && (
+        <div className="mt-6 flex flex-col items-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
+          <div className="text-4xl" aria-hidden="true">🗺️</div>
+          <h2 className="mt-4 text-lg font-semibold text-gray-900">
+            {t("routes.empty.heading")}
+          </h2>
+          <p className="mt-2 max-w-md text-sm text-gray-600">
+            {isOwner ? t("routes.empty.bodyOwner") : t("routes.empty.bodyViewer")}
+          </p>
+          {isOwner && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={handleEditInPlanner}
+                disabled={editLoading}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {editLoading ? t("routes.opening") : t("routes.empty.openInPlanner")}
+              </button>
+              <a
+                href={`/routes/${route.id}/edit`}
+                className="text-sm text-gray-600 underline hover:text-gray-900"
+              >
+                {t("routes.empty.uploadGpx")}
+              </a>
+            </div>
+          )}
         </div>
       )}
 
