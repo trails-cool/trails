@@ -42,13 +42,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
-          # With `persist-credentials: true`, checkout stores this token
-          # in $RUNNER_TEMP and wires a git credential helper that
-          # supplies it on subsequent HTTPS git calls. That's what makes
-          # the later `git push` authenticate as the PAT, which in turn
-          # re-triggers CI on the dedupe commit. `true` is the checkout
-          # default — made explicit here so the mechanism is visible
-          # from the YAML instead of implicit in the action.
+          # With `persist-credentials: true`, this PAT is stashed by the
+          # action (under $RUNNER_TEMP in recent versions) and made
+          # available to subsequent git operations in this workspace —
+          # so the later `git push` authenticates as the PAT, which is
+          # what gets CI to re-trigger on the dedupe commit. `true` is
+          # the checkout default; pinned explicitly here because it's
+          # load-bearing for this workflow.
           token: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
           persist-credentials: true
       - uses: pnpm/action-setup@v6
