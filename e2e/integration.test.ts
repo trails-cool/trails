@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/test";
 
 /**
  * Integration tests that require the full dev stack:
