@@ -12,7 +12,7 @@ import { logger } from "../lib/logger.server.ts";
  * `DEMO_BOT_RETENTION_DAYS` (default 14). Never touches real users.
  */
 export const demoBotPruneJob: JobDefinition = {
-  name: "demo-bot:prune",
+  name: "demo-bot-prune",
   cron: "15 3 * * *",
   retryLimit: 1,
   expireInSeconds: 60,
