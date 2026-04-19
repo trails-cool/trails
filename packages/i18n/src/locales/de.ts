@@ -179,6 +179,13 @@ export default {
       noRoutesYet: "Noch keine Routen. Erstelle deine erste Route!",
       noMapPreview: "Keine Kartenvorschau",
       saveChanges: "Änderungen speichern",
+      empty: {
+        heading: "Diese Route ist leer",
+        bodyOwner: "Du hast noch keine Wegpunkte geplant. Öffne sie im Planer, um eine Strecke zu skizzieren, oder lade eine GPX-Datei hoch.",
+        bodyViewer: "Diese Route enthält noch keine Wegpunkte.",
+        openInPlanner: "Im Planer öffnen",
+        uploadGpx: "oder eine GPX-Datei hochladen",
+      },
     },
     activities: {
       title: "Aktivitäten",
