@@ -19,8 +19,8 @@ catalog:
   drizzle-orm: ^0.45.2
   drizzle-kit: ^0.31.10
   drizzle-postgis: ^1.1.1
-  "@sentry/node": ^10.48.0
-  "@sentry/react": ^10.48.0
+  "@sentry/node": ^10.49.0
+  "@sentry/react": ^10.49.0
   postgres: ^3.4.9
   "@types/node": ^22.0.0
 

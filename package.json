@@ -56,20 +56,20 @@
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
     "drizzle-postgis": "catalog:",
-    "eslint": "^10.2.0",
+    "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "fit-file-parser": "^2.3.3",
-    "i18next": "^26.0.3",
+    "i18next": "^26.0.6",
     "i18next-browser-languagedetector": "^8.2.1",
     "jsdom": "^29.0.2",
     "leaflet": "^1.9.4",
     "linkedom": "^0.18.12",
     "playwright": "^1.59.1",
     "postgres": "catalog:",
-    "prettier": "^3.8.2",
+    "prettier": "^3.8.3",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-i18next": "^17.0.2",
+    "react-i18next": "^17.0.4",
     "react-leaflet": "^5.0.0",
     "react-router": "catalog:",
     "tailwindcss": "catalog:",
@@ -82,6 +82,6 @@
   "dependencies": {
     "expo": "~55.0.15",
     "react": "19.2.0",
-    "react-native": "0.83.4"
+    "react-native": "0.85.1"
   }
 }
