@@ -1,28 +1,51 @@
 import client from "prom-client";
 
-// Collect default Node.js metrics (event loop, heap, GC)
-client.collectDefaultMetrics();
+// React Router's build sometimes produces two module instances of this
+// file (server entry + route module graph). prom-client's registry is a
+// process-wide singleton, so re-running the `new Gauge(...)` / `new
+// Histogram(...)` / `collectDefaultMetrics()` calls on the second load
+// throws "metric already registered". Guard everything via
+// `getSingleMetric` so a second module load reuses the existing objects.
 
-export const httpRequestDuration = new client.Histogram({
-  name: "http_request_duration_seconds",
-  help: "Duration of HTTP requests in seconds",
-  labelNames: ["method", "route", "status"] as const,
-  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
-});
+function getOrCreate<T extends client.Metric<string>>(
+  name: string,
+  create: () => T,
+): T {
+  const existing = client.register.getSingleMetric(name);
+  if (existing) return existing as T;
+  return create();
+}
 
-/**
- * Count of synthetic demo-bot routes currently in the database. Scraped
- * by the background worker after each generation run so the Grafana
- * board stays live without a /metrics handler on the worker process.
- */
-export const demoBotSyntheticRoutesTotal = new client.Gauge({
-  name: "demo_bot_synthetic_routes_total",
-  help: "Total synthetic demo-bot routes currently stored",
-});
+// Default process/Node metrics: registered exactly once.
+if (!client.register.getSingleMetric("process_cpu_user_seconds_total")) {
+  client.collectDefaultMetrics();
+}
 
-export const demoBotSyntheticActivitiesTotal = new client.Gauge({
-  name: "demo_bot_synthetic_activities_total",
-  help: "Total synthetic demo-bot activities currently stored",
-});
+export const httpRequestDuration = getOrCreate("http_request_duration_seconds", () =>
+  new client.Histogram({
+    name: "http_request_duration_seconds",
+    help: "Duration of HTTP requests in seconds",
+    labelNames: ["method", "route", "status"] as const,
+    buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+  }),
+);
+
+export const demoBotSyntheticRoutesTotal = getOrCreate(
+  "demo_bot_synthetic_routes_total",
+  () =>
+    new client.Gauge({
+      name: "demo_bot_synthetic_routes_total",
+      help: "Total synthetic demo-bot routes currently stored",
+    }),
+);
+
+export const demoBotSyntheticActivitiesTotal = getOrCreate(
+  "demo_bot_synthetic_activities_total",
+  () =>
+    new client.Gauge({
+      name: "demo_bot_synthetic_activities_total",
+      help: "Total synthetic demo-bot activities currently stored",
+    }),
+);
 
 export const registry = client.register;
