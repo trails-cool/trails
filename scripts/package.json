@@ -1,0 +1,13 @@
+{
+  "name": "@trails-cool/scripts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
+}
