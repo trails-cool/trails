@@ -44,8 +44,11 @@ jobs:
           ref: ${{ github.head_ref }}
           # Persist this token in .git/config's http.extraheader so the
           # later `git push` authenticates as the PAT. That's what makes
-          # the dedupe commit trigger CI.
+          # the dedupe commit trigger CI. `persist-credentials: true` is
+          # the checkout default — made explicit here so the mechanism
+          # is visible from the YAML instead of implicit in the action.
           token: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
+          persist-credentials: true
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
