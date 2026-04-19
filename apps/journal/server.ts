@@ -108,21 +108,38 @@ server.listen(port, async () => {
   const { seedOAuthClient } = await import("./app/lib/oauth.server.ts");
   await seedOAuthClient("trails-cool-mobile", "trailscool://auth/callback", true);
 
-  // Start background job worker
-  const { demoBotGenerateJob } = await import("./app/jobs/demo-bot-generate.ts");
-  const { demoBotPruneJob } = await import("./app/jobs/demo-bot-prune.ts");
-  const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
-  await startWorker(boss, [demoBotGenerateJob, demoBotPruneJob]);
-  logger.info("Background job worker started");
-
-  // Bootstrap the demo user when the bot is enabled; cheap idempotent insert.
+  // Pre-flight the demo user so a persona username that clashes with a
+  // real account blocks job scheduling rather than silently attaching
+  // synthetic rows to a human.
+  let enableDemoJobs = false;
   if (process.env.DEMO_BOT_ENABLED === "true") {
-    const { ensureDemoUser } = await import("./app/lib/demo-bot.server.ts");
+    const { ensureDemoUser, DemoPersonaUsernameClashError } = await import(
+      "./app/lib/demo-bot.server.ts"
+    );
     try {
       const id = await ensureDemoUser();
       logger.info({ id }, "demo-bot user ensured");
+      enableDemoJobs = true;
     } catch (err) {
-      logger.error({ err }, "demo-bot ensureDemoUser failed");
+      if (err instanceof DemoPersonaUsernameClashError) {
+        logger.error(
+          { username: err.username },
+          "demo persona username clash — demo jobs disabled for this process",
+        );
+      } else {
+        logger.error({ err }, "demo-bot ensureDemoUser failed");
+      }
     }
   }
+
+  // Start background job worker
+  const demoJobs: Parameters<typeof startWorker>[1] = [];
+  if (enableDemoJobs) {
+    const { demoBotGenerateJob } = await import("./app/jobs/demo-bot-generate.ts");
+    const { demoBotPruneJob } = await import("./app/jobs/demo-bot-prune.ts");
+    demoJobs.push(demoBotGenerateJob, demoBotPruneJob);
+  }
+  const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
+  await startWorker(boss, demoJobs);
+  logger.info("Background job worker started");
 });

@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { getSessionUser } from "~/lib/auth.server";
 import { listPublicRoutesForOwner } from "~/lib/routes.server";
 import { listPublicActivitiesForOwner } from "~/lib/activities.server";
+import { loadPersona } from "~/lib/demo-bot.server";
 import { ClientDate } from "~/components/ClientDate";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -30,6 +31,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (!isOwn && publicRoutes.length === 0 && publicActivities.length === 0) {
     throw data({ error: "User not found" }, { status: 404 });
   }
+
+  // Demo-account badge: true when this profile matches the instance's
+  // configured demo persona username. Computed server-side so we don't
+  // ship the persona config through client HTML.
+  const isDemoUser = user.username === loadPersona().username;
 
   return data({
     user: {
@@ -57,6 +63,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       createdAt: a.createdAt.toISOString(),
     })),
     isOwn,
+    isDemoUser,
   });
 }
 
@@ -82,10 +89,8 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, routes, activities, isOwn } = loaderData;
+  const { user, routes, activities, isOwn, isDemoUser } = loaderData;
   const { t } = useTranslation("journal");
-
-  const isDemo = user.username === "bruno";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -98,7 +103,7 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
             <h1 className="text-2xl font-bold text-gray-900">
               {user.displayName ?? user.username}
             </h1>
-            {isDemo && (
+            {isDemoUser && (
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                 {t("demo.badge")}
               </span>
