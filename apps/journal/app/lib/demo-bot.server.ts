@@ -640,13 +640,18 @@ export function berlinHour(now: Date): number {
 }
 
 /**
- * The decide-to-walk gate: only within 07–21 local, Bernoulli p=0.12.
+ * The decide-to-walk gate: only within 07–21 local, Bernoulli p=0.09.
  * Factored out so tests can replace `Math.random` / `now`.
+ *
+ * Cadence math: the job ticks every 30 min, so the 14-hour daytime
+ * window (07:00–21:00 Berlin) covers 28 ticks/day. With p=0.09 the
+ * expected walks/day ≈ 28 * 0.09 ≈ 2.52, which lands in the target
+ * 2–3 walks/day band.
  */
 export function shouldWalkNow(now: Date, rand: () => number = Math.random): boolean {
   const hour = berlinHour(now);
   if (hour < 7 || hour >= 21) return false;
-  return rand() < 0.12;
+  return rand() < 0.09;
 }
 
 export const DEMO_DAILY_CAP = 40;
