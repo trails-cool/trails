@@ -1,6 +1,13 @@
 import { useRef, useCallback } from "react";
 import { StyleSheet, View, Text } from "react-native";
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import {
+  Camera,
+  GeoJSONSource,
+  Layer,
+  Map,
+  ViewAnnotation,
+  type CameraRef,
+} from "@maplibre/maplibre-react-native";
 import type { Waypoint } from "@trails-cool/types";
 import type { RouteSegment } from "./use-route-editor";
 
@@ -40,7 +47,10 @@ export function RouteMap({
   onWaypointDragEnd: _onWaypointDragEnd,
   onWaypointPress,
 }: RouteMapProps) {
-  if (!MapLibreGL) {
+  // `Map` is undefined when the native module isn't linked (e.g. running
+  // in Expo Go). Same safety net as before the v11 upgrade, just against
+  // a named import instead of the removed default export.
+  if (!Map) {
     return (
       <View style={styles.fallback}>
         <Text style={styles.fallbackText}>Map</Text>
@@ -64,15 +74,16 @@ function RouteMapInner({
   onWaypointDragEnd: _onWaypointDragEnd,
   onWaypointPress,
 }: RouteMapProps) {
-  const ML = MapLibreGL!;
-  const cameraRef = useRef<MapLibreGL.CameraRef>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   const handleLongPress = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (event: any) => {
-      const coords = event?.geometry?.coordinates;
-      if (Array.isArray(coords) && coords.length >= 2) {
-        onLongPress(coords[1] as number, coords[0] as number);
+      // v11 event shape: payload lives on `event.nativeEvent.lngLat`
+      // (the old `event.geometry.coordinates` is gone).
+      const lngLat = event?.nativeEvent?.lngLat;
+      if (Array.isArray(lngLat) && lngLat.length >= 2) {
+        onLongPress(lngLat[1] as number, lngLat[0] as number);
       }
     },
     [onLongPress],
@@ -96,64 +107,59 @@ function RouteMapInner({
 
   return (
     <View style={styles.container}>
-      <ML.MapView
+      <Map
         style={styles.map}
         mapStyle={OSM_STYLE}
         onLongPress={handleLongPress}
-        attributionEnabled={false}
-        logoEnabled={false}
+        attribution={false}
+        logo={false}
       >
         {bounds && (
-          <ML.Camera
+          <Camera
             ref={cameraRef}
-            defaultSettings={{
-              bounds: {
-                ne: bounds.ne,
-                sw: bounds.sw,
-                paddingTop: 40,
-                paddingBottom: 40,
-                paddingLeft: 40,
-                paddingRight: 40,
-              },
+            initialViewState={{
+              bounds: [bounds.sw[0], bounds.sw[1], bounds.ne[0], bounds.ne[1]],
+              padding: { top: 40, right: 40, bottom: 40, left: 40 },
             }}
           />
         )}
 
         {!bounds && (
-          <ML.Camera
-            defaultSettings={{
-              centerCoordinate: [10.0, 50.1],
-              zoomLevel: 6,
+          <Camera
+            initialViewState={{
+              center: [10.0, 50.1],
+              zoom: 6,
             }}
           />
         )}
 
         {/* Route line */}
-        <ML.ShapeSource id="route" shape={routeGeojson}>
-          <ML.LineLayer
+        <GeoJSONSource id="route" data={routeGeojson}>
+          <Layer
             id="route-line"
-            style={{
-              lineColor: "#2563eb",
-              lineWidth: 4,
-              lineOpacity: computing ? 0.4 : 1,
+            type="line"
+            paint={{
+              "line-color": "#2563eb",
+              "line-width": 4,
+              "line-opacity": computing ? 0.4 : 1,
             }}
           />
-        </ML.ShapeSource>
+        </GeoJSONSource>
 
         {/* Waypoint markers */}
         {waypoints.map((wp, i) => (
-          <ML.MarkerView
+          <ViewAnnotation
             key={`wp-${i}`}
-            coordinate={[wp.lon, wp.lat]}
+            lngLat={[wp.lon, wp.lat]}
           >
             <WaypointMarker
               index={i}
               isDayBreak={wp.isDayBreak}
               onPress={() => onWaypointPress(i)}
             />
-          </ML.MarkerView>
+          </ViewAnnotation>
         ))}
-      </ML.MapView>
+      </Map>
 
       {computing && (
         <View style={styles.computingBanner}>

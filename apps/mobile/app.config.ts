@@ -1,11 +1,16 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+// `newArchEnabled` isn't in the Expo SDK 55 typings yet but is an
+// accepted runtime flag. MapLibre RN v11 requires the new architecture.
+type ExpoConfigWithNewArch = ExpoConfig & { newArchEnabled?: boolean };
+
+export default ({ config }: ConfigContext): ExpoConfigWithNewArch => ({
   ...config,
   name: "trails.cool",
   slug: "mobile",
   version: "0.0.1",
   scheme: "trailscool",
+  newArchEnabled: true,
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
