@@ -1,0 +1,142 @@
+{
+  "title": "Demo Bot (Bruno)",
+  "uid": "trails-demo-bot",
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": { "from": "now-14d", "to": "now" },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deploys",
+        "enable": true,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "target": { "limit": 100, "matchAny": false, "tags": ["deploy"], "type": "tags" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Synthetic Routes (total)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        { "expr": "demo_bot_synthetic_routes_total", "legendFormat": "routes" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } }
+    },
+    {
+      "title": "Synthetic Activities (total)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        { "expr": "demo_bot_synthetic_activities_total", "legendFormat": "activities" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } } }
+    },
+    {
+      "title": "Walks in last 24h",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM journal.routes WHERE synthetic AND created_at > now() - interval '24 hours'",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "title": "Last walk",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(extract(epoch FROM (now() - max(created_at)))::int, -1) AS \"seconds ago\" FROM journal.routes WHERE synthetic",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 14400 },
+              { "color": "red", "value": 86400 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Synthetic content over time",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        { "expr": "demo_bot_synthetic_routes_total", "legendFormat": "routes" },
+        { "expr": "demo_bot_synthetic_activities_total", "legendFormat": "activities" }
+      ]
+    },
+    {
+      "title": "Walks per day (last 14d)",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS \"walks\" FROM journal.routes WHERE synthetic AND created_at > now() - interval '14 days' GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } }
+    },
+    {
+      "title": "Distance distribution (last 14d)",
+      "type": "histogram",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT round(distance::numeric / 1000, 1) AS \"km\" FROM journal.routes WHERE synthetic AND created_at > now() - interval '14 days'",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Demo-bot logs",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{container=\"trails-cool-journal-1\"} |~ \"demo-bot\" | json | line_format \"{{.msg}} {{if .inserted}}inserted={{.inserted}}{{end}}{{if .err}} err={{.err}}{{end}}{{if .routeId}} routeId={{.routeId}}{{end}}\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "title": "Recent walks",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 26 },
+      "datasource": { "uid": "postgres" },
+      "targets": [
+        {
+          "rawSql": "SELECT r.name, round(r.distance::numeric / 1000, 1) AS \"km\", round(r.elevation_gain::numeric) AS \"ascent (m)\", r.routing_profile, r.created_at FROM journal.routes r WHERE r.synthetic ORDER BY r.created_at DESC LIMIT 20",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}
