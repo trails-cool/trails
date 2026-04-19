@@ -2,9 +2,9 @@ import type { Route } from "./+types/api.v1.routes.compute";
 import { requireApiUser, apiError } from "~/lib/api-guard.server";
 import { ComputeRouteRequestSchema, ERROR_CODES } from "@trails-cool/api";
 
-const BROUTER_URL = process.env.BROUTER_URL ?? "http://localhost:17777";
+const PLANNER_URL = process.env.PLANNER_URL ?? "http://localhost:3001";
 
-/** POST /api/v1/routes/compute — proxy to BRouter */
+/** POST /api/v1/routes/compute — server-to-server proxy through the planner. */
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") return new Response(null, { status: 405 });
   await requireApiUser(request);
@@ -16,19 +16,18 @@ export async function action({ request }: Route.ActionArgs) {
       parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })));
   }
 
-  const { waypoints, profile } = parsed.data;
-  const lonlats = waypoints.map((w) => `${w.lon},${w.lat}`).join("|");
-
-  const brouterUrl = `${BROUTER_URL}/brouter?lonlats=${lonlats}&profile=${profile}&alternativeidx=0&format=geojson`;
-
   try {
-    const resp = await fetch(brouterUrl);
+    const resp = await fetch(`${PLANNER_URL}/api/route`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
     if (!resp.ok) {
-      return apiError(502, ERROR_CODES.INTERNAL_ERROR, `BRouter returned ${resp.status}`);
+      return apiError(resp.status === 422 ? 422 : 502, ERROR_CODES.INTERNAL_ERROR, `Planner returned ${resp.status}`);
     }
-    const geojson = await resp.json();
-    return Response.json(geojson);
+    const payload = await resp.json();
+    return Response.json(payload);
   } catch {
-    return apiError(502, ERROR_CODES.INTERNAL_ERROR, "BRouter unavailable");
+    return apiError(502, ERROR_CODES.INTERNAL_ERROR, "Planner unavailable");
   }
 }
