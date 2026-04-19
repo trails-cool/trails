@@ -654,6 +654,12 @@ importers:
 
   packages/ui: {}
 
+  scripts:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.17
+
 packages:
 
   '@adobe/css-tools@4.4.4':
