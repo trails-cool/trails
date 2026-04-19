@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { TERMS_VERSION } from "~/lib/legal";
 
 export default function RegisterPage() {
   const { t } = useTranslation("journal");
@@ -32,7 +33,13 @@ export default function RegisterPage() {
       const startResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "start", email, username, termsAccepted }),
+        body: JSON.stringify({
+          step: "start",
+          email,
+          username,
+          termsAccepted,
+          termsVersion: TERMS_VERSION,
+        }),
       });
       const startData = await startResp.json();
 
@@ -53,6 +60,7 @@ export default function RegisterPage() {
           email,
           username,
           termsAccepted,
+          termsVersion: TERMS_VERSION,
           response: webAuthnResp,
           challenge: startData.options.challenge,
           userId: startData.userId,
@@ -85,7 +93,13 @@ export default function RegisterPage() {
       const resp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "register-magic-link", email, username, termsAccepted }),
+        body: JSON.stringify({
+          step: "register-magic-link",
+          email,
+          username,
+          termsAccepted,
+          termsVersion: TERMS_VERSION,
+        }),
       });
       const result = await resp.json();
 

@@ -1,3 +1,5 @@
+import { TERMS_VERSION } from "~/lib/legal";
+
 export function meta() {
   return [
     { title: "Nutzungsbedingungen — trails.cool" },
@@ -12,7 +14,7 @@ export default function TermsPage() {
         Nutzungsbedingungen / Terms of Service
       </h1>
       <p className="mt-2 text-sm text-gray-500">
-        Stand / Last updated: 2026-04-18 • Alpha — subject to change. Die
+        Stand / Last updated: {TERMS_VERSION} • Alpha — subject to change. Die
         deutsche Fassung ist maßgeblich. The German version is authoritative;
         English summaries follow each section.
       </p>

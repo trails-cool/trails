@@ -6,13 +6,17 @@ import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
-  const { step, email, username, response, challenge, userId, termsAccepted } = body;
+  const { step, email, username, response, challenge, userId, termsAccepted, termsVersion } = body;
   const origin = process.env.ORIGIN ?? `http://localhost:3000`;
 
-  // Registration steps require terms acceptance
+  // Registration steps require terms acceptance + the version the client
+  // agreed to (stored for audit so we can tell which text the user saw).
   const requiresTerms = step === "start" || step === "finish" || step === "register-magic-link";
   if (requiresTerms && !termsAccepted) {
     return data({ error: "Terms of Service must be accepted" }, { status: 400 });
+  }
+  if (requiresTerms && (typeof termsVersion !== "string" || termsVersion.length === 0)) {
+    return data({ error: "Terms of Service version missing" }, { status: 400 });
   }
 
   try {
@@ -22,7 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (step === "finish") {
-      const newUserId = await finishRegistration(userId, email, username, response, challenge);
+      const newUserId = await finishRegistration(userId, email, username, response, challenge, termsVersion);
       const cookie = await createSession(newUserId, request);
       sendWelcome(email, username).catch((err) =>
         logger.error({ err }, "Failed to send welcome email"),
@@ -31,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (step === "register-magic-link") {
-      const token = await registerWithMagicLink(email, username);
+      const token = await registerWithMagicLink(email, username, termsVersion);
       const link = `${origin}/auth/verify?token=${token}`;
       if (process.env.NODE_ENV !== "production") {
         return data({ step: "magic-link-sent", devLink: link });
