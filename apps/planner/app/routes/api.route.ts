@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.route";
-import { computeRoute, BRouterError } from "~/lib/brouter";
+import { computeRoute, computeSegmentGpx, BRouterError } from "~/lib/brouter";
 import { checkRateLimit } from "~/lib/rate-limit";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -9,11 +9,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const body = await request.json();
-  const { waypoints, profile, sessionId, noGoAreas } = body as {
+  const { waypoints, profile, sessionId, noGoAreas, format } = body as {
     waypoints: Array<{ lat: number; lon: number }>;
     profile?: string;
     sessionId?: string;
     noGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
+    format?: "geojson" | "gpx";
   };
 
   if (!waypoints || waypoints.length < 2) {
@@ -35,6 +36,20 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
+    // `format: "gpx"` returns BRouter's raw GPX without the way-tag
+    // enrichment the interactive planner needs. Used by server-to-server
+    // callers (e.g. the Journal's demo-bot) that just want the track.
+    if (format === "gpx") {
+      const gpx = await computeSegmentGpx({ waypoints, profile, noGoAreas });
+      return new Response(gpx, {
+        status: 200,
+        headers: {
+          "content-type": "application/gpx+xml; charset=utf-8",
+          "x-ratelimit-remaining": String(limit.remaining),
+        },
+      });
+    }
+
     const route = await computeRoute({ waypoints, profile, noGoAreas });
     return data(route, {
       headers: { "X-RateLimit-Remaining": String(limit.remaining) },

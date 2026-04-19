@@ -413,9 +413,16 @@ export function pickLocale(
   return persona.locales[Math.floor(rand() * persona.locales.length)]!;
 }
 
-// --- BRouter --------------------------------------------------------------
+// --- Route compute via the planner ---------------------------------------
 
-const BROUTER_URL = process.env.BROUTER_URL ?? "http://localhost:17777";
+/**
+ * The journal goes through the planner (not BRouter directly) because
+ * the planner is the BRouter client in this architecture — route
+ * compute, rate limiting, and the eventual move of BRouter off-box
+ * all live there. Same `PLANNER_URL` the interactive handoff routes
+ * use; falls back to the dev port in local work.
+ */
+const PLANNER_URL = process.env.PLANNER_URL ?? "http://localhost:3001";
 
 export interface BrouterResult {
   gpx: string;
@@ -430,12 +437,26 @@ export async function requestBrouterGpx(
   endpoints: Endpoints,
   { signal }: { signal?: AbortSignal } = {},
 ): Promise<BrouterResult | BrouterError> {
-  const lonlats = `${endpoints.start[0]},${endpoints.start[1]}|${endpoints.end[0]},${endpoints.end[1]}`;
-  const url = `${BROUTER_URL}/brouter?lonlats=${lonlats}&profile=trekking&alternativeidx=0&format=gpx`;
+  const url = `${PLANNER_URL}/api/route`;
+  const body = {
+    waypoints: [
+      { lon: endpoints.start[0], lat: endpoints.start[1] },
+      { lon: endpoints.end[0], lat: endpoints.end[1] },
+    ],
+    profile: "trekking",
+    format: "gpx" as const,
+  };
   try {
-    const resp = await fetch(url, { signal });
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    });
     if (!resp.ok) {
-      if (resp.status === 500) return { kind: "no-route" };
+      // Planner returns 422 for BRouter client errors (unroutable
+      // waypoints) and 5xx for upstream/planner failures.
+      if (resp.status === 422) return { kind: "no-route" };
       return { kind: "upstream-error", status: resp.status };
     }
     const gpx = await resp.text();

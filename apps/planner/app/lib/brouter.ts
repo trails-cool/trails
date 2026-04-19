@@ -284,3 +284,38 @@ function noGoAreasToParam(areas: NoGoArea[]): string {
 export function getBRouterUrl(): string {
   return BROUTER_URL;
 }
+
+/**
+ * Single-segment GPX fetch. Used by callers (notably the Journal's
+ * demo-bot) that only need the raw GPX track for two endpoints — no
+ * multi-waypoint merge, no way-tag enrichment. Throws BRouterError on
+ * non-2xx so the action handler can map it to an HTTP status.
+ */
+export async function computeSegmentGpx(request: {
+  waypoints: Array<{ lat: number; lon: number }>;
+  profile?: string;
+  noGoAreas?: NoGoArea[];
+}): Promise<string> {
+  if (request.waypoints.length < 2) {
+    throw new Error("At least 2 waypoints are required");
+  }
+  const profile = request.profile ?? "trekking";
+  const lonlats = request.waypoints.map((w) => `${w.lon},${w.lat}`).join("|");
+  const params = new URLSearchParams({
+    lonlats,
+    profile,
+    alternativeidx: "0",
+    format: "gpx",
+  });
+  const nogoParam = request.noGoAreas?.length ? noGoAreasToParam(request.noGoAreas) : undefined;
+  if (nogoParam) params.set("polygons", nogoParam);
+
+  const resp = await fetch(`${BROUTER_URL}/brouter?${params}`);
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new BRouterError(body.trim(), resp.status);
+  }
+  const gpx = await resp.text();
+  if (!gpx.includes("<trkpt")) throw new BRouterError("no route found", 422);
+  return gpx;
+}
