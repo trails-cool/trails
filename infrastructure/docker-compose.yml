@@ -23,6 +23,7 @@ services:
       DOMAIN: ${DOMAIN:-trails.cool}
       ORIGIN: https://${DOMAIN:-trails.cool}
       PLANNER_URL: https://planner.${DOMAIN:-trails.cool}
+      BROUTER_URL: http://brouter:17777
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
