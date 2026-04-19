@@ -108,8 +108,21 @@ server.listen(port, async () => {
   const { seedOAuthClient } = await import("./app/lib/oauth.server.ts");
   await seedOAuthClient("trails-cool-mobile", "trailscool://auth/callback", true);
 
-  // Start background job worker (no jobs yet — placeholder for Komoot import and federation)
+  // Start background job worker
+  const { demoBotGenerateJob } = await import("./app/jobs/demo-bot-generate.ts");
+  const { demoBotPruneJob } = await import("./app/jobs/demo-bot-prune.ts");
   const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
-  await startWorker(boss, []);
+  await startWorker(boss, [demoBotGenerateJob, demoBotPruneJob]);
   logger.info("Background job worker started");
+
+  // Bootstrap the demo user when the bot is enabled; cheap idempotent insert.
+  if (process.env.DEMO_BOT_ENABLED === "true") {
+    const { ensureDemoUser } = await import("./app/lib/demo-bot.server.ts");
+    try {
+      const id = await ensureDemoUser();
+      logger.info({ id }, "demo-bot user ensured");
+    } catch (err) {
+      logger.error({ err }, "demo-bot ensureDemoUser failed");
+    }
+  }
 });
