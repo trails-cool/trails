@@ -51,14 +51,14 @@ const PersonaSchema = z
     for (const loc of p.locales) {
       if (!p.content.names[loc]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["content", "names", loc],
           message: `missing name pool for declared locale '${loc}'`,
         });
       }
       if (!p.content.descriptions[loc]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["content", "descriptions", loc],
           message: `missing description pool for declared locale '${loc}'`,
         });

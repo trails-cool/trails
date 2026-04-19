@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Route summary for list views */
 export const RouteSummarySchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   description: z.string(),
   distance: z.number().nullable(),
@@ -11,15 +11,15 @@ export const RouteSummarySchema = z.object({
   routingProfile: z.string().nullable(),
   dayBreaks: z.array(z.number()),
   geojson: z.string().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 /** Route version info */
 export const RouteVersionSchema = z.object({
   version: z.number(),
   changeDescription: z.string().nullable(),
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
 });
 
 /** Full route detail */

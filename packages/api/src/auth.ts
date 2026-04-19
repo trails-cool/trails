@@ -20,8 +20,8 @@ export const TokenResponseSchema = z.object({
 export const DeviceSchema = z.object({
   id: z.string(),
   deviceName: z.string().nullable(),
-  lastActiveAt: z.string().datetime(),
-  createdAt: z.string().datetime(),
+  lastActiveAt: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
   isCurrent: z.boolean(),
 });
 

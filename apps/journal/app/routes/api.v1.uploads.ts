@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.v1.uploads";
 import { requireApiUser, apiError } from "~/lib/api-guard.server";
-import { PresignedUploadRequestSchema, ERROR_CODES } from "@trails-cool/api";
+import { PresignedUploadRequestSchema, ERROR_CODES, zodIssuesToFieldErrors } from "@trails-cool/api";
 import { randomUUID } from "node:crypto";
 
 const S3_ENDPOINT = process.env.S3_ENDPOINT ?? "http://localhost:3902";
@@ -16,7 +16,7 @@ export async function action({ request }: Route.ActionArgs) {
   const parsed = PresignedUploadRequestSchema.safeParse(body);
   if (!parsed.success) {
     return apiError(400, ERROR_CODES.VALIDATION_ERROR, "Validation failed",
-      parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })));
+      zodIssuesToFieldErrors(parsed.error));
   }
 
   const { filename, resourceType, resourceId } = parsed.data;

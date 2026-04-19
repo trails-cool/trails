@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.v1.routes.compute";
 import { requireApiUser, apiError } from "~/lib/api-guard.server";
-import { ComputeRouteRequestSchema, ERROR_CODES } from "@trails-cool/api";
+import { ComputeRouteRequestSchema, ERROR_CODES, zodIssuesToFieldErrors } from "@trails-cool/api";
 
 const PLANNER_URL = process.env.PLANNER_URL ?? "http://localhost:3001";
 
@@ -13,7 +13,7 @@ export async function action({ request }: Route.ActionArgs) {
   const parsed = ComputeRouteRequestSchema.safeParse(body);
   if (!parsed.success) {
     return apiError(400, ERROR_CODES.VALIDATION_ERROR, "Validation failed",
-      parsed.error.issues.map((i) => ({ field: i.path.join("."), message: i.message })));
+      zodIssuesToFieldErrors(parsed.error));
   }
 
   try {
