@@ -288,6 +288,13 @@ export default {
       alreadyHaveAccount: "Bereits ein Konto?",
       handleWillBe: "Dein Handle wird {{handle}} sein",
       passkeyNotFound: "Für diese Seite wurde kein Passkey gefunden. Registriere ein neues Konto oder nutze stattdessen einen Magic Link.",
+      reaccept: {
+        heading: "Aktualisierte Nutzungsbedingungen",
+        bodyUpdated: "Die Nutzungsbedingungen wurden aktualisiert (von Version {{from}} auf {{to}}). Bitte lies und akzeptiere sie, um trails.cool weiter zu nutzen.",
+        bodyNew: "Ab sofort erfassen wir, welche Version der Nutzungsbedingungen du akzeptiert hast. Bitte lies die aktuelle Version ({{version}}) und akzeptiere sie, um trails.cool weiter zu nutzen.",
+        submit: "Akzeptieren und fortfahren",
+        logoutInstead: "Stattdessen abmelden",
+      },
       registerDescription: "Registriere dich mit einem Passkey — kein Passwort nötig.",
       registerWithPasskey: "Mit Passkey registrieren",
       creatingPasskey: "Erstelle Passkey...",

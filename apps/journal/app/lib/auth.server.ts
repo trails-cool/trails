@@ -410,6 +410,19 @@ export const sessionStorage = createCookieSessionStorage({
   },
 });
 
+/**
+ * Record the user's acceptance of the current Terms version. Updates both
+ * `terms_accepted_at` (NOW) and `terms_version`. Used when an existing user
+ * re-accepts after the Terms have been updated.
+ */
+export async function recordTermsAcceptance(userId: string, termsVersion: string) {
+  const db = getDb();
+  await db
+    .update(users)
+    .set({ termsAcceptedAt: new Date(), termsVersion })
+    .where(eq(users.id, userId));
+}
+
 export async function createSession(userId: string, request: Request) {
   const session = await sessionStorage.getSession(request.headers.get("Cookie"));
   session.set("userId", userId);
