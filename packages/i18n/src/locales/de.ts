@@ -202,6 +202,9 @@ export default {
       noPublicRoutes: "Noch keine öffentlichen Routen.",
       noPublicActivities: "Noch keine öffentlichen Aktivitäten.",
     },
+    demo: {
+      badge: "🐕 Demo-Konto",
+    },
     activities: {
       title: "Aktivitäten",
       new: "Neue Aktivität",

@@ -48,6 +48,14 @@ export default defineConfig({
       },
     },
     {
+      name: "demo-bot",
+      testMatch: "demo-bot.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
+    {
       name: "integration",
       testMatch: "integration.test.ts",
       use: {

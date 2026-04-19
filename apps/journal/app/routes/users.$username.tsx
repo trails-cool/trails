@@ -85,6 +85,8 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
   const { user, routes, activities, isOwn } = loaderData;
   const { t } = useTranslation("journal");
 
+  const isDemo = user.username === "bruno";
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex items-start gap-4">
@@ -92,9 +94,16 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
           {user.username[0]?.toUpperCase()}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {user.displayName ?? user.username}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {user.displayName ?? user.username}
+            </h1>
+            {isDemo && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                {t("demo.badge")}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500">
             @{user.username}@{user.domain}
           </p>
