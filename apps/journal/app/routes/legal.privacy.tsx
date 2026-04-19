@@ -98,7 +98,8 @@ export default function PrivacyPage() {
             Fehlermeldungen, Browser-/OS-Information aus dem User-Agent,
             Performance-Metriken. Bei eingeloggten Journal-Nutzer:innen
             zusätzlich die Nutzer-ID (keine E-Mail, kein Benutzername).
-            Keine IP-Adressen, keine Cookies, keine Formulareingaben.
+            IP-Adressen werden nicht aktiv gespeichert, ebenso keine Cookies
+            und keine Formulareingaben.
           </li>
         </ul>
         <p className="mt-3 text-sm text-gray-600">
@@ -182,10 +183,19 @@ export default function PrivacyPage() {
           <li>Server-Logfiles: maximal 14 Tage</li>
           <li>Fehlerdaten (Sentry): 90 Tage</li>
         </ul>
+        <p className="mt-3 text-sm text-gray-700">
+          Hinweis Alpha: Während der Alpha-Phase behält sich der Betreiber
+          ausdrücklich vor, die Datenbank zurückzusetzen oder einzelne
+          Datensätze zu löschen. Dies kann zu Datenverlust führen, bevor Sie
+          eine Löschung veranlassen. Details dazu in den Nutzungsbedingungen.
+        </p>
         <p className="mt-3 text-sm text-gray-600">
           <em>English.</em> Account and content kept until you delete them.
           Ephemeral data (sessions, magic-link tokens, logs, Sentry events)
-          deleted automatically on the schedules above.
+          deleted automatically on the schedules above. Alpha caveat: the
+          operator may reset the database or delete individual records
+          during alpha, which can cause data loss before you request
+          deletion. See the Terms of Service.
         </p>
       </section>
 
@@ -205,10 +215,16 @@ export default function PrivacyPage() {
             Performance-Monitoring. Was übermittelt wird: Stacktraces,
             Fehlertext, Browser-/OS-Informationen aus dem User-Agent,
             Performance-Daten; bei eingeloggten Journal-Nutzer:innen
-            zusätzlich die Nutzer-ID. <strong>Nicht</strong> übermittelt:
-            IP-Adresse, Cookies, vollständige HTTP-Header
-            (<code>sendDefaultPii</code> ist deaktiviert). Keine
-            Session-Replays. Hosting innerhalb der EU (Frankfurt).
+            zusätzlich die Nutzer-ID. IP-Adressen werden nicht aktiv
+            gespeichert (<code>sendDefaultPii</code> ist deaktiviert), ebenso
+            keine Cookies und keine vollständigen HTTP-Header. Keine
+            Session-Replays. Sentry agiert als externer Dienstleister
+            (Auftragsverarbeiter) für die Fehlerbehandlung. Da Sentry ein
+            Anbieter mit Sitz in den USA ist, kann im Einzelfall eine
+            Übermittlung personenbezogener Daten in ein Drittland im Sinne
+            der Art. 44 ff. DSGVO stattfinden; wir stützen uns hierbei auf
+            die von Sentry bereitgestellten
+            Standardvertragsklauseln.
           </li>
           <li>
             <strong>OpenStreetMap</strong> – Kartenkacheln werden beim Anzeigen
@@ -237,10 +253,11 @@ export default function PrivacyPage() {
             selbst gehosteten Instanz. Keine Weitergabe an Dritte.
           </li>
           <li>
-            <strong>SMTP-Versand</strong> – Transaktions-E-Mails (Magic Link,
-            Willkommensnachricht) werden über einen SMTP-Dienst versendet.
-            Dabei wird die E-Mail-Adresse der Empfänger:in an den SMTP-Dienst
-            übergeben.
+            <strong>E-Mail-Versand</strong> – Transaktions-E-Mails (Magic
+            Link, Willkommensnachricht) werden über einen konfigurierten
+            externen SMTP-Dienst versendet. Dabei wird die E-Mail-Adresse
+            der Empfänger:in an diesen Dienst übergeben. Selbst-betriebene
+            Instanzen konfigurieren ihren eigenen Mailserver.
           </li>
           <li>
             <strong>Hosting</strong> – Die Dienste werden in Rechenzentren
@@ -250,7 +267,7 @@ export default function PrivacyPage() {
         </ul>
         <p className="mt-3 text-sm text-gray-600">
           <em>English.</em> Third parties and what they receive: Sentry (error
-          details, no IPs/cookies, EU-hosted); OpenStreetMap tile servers
+          details, no IPs/cookies); OpenStreetMap tile servers
           (your IP and user-agent, directly from your browser, to load map
           tiles); Overpass (via our server-side proxy, so upstream only sees
           our server); BRouter (self-hosted, no third party involved); SMTP
@@ -366,7 +383,7 @@ export default function PrivacyPage() {
           <li>Journal server: always on</li>
           <li>Journal browser: only after login, torn down on logout</li>
           <li>Planner: server only; the browser never loads Sentry</li>
-          <li>No IPs, no cookies, no headers (<code>sendDefaultPii: false</code>)</li>
+          <li>IPs not actively stored, no cookies, no full headers (<code>sendDefaultPii: false</code>)</li>
           <li>No replays (replay integration not installed, sample rates 0)</li>
           <li>User ID only (no email/username) on Journal-logged-in events</li>
         </ul>

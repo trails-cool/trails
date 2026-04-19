@@ -23,7 +23,7 @@ export default function TermsPage() {
             1. Gegenstand und Alpha-Status
           </h2>
           <p className="mt-2 text-sm">
-            trails.cool ist ein experimenteller, kostenloser Dienst zur Planung
+            trails.cool ist ein experimenteller, derzeit kostenloser Dienst zur Planung
             und Dokumentation von Outdoor-Aktivitäten. Der Dienst befindet sich
             in aktiver Entwicklung (Alpha). Funktionen, Schnittstellen und
             gespeicherte Daten können jederzeit ohne Vorankündigung geändert,
@@ -31,7 +31,8 @@ export default function TermsPage() {
             Verfügbarkeitsgarantie besteht nicht.
           </p>
           <p className="mt-2 text-xs text-gray-600">
-            <em>English.</em> trails.cool is an experimental, free service in
+            <em>English.</em> trails.cool is an experimental service,
+            currently free of charge, in
             active alpha development. Features, data, and availability can
             change at any time without notice. No availability is guaranteed.
           </p>
@@ -136,15 +137,12 @@ export default function TermsPage() {
               Abfragen, Denial-of-Service)
             </li>
             <li>Kein Umgehen technischer Schutzmaßnahmen</li>
-            <li>
-              Keine Verwendung des Dienstes zum Aufbau konkurrierender
-              Angebote durch massenhaftes Abziehen von Daten
-            </li>
+            <li>Kein massenhaftes automatisiertes Auslesen von Daten</li>
           </ul>
           <p className="mt-2 text-xs text-gray-600">
             <em>English.</em> No illegal content, no abuse (spam, flooding,
-            DoS), no circumvention of technical protections, no bulk scraping
-            to build competing services.
+            DoS), no circumvention of technical protections, no bulk
+            automated data extraction.
           </p>
         </div>
 

@@ -39,7 +39,10 @@ export default function ImprintPage() {
           <h2 className="text-lg font-semibold text-gray-900">Kontakt</h2>
           <p className="mt-2">
             E-Mail:{" "}
-            <a className="text-blue-600 hover:underline" href={`mailto:${operator.email}`}>
+            <a
+              className="whitespace-nowrap text-blue-600 hover:underline"
+              href={`mailto:${operator.email}`}
+            >
               {operator.email}
             </a>
           </p>
@@ -52,8 +55,9 @@ export default function ImprintPage() {
           <address className="mt-2 not-italic">
             {operator.responsiblePerson}
             <br />
-            {operator.address.street}, {operator.address.postalCode}{" "}
-            {operator.address.city}
+            {operator.address.street}
+            <br />
+            {operator.address.postalCode} {operator.address.city}
           </address>
         </div>
 
@@ -100,8 +104,12 @@ export default function ImprintPage() {
             Service provider (§ 5 TMG)
           </h3>
           <address className="mt-2 not-italic text-sm">
-            {operator.name}, {operator.address.street},{" "}
-            {operator.address.postalCode} {operator.address.city},{" "}
+            {operator.name}
+            <br />
+            {operator.address.street}
+            <br />
+            {operator.address.postalCode} {operator.address.city}
+            <br />
             {operator.address.country}
           </address>
         </div>
@@ -110,7 +118,10 @@ export default function ImprintPage() {
           <h3 className="text-base font-semibold text-gray-900">Contact</h3>
           <p className="mt-2 text-sm">
             Email:{" "}
-            <a className="text-blue-600 hover:underline" href={`mailto:${operator.email}`}>
+            <a
+              className="whitespace-nowrap text-blue-600 hover:underline"
+              href={`mailto:${operator.email}`}
+            >
               {operator.email}
             </a>
           </p>
