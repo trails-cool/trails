@@ -40,14 +40,14 @@ corresponding legal page on the day the snapshot was taken.
 
 ## How to render
 
-The snapshots are plain markdown extracted from the TSX source by
-stripping JSX tags / attributes and resolving the `operator.*`
-placeholders. Same approach as the pbcopy export used during legal
-reviews. One-liner (from repo root):
+Snapshots are extracted from the TSX source by stripping JSX tags /
+attributes and resolving the `operator.*` placeholders plus the
+constants from `apps/journal/app/lib/legal.ts`. One-liner (from repo
+root):
 
 ```bash
-python3 scripts/render-legal.py <doc> > docs/legal-archive/<doc>-YYYY-MM-DD.md
+node --experimental-strip-types scripts/render-legal.ts <doc> \
+  > docs/legal-archive/<doc>-YYYY-MM-DD.md
 ```
 
-(If `scripts/render-legal.py` doesn't exist yet, the extraction logic is
-in the commit that seeded this directory — see PR history.)
+where `<doc>` is one of `terms`, `privacy`, `imprint`.
