@@ -1,4 +1,4 @@
-import { test, expect, type CDPSession, type Page } from "@playwright/test";
+import { test, expect, type CDPSession, type Page } from "./fixtures/test";
 
 // Reuses the virtual-authenticator + register helpers from auth.test.ts.
 // Inlined rather than factored out to keep this file independently runnable.

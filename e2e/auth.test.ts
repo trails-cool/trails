@@ -1,4 +1,4 @@
-import { test, expect, type CDPSession, type Page } from "@playwright/test";
+import { test, expect, type CDPSession, type Page } from "./fixtures/test";
 
 // Virtual authenticator helpers
 async function setupVirtualAuthenticator(cdp: CDPSession) {

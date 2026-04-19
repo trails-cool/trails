@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/test";
 import { mockBRouter, latLngToPixel } from "./fixtures/brouter-mock";
 
 test.describe("Planner", () => {

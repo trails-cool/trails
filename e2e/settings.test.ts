@@ -1,4 +1,4 @@
-import { test, expect, type CDPSession, type Page } from "@playwright/test";
+import { test, expect, type CDPSession, type Page } from "./fixtures/test";
 
 async function setupVirtualAuthenticator(cdp: CDPSession) {
   await cdp.send("WebAuthn.enable");
