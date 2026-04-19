@@ -14,3 +14,4 @@ playwright-report/
 playwright-results.json
 .claude/worktrees/
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
