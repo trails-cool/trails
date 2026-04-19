@@ -53,6 +53,7 @@ export async function finishRegistration(
   username: string,
   response: RegistrationResponseJSON,
   challenge: string,
+  termsVersion: string,
 ) {
   const db = getDb();
 
@@ -77,6 +78,7 @@ export async function finishRegistration(
     username,
     domain,
     termsAcceptedAt: new Date(),
+    termsVersion,
   });
 
   await db.insert(credentials).values({
@@ -147,7 +149,11 @@ export async function addPasskeyFinish(
 
 // --- Registration via Magic Link (no passkey) ---
 
-export async function registerWithMagicLink(email: string, username: string): Promise<string> {
+export async function registerWithMagicLink(
+  email: string,
+  username: string,
+  termsVersion: string,
+): Promise<string> {
   const db = getDb();
 
   const [existingEmail] = await db.select().from(users).where(eq(users.email, email));
@@ -159,7 +165,14 @@ export async function registerWithMagicLink(email: string, username: string): Pr
   const userId = randomUUID();
   const domain = process.env.DOMAIN ?? "localhost";
 
-  await db.insert(users).values({ id: userId, email, username, domain, termsAcceptedAt: new Date() });
+  await db.insert(users).values({
+    id: userId,
+    email,
+    username,
+    domain,
+    termsAcceptedAt: new Date(),
+    termsVersion,
+  });
 
   // Create magic token for verification
   const token = randomBytes(32).toString("base64url");

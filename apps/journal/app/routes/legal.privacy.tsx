@@ -1,4 +1,5 @@
 import { operator } from "~/lib/operator";
+import { PRIVACY_LAST_UPDATED } from "~/lib/legal";
 
 export function meta() {
   return [
@@ -14,7 +15,7 @@ export default function PrivacyPage() {
         Datenschutzerklärung / Privacy Policy
       </h1>
       <p className="mt-2 text-sm text-gray-500">
-        Stand / Last updated: 2026-04-18. Die deutsche Fassung ist maßgeblich.
+        Stand / Last updated: {PRIVACY_LAST_UPDATED}. Die deutsche Fassung ist maßgeblich.
         The German version is authoritative; English summaries follow each
         section.
       </p>

@@ -27,3 +27,8 @@ The registration form SHALL require explicit acknowledgement of the Terms of Ser
 #### Scenario: Acknowledgement recorded
 - **WHEN** a user successfully registers
 - **THEN** the current timestamp is stored in `users.terms_accepted_at`
+- **AND** the version identifier of the Terms the user saw is stored in `users.terms_version`
+
+#### Scenario: Missing version rejected
+- **WHEN** a registration request arrives without a non-empty `termsVersion` field
+- **THEN** the server responds with HTTP 400 and does not create a user
