@@ -517,7 +517,7 @@
             "type": "postgres",
             "uid": "postgres"
           },
-          "rawSql": "SELECT name, state, createdon, completedon, output::text AS error FROM pgboss.job WHERE state = 'failed' AND completedon > now() - interval '24 hours' ORDER BY completedon DESC LIMIT 20",
+          "rawSql": "SELECT name, state, created_on, completed_on, output::text AS error FROM pgboss.job WHERE state = 'failed' AND completed_on > now() - interval '24 hours' ORDER BY completed_on DESC LIMIT 20",
           "format": "table"
         }
       ]
@@ -538,7 +538,7 @@
             "type": "postgres",
             "uid": "postgres"
           },
-          "rawSql": "SELECT date_trunc('hour', completedon) AS time, name, count(*) AS completed FROM pgboss.job WHERE state = 'completed' AND completedon > now() - interval '24 hours' GROUP BY 1, 2 ORDER BY 1",
+          "rawSql": "SELECT date_trunc('hour', completed_on) AS time, name, count(*) AS completed FROM pgboss.job WHERE state = 'completed' AND completed_on > now() - interval '24 hours' GROUP BY 1, 2 ORDER BY 1",
           "format": "time_series"
         }
       ]

@@ -161,7 +161,7 @@ groups:
             relativeTimeRange: { from: 3600, to: 0 }
             datasourceUid: postgres
             model:
-              rawSql: "SELECT count(*) AS failed FROM pgboss.job WHERE state = 'failed' AND completedon > now() - interval '1 hour'"
+              rawSql: "SELECT count(*) AS failed FROM pgboss.job WHERE state = 'failed' AND completed_on > now() - interval '1 hour'"
               format: table
           - refId: B
             datasourceUid: __expr__
