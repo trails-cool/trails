@@ -59,7 +59,18 @@ test.describe("Integration: Journal ↔ Planner handoff", () => {
 });
 
 test.describe("Integration: BRouter routing", () => {
+  // Helper: mint a planner session so our /api/route calls satisfy
+  // the session-bound gate introduced alongside this test file.
+  async function createSessionId(
+    request: import("@playwright/test").APIRequestContext,
+  ): Promise<string> {
+    const resp = await request.post(`${PLANNER}/api/sessions`, { data: {} });
+    const payload = (await resp.json()) as { sessionId: string };
+    return payload.sessionId;
+  }
+
   test("computes route between Berlin waypoints", async ({ request }) => {
+    const sessionId = await createSessionId(request);
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
         waypoints: [
@@ -67,6 +78,7 @@ test.describe("Integration: BRouter routing", () => {
           { lat: 52.515, lon: 13.351 },
         ],
         profile: "trekking",
+        sessionId,
       },
     });
     expect(response.ok()).toBeTruthy();
@@ -77,6 +89,7 @@ test.describe("Integration: BRouter routing", () => {
   });
 
   test("routes through all waypoints (segment by segment)", async ({ request }) => {
+    const sessionId = await createSessionId(request);
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
         waypoints: [
@@ -85,6 +98,7 @@ test.describe("Integration: BRouter routing", () => {
           { lat: 52.510, lon: 13.390 },
         ],
         profile: "trekking",
+        sessionId,
       },
     });
     expect(response.ok()).toBeTruthy();
@@ -99,27 +113,32 @@ test.describe("Integration: BRouter routing", () => {
   });
 
   test("returns rate limit headers", async ({ request }) => {
+    const sessionId = await createSessionId(request);
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
         waypoints: [
           { lat: 52.516, lon: 13.377 },
           { lat: 52.515, lon: 13.351 },
         ],
+        sessionId,
       },
     });
     expect(response.headers()["x-ratelimit-remaining"]).toBeDefined();
   });
 
   test("rejects with fewer than 2 waypoints", async ({ request }) => {
+    const sessionId = await createSessionId(request);
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
         waypoints: [{ lat: 52.516, lon: 13.377 }],
+        sessionId,
       },
     });
     expect(response.status()).toBe(400);
   });
 
   test("returns enriched route with segment boundaries", async ({ request }) => {
+    const sessionId = await createSessionId(request);
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
         waypoints: [
@@ -128,6 +147,7 @@ test.describe("Integration: BRouter routing", () => {
           { lat: 52.510, lon: 13.390 },
         ],
         profile: "trekking",
+        sessionId,
       },
     });
     expect(response.ok()).toBeTruthy();
@@ -146,6 +166,7 @@ test.describe("Integration: BRouter routing", () => {
   });
 
   test("accepts no-go areas parameter", async ({ request }) => {
+    const sessionId = await createSessionId(request);
     const response = await request.post(`${PLANNER}/api/route`, {
       data: {
         waypoints: [
@@ -153,6 +174,7 @@ test.describe("Integration: BRouter routing", () => {
           { lat: 52.515, lon: 13.351 },
         ],
         profile: "trekking",
+        sessionId,
         noGoAreas: [
           {
             points: [
@@ -169,5 +191,29 @@ test.describe("Integration: BRouter routing", () => {
     const enriched = await response.json();
     expect(enriched.geojson.features).toHaveLength(1);
     expect(enriched.geojson.features[0].geometry.type).toBe("LineString");
+  });
+
+  test("rejects /api/route without a sessionId (session-bound)", async ({ request }) => {
+    const response = await request.post(`${PLANNER}/api/route`, {
+      data: {
+        waypoints: [
+          { lat: 52.516, lon: 13.377 },
+          { lat: 52.515, lon: 13.351 },
+        ],
+        profile: "trekking",
+      },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("rejects /api/overpass without an X-Trails-Session header", async ({ request }) => {
+    const response = await request.post(`${PLANNER}/api/overpass`, {
+      data: "data=[out:json];node[amenity=drinking_water](52.52,13.4,52.53,13.41);out;",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Origin: PLANNER,
+      },
+    });
+    expect(response.status()).toBe(401);
   });
 });

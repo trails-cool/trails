@@ -20,7 +20,7 @@ export interface PoiState {
   refresh: (bbox: BBox, zoom: number) => void;
 }
 
-export function usePois(): PoiState {
+export function usePois(sessionId: string): PoiState {
   const [pois, setPois] = useState<Poi[]>([]);
   const [status, setStatus] = useState<PoiStatus>("idle");
   const [enabledCategories, setEnabledCategories] = useState<string[]>([]);
@@ -76,7 +76,7 @@ export function usePois(): PoiState {
         lastRequestRef.current = Date.now();
 
         try {
-          const result = await queryPois(bbox, categories, controller.signal);
+          const result = await queryPois(bbox, categories, sessionId, controller.signal);
           if (controller.signal.aborted) return;
 
           setCached(bbox, categoriesKey, result);
@@ -98,7 +98,7 @@ export function usePois(): PoiState {
         }
       }, delay);
     },
-    [enabledCategories],
+    [enabledCategories, sessionId],
   );
 
   // Cleanup on unmount

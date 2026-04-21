@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.route";
 import { computeRoute, computeSegmentGpx, BRouterError } from "~/lib/brouter";
 import { checkRateLimit } from "~/lib/rate-limit";
+import { requireSession } from "~/lib/require-session";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -21,9 +22,13 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: "At least 2 waypoints are required" }, { status: 400 });
   }
 
-  // Rate limit by session ID or IP
-  const rateLimitKey = sessionId ?? request.headers.get("x-forwarded-for") ?? "unknown";
-  const limit = checkRateLimit(`route:${rateLimitKey}`);
+  // Session-bind: only live planner sessions can compute routes through
+  // us, so we don't act as an anonymous BRouter proxy for scrapers.
+  const session = await requireSession(sessionId);
+  if (session instanceof Response) return session;
+
+  // Rate limit by session ID (always present after requireSession)
+  const limit = checkRateLimit(`route:${session.id}`);
 
   if (!limit.allowed) {
     return data(

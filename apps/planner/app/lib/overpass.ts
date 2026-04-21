@@ -134,6 +134,7 @@ export function deduplicateById(pois: Poi[]): Poi[] {
 export async function queryPois(
   bbox: BBox,
   categories: PoiCategory[],
+  sessionId: string,
   signal?: AbortSignal,
 ): Promise<Poi[]> {
   if (categories.length === 0) return [];
@@ -142,7 +143,12 @@ export async function queryPois(
 
   const response = await fetch(OVERPASS_PROXY, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      // Bind this call to the active planner session so the proxy
+      // isn't anonymously reachable.
+      "X-Trails-Session": sessionId,
+    },
     body: `data=${encodeURIComponent(query)}`,
     signal,
   });

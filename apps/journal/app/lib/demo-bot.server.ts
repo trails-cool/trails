@@ -433,10 +433,37 @@ export type BrouterError =
   | { kind: "timeout" }
   | { kind: "upstream-error"; status?: number };
 
+/**
+ * Create a throwaway planner session we can cite as the auth on the
+ * subsequent `/api/route` call. The planner session-binds its proxies
+ * so anonymous traffic doesn't pile up behind our Origin; bot traffic
+ * needs to look the same as browser traffic. Returned ids are cleaned
+ * up by the planner's `expire-sessions` cron (7d window) — we don't
+ * close them ourselves.
+ */
+async function createPlannerSession(signal?: AbortSignal): Promise<string | null> {
+  try {
+    const resp = await fetch(`${PLANNER_URL}/api/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+      signal,
+    });
+    if (!resp.ok) return null;
+    const payload = (await resp.json()) as { sessionId?: string };
+    return payload.sessionId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function requestBrouterGpx(
   endpoints: Endpoints,
   { signal }: { signal?: AbortSignal } = {},
 ): Promise<BrouterResult | BrouterError> {
+  const sessionId = await createPlannerSession(signal);
+  if (!sessionId) return { kind: "upstream-error" };
+
   const url = `${PLANNER_URL}/api/route`;
   const body = {
     waypoints: [
@@ -445,6 +472,7 @@ export async function requestBrouterGpx(
     ],
     profile: "trekking",
     format: "gpx" as const,
+    sessionId,
   };
   try {
     const resp = await fetch(url, {
