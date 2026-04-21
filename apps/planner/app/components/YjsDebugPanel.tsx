@@ -76,7 +76,7 @@ const dangerBtnClass =
  * - Actions: reset session, refetch route, become host, kick users
  * - State inspector: awareness, waypoints, route data, doc stats
  */
-export function YjsDebugPanel({ yjs }: { yjs: YjsState }) {
+export function YjsDebugPanel({ yjs, sessionId }: { yjs: YjsState; sessionId: string }) {
   const [visible, setVisible] = useState(() => loadBool("trails:debug", import.meta.env.DEV));
   const [expanded, setExpanded] = useState(() => loadBool("trails:debug:expanded", false));
   const [state, setState] = useState<DebugState | null>(null);
@@ -142,14 +142,14 @@ export function YjsDebugPanel({ yjs }: { yjs: YjsState }) {
     const response = await fetch("/api/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ waypoints, profile }),
+      body: JSON.stringify({ waypoints, profile, sessionId }),
     });
 
     if (response.ok) {
       const geojson = await response.json();
       yjs.routeData.set("geojson", JSON.stringify(geojson));
     }
-  }, [yjs]);
+  }, [yjs, sessionId]);
 
   const kickUser = useCallback(
     (clientId: number) => {

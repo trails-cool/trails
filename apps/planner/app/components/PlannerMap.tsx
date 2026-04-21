@@ -88,6 +88,7 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
 
 interface PlannerMapProps {
   yjs: YjsState;
+  sessionId: string;
   onRouteRequest?: (waypoints: WaypointData[]) => void;
   onImportError?: (message: string) => void;
   highlightPosition?: [number, number] | null;
@@ -362,10 +363,10 @@ function PoiRefresher({ poiState }: { poiState: ReturnType<typeof usePois> }) {
   return null;
 }
 
-export function PlannerMap({ yjs, onRouteRequest, highlightPosition, highlightedWaypoint, onRouteHover, onImportError, days }: PlannerMapProps) {
+export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, highlightedWaypoint, onRouteHover, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
-  const poiState = usePois();
+  const poiState = usePois(sessionId);
   useProfileDefaults(yjs, poiState);
   useYjsPoiSync(yjs, poiState);
   const [enabledOverlays, setEnabledOverlays] = useState<string[]>([]);

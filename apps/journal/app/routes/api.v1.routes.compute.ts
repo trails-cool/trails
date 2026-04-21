@@ -16,11 +16,29 @@ export async function action({ request }: Route.ActionArgs) {
       zodIssuesToFieldErrors(parsed.error));
   }
 
+  // The planner session-binds its /api/route proxy. Mint a throwaway
+  // session we can cite as the auth on the forwarded call; planner's
+  // expire-sessions cron tidies it up.
+  let sessionId: string | null = null;
+  try {
+    const sessResp = await fetch(`${PLANNER_URL}/api/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    if (sessResp.ok) {
+      const payload = (await sessResp.json()) as { sessionId?: string };
+      sessionId = payload.sessionId ?? null;
+    }
+  } catch {
+    /* fall through — sessionId stays null and the fetch below will 401 */
+  }
+
   try {
     const resp = await fetch(`${PLANNER_URL}/api/route`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(parsed.data),
+      body: JSON.stringify({ ...parsed.data, sessionId }),
     });
     if (!resp.ok) {
       return apiError(resp.status === 422 ? 422 : 502, ERROR_CODES.INTERNAL_ERROR, `Planner returned ${resp.status}`);

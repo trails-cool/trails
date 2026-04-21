@@ -1,5 +1,6 @@
 import type { Route } from "./+types/api.overpass";
 import { checkRateLimit } from "~/lib/rate-limit";
+import { requireSession } from "~/lib/require-session";
 import {
   overpassCacheEvents,
   overpassCacheSize,
@@ -168,6 +169,11 @@ export async function action({ request }: Route.ActionArgs) {
   if (!origin || origin !== expectedOrigin) {
     return new Response("Forbidden", { status: 403 });
   }
+
+  // Session-bind: every proxy call must present a live planner session,
+  // so anonymous abuse traffic can't ride on our trails.cool Origin.
+  const session = await requireSession(request.headers.get("x-trails-session"));
+  if (session instanceof Response) return session;
 
   const body = await request.text();
   const cacheKey = body;

@@ -43,7 +43,7 @@ function restoreWaypoints(yjs: YjsState, snapshot: WaypointData[], restoringRef:
 
 export type RouteError = "no_route" | "failed" | "rate_limit" | null;
 
-export function useRouting(yjs: YjsState | null) {
+export function useRouting(yjs: YjsState | null, sessionId: string) {
   const [isHost, setIsHost] = useState(false);
   const [computing, setComputing] = useState(false);
   const [routeError, setRouteError] = useState<RouteError>(null);
@@ -93,6 +93,7 @@ export function useRouting(yjs: YjsState | null) {
             waypoints,
             profile: (yjs.routeData.get("profile") as string) ?? "fastbike",
             noGoAreas: noGoAreas.length > 0 ? noGoAreas : undefined,
+            sessionId,
           }),
         });
 

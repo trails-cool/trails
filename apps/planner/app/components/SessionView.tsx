@@ -160,7 +160,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const { t } = useTranslation("planner");
   useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
   const yjs = useYjs(sessionId, initialWaypoints, initialNoGoAreas, initialNotes);
-  const { computing, routeError, routeStats, requestRoute } = useRouting(yjs);
+  const { computing, routeError, routeStats, requestRoute } = useRouting(yjs, sessionId);
   const { canUndo, canRedo, undo, redo } = useUndo(yjs?.undoManager ?? null);
   useUndoShortcuts(yjs?.undoManager ?? null);
   const days = useDays(yjs);
@@ -286,7 +286,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onRouteHover={setHighlightChartDistance} onImportError={(msg) => addToast(msg, "error")} days={days} />
+              <PlannerMap yjs={yjs} sessionId={sessionId} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onRouteHover={setHighlightChartDistance} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
@@ -305,7 +305,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
         </main>
         <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} />
       </div>
-      <YjsDebugPanel yjs={yjs} />
+      <YjsDebugPanel yjs={yjs} sessionId={sessionId} />
       {toasts.length > 0 && (
         <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
           {toasts.map((toast) => (
