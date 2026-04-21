@@ -7,8 +7,32 @@ import {
   overpassUpstreamRequests,
 } from "~/lib/metrics.server";
 
-const UPSTREAM_URL = process.env.OVERPASS_URL ?? "https://overpass.private.coffee/api/interpreter";
+/**
+ * Ordered list of upstream Overpass endpoints. We try each in turn
+ * until one returns a usable response; on timeout, network error,
+ * non-2xx status, or a body carrying Overpass's `rate_limited` runtime
+ * error, we fall over to the next. The default list keeps us on
+ * healthy community instances; `OVERPASS_URLS` overrides it and
+ * `OVERPASS_URL` is kept as a single-entry backward-compat alias.
+ */
+const DEFAULT_UPSTREAMS = [
+  "https://lz4.overpass-api.de/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+];
+
+function loadUpstreams(): string[] {
+  const list = process.env.OVERPASS_URLS ?? process.env.OVERPASS_URL;
+  if (!list) return DEFAULT_UPSTREAMS;
+  return list.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const UPSTREAMS = loadUpstreams();
 const USER_AGENT = "trails.cool Planner (https://trails.cool; legal@trails.cool)";
+
+// Per-attempt wall-clock budget. Keep aggressive so failover kicks in
+// quickly when an upstream is saturated — a single slow instance
+// shouldn't cost the user minutes.
+const PER_UPSTREAM_TIMEOUT_MS = 10_000;
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 200;
@@ -19,8 +43,15 @@ interface CacheEntry {
   expiresAt: number;
 }
 
+interface UpstreamResult {
+  body: string;
+  contentType: string;
+  status: number;
+  cacheable: boolean;
+}
+
 const cache = new Map<string, CacheEntry>();
-const inFlight = new Map<string, Promise<{ body: string; contentType: string; status: number; cacheable: boolean }>>();
+const inFlight = new Map<string, Promise<UpstreamResult>>();
 
 function getFromCache(key: string): CacheEntry | null {
   const entry = cache.get(key);
@@ -43,6 +74,80 @@ function putInCache(key: string, body: string, contentType: string) {
   }
   cache.set(key, { body, contentType, expiresAt: Date.now() + CACHE_TTL_MS });
   overpassCacheSize.set(cache.size);
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Try each upstream in order until one returns a usable response.
+ * Returns the first successful result, or `null` if every upstream
+ * failed. `clientSignal` is the browser's abort signal — if the user
+ * gives up before we succeed, we stop trying and propagate the abort
+ * to the in-flight upstream fetch so we don't waste its capacity on a
+ * request nobody wants anymore. Exported for tests; the action
+ * handler calls it with the module-level `UPSTREAMS` list.
+ */
+export async function fetchWithFailover(
+  body: string,
+  clientSignal: AbortSignal,
+  urls: readonly string[] = UPSTREAMS,
+): Promise<UpstreamResult | null> {
+  for (const url of urls) {
+    if (clientSignal.aborted) break;
+    const upstream = hostOf(url);
+    const start = Date.now();
+    try {
+      const signal = AbortSignal.any([
+        clientSignal,
+        AbortSignal.timeout(PER_UPSTREAM_TIMEOUT_MS),
+      ]);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": USER_AGENT,
+        },
+        body,
+        signal,
+      });
+      const responseBody = await response.text();
+      overpassUpstreamDuration.observe({ upstream }, (Date.now() - start) / 1000);
+      overpassUpstreamRequests.inc({ upstream, status: String(response.status) });
+
+      // Overpass returns 200 with a `rate_limited` runtime error when
+      // the instance is throttling us. Treat that like a 5xx: try the
+      // next upstream.
+      if (!response.ok || responseBody.includes("rate_limited")) {
+        continue;
+      }
+
+      return {
+        body: responseBody,
+        contentType: response.headers.get("content-type") ?? "application/json",
+        status: 200,
+        cacheable: true,
+      };
+    } catch (err) {
+      overpassUpstreamDuration.observe({ upstream }, (Date.now() - start) / 1000);
+      // If the CLIENT aborted, stop the whole loop — the user doesn't
+      // want an answer anymore. Any other error (timeout, network,
+      // DNS) counts as "this upstream failed, try the next."
+      if (clientSignal.aborted) {
+        overpassUpstreamRequests.inc({ upstream, status: "client-abort" });
+        throw err;
+      }
+      const label = (err as Error).name === "TimeoutError" ? "timeout" : "error";
+      overpassUpstreamRequests.inc({ upstream, status: label });
+      continue;
+    }
+  }
+  return null;
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -91,23 +196,13 @@ export async function action({ request }: Route.ActionArgs) {
   let pending = inFlight.get(cacheKey);
   if (!pending) {
     overpassCacheEvents.inc({ result: "miss" });
-    pending = (async () => {
-      const start = Date.now();
+    pending = (async (): Promise<UpstreamResult> => {
       try {
-        const upstream = await fetch(UPSTREAM_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": USER_AGENT,
-          },
-          body,
-        });
-        overpassUpstreamDuration.observe((Date.now() - start) / 1000);
-        overpassUpstreamRequests.inc({ status: String(upstream.status) });
-        const responseBody = await upstream.text();
-        const contentType = upstream.headers.get("content-type") ?? "application/json";
-        const cacheable = upstream.status === 200 && !responseBody.includes("rate_limited");
-        return { body: responseBody, contentType, status: upstream.status, cacheable };
+        const result = await fetchWithFailover(body, request.signal);
+        if (!result) {
+          throw new Error("all upstreams failed");
+        }
+        return result;
       } finally {
         inFlight.delete(cacheKey);
       }
@@ -117,11 +212,10 @@ export async function action({ request }: Route.ActionArgs) {
     overpassCacheEvents.inc({ result: "coalesced" });
   }
 
-  let result;
+  let result: UpstreamResult;
   try {
     result = await pending;
   } catch {
-    overpassUpstreamRequests.inc({ status: "error" });
     return new Response("Upstream Overpass unavailable", { status: 502 });
   }
 

@@ -55,7 +55,12 @@ services:
     restart: unless-stopped
     environment:
       BROUTER_URL: http://brouter:17777
-      OVERPASS_URL: https://overpass.private.coffee/api/interpreter
+      # Ordered failover list for the Overpass proxy. The code defaults
+      # to the same pair if unset; declaring it here makes the prod
+      # upstream explicit and easy to reshuffle via env when a
+      # community instance misbehaves. Override per-env with
+      # OVERPASS_URLS in the SOPS file.
+      OVERPASS_URLS: ${OVERPASS_URLS:-https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter}
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
       NODE_ENV: production
       PORT: 3001

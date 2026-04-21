@@ -60,15 +60,20 @@ export const overpassUpstreamDuration = getOrCreate("overpass_upstream_duration_
   new client.Histogram({
     name: "overpass_upstream_duration_seconds",
     help: "Duration of upstream Overpass API requests in seconds",
-    buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+    labelNames: ["upstream"] as const,
+    // Buckets go to 30s because our per-upstream timeout is 10s; a bit
+    // of headroom catches slow-but-not-timed-out tails without overly
+    // coarse resolution at the fast end where lz4 typically lands
+    // (~100–500ms).
+    buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 30],
   }),
 );
 
 export const overpassUpstreamRequests = getOrCreate("overpass_upstream_requests_total", () =>
   new client.Counter({
     name: "overpass_upstream_requests_total",
-    help: "Upstream Overpass API requests by status",
-    labelNames: ["status"] as const,
+    help: "Upstream Overpass API requests by upstream host and status",
+    labelNames: ["upstream", "status"] as const,
   }),
 );
 
