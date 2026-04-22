@@ -15,6 +15,29 @@ const docs = new Map<string, Y.Doc>();
 const awarenessMap = new Map<string, awarenessProtocol.Awareness>();
 const conns = new Map<WebSocket, { sessionId: string; clientIds: Set<number> }>();
 
+/**
+ * Count the number of distinct session ids represented in an iterable
+ * of connection metadata. Pure, for testability — the server calls it
+ * with the `conns` map's values.
+ */
+export function countActiveSessions(
+  connsIter: Iterable<{ sessionId: string }>,
+): number {
+  const sessionIds = new Set<string>();
+  for (const { sessionId } of connsIter) sessionIds.add(sessionId);
+  return sessionIds.size;
+}
+
+/**
+ * Set the active-sessions gauge from the actual `conns` state. Derived
+ * each time, so it can't drift negative — the previous inc/dec pattern
+ * leaked decrements whenever a reconnect found the doc cached in
+ * `docs` and skipped the matching increment.
+ */
+function refreshActiveSessions(): void {
+  plannerActiveSessions.set(countActiveSessions(conns.values()));
+}
+
 export function getOrCreateDoc(sessionId: string): Y.Doc {
   let doc = docs.get(sessionId);
   if (!doc) {
@@ -160,13 +183,12 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
   });
 
   wss.on("connection", async (ws: WebSocket, _request: IncomingMessage, sessionId: string) => {
-    const isNewSession = !docs.has(sessionId);
     const doc = await getOrLoadDoc(sessionId);
     const awareness = getAwareness(sessionId, doc);
 
     conns.set(ws, { sessionId, clientIds: new Set() });
     plannerConnectedClients.inc();
-    if (isNewSession) plannerActiveSessions.inc();
+    refreshActiveSessions();
 
     // Broadcast doc updates to all connections in this session
     const onUpdate = (update: Uint8Array, origin: unknown) => {
@@ -223,12 +245,12 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
       }
       conns.delete(ws);
       plannerConnectedClients.dec();
+      refreshActiveSessions();
       doc.off("update", onUpdate);
 
       // Save when last client leaves
       const hasClients = Array.from(conns.values()).some((m) => m.sessionId === sessionId);
       if (!hasClients) {
-        plannerActiveSessions.dec();
         saveSessionState(sessionId).catch(() => {});
       }
     });
