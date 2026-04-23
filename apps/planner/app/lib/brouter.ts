@@ -1,5 +1,23 @@
 const BROUTER_URL = process.env.BROUTER_URL ?? "http://localhost:17777";
 
+// The BRouter host's Caddy sidecar requires every request to carry a
+// shared-secret header. Missing in production = every request 403s, so
+// crash loudly at startup rather than during the first route request.
+if (process.env.NODE_ENV === "production" && !process.env.BROUTER_AUTH_TOKEN) {
+  throw new Error(
+    "BROUTER_AUTH_TOKEN is required in production. The BRouter Caddy " +
+      "sidecar rejects unauthenticated requests with 403. Check the " +
+      "SOPS-encrypted infrastructure/secrets.app.env and the cd-apps " +
+      "env wiring.",
+  );
+}
+
+// Read at call time so tests can stub via vi.stubEnv without module reset.
+function authHeaders(): HeadersInit {
+  const token = process.env.BROUTER_AUTH_TOKEN;
+  return token ? { "X-BRouter-Auth": token } : {};
+}
+
 export interface NoGoArea {
   points: Array<{ lat: number; lon: number }>;
 }
@@ -77,7 +95,7 @@ export class BRouterError extends Error {
 }
 
 async function fetchSegment(url: string): Promise<Record<string, unknown>> {
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: authHeaders() });
   if (!response.ok) {
     const body = await response.text();
     throw new BRouterError(body.trim(), response.status);
@@ -310,7 +328,9 @@ export async function computeSegmentGpx(request: {
   const nogoParam = request.noGoAreas?.length ? noGoAreasToParam(request.noGoAreas) : undefined;
   if (nogoParam) params.set("polygons", nogoParam);
 
-  const resp = await fetch(`${BROUTER_URL}/brouter?${params}`);
+  const resp = await fetch(`${BROUTER_URL}/brouter?${params}`, {
+    headers: authHeaders(),
+  });
   if (!resp.ok) {
     const body = await resp.text();
     throw new BRouterError(body.trim(), resp.status);

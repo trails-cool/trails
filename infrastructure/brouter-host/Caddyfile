@@ -1,0 +1,47 @@
+# BRouter Caddy sidecar.
+#
+# Role: enforce the X-BRouter-Auth shared-secret header so the exposed
+# vSwitch port can only be used by the Planner, not by any other process
+# that happens to land on the private network.
+#
+# Note on auth hygiene: by default, Caddy's access log does NOT include
+# request headers, so the token value is not written to disk. If you
+# ever enable `log { format json }` with `fields_exclude`, make sure
+# `X-BRouter-Auth` is NOT added to the log's request headers set.
+
+{
+	# Bind admin socket to localhost only (default behavior, explicit here
+	# as defense-in-depth).
+	admin localhost:2019
+	# Don't attempt TLS — we only listen on the private vSwitch and
+	# terminate plain HTTP on :17777. No certs, no Let's Encrypt, no
+	# leakage of this hostname to the ACME CAs.
+	auto_https off
+}
+
+:17777 {
+	# Match requests carrying the correct shared secret.
+	@authed header X-BRouter-Auth {$BROUTER_AUTH_TOKEN}
+
+	handle @authed {
+		reverse_proxy brouter:17777 {
+			# Don't forward the auth header upstream — BRouter doesn't
+			# use it, and it's cleaner to contain the credential at
+			# the proxy boundary.
+			header_up -X-BRouter-Auth
+		}
+	}
+
+	# Everything else: blunt 403.
+	handle {
+		respond "Forbidden" 403
+	}
+
+	# Access log to stdout (structured JSON). Container logs are captured
+	# by Docker's json-file driver and shipped to Loki by the promtail
+	# sidecar. Header values are NOT logged unless explicitly configured.
+	log {
+		output stdout
+		format json
+	}
+}

@@ -34,10 +34,13 @@ RUN for f in /data/profiles/*.brf; do \
 USER app
 EXPOSE 17777
 
+# JAVA_OPTS can be overridden at runtime (e.g., `-Xmx8g` for planet-scale).
+# The default keeps the flagship's single-instance footprint small.
+ENV JAVA_OPTS="-Xmx1024M -Xms256M -Xmn64M"
+
 # BRouter server: <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
-CMD ["java", "-Xmx1024M", "-Xms256M", "-Xmn64M", \
-     "-DmaxRunningTime=300", \
-     "-cp", "brouter.jar", \
-     "btools.server.RouteServer", \
-     "/data/segments", "/data/profiles", "/data/profiles", \
-     "17777", "4"]
+# Shell form so $JAVA_OPTS expands at container start.
+CMD java $JAVA_OPTS -DmaxRunningTime=300 -cp brouter.jar \
+    btools.server.RouteServer \
+    /data/segments /data/profiles /data/profiles \
+    17777 4
