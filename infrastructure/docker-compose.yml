@@ -182,6 +182,12 @@ services:
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     command: ["-config.file=/etc/loki/local-config.yaml"]
+    # Publish only on the vSwitch IP so Promtail running on the
+    # dedicated BRouter host can push logs in. Hetzner Cloud firewall
+    # still blocks 3100 from the public internet. Internal services on
+    # this host reach Loki via the docker network as before.
+    ports:
+      - "10.0.0.2:3100:3100"
 
   grafana:
     image: grafana/grafana:latest

@@ -62,7 +62,7 @@ jobs:
           username: trails
           port: ${{ secrets.BROUTER_DEPLOY_SSH_PORT }}
           key: ${{ secrets.BROUTER_DEPLOY_SSH_KEY }}
-          source: "infrastructure/brouter-host/docker-compose.yml,infrastructure/brouter-host/Caddyfile,infrastructure/brouter-host/download-segments.sh,infrastructure/brouter-host/.env"
+          source: "infrastructure/brouter-host/docker-compose.yml,infrastructure/brouter-host/Caddyfile,infrastructure/brouter-host/promtail-config.yml,infrastructure/brouter-host/download-segments.sh,infrastructure/brouter-host/.env"
           target: /home/trails/brouter
           strip_components: 2
 

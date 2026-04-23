@@ -28,3 +28,13 @@ scrape_configs:
   - job_name: "caddy"
     static_configs:
       - targets: ["caddy:2019"]
+
+  # BRouter runs on a separate Hetzner Robot host (ullrich.is), reached
+  # over the vSwitch at 10.0.1.10. cAdvisor there is scoped to trails-
+  # labeled containers only — we don't collect metrics for any of the
+  # operator's other workloads on that shared host.
+  - job_name: "brouter-cadvisor"
+    static_configs:
+      - targets: ["10.0.1.10:8080"]
+        labels:
+          host: "brouter"

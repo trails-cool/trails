@@ -14,7 +14,22 @@ on the VLAN interface from `10.0.0.2`, the flagship's vSwitch IP).
 
 ## One-time provisioning
 
-Runs as the `trails` user on the dedicated host.
+### Operator (as root) — one-time firewall rules
+
+The dedicated host's UFW policy rejects anything not explicitly
+allowed. Open the vSwitch ports the flagship needs:
+
+```bash
+# BRouter Caddy sidecar (already added during section 1.2):
+# ufw allow in on enp4s0.4000 from 10.0.0.2 to any port 17777 proto tcp \
+#   comment 'trails brouter via flagship vSwitch'
+
+# cAdvisor metrics endpoint (section 6) — add if not already:
+ufw allow in on enp4s0.4000 from 10.0.0.2 to any port 8080 proto tcp \
+  comment 'trails brouter cadvisor via flagship vSwitch'
+```
+
+### Application bring-up (as the `trails` user)
 
 ```bash
 # 1. Land the compose project
