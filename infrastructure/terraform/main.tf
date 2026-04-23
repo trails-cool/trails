@@ -54,6 +54,14 @@ resource "hcloud_server" "trails" {
     SSHD
     systemctl reload ssh
   EOF
+
+  # Hetzner Cloud provider's user_data hash algorithm changed in 1.45+,
+  # causing spurious replacement diffs on every plan even when the script
+  # is unchanged. user_data only runs on first boot anyway — changes after
+  # provisioning have no effect — so we pin the attribute to ignore_changes.
+  lifecycle {
+    ignore_changes = [user_data]
+  }
 }
 
 resource "hcloud_firewall" "trails" {
@@ -84,6 +92,55 @@ resource "hcloud_firewall" "trails" {
 resource "hcloud_firewall_attachment" "trails" {
   firewall_id = hcloud_firewall.trails.id
   server_ids  = [hcloud_server.trails.id]
+}
+
+# Private network bridging the flagship (Hetzner Cloud) to the dedicated
+# BRouter host (Hetzner Robot) via vSwitch. Both sides must be in the same
+# location (fsn1 / eu-central).
+#
+# Hetzner requires Cloud servers to attach to a regular "cloud" subnet;
+# the "vswitch" subnet is VLAN-only and cannot host Cloud NICs. The two
+# subnets live side by side in the same network and Hetzner routes between
+# them automatically.
+#
+#   10.0.0.0/16    — overall private network
+#   10.0.0.1       — network gateway (reserved by Hetzner; not usable)
+#   10.0.0.0/24    — cloud subnet (hosts Cloud server NICs)
+#   10.0.0.2       — flagship (assigned below)
+#   10.0.1.0/24    — vSwitch subnet (bridged to Robot VLAN)
+#   10.0.1.10      — dedicated BRouter host (configured on the Robot side
+#                    as a VLAN sub-interface, not managed by Terraform)
+
+resource "hcloud_network" "private" {
+  name     = "trails-cool"
+  ip_range = "10.0.0.0/16"
+
+  labels = {
+    project = "trails-cool"
+  }
+}
+
+resource "hcloud_network_subnet" "cloud" {
+  network_id   = hcloud_network.private.id
+  type         = "cloud"
+  network_zone = "eu-central"
+  ip_range     = "10.0.0.0/24"
+}
+
+resource "hcloud_network_subnet" "vswitch" {
+  network_id   = hcloud_network.private.id
+  type         = "vswitch"
+  network_zone = "eu-central"
+  ip_range     = "10.0.1.0/24"
+  vswitch_id   = var.vswitch_id
+}
+
+resource "hcloud_server_network" "trails" {
+  server_id  = hcloud_server.trails.id
+  network_id = hcloud_network.private.id
+  ip         = "10.0.0.2"
+
+  depends_on = [hcloud_network_subnet.cloud]
 }
 
 # Reverse DNS
@@ -360,4 +417,9 @@ output "domain" {
 
 output "planner_domain" {
   value = "planner.trails.cool"
+}
+
+output "flagship_private_ip" {
+  value       = hcloud_server_network.trails.ip
+  description = "Private IP of the flagship on the vSwitch network (reachable from the dedicated BRouter host)"
 }
