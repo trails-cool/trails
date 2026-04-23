@@ -24,30 +24,43 @@
 - [ ] ~~2.2 Add `BROUTER_AUTH_TOKEN` to `infrastructure/secrets.infra.env` (SOPS)~~ **obsoleted** — after relocation, `cd-infra` no longer deploys BRouter and therefore doesn't need the token. `cd-brouter` reads it from `secrets.app.env` instead (see 5.1). Single source of truth.
 - [x] 2.3 Add `BROUTER_AUTH_TOKEN` to `infrastructure/secrets.app.env` (SOPS) for the Planner
   - Token added via `sops -d | append | sops -e`; round-trip decrypt confirms. Committed in this branch.
-- [ ] 2.4 Add GitHub Actions secrets: `BROUTER_DEPLOY_HOST`, `BROUTER_DEPLOY_SSH_KEY`, `BROUTER_DEPLOY_SSH_PORT`
+- [x] 2.4 Add GitHub Actions secrets: `BROUTER_DEPLOY_HOST`, `BROUTER_DEPLOY_SSH_KEY`, `BROUTER_DEPLOY_SSH_PORT`
+  - Set via `gh secret set` from operator laptop: `BROUTER_DEPLOY_HOST=ullrich.is`, `BROUTER_DEPLOY_SSH_PORT=2232`, `BROUTER_DEPLOY_SSH_KEY` from `~/.ssh/trails-brouter-deploy`.
 - [ ] 2.5 Document the rotation runbook in `docs/deployment.md` (or equivalent)
 
 ## 3. BRouter host compose project
 
-- [ ] 3.1 Create `infrastructure/brouter-host/docker-compose.yml` with services `brouter` (bound only to the internal Docker network) and `caddy` (published on the vSwitch IP, auth-enforcing)
-- [ ] 3.2 Create `infrastructure/brouter-host/Caddyfile` that requires `X-BRouter-Auth` equal to the configured token and forwards matching requests to `brouter:17777`; redact the header from access logs
-- [ ] 3.3 Set `JAVA_OPTS=-Xmx8g` (or equivalent BRouter env) on the `brouter` service
-- [ ] 3.4 Create `infrastructure/brouter-host/download-segments.sh` that fetches the planet RD5 tile list idempotently into `./segments/`
-- [ ] 3.5 Add a README in `infrastructure/brouter-host/` with one-shot provisioning notes (`git clone`, first segment download, first compose up)
+- [x] 3.1 Create `infrastructure/brouter-host/docker-compose.yml` with services `brouter` (bound only to the internal Docker network) and `caddy` (published on the vSwitch IP, auth-enforcing)
+  - Compose has explicit `logging: driver: json-file` on each service to bypass the dedicated host's default `loki` logging driver. Caddy binds to `10.0.1.10:17777`; brouter has no published port.
+- [x] 3.2 Create `infrastructure/brouter-host/Caddyfile` that requires `X-BRouter-Auth` equal to the configured token and forwards matching requests to `brouter:17777`; redact the header from access logs
+  - Header matcher + 403 fallback; `auto_https off` since vSwitch-only. Caddy default access log format does not include request headers, so token is not logged.
+- [x] 3.3 Set `JAVA_OPTS=-Xmx8g` (or equivalent BRouter env) on the `brouter` service
+  - Also patched `docker/brouter/Dockerfile` to honor `JAVA_OPTS` (was hardcoded `-Xmx1024M` in CMD). Default env keeps flagship behavior unchanged.
+- [x] 3.4 Create `infrastructure/brouter-host/download-segments.sh` that fetches the planet RD5 tile list idempotently into `./segments/`
+  - Crawls brouter.de directory listing, uses `wget -N` for Last-Modified-based incremental updates, prints heartbeat every 25 tiles.
+- [x] 3.5 Add a README in `infrastructure/brouter-host/` with one-shot provisioning notes (`git clone`, first segment download, first compose up)
+  - Covers bring-up, segment refresh, token rotation, rollback. Paired with the CD workflow which handles routine updates.
 
 ## 4. Planner changes
 
-- [ ] 4.1 Add `BROUTER_AUTH_TOKEN` env var to `apps/planner/app/lib/brouter.ts`; send `X-BRouter-Auth` on every fetch
-- [ ] 4.2 Fail the Planner startup with a clear error when `NODE_ENV=production` and `BROUTER_AUTH_TOKEN` is unset
-- [ ] 4.3 Update `infrastructure/docker-compose.yml` Planner service env to pass `BROUTER_AUTH_TOKEN` through from the SOPS env file
-- [ ] 4.4 Add a unit test covering the header-attachment path in `apps/planner/app/lib/brouter.ts`
+- [x] 4.1 Add `BROUTER_AUTH_TOKEN` env var to `apps/planner/app/lib/brouter.ts`; send `X-BRouter-Auth` on every fetch
+  - `authHeaders()` helper reads env at call time (testable); attached to both `computeRoute` and `computeSegmentGpx` fetch sites.
+- [x] 4.2 Fail the Planner startup with a clear error when `NODE_ENV=production` and `BROUTER_AUTH_TOKEN` is unset
+  - Module-level throw at import. Prod container fails fast; dev/test unaffected.
+- [x] 4.3 Update `infrastructure/docker-compose.yml` Planner service env to pass `BROUTER_AUTH_TOKEN` through from the SOPS env file
+  - Also made `BROUTER_URL` overridable so cutover is a single SOPS edit away.
+- [x] 4.4 Add a unit test covering the header-attachment path in `apps/planner/app/lib/brouter.ts`
+  - 3 new tests: token set → header attached, token unset → header omitted, covers both `computeRoute` and `computeSegmentGpx`.
 
 ## 5. CD workflow
 
-- [ ] 5.1 Rewrite `.github/workflows/cd-brouter.yml` deploy job: SSH as `trails@${{ secrets.BROUTER_DEPLOY_HOST }}`, `cd ~trails/brouter`, `docker compose pull && docker compose up -d`
-- [ ] 5.2 Update workflow `paths:` trigger to include `infrastructure/brouter-host/**`
-- [ ] 5.3 Move the segment-download logic out of the workflow into the on-host `download-segments.sh`; workflow calls it but tolerates a long-running invocation (or skips on subsequent deploys if segments already present)
-- [ ] 5.4 Keep the Grafana annotation step, pointing at the flagship Grafana over its existing path
+- [x] 5.1 Rewrite `.github/workflows/cd-brouter.yml` deploy job: SSH as `trails@${{ secrets.BROUTER_DEPLOY_HOST }}`, `cd ~trails/brouter`, `docker compose pull && docker compose up -d`
+  - SSH on port `BROUTER_DEPLOY_SSH_PORT` (2232), dedicated key `BROUTER_DEPLOY_SSH_KEY`.
+- [x] 5.2 Update workflow `paths:` trigger to include `infrastructure/brouter-host/**`
+- [x] 5.3 Move the segment-download logic out of the workflow into the on-host `download-segments.sh`; workflow calls it but tolerates a long-running invocation (or skips on subsequent deploys if segments already present)
+  - Workflow does NOT call `download-segments.sh` — first-time seed is a manual operator step (per README and task 7.1); routine re-runs are cron-able on the dedicated host.
+- [x] 5.4 Keep the Grafana annotation step, pointing at the flagship Grafana over its existing path
+  - Still uses `DEPLOY_HOST` + `DEPLOY_SSH_KEY` to reach the flagship for the annotation.
 - [ ] 5.5 Remove the `brouter:` service from `infrastructure/docker-compose.yml` on the flagship (deferred to cutover step 7.5)
 
 ## 6. Observability

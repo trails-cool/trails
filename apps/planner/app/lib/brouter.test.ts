@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { mergeGeoJsonSegments } from "./brouter";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { computeRoute, computeSegmentGpx, mergeGeoJsonSegments } from "./brouter";
 
 function makeSegment(coords: number[][], length: number, ascend: number) {
   return {
@@ -218,6 +218,83 @@ describe("highway tag extraction", () => {
     const result = mergeGeoJsonSegments([seg] as never[]);
     expect(result.highways[0]).toBe("unknown");
     expect(result.highways[1]).toBe("unknown");
+  });
+});
+
+describe("X-BRouter-Auth header", () => {
+  // Minimal valid response so computeRoute doesn't throw during merge.
+  const stubGeoJson = JSON.stringify({
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { "track-length": "100", "filtered ascend": "0", "total-time": "10" },
+        geometry: { type: "LineString", coordinates: [[13.0, 52.0, 30], [13.1, 52.1, 40]] },
+      },
+    ],
+  });
+
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn().mockResolvedValue(
+      new Response(stubGeoJson, { status: 200, headers: { "content-type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("attaches X-BRouter-Auth when BROUTER_AUTH_TOKEN is set (computeRoute)", async () => {
+    vi.stubEnv("BROUTER_AUTH_TOKEN", "test-token-abc");
+
+    await computeRoute({
+      waypoints: [
+        { lat: 52.0, lon: 13.0 },
+        { lat: 52.1, lon: 13.1 },
+      ],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [, init] = fetchSpy.mock.calls[0]!;
+    expect(init?.headers).toMatchObject({ "X-BRouter-Auth": "test-token-abc" });
+  });
+
+  it("omits X-BRouter-Auth when BROUTER_AUTH_TOKEN is unset (dev/test convenience)", async () => {
+    vi.stubEnv("BROUTER_AUTH_TOKEN", "");
+
+    await computeRoute({
+      waypoints: [
+        { lat: 52.0, lon: 13.0 },
+        { lat: 52.1, lon: 13.1 },
+      ],
+    });
+
+    const [, init] = fetchSpy.mock.calls[0]!;
+    expect(init?.headers).not.toHaveProperty("X-BRouter-Auth");
+  });
+
+  it("attaches X-BRouter-Auth on computeSegmentGpx as well", async () => {
+    vi.stubEnv("BROUTER_AUTH_TOKEN", "test-token-xyz");
+    fetchSpy.mockResolvedValueOnce(
+      new Response('<gpx><trk><trkseg><trkpt lat="52" lon="13"/></trkseg></trk></gpx>', {
+        status: 200,
+        headers: { "content-type": "application/gpx+xml" },
+      }),
+    );
+
+    await computeSegmentGpx({
+      waypoints: [
+        { lat: 52.0, lon: 13.0 },
+        { lat: 52.1, lon: 13.1 },
+      ],
+    });
+
+    const [, init] = fetchSpy.mock.calls[0]!;
+    expect(init?.headers).toMatchObject({ "X-BRouter-Auth": "test-token-xyz" });
   });
 });
 

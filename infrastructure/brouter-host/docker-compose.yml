@@ -1,0 +1,78 @@
+# BRouter host compose project — runs on the dedicated Hetzner Robot
+# server `ullrich.is` under the `trails` user. See README.md for first-time
+# provisioning notes.
+#
+# Exposed surface: Caddy listens on 10.0.1.10:17777 (vSwitch IP only).
+# BRouter itself is not published to the host — only reachable via the
+# internal Docker network from the Caddy sidecar.
+#
+# Logging: the host's default logging driver is `loki` (user's personal
+# Loki). Every service here explicitly overrides to `json-file` so logs
+# stay local and are picked up by the promtail sidecar (section 6.3) for
+# shipping to trails.cool's Loki.
+
+services:
+  brouter:
+    image: ghcr.io/trails-cool/brouter:latest
+    container_name: trails-brouter
+    restart: unless-stopped
+    # Planet-scale coverage: segments live on the host and are mounted in.
+    # 8 GB heap for segment cache; -Xms generous because routing is
+    # memory-heavy and we don't benefit from a slow JVM warmup.
+    environment:
+      JAVA_OPTS: "-Xmx8g -Xms512M"
+    volumes:
+      - ./segments:/data/segments:ro
+    networks:
+      - trails-brouter-internal
+    # Scope logs to json-file so we don't leak to the host's default Loki
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      trails.cool.service: "brouter"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:17777/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: trails-brouter-caddy
+    restart: unless-stopped
+    depends_on:
+      brouter:
+        condition: service_healthy
+    # Bind ONLY to the vSwitch IP on the host — the dedicated host's
+    # public IP remains unaffected. UFW further restricts this to traffic
+    # sourced from the flagship's private IP (10.0.0.2).
+    ports:
+      - "10.0.1.10:17777:17777"
+    environment:
+      BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - trails-brouter-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      trails.cool.service: "brouter-caddy"
+
+volumes:
+  caddy-data:
+  caddy-config:
+
+networks:
+  trails-brouter-internal:
+    driver: bridge
+    # Container-to-container only; no host-level exposure via this net

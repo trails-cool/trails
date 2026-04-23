@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docker/brouter/**"
+      - "infrastructure/brouter-host/**"
   workflow_dispatch: {}
 
 concurrency:
@@ -36,13 +37,63 @@ jobs:
             ghcr.io/trails-cool/brouter:${{ github.sha }}
 
   deploy:
-    name: Deploy BRouter
+    name: Deploy BRouter to dedicated host
     needs: [build]
     runs-on: ubuntu-latest
+    environment: infra
     steps:
       - uses: actions/checkout@v6
 
-      - name: Deploy via SSH
+      - name: Decrypt shared secret
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          # Extract ONLY BROUTER_AUTH_TOKEN from secrets.app.env — the
+          # rest of that file is app-only and has no business reaching
+          # the BRouter host.
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env \
+            | grep '^BROUTER_AUTH_TOKEN=' > infrastructure/brouter-host/.env
+          chmod 0600 infrastructure/brouter-host/.env
+
+      - name: Copy compose project to dedicated host
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.BROUTER_DEPLOY_HOST }}
+          username: trails
+          port: ${{ secrets.BROUTER_DEPLOY_SSH_PORT }}
+          key: ${{ secrets.BROUTER_DEPLOY_SSH_KEY }}
+          source: "infrastructure/brouter-host/docker-compose.yml,infrastructure/brouter-host/Caddyfile,infrastructure/brouter-host/download-segments.sh,infrastructure/brouter-host/.env"
+          target: /home/trails/brouter
+          strip_components: 2
+
+      - name: Pull image and restart containers
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.BROUTER_DEPLOY_HOST }}
+          username: trails
+          port: ${{ secrets.BROUTER_DEPLOY_SSH_PORT }}
+          key: ${{ secrets.BROUTER_DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /home/trails/brouter
+
+            chmod +x download-segments.sh
+
+            # Segment download is explicitly NOT run here — it's
+            # multi-hour and idempotent. Seeding the segments directory
+            # is a one-shot operator task (see brouter-host/README.md).
+            # Run `~/brouter/download-segments.sh` by hand (or via cron)
+            # to refresh.
+            if [ ! -d segments ] || [ -z "$(ls -A segments 2>/dev/null)" ]; then
+              echo "WARNING: segments/ is empty. BRouter will start but return 404 until segments are seeded."
+              mkdir -p segments
+            fi
+
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker compose ps
+
+      - name: Annotate deploy in flagship Grafana
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -50,34 +101,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /opt/trails-cool
-
-            # Download BRouter segments for Europe (W10-E40, N35-N70)
-            mkdir -p /opt/trails-cool/segments
-            EUROPE_TILES="
-              W10_N50 W10_N55 W10_N60 W10_N65
-              W5_N35 W5_N40 W5_N45 W5_N50 W5_N55 W5_N60 W5_N65
-              E0_N35 E0_N40 E0_N45 E0_N50 E0_N55 E0_N60 E0_N65 E0_N70
-              E5_N35 E5_N40 E5_N45 E5_N50 E5_N55 E5_N60 E5_N65 E5_N70
-              E10_N35 E10_N40 E10_N45 E10_N50 E10_N55 E10_N60 E10_N65 E10_N70
-              E15_N35 E15_N40 E15_N45 E15_N50 E15_N55 E15_N60 E15_N65 E15_N70
-              E20_N35 E20_N40 E20_N45 E20_N50 E20_N55 E20_N60 E20_N65 E20_N70
-              E25_N35 E25_N40 E25_N45 E25_N50 E25_N55 E25_N60 E25_N65
-              E30_N35 E30_N40 E30_N45 E30_N50 E30_N55 E30_N60 E30_N65
-              E35_N40 E35_N45 E35_N50 E35_N55 E35_N60
-              E40_N40 E40_N45 E40_N50 E40_N55
-            "
-            for tile in $EUROPE_TILES; do
-              [ -f "/opt/trails-cool/segments/${tile}.rd5" ] || \
-                wget -q "https://brouter.de/brouter/segments4/${tile}.rd5" -O "/opt/trails-cool/segments/${tile}.rd5" 2>/dev/null || \
-                rm -f "/opt/trails-cool/segments/${tile}.rd5"
-            done
-
-            docker pull ghcr.io/trails-cool/brouter:latest
-            docker compose up -d brouter
-            docker image prune -af
-
-            # Annotate deploy in Grafana
-            GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env | cut -d= -f2- 2>/dev/null)
+            GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env | cut -d= -f2-)
             if [ -n "$GRAFANA_TOKEN" ]; then
               docker compose exec -T grafana curl -sf -X POST \
                 -H "Authorization: Bearer $GRAFANA_TOKEN" \
