@@ -79,9 +79,14 @@
 
 ## 7. Cutover
 
-- [ ] 7.1 Deploy `infrastructure/brouter-host/` to the dedicated host manually the first time; run `download-segments.sh` (expect multi-hour runtime)
-- [ ] 7.2 Verify the new BRouter responds to a curl from the flagship host over vSwitch with the auth header, and returns 403 without it
-- [ ] 7.3 Deploy the Planner with `BROUTER_AUTH_TOKEN` set but `BROUTER_URL` still pointing at the flagship BRouter (no-op change; validates wiring)
+- [x] 7.1 Deploy `infrastructure/brouter-host/` to the dedicated host manually the first time; run `download-segments.sh` (expect multi-hour runtime)
+  - Planet RD5 set (1139 tiles, 9.2 GB) seeded at `~trails/brouter/segments/` on `ullrich.is`. Multi-hour was overestimated — took ~1 min. Planet compressed is only ~10 GB now.
+  - All 4 containers up on dedicated host: `trails-brouter` (BRouter 1.7.9), `trails-brouter-caddy`, `trails-brouter-cadvisor`, `trails-brouter-promtail`. Promtail will retry-loop until flagship publishes Loki on `10.0.0.2:3100` (lands with PR #292 merge).
+  - Hit three issues during first deploy: `cd-brouter` missing `docker login` (GHCR image is private), custom healthcheck used `wget` not in the image, and BRouter 1.7.8 was one lookups.dat version behind current planet segments. All three fixed in a follow-up commit on #292.
+- [x] 7.2 Verify the new BRouter responds to a curl from the flagship host over vSwitch with the auth header, and returns 403 without it
+  - Confirmed end-to-end from `trails.cool`: `curl -H 'X-BRouter-Auth: …' http://10.0.1.10:17777/brouter?...` → 200 with GPX body (1.75 km route, 4m41s). Without the header → 403 from Caddy, BRouter never sees the request.
+- [x] 7.3 Deploy the Planner with `BROUTER_AUTH_TOKEN` set but `BROUTER_URL` still pointing at the flagship BRouter (no-op change; validates wiring)
+  - cd-apps deployed post-#291 merge with `BROUTER_AUTH_TOKEN` in env. Planner started cleanly (module-level guard passed); it's sending the header on every BRouter request. Flagship BRouter ignores the header as expected. `/health` returns 200, logs show normal traffic.
 - [ ] 7.4 Flip `BROUTER_URL` in SOPS to the new vSwitch URL; deploy Planner; monitor `brouter_request_duration_seconds` error rate for 30 minutes
 - [ ] 7.5 After 48 hours of clean metrics: remove the `brouter` service + `./segments` volume from `infrastructure/docker-compose.yml`; run `cd-infra.yml` to restart without BRouter; `docker image prune` on the flagship
 - [ ] 7.6 Document rollback path (revert `BROUTER_URL` flip, redeploy Planner, old container warm for 48h) in the PR description
