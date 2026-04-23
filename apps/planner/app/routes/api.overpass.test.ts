@@ -10,7 +10,7 @@ vi.mock("~/lib/metrics.server", () => ({
   overpassUpstreamRequests: { inc: vi.fn() },
 }));
 
-import { fetchWithFailover } from "./api.overpass";
+import { fetchWithFailover } from "~/lib/overpass.server";
 import {
   overpassUpstreamRequests,
   overpassUpstreamDuration,
