@@ -19,10 +19,12 @@
 
 ## 2. Secrets and config
 
-- [ ] 2.1 Generate a 32-byte random `BROUTER_AUTH_TOKEN`
-- [ ] 2.2 Add `BROUTER_AUTH_TOKEN` to `infrastructure/secrets.infra.env` (SOPS) and commit the re-encrypted file
-- [ ] 2.3 Add `BROUTER_AUTH_TOKEN` to `infrastructure/secrets.app.env` (SOPS) for the Planner
-- [ ] 2.4 Add GitHub Actions secrets: `BROUTER_DEPLOY_HOST`, `BROUTER_DEPLOY_SSH_KEY`
+- [x] 2.1 Generate a 32-byte random `BROUTER_AUTH_TOKEN`
+  - `openssl rand -base64 32`; active token lives only in SOPS and the operator's clipboard history. Rotate by regenerating and re-running 2.3.
+- [ ] ~~2.2 Add `BROUTER_AUTH_TOKEN` to `infrastructure/secrets.infra.env` (SOPS)~~ **obsoleted** — after relocation, `cd-infra` no longer deploys BRouter and therefore doesn't need the token. `cd-brouter` reads it from `secrets.app.env` instead (see 5.1). Single source of truth.
+- [x] 2.3 Add `BROUTER_AUTH_TOKEN` to `infrastructure/secrets.app.env` (SOPS) for the Planner
+  - Token added via `sops -d | append | sops -e`; round-trip decrypt confirms. Committed in this branch.
+- [ ] 2.4 Add GitHub Actions secrets: `BROUTER_DEPLOY_HOST`, `BROUTER_DEPLOY_SSH_KEY`, `BROUTER_DEPLOY_SSH_PORT`
 - [ ] 2.5 Document the rotation runbook in `docs/deployment.md` (or equivalent)
 
 ## 3. BRouter host compose project
