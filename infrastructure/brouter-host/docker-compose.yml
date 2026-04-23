@@ -33,12 +33,10 @@ services:
         max-file: "3"
     labels:
       trails.cool.service: "brouter"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:17777/ >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
+    # No custom healthcheck: the BRouter image strips wget/curl post-build,
+    # and /bin/sh in the base image doesn't support /dev/tcp. Real health
+    # is observed via Caddy upstream (502 on outage) and the Planner-side
+    # brouter_request_duration_seconds metric.
 
   caddy:
     image: caddy:2-alpine
@@ -46,7 +44,7 @@ services:
     restart: unless-stopped
     depends_on:
       brouter:
-        condition: service_healthy
+        condition: service_started
     # Bind ONLY to the vSwitch IP on the host — the dedicated host's
     # public IP remains unaffected. UFW further restricts this to traffic
     # sourced from the flagship's private IP (10.0.0.2).
