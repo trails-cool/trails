@@ -189,6 +189,11 @@ services:
       GF_AUTH_GITHUB_SCOPES: user:email,read:org
       GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP: "true"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      # New GitHub-authenticated users land as Editor, not the default
+      # Viewer, so they can use Explore (ad-hoc Loki/Prometheus queries)
+      # without an admin promotion step. Access is already gated by the
+      # GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS allowlist above.
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Editor
       GF_SMTP_ENABLED: "true"
       GF_SMTP_HOST: ${GF_SMTP_HOST:-}
       GF_SMTP_USER: ${GF_SMTP_USER:-}
