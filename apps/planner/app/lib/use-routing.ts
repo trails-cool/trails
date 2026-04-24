@@ -51,6 +51,10 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastGoodWaypointsRef = useRef<WaypointData[] | null>(null);
   const restoringRef = useRef(false);
+  // Cancels the in-flight /api/route call when a newer one starts. Without
+  // this, rapid edits pile up on BRouter's thread pool and older requests
+  // get killed by its contention watchdog, surfacing as spurious errors.
+  const inflightAbortRef = useRef<AbortController | null>(null);
 
   // Host election via Yjs awareness
   useEffect(() => {
@@ -85,6 +89,9 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
       const snapshotBeforeCompute = getWaypointsFromYjs(yjs.waypoints);
 
       setComputing(true);
+      inflightAbortRef.current?.abort();
+      const controller = new AbortController();
+      inflightAbortRef.current = controller;
       try {
         const response = await fetch("/api/route", {
           method: "POST",
@@ -95,6 +102,7 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
             noGoAreas: noGoAreas.length > 0 ? noGoAreas : undefined,
             sessionId,
           }),
+          signal: controller.signal,
         });
 
         if (response.status === 429) {
@@ -146,11 +154,17 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
             yjs.routeData.set("bikeroutes", JSON.stringify(enriched.bikeroutes));
           }
         });
-      } catch {
+      } catch (err) {
+        // A superseding request aborted this one — leave state alone so
+        // the newer call's result becomes authoritative.
+        if ((err as Error)?.name === "AbortError") return;
         setRouteError("failed");
         restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
       } finally {
-        setComputing(false);
+        if (inflightAbortRef.current === controller) {
+          inflightAbortRef.current = null;
+          setComputing(false);
+        }
       }
     },
     [yjs, isHost],
