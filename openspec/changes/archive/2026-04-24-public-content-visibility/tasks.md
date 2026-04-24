@@ -58,5 +58,7 @@
 ## 10. Rollout
 
 - [x] 10.1 Schema ships with `drizzle-kit push --force` — column default `'private'`, no row changes on prod
-- [ ] 10.2 (Post-deploy check) Confirm on prod that existing users' routes/activities remain auth-only — handled at merge time, not in this PR
-- [ ] 10.3 (Next change) `demo-activity-bot` will insert with `visibility='public'` directly — not in this PR
+- [x] 10.2 (Post-deploy check) Confirm on prod that existing users' routes/activities remain auth-only — handled at merge time, not in this PR
+  - Verified post-merge on trails.cool: `journal.routes` and `journal.activities` both have `column_default = 'private'::text`, NOT NULL. Current row counts — routes: 6 private / 15 public; activities: 11 private / 15 public — the publics on both sides are the demo-bot (bruno) seeded content per task 10.3. No existing user content leaked public.
+- [x] 10.3 (Next change) `demo-activity-bot` will insert with `visibility='public'` directly — not in this PR
+  - Confirmed landed in the `demo-activity-bot` change: `apps/journal/app/lib/demo-bot.server.ts:564,585` set `visibility: "public"` on both route and activity inserts.
