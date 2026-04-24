@@ -231,14 +231,28 @@ groups:
           summary: "Caddy is returning 502 errors — journal or planner upstream unreachable"
 
 contactPoints:
+  # Single "default" contact point with multiple integrations: every alert
+  # fan-outs to both email and Pushover. Grafana resolves $VAR / ${VAR}
+  # tokens from the container's env at startup, so the secrets never land
+  # in the provisioning YAML or the git history. See SOPS
+  # `secrets.infra.env` for PUSHOVER_*.
   - orgId: 1
-    name: email
+    name: default
     receivers:
       - uid: email-default
         type: email
         settings:
           addresses: admin@trails.cool
+      - uid: pushover-ullrich
+        type: pushover
+        settings:
+          apiToken: $PUSHOVER_API_TOKEN
+          userKey: $PUSHOVER_USER_KEY_ULLRICH
+          # High-priority push (bypass quiet hours) on alert; default
+          # priority on resolve. Tweak if this gets noisy.
+          priority: "1"
+          okPriority: "0"
 
 policies:
   - orgId: 1
-    receiver: email
+    receiver: default
