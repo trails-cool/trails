@@ -201,6 +201,11 @@ services:
       GF_SMTP_FROM_ADDRESS: noreply@trails.cool
       GF_SMTP_FROM_NAME: trails.cool Grafana
       GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-}
+      # Pushover app + user keys consumed by alerts.yml provisioning.
+      # App token identifies the trails.cool Pushover application; per-user
+      # keys receive the notifications. Keys (un)set in SOPS secrets.infra.env.
+      PUSHOVER_API_TOKEN: ${PUSHOVER_API_TOKEN:-}
+      PUSHOVER_USER_KEY_ULLRICH: ${PUSHOVER_USER_KEY_ULLRICH:-}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
