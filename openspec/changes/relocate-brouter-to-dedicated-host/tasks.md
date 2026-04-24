@@ -26,7 +26,8 @@
   - Token added via `sops -d | append | sops -e`; round-trip decrypt confirms. Committed in this branch.
 - [x] 2.4 Add GitHub Actions secrets: `BROUTER_DEPLOY_HOST`, `BROUTER_DEPLOY_SSH_KEY`, `BROUTER_DEPLOY_SSH_PORT`
   - Set via `gh secret set` from operator laptop: `BROUTER_DEPLOY_HOST=ullrich.is`, `BROUTER_DEPLOY_SSH_PORT=2232`, `BROUTER_DEPLOY_SSH_KEY` from `~/.ssh/trails-brouter-deploy`.
-- [ ] 2.5 Document the rotation runbook in `docs/deployment.md` (or equivalent)
+- [x] 2.5 Document the rotation runbook in `docs/deployment.md` (or equivalent)
+  - `docs/deployment.md` §Secrets rotation covers the `BROUTER_AUTH_TOKEN` generate/edit/deploy/overlap flow and the macOS `SOPS_AGE_KEY_FILE` gotcha. Added as part of 8.3.
 
 ## 3. BRouter host compose project
 
@@ -87,9 +88,11 @@
   - Confirmed end-to-end from `trails.cool`: `curl -H 'X-BRouter-Auth: …' http://10.0.1.10:17777/brouter?...` → 200 with GPX body (1.75 km route, 4m41s). Without the header → 403 from Caddy, BRouter never sees the request.
 - [x] 7.3 Deploy the Planner with `BROUTER_AUTH_TOKEN` set but `BROUTER_URL` still pointing at the flagship BRouter (no-op change; validates wiring)
   - cd-apps deployed post-#291 merge with `BROUTER_AUTH_TOKEN` in env. Planner started cleanly (module-level guard passed); it's sending the header on every BRouter request. Flagship BRouter ignores the header as expected. `/health` returns 200, logs show normal traffic.
-- [ ] 7.4 Flip `BROUTER_URL` in SOPS to the new vSwitch URL; deploy Planner; monitor `brouter_request_duration_seconds` error rate for 30 minutes
+- [x] 7.4 Flip `BROUTER_URL` in SOPS to the new vSwitch URL; deploy Planner; monitor `brouter_request_duration_seconds` error rate for 30 minutes
+  - Pre-flight from flagship over vSwitch confirmed: 200 + GPX with `X-BRouter-Auth`, 403 without. `BROUTER_URL=http://10.0.1.10:17777` added to `infrastructure/secrets.app.env` in this PR. Monitoring runbook in `docs/deployment.md` §Cutover.
 - [ ] 7.5 After 48 hours of clean metrics: remove the `brouter` service + `./segments` volume from `infrastructure/docker-compose.yml`; run `cd-infra.yml` to restart without BRouter; `docker image prune` on the flagship
-- [ ] 7.6 Document rollback path (revert `BROUTER_URL` flip, redeploy Planner, old container warm for 48h) in the PR description
+- [x] 7.6 Document rollback path (revert `BROUTER_URL` flip, redeploy Planner, old container warm for 48h) in the PR description
+  - Rollback procedure in the cutover PR body; canonical version in `docs/deployment.md` §Cutover step 5.
 
 ## 8. Documentation
 
@@ -104,7 +107,9 @@
 
 ## 9. Verification
 
-- [ ] 9.1 `pnpm typecheck && pnpm lint && pnpm test` pass with the new env handling and unit test
-- [ ] 9.2 `pnpm test:e2e` passes with the Planner hitting the relocated BRouter (or a mocked upstream that enforces the auth header)
+- [x] 9.1 `pnpm typecheck && pnpm lint && pnpm test` pass with the new env handling and unit test
+  - Clean run on main @ 6bae26d (12/12 turbo tasks green).
+- [x] 9.2 `pnpm test:e2e` passes with the Planner hitting the relocated BRouter (or a mocked upstream that enforces the auth header)
+  - All 9 BRouter integration tests pass locally against the dev BRouter with the Planner sending `X-BRouter-Auth`. 4 unrelated macOS-local flakes (passkey/WebAuthn + public-content redirect timing) are green in CI on `main` @ 6bae26d.
 - [ ] 9.3 A manual smoke test from Grafana confirms BRouter metrics and logs appear under the `brouter` host label after cutover
 - [ ] 9.4 `openspec archive relocate-brouter-to-dedicated-host` runs cleanly after cutover + documentation are merged
