@@ -1,5 +1,7 @@
 FROM node:25-slim AS base
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+# curl is used by the docker-compose healthcheck (node:25-slim is Debian
+# trixie-slim and ships neither curl nor wget by default).
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@10.6.5
 WORKDIR /app
 
