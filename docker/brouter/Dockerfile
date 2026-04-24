@@ -38,9 +38,16 @@ EXPOSE 17777
 # The default keeps the flagship's single-instance footprint small.
 ENV JAVA_OPTS="-Xmx1024M -Xms256M -Xmn64M"
 
+# Routing thread pool. When saturated, BRouter's thread-priority watchdog
+# kills the oldest in-flight request ("contention! ms killed …") to free a
+# thread for the new one — the caller then sees a cancelled response. Bump
+# this on hosts with spare cores/RAM to absorb burst traffic. Planet host
+# sets it to 16; flagship/CI keep the default.
+ENV BROUTER_THREADS=4
+
 # BRouter server: <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
-# Shell form so $JAVA_OPTS expands at container start.
+# Shell form so $JAVA_OPTS and $BROUTER_THREADS expand at container start.
 CMD java $JAVA_OPTS -DmaxRunningTime=300 -cp brouter.jar \
     btools.server.RouteServer \
     /data/segments /data/profiles /data/profiles \
-    17777 4
+    17777 $BROUTER_THREADS

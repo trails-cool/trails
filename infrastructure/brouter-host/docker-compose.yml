@@ -19,8 +19,12 @@ services:
     # Planet-scale coverage: segments live on the host and are mounted in.
     # 8 GB heap for segment cache; -Xms generous because routing is
     # memory-heavy and we don't benefit from a slow JVM warmup.
+    # 16 routing threads on the 32 GB / multi-core dedicated host absorbs
+    # burst traffic from "click around wildly" editing without triggering
+    # BRouter's contention watchdog on the 4-thread default.
     environment:
       JAVA_OPTS: "-Xmx8g -Xms512M"
+      BROUTER_THREADS: "16"
     volumes:
       - ./segments:/data/segments:ro
     networks:
