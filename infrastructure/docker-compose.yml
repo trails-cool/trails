@@ -54,16 +54,15 @@ services:
     image: ghcr.io/trails-cool/planner:latest
     restart: unless-stopped
     environment:
-      # BROUTER_URL overridable via SOPS: during the cutover to the
-      # dedicated BRouter host, flip to `http://10.0.1.10:17777` without
-      # touching this compose file. Default keeps the in-tree BRouter
-      # for the soak window and local dev.
-      BROUTER_URL: ${BROUTER_URL:-http://brouter:17777}
+      # Required: points the Planner at the dedicated BRouter host over
+      # vSwitch. Set in SOPS `secrets.app.env` (BROUTER_URL line). Using
+      # `:?` so a missing value fails the compose up loudly rather than
+      # silently pointing at a nonexistent `brouter:17777` service.
+      BROUTER_URL: ${BROUTER_URL:?BROUTER_URL must be set in SOPS secrets.app.env}
       # Shared secret the Planner attaches as X-BRouter-Auth on every
-      # BRouter request. The Caddy sidecar on the dedicated BRouter
-      # host enforces this header; for the in-tree flagship BRouter
-      # it's an unused extra header. Set in SOPS secrets.app.env.
-      BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN}
+      # BRouter request. The Caddy sidecar on the dedicated host
+      # enforces this header. Set in SOPS secrets.app.env.
+      BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set in SOPS secrets.app.env}
       # Ordered failover list for the Overpass proxy. The code defaults
       # to the same pair if unset; declaring it here makes the prod
       # upstream explicit and easy to reshuffle via env when a
@@ -82,17 +81,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      brouter:
-        condition: service_started
-
-  brouter:
-    image: ghcr.io/trails-cool/brouter:latest
-    restart: unless-stopped
-    volumes:
-      - ./segments:/data/segments
-    # Segments can be pulled from:
-    # - https://brouter.de/brouter/segments4/ (official, weekly updates)
-    # - A trails.cool CDN mirror (later)
 
   postgres:
     image: postgis/postgis:16-3.4

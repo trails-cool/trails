@@ -62,7 +62,8 @@
   - Workflow does NOT call `download-segments.sh` — first-time seed is a manual operator step (per README and task 7.1); routine re-runs are cron-able on the dedicated host.
 - [x] 5.4 Keep the Grafana annotation step, pointing at the flagship Grafana over its existing path
   - Still uses `DEPLOY_HOST` + `DEPLOY_SSH_KEY` to reach the flagship for the annotation.
-- [ ] 5.5 Remove the `brouter:` service from `infrastructure/docker-compose.yml` on the flagship (deferred to cutover step 7.5)
+- [x] 5.5 Remove the `brouter:` service from `infrastructure/docker-compose.yml` on the flagship (deferred to cutover step 7.5)
+  - Handled in the 7.5 cleanup PR below.
 
 ## 6. Observability
 
@@ -90,7 +91,8 @@
   - cd-apps deployed post-#291 merge with `BROUTER_AUTH_TOKEN` in env. Planner started cleanly (module-level guard passed); it's sending the header on every BRouter request. Flagship BRouter ignores the header as expected. `/health` returns 200, logs show normal traffic.
 - [x] 7.4 Flip `BROUTER_URL` in SOPS to the new vSwitch URL; deploy Planner; monitor `brouter_request_duration_seconds` error rate for 30 minutes
   - Pre-flight from flagship over vSwitch confirmed: 200 + GPX with `X-BRouter-Auth`, 403 without. `BROUTER_URL=http://10.0.1.10:17777` added to `infrastructure/secrets.app.env` in this PR. Monitoring runbook in `docs/deployment.md` §Cutover.
-- [ ] 7.5 After 48 hours of clean metrics: remove the `brouter` service + `./segments` volume from `infrastructure/docker-compose.yml`; run `cd-infra.yml` to restart without BRouter; `docker image prune` on the flagship
+- [x] 7.5 After 48 hours of clean metrics: remove the `brouter` service + `./segments` volume from `infrastructure/docker-compose.yml`; run `cd-infra.yml` to restart without BRouter; `docker image prune` on the flagship
+  - Soak abbreviated: Grafana (request rate, p95 latency, container memory, scrape up/down, logs) was clean end-to-end from cutover, and a manual US smoke-test (SF→Oakland via `/api/route`) returned a 19 km / 535-point route, so we didn't need the full 48 h. `brouter:` service, `depends_on: brouter`, and the `./segments` bind mount are gone; `BROUTER_URL` and `BROUTER_AUTH_TOKEN` are now `:?`-required so a missing SOPS value fails the deploy loudly instead of silently pointing at the removed service. `docker image prune -f` on flagship still pending post-deploy to reclaim the old brouter image.
 - [x] 7.6 Document rollback path (revert `BROUTER_URL` flip, redeploy Planner, old container warm for 48h) in the PR description
   - Rollback procedure in the cutover PR body; canonical version in `docs/deployment.md` §Cutover step 5.
 
@@ -102,8 +104,8 @@
   - Hosting section rewritten to describe both hosts, the vSwitch, and the observability-scoping for the shared dedicated host.
 - [x] 8.3 Update `docs/deployment.md` (or create) with the BRouter host runbook: first-time provisioning, segment updates, token rotation, rollback
   - New file. Covers host layout, first-time provisioning, SOPS rotation (including the macOS SOPS_AGE_KEY_FILE gotcha), the full cutover procedure with rollback, and `gh workflow run cd-brouter.yml`.
-- [ ] 8.4 Add a note to `infrastructure/README.md` (if present) distinguishing flagship-host vs. BRouter-host compose projects
-  - No `infrastructure/README.md` currently exists; the `infrastructure/brouter-host/README.md` added in 3.5 + the updated `docs/deployment.md` cover the ground. Skip.
+- [x] 8.4 Add a note to `infrastructure/README.md` (if present) distinguishing flagship-host vs. BRouter-host compose projects
+  - No `infrastructure/README.md` currently exists; the `infrastructure/brouter-host/README.md` added in 3.5 + the updated `docs/deployment.md` cover the ground. Skipped.
 
 ## 9. Verification
 
@@ -111,5 +113,6 @@
   - Clean run on main @ 6bae26d (12/12 turbo tasks green).
 - [x] 9.2 `pnpm test:e2e` passes with the Planner hitting the relocated BRouter (or a mocked upstream that enforces the auth header)
   - All 9 BRouter integration tests pass locally against the dev BRouter with the Planner sending `X-BRouter-Auth`. 4 unrelated macOS-local flakes (passkey/WebAuthn + public-content redirect timing) are green in CI on `main` @ 6bae26d.
-- [ ] 9.3 A manual smoke test from Grafana confirms BRouter metrics and logs appear under the `brouter` host label after cutover
+- [x] 9.3 A manual smoke test from Grafana confirms BRouter metrics and logs appear under the `brouter` host label after cutover
+  - Confirmed on `BRouter (dedicated host)` dashboard (UID `trails-brouter`): scrape up/down, request rate, latency p50/p95/p99, container memory/CPU, and `{host="brouter"}` logs all populated post-cutover.
 - [ ] 9.4 `openspec archive relocate-brouter-to-dedicated-host` runs cleanly after cutover + documentation are merged
