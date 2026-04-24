@@ -1,9 +1,7 @@
 ## Purpose
 
 Server provisioning on Hetzner, Docker Compose deployment, CI/CD pipelines, database and BRouter management, TLS, Sentry, Grafana, and monitoring stack for the flagship instance.
-
 ## Requirements
-
 ### Requirement: Terraform Hetzner provisioning
 Infrastructure SHALL be provisioned on Hetzner Cloud using Terraform with the Hetzner provider.
 
@@ -12,11 +10,11 @@ Infrastructure SHALL be provisioned on Hetzner Cloud using Terraform with the He
 - **THEN** a Hetzner cx23 server (2 vCPU, 4 GB RAM, 40 GB SSD) is created with Docker installed
 
 ### Requirement: Docker Compose deployment
-All services SHALL be deployed via Docker Compose on the Hetzner server.
+All services SHALL be deployed via Docker Compose, including Grafana, Prometheus, and Loki for the flagship instance.
 
-#### Scenario: Start all services
-- **WHEN** `docker compose up -d` is run on the server
-- **THEN** the Journal, Planner, BRouter, and PostgreSQL containers start and are reachable
+#### Scenario: Monitoring stack starts
+- **WHEN** `docker compose up -d` is run
+- **THEN** Grafana, Prometheus, Loki, Promtail, postgres-exporter, node-exporter, and cAdvisor containers start alongside the application containers
 
 ### Requirement: Service configuration
 Each service SHALL be configured via environment variables defined in Docker Compose, with security best practices including non-root execution and security headers.
@@ -45,29 +43,33 @@ The database SHALL be PostgreSQL with the PostGIS extension for spatial queries.
 - **THEN** the PostGIS extension is available and can be enabled with `CREATE EXTENSION postgis`
 
 ### Requirement: BRouter segment management
-The infrastructure SHALL support downloading and updating Germany RD5 segments from brouter.de.
+The infrastructure SHALL support downloading and updating planet-wide RD5 segments from brouter.de to the dedicated BRouter host. Segment files SHALL live under `~trails/brouter/segments/` on the dedicated host and SHALL be owned by the `trails` user.
 
 #### Scenario: Download segments
-- **WHEN** the segment download script is run
-- **THEN** Germany RD5 files (E5_N45, E5_N50, E10_N45, E10_N50) are downloaded to the segments volume
+- **WHEN** the segment download script runs on the dedicated host as the `trails` user
+- **THEN** all planet-wide RD5 files referenced by the tile list are downloaded to `~trails/brouter/segments/`, skipping files that already exist
 
-#### Scenario: Weekly segment update
-- **WHEN** the weekly cron job runs
-- **THEN** RD5 segments are updated from brouter.de and the BRouter container is restarted
+#### Scenario: Segment update
+- **WHEN** an operator re-runs the segment download script
+- **THEN** outdated or missing RD5 files are re-fetched from brouter.de and the BRouter container is restarted
 
 ### Requirement: CI/CD pipeline
-GitHub Actions SHALL use separate workflows for app deployment and infrastructure deployment, with secrets decrypted from a SOPS-encrypted file.
+GitHub Actions SHALL use separate workflows for app deployment, infrastructure deployment, and BRouter deployment, with secrets decrypted from a SOPS-encrypted file.
 
 #### Scenario: App deployment
 - **WHEN** code changes are pushed to main in apps/ or packages/
-- **THEN** the cd-apps workflow builds Docker images, pushes to ghcr.io, and deploys app containers
+- **THEN** the cd-apps workflow builds Docker images, pushes to ghcr.io, and deploys app containers to the flagship host
 
 #### Scenario: Infrastructure deployment
 - **WHEN** changes are pushed to main in infrastructure/
-- **THEN** the cd-infra workflow copies configs and restarts infrastructure services without rebuilding app images
+- **THEN** the cd-infra workflow copies configs and restarts infrastructure services on the flagship host without rebuilding app images and without touching the BRouter host
+
+#### Scenario: BRouter deployment
+- **WHEN** changes are pushed to main in docker/brouter/ or the BRouter host compose config
+- **THEN** the cd-brouter workflow SSHes as the `trails` user into the dedicated BRouter host using `BROUTER_DEPLOY_HOST` / `BROUTER_DEPLOY_SSH_KEY` and runs `docker compose up -d` in `~trails/brouter/`
 
 #### Scenario: Secret decryption at deploy time
-- **WHEN** either CD workflow runs
+- **WHEN** any CD workflow runs
 - **THEN** the SOPS-encrypted secrets file is decrypted and provided to docker-compose as an env file
 
 #### Scenario: Gitleaks scan
@@ -157,3 +159,26 @@ Caddy SHALL emit structured JSON access logs for all requests.
 #### Scenario: Access log emitted
 - **WHEN** any HTTP request passes through Caddy
 - **THEN** a JSON log line with remote IP, method, path, status, and duration is written to stdout
+
+### Requirement: Private network between flagship and BRouter hosts
+The flagship host and the dedicated BRouter host SHALL be joined on a Hetzner vSwitch in the same datacenter. All traffic between Planner and BRouter SHALL traverse this private network.
+
+#### Scenario: vSwitch reachability
+- **WHEN** the flagship host issues a request to the BRouter host's vSwitch IP on the BRouter service port with a valid `X-BRouter-Auth` header
+- **THEN** the request succeeds over the private network without traversing the public internet
+
+#### Scenario: No public BRouter exposure
+- **WHEN** Hetzner Cloud firewall rules or equivalent host firewall rules are inspected
+- **THEN** no rule allows inbound traffic to the BRouter service port from any public IP
+
+### Requirement: Non-root deploy user on the BRouter host
+The BRouter host SHALL be administered by the trails.cool project through a non-root `trails` user that is a member of the `docker` group. The CD workflow SHALL NOT require sudo or root SSH access on this host.
+
+#### Scenario: Deploy with trails user
+- **WHEN** the cd-brouter workflow connects to the BRouter host
+- **THEN** it authenticates as `trails` and successfully runs `docker compose` commands without invoking sudo
+
+#### Scenario: Scoped ownership
+- **WHEN** files are created by the deploy or segment-download scripts
+- **THEN** they live under `~trails/brouter/` and are owned by `trails:trails`
+
