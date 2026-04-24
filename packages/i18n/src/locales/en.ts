@@ -190,6 +190,7 @@ export default {
         heading: "Recent activity",
         empty: "No public activities yet.",
       },
+      dashboardEmpty: "No activities yet. Record or import your first one from the Activities tab.",
       poweredBy: "Powered by trails.cool — about the project",
     },
     routes: {

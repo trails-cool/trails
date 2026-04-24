@@ -6,7 +6,7 @@ import type { Route } from "./+types/home";
 import { getSessionUser } from "~/lib/auth.server";
 import { getDb } from "~/lib/db";
 import { credentials } from "@trails-cool/db/schema/journal";
-import { listRecentPublicActivities } from "~/lib/activities.server";
+import { listActivities, listRecentPublicActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 
@@ -15,6 +15,22 @@ export function meta(_args: Route.MetaArgs) {
     { title: "trails.cool" },
     { name: "description", content: "Federated outdoor journal. Plan routes, record activities, own your data." },
   ];
+}
+
+interface ActivityCard {
+  id: string;
+  name: string;
+  distance: number | null;
+  elevationGain: number | null;
+  duration: number | null;
+  startedAt: string | null;
+  createdAt: string;
+  geojson: string | null;
+  // Populated only for the public (logged-out) feed, where the card
+  // needs to attribute the activity to an owner. Personal feed skips
+  // these because it's always "you".
+  ownerUsername: string | null;
+  ownerDisplayName: string | null;
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -33,16 +49,30 @@ export async function loader({ request }: Route.LoaderArgs) {
     showAddPasskey = (row?.count ?? 0) === 0;
   }
 
-  const recent = await listRecentPublicActivities(20);
   const plannerUrl = process.env.PLANNER_URL ?? "https://planner.trails.cool";
   const isFlagship = process.env.IS_FLAGSHIP === "true";
 
-  return data({
-    user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null,
-    showAddPasskey,
-    plannerUrl,
-    isFlagship,
-    activities: recent.map((a) => ({
+  // Logged-in users get their own recent activities as the home feed —
+  // "home" should mean your stuff, not the instance's public stream.
+  // Logged-out visitors get the instance-wide public feed instead.
+  let activities: ActivityCard[];
+  if (user) {
+    const rows = await listActivities(user.id);
+    activities = rows.slice(0, 20).map((a) => ({
+      id: a.id,
+      name: a.name,
+      distance: a.distance,
+      elevationGain: a.elevationGain,
+      duration: a.duration,
+      startedAt: a.startedAt?.toISOString() ?? null,
+      createdAt: a.createdAt.toISOString(),
+      geojson: a.geojson ?? null,
+      ownerUsername: null,
+      ownerDisplayName: null,
+    }));
+  } else {
+    const rows = await listRecentPublicActivities(20);
+    activities = rows.map((a) => ({
       id: a.id,
       name: a.name,
       distance: a.distance,
@@ -53,7 +83,15 @@ export async function loader({ request }: Route.LoaderArgs) {
       geojson: a.geojson ?? null,
       ownerUsername: a.ownerUsername,
       ownerDisplayName: a.ownerDisplayName,
-    })),
+    }));
+  }
+
+  return data({
+    user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null,
+    showAddPasskey,
+    plannerUrl,
+    isFlagship,
+    activities,
   });
 }
 
@@ -118,53 +156,24 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     }
   }, [user]);
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      {/* Hero. The site name lives in the top banner + nav brand, so the
-          h1 carries the product pitch instead to avoid "trails.cool"
-          triplication on a narrow strip. */}
-      <section>
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-          {t("home.heroTitle")}
-        </h1>
-        <p className="mt-4 text-lg text-gray-600">{t("home.heroSubtitle")}</p>
-
-        {user ? (
-          <div className="mt-6 text-gray-700">
+  // ---------- Logged-in: personal activity stream ----------
+  if (user) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">
             {t("welcome")}{" "}
             <a href={`/users/${user.username}`} className="text-blue-600 hover:underline">
               {user.displayName ?? user.username}
             </a>
-          </div>
-        ) : (
-          <>
-            {/* Primary auth CTAs — the two actions we actually want most
-                visitors to take. */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href="/auth/register"
-                className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                {t("auth.register")}
-              </a>
-              <a
-                href="/auth/login"
-                className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                {t("auth.login")}
-              </a>
-            </div>
-            {/* Demoted escape hatch: the Planner is anonymous and useful
-                on its own, but shouldn't compete visually with sign-up. */}
-            <p className="mt-3 text-sm text-gray-500">
-              {t("home.tryPlannerPrefix")}
-              <a href={plannerUrl} className="text-blue-600 hover:underline">
-                {t("home.tryPlannerLink")}
-              </a>
-              {t("home.tryPlannerSuffix")}
-            </p>
-          </>
-        )}
+          </h1>
+          <a
+            href="/activities/new"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {t("activities.new")}
+          </a>
+        </div>
 
         {showAddPasskey && !passkeyDone && supportsPasskey === true && (
           <div className="mt-6 rounded-md bg-blue-50 p-4">
@@ -190,6 +199,92 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <p className="text-sm text-green-800">{t("passkeyAdded")}</p>
           </div>
         )}
+
+        {activities.length === 0 ? (
+          <p className="mt-12 text-center text-gray-500">
+            {t("home.dashboardEmpty")}
+          </p>
+        ) : (
+          <ul className="mt-8 space-y-4">
+            {activities.map((a) => (
+              <li key={a.id}>
+                <a
+                  href={`/activities/${a.id}`}
+                  className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                >
+                  <div className="flex gap-4">
+                    <div className="w-48 shrink-0">
+                      {a.geojson ? (
+                        <ClientMap geojson={a.geojson} />
+                      ) : (
+                        <div className="flex h-36 w-full items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
+                          {t("routes.noMapPreview")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div>
+                        <h2 className="text-lg font-medium text-gray-900">{a.name}</h2>
+                        <div className="mt-1 flex gap-4 text-sm text-gray-500">
+                          {a.distance != null && (
+                            <span>{(a.distance / 1000).toFixed(1)} km</span>
+                          )}
+                          {a.elevationGain != null && (
+                            <span>↑ {Math.round(a.elevationGain)} m</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-400">
+                        <ClientDate iso={a.startedAt ?? a.createdAt} />
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  // ---------- Logged-out: visitor home (hero + marketing + public feed) ----------
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-12">
+      {/* Hero. The site name lives in the top banner + nav brand, so the
+          h1 carries the product pitch instead to avoid "trails.cool"
+          triplication on a narrow strip. */}
+      <section>
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+          {t("home.heroTitle")}
+        </h1>
+        <p className="mt-4 text-lg text-gray-600">{t("home.heroSubtitle")}</p>
+
+        {/* Primary auth CTAs — the two actions we actually want most
+            visitors to take. */}
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a
+            href="/auth/register"
+            className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {t("auth.register")}
+          </a>
+          <a
+            href="/auth/login"
+            className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t("auth.login")}
+          </a>
+        </div>
+        {/* Demoted escape hatch: the Planner is anonymous and useful
+            on its own, but shouldn't compete visually with sign-up. */}
+        <p className="mt-3 text-sm text-gray-500">
+          {t("home.tryPlannerPrefix")}
+          <a href={plannerUrl} className="text-blue-600 hover:underline">
+            {t("home.tryPlannerLink")}
+          </a>
+          {t("home.tryPlannerSuffix")}
+        </p>
       </section>
 
       {/* Marketing blurbs — flagship only. Self-hosted instances link out
@@ -245,14 +340,18 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                       <div>
                         <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
                         <div className="mt-1 text-sm text-gray-500">
-                          <a
-                            href={`/users/${a.ownerUsername}`}
-                            className="hover:text-gray-700 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {a.ownerDisplayName ?? a.ownerUsername}
-                          </a>
-                          {" · "}
+                          {a.ownerUsername && (
+                            <>
+                              <a
+                                href={`/users/${a.ownerUsername}`}
+                                className="hover:text-gray-700 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {a.ownerDisplayName ?? a.ownerUsername}
+                              </a>
+                              {" · "}
+                            </>
+                          )}
                           <ClientDate iso={a.startedAt ?? a.createdAt} />
                         </div>
                         <div className="mt-1 flex gap-4 text-sm text-gray-500">
