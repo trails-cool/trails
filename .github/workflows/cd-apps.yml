@@ -68,6 +68,8 @@ jobs:
           SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/app.env
           echo "SENTRY_RELEASE=${{ github.sha }}" >> infrastructure/app.env
           echo "DOMAIN=trails.cool" >> infrastructure/app.env
+          # Flagship marker — see cd-infra.yml for what this gates.
+          echo "IS_FLAGSHIP=true" >> infrastructure/app.env
 
       - name: Copy files to server
         uses: appleboy/scp-action@v1

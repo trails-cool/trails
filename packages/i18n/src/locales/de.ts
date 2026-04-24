@@ -162,6 +162,36 @@ export default {
     passkeyAdded: "Passkey hinzugefügt! Du kannst dich jetzt sofort auf diesem Gerät anmelden.",
     passkeyStatus: "{{count}} Passkey registriert",
     passkeyStatus_other: "{{count}} Passkeys registriert",
+    home: {
+      heroTitle: "Föderiertes Outdoor-Tagebuch",
+      heroSubtitle: "Plane Routen, halte Aktivitäten fest, behalte deine Daten.",
+      tryPlannerPrefix: "Oder ",
+      tryPlannerLink: "öffne den Planer ohne Konto",
+      tryPlannerSuffix: " →",
+      marketing: {
+        planner: {
+          title: "Routen gemeinsam planen",
+          body: "Skizziere Wander- und Radrouten gemeinsam in Echtzeit. Ohne Konto.",
+        },
+        journal: {
+          title: "Aktivitäten festhalten",
+          body: "Halte deine Touren, Wanderungen und Spaziergänge fest. Privat, mit Freunden geteilt oder öffentlich.",
+        },
+        federation: {
+          title: "Föderiert by design",
+          body: "Deine Journal-Instanz spricht via ActivityPub mit anderen trails.cool-Servern. Folge Freundinnen und Freunden überall.",
+        },
+        ownership: {
+          title: "Deine Daten, immer",
+          body: "Keine Werbung, kein Tracking, kein Datenverkauf. Export als GPX oder JSON jederzeit. MIT-lizenziert und selbst hostbar.",
+        },
+      },
+      feed: {
+        heading: "Aktuelle Aktivitäten",
+        empty: "Noch keine öffentlichen Aktivitäten.",
+      },
+      poweredBy: "Powered by trails.cool — über das Projekt",
+    },
     routes: {
       title: "Routen",
       myRoutes: "Meine Routen",

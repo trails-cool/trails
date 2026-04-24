@@ -162,6 +162,36 @@ export default {
     passkeyAdded: "Passkey added! You can now sign in instantly on this device.",
     passkeyStatus: "{{count}} passkey registered",
     passkeyStatus_other: "{{count}} passkeys registered",
+    home: {
+      heroTitle: "Federated outdoor journal",
+      heroSubtitle: "Plan routes, record activities, own your data.",
+      tryPlannerPrefix: "Or ",
+      tryPlannerLink: "try the Planner without an account",
+      tryPlannerSuffix: " →",
+      marketing: {
+        planner: {
+          title: "Plan routes together",
+          body: "Sketch hiking and cycling routes collaboratively in real time. No account needed.",
+        },
+        journal: {
+          title: "Record activities",
+          body: "Log your rides, hikes, and walks. Keep them private, share with friends, or publish to the world.",
+        },
+        federation: {
+          title: "Federated by design",
+          body: "Your Journal instance talks to other trails.cool servers via ActivityPub. Follow friends anywhere.",
+        },
+        ownership: {
+          title: "Your data, always",
+          body: "No ads, no tracking, no data sales. Export everything as GPX or JSON any time. MIT licensed and self-hostable.",
+        },
+      },
+      feed: {
+        heading: "Recent activity",
+        empty: "No public activities yet.",
+      },
+      poweredBy: "Powered by trails.cool — about the project",
+    },
     routes: {
       title: "Routes",
       myRoutes: "My Routes",

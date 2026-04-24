@@ -4,7 +4,9 @@ test.describe("Journal", () => {
   test("loads the home page", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle("trails.cool");
-    await expect(page.getByText("Your outdoor activity journal")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Federated outdoor journal" }),
+    ).toBeVisible();
   });
 
   test("shows register and sign in when logged out", async ({ page }) => {
