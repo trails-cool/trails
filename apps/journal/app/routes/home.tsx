@@ -6,11 +6,14 @@ import type { Route } from "./+types/home";
 import { getSessionUser } from "~/lib/auth.server";
 import { getDb } from "~/lib/db";
 import { credentials } from "@trails-cool/db/schema/journal";
+import { listRecentPublicActivities } from "~/lib/activities.server";
+import { ClientDate } from "~/components/ClientDate";
+import { ClientMap } from "~/components/ClientMap";
 
 export function meta(_args: Route.MetaArgs) {
   return [
     { title: "trails.cool" },
-    { name: "description", content: "Your outdoor activity journal" },
+    { name: "description", content: "Federated outdoor journal. Plan routes, record activities, own your data." },
   ];
 }
 
@@ -30,14 +33,32 @@ export async function loader({ request }: Route.LoaderArgs) {
     showAddPasskey = (row?.count ?? 0) === 0;
   }
 
+  const recent = await listRecentPublicActivities(20);
+  const plannerUrl = process.env.PLANNER_URL ?? "https://planner.trails.cool";
+  const isFlagship = process.env.IS_FLAGSHIP === "true";
+
   return data({
     user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null,
     showAddPasskey,
+    plannerUrl,
+    isFlagship,
+    activities: recent.map((a) => ({
+      id: a.id,
+      name: a.name,
+      distance: a.distance,
+      elevationGain: a.elevationGain,
+      duration: a.duration,
+      startedAt: a.startedAt?.toISOString() ?? null,
+      createdAt: a.createdAt.toISOString(),
+      geojson: a.geojson ?? null,
+      ownerUsername: a.ownerUsername,
+      ownerDisplayName: a.ownerDisplayName,
+    })),
   });
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { user, showAddPasskey } = loaderData;
+  const { user, showAddPasskey, plannerUrl, isFlagship, activities } = loaderData;
   const { t } = useTranslation("journal");
   const [addingPasskey, setAddingPasskey] = useState(false);
   const [passkeyDone, setPasskeyDone] = useState(false);
@@ -58,7 +79,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     setError(null);
 
     try {
-      // Get registration options for existing user
       const startResp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -99,74 +119,174 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   }, [user]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16">
-      <h1 className="text-4xl font-bold text-gray-900">{t("title")}</h1>
-      <p className="mt-4 text-lg text-gray-600">{t("subtitle")}</p>
+    <div className="mx-auto max-w-4xl px-4 py-12">
+      {/* Hero. The site name lives in the top banner + nav brand, so the
+          h1 carries the product pitch instead to avoid "trails.cool"
+          triplication on a narrow strip. */}
+      <section>
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+          {t("home.heroTitle")}
+        </h1>
+        <p className="mt-4 text-lg text-gray-600">{t("home.heroSubtitle")}</p>
 
-      {user ? (
-        <div className="mt-8">
-          <p className="text-gray-700">
-            {t("welcome")} <a href={`/users/${user.username}`} className="text-blue-600 hover:underline">{user.displayName ?? user.username}</a>
-          </p>
-
-          {showAddPasskey && !passkeyDone && supportsPasskey === true && (
-            <div className="mt-6 rounded-md bg-blue-50 p-4">
-              <p className="text-sm text-blue-800">
-                {t("addPasskeyPrompt")}
-              </p>
-              {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-              <button
-                onClick={handleAddPasskey}
-                disabled={addingPasskey}
-                className="mt-3 rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+        {user ? (
+          <div className="mt-6 text-gray-700">
+            {t("welcome")}{" "}
+            <a href={`/users/${user.username}`} className="text-blue-600 hover:underline">
+              {user.displayName ?? user.username}
+            </a>
+          </div>
+        ) : (
+          <>
+            {/* Primary auth CTAs — the two actions we actually want most
+                visitors to take. */}
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href="/auth/register"
+                className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
               >
-                {addingPasskey ? t("settingUp") : t("addPasskey")}
-              </button>
+                {t("auth.register")}
+              </a>
+              <a
+                href="/auth/login"
+                className="rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                {t("auth.login")}
+              </a>
             </div>
-          )}
+            {/* Demoted escape hatch: the Planner is anonymous and useful
+                on its own, but shouldn't compete visually with sign-up. */}
+            <p className="mt-3 text-sm text-gray-500">
+              {t("home.tryPlannerPrefix")}
+              <a href={plannerUrl} className="text-blue-600 hover:underline">
+                {t("home.tryPlannerLink")}
+              </a>
+              {t("home.tryPlannerSuffix")}
+            </p>
+          </>
+        )}
 
-          {showAddPasskey && !passkeyDone && supportsPasskey === false && (
-            <div className="mt-6 rounded-md bg-amber-50 p-4">
-              <p className="text-sm text-amber-800">
-                {t("addPasskeyPrompt")}
-              </p>
-              <p className="mt-2 text-sm text-amber-600">
-                {t("auth.passkeyNotSupported")}
+        {showAddPasskey && !passkeyDone && supportsPasskey === true && (
+          <div className="mt-6 rounded-md bg-blue-50 p-4">
+            <p className="text-sm text-blue-800">{t("addPasskeyPrompt")}</p>
+            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            <button
+              onClick={handleAddPasskey}
+              disabled={addingPasskey}
+              className="mt-3 rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {addingPasskey ? t("settingUp") : t("addPasskey")}
+            </button>
+          </div>
+        )}
+        {showAddPasskey && !passkeyDone && supportsPasskey === false && (
+          <div className="mt-6 rounded-md bg-amber-50 p-4">
+            <p className="text-sm text-amber-800">{t("addPasskeyPrompt")}</p>
+            <p className="mt-2 text-sm text-amber-600">{t("auth.passkeyNotSupported")}</p>
+          </div>
+        )}
+        {passkeyDone && (
+          <div className="mt-6 rounded-md bg-green-50 p-4">
+            <p className="text-sm text-green-800">{t("passkeyAdded")}</p>
+          </div>
+        )}
+      </section>
+
+      {/* Marketing blurbs — flagship only. Self-hosted instances link out
+          via the "Powered by trails.cool" footer line below the feed.
+          Card styling mirrors the Planner's feature grid (emoji icon,
+          bordered card) so the two home pages feel consistent. */}
+      {isFlagship && (
+        <section className="mt-12 grid gap-4 border-t border-gray-200 pt-10 sm:grid-cols-2">
+          {[
+            { key: "planner", icon: "🗺️" },
+            { key: "journal", icon: "📓" },
+            { key: "federation", icon: "🌐" },
+            { key: "ownership", icon: "🔓" },
+          ].map(({ key, icon }) => (
+            <div key={key} className="rounded-lg border border-gray-200 bg-white p-5">
+              <div className="text-2xl" aria-hidden="true">{icon}</div>
+              <h2 className="mt-2 text-base font-semibold text-gray-900">
+                {t(`home.marketing.${key}.title`)}
+              </h2>
+              <p className="mt-1.5 text-sm text-gray-600">
+                {t(`home.marketing.${key}.body`)}
               </p>
             </div>
-          )}
-
-          {passkeyDone && (
-            <div className="mt-6 rounded-md bg-green-50 p-4">
-              <p className="text-sm text-green-800">
-                {t("passkeyAdded")}
-              </p>
-            </div>
-          )}
-
-        </div>
-      ) : (
-        <div className="mt-8 flex gap-4">
-          <a
-            href="/auth/register"
-            className="rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
-          >
-            {t("auth.register")}
-          </a>
-          <a
-            href="/auth/login"
-            className="rounded-md border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            {t("auth.login")}
-          </a>
-        </div>
+          ))}
+        </section>
       )}
 
-      <footer className="mt-16 border-t border-gray-200 pt-6">
-        <a href="/privacy" className="text-sm text-gray-400 hover:text-gray-600">
-          Privacy
-        </a>
-      </footer>
+      {/* Public activity feed */}
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold text-gray-900">{t("home.feed.heading")}</h2>
+
+        {activities.length === 0 ? (
+          <p className="mt-4 text-sm text-gray-500">{t("home.feed.empty")}</p>
+        ) : (
+          <ul className="mt-6 space-y-4">
+            {activities.map((a) => (
+              <li key={a.id}>
+                <a
+                  href={`/activities/${a.id}`}
+                  className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                >
+                  <div className="flex gap-4">
+                    <div className="w-40 shrink-0">
+                      {a.geojson ? (
+                        <ClientMap geojson={a.geojson} />
+                      ) : (
+                        <div className="flex h-28 w-full items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
+                          {t("routes.noMapPreview")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div>
+                        <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
+                        <div className="mt-1 text-sm text-gray-500">
+                          <a
+                            href={`/users/${a.ownerUsername}`}
+                            className="hover:text-gray-700 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {a.ownerDisplayName ?? a.ownerUsername}
+                          </a>
+                          {" · "}
+                          <ClientDate iso={a.startedAt ?? a.createdAt} />
+                        </div>
+                        <div className="mt-1 flex gap-4 text-sm text-gray-500">
+                          {a.distance != null && (
+                            <span>{(a.distance / 1000).toFixed(1)} km</span>
+                          )}
+                          {a.elevationGain != null && (
+                            <span>↑ {Math.round(a.elevationGain)} m</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Self-hosted instances link back to the flagship for project info.
+          Flagship instances already show the marketing section above. */}
+      {!isFlagship && (
+        <p className="mt-8 text-sm text-gray-500">
+          <a
+            href="https://trails.cool"
+            className="hover:text-gray-700 hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("home.poweredBy")}
+          </a>
+        </p>
+      )}
     </div>
   );
 }

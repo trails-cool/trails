@@ -23,6 +23,11 @@ services:
       DOMAIN: ${DOMAIN:-trails.cool}
       ORIGIN: https://${DOMAIN:-trails.cool}
       PLANNER_URL: https://planner.${DOMAIN:-trails.cool}
+      # "true" only on the flagship trails.cool instance. The Journal
+      # home renders the project marketing block when set, and the
+      # "Powered by trails.cool" footer link when not. Default empty =
+      # self-host, which is the safer default.
+      IS_FLAGSHIP: ${IS_FLAGSHIP:-}
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}

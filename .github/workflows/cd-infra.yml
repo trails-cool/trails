@@ -32,6 +32,10 @@ jobs:
           SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/.env
           SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.infra.env >> infrastructure/.env
           echo "DOMAIN=trails.cool" >> infrastructure/.env
+          # Flagship marker — the Journal home renders the project
+          # marketing block when this is "true" and the self-host
+          # footer link when it's unset.
+          echo "IS_FLAGSHIP=true" >> infrastructure/.env
 
       - name: Copy configs to server
         uses: appleboy/scp-action@v1
