@@ -64,49 +64,57 @@ jobs:
           echo "::add-mask::$GHCR_TOKEN"
           echo "GHCR_TOKEN=$GHCR_TOKEN" >> $GITHUB_ENV
 
-      - name: Copy compose project to dedicated host
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.BROUTER_DEPLOY_HOST }}
-          username: trails
-          port: ${{ secrets.BROUTER_DEPLOY_SSH_PORT }}
-          key: ${{ secrets.BROUTER_DEPLOY_SSH_KEY }}
-          source: "infrastructure/brouter-host/docker-compose.yml,infrastructure/brouter-host/Caddyfile,infrastructure/brouter-host/promtail-config.yml,infrastructure/brouter-host/download-segments.sh,infrastructure/brouter-host/.env"
-          target: /home/trails/brouter
-          strip_components: 2
+      - name: Deploy to dedicated host (single SSH connection)
+        # Consolidated into one SSH session on purpose: UFW on the
+        # dedicated host rate-limits port 2232 via `LIMIT` (~6 conns /
+        # 30s). `appleboy/scp-action` burns that budget across
+        # scp+mkdir+untar+cleanup conns and the final cleanup times
+        # out. One SSH here sidesteps the limit entirely. The tarball
+        # is piped in as a base64 env var so we don't fight over
+        # stdin (reserved for the heredoc script).
+        env:
+          SSH_KEY: ${{ secrets.BROUTER_DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.BROUTER_DEPLOY_HOST }}
+          PORT: ${{ secrets.BROUTER_DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
 
-      - name: Pull image and restart containers
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.BROUTER_DEPLOY_HOST }}
-          username: trails
-          port: ${{ secrets.BROUTER_DEPLOY_SSH_PORT }}
-          key: ${{ secrets.BROUTER_DEPLOY_SSH_KEY }}
-          envs: GHCR_TOKEN
-          script: |
-            set -euo pipefail
-            cd /home/trails/brouter
+          # SSH key to a locked-down file (env-var keys break openssh)
+          install -m 0600 /dev/null ~/id_deploy
+          printf '%s\n' "$SSH_KEY" > ~/id_deploy
 
-            chmod +x download-segments.sh
+          # Bundle the compose project
+          TARBALL_B64=$(tar -C infrastructure/brouter-host -czf - \
+            docker-compose.yml Caddyfile promtail-config.yml \
+            download-segments.sh .env \
+            | base64 -w0)
 
-            # Segment download is explicitly NOT run here — it's
-            # multi-hour and idempotent. Seeding the segments directory
-            # is a one-shot operator task (see brouter-host/README.md).
-            # Run `~/brouter/download-segments.sh` by hand (or via cron)
-            # to refresh.
-            if [ ! -d segments ] || [ -z "$(ls -A segments 2>/dev/null)" ]; then
-              echo "WARNING: segments/ is empty. BRouter will start but return 404 until segments are seeded."
-              mkdir -p segments
-            fi
+          # One SSH session: untar, (re)start containers, report status
+          ssh -i ~/id_deploy -p "$PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile=/tmp/known_hosts \
+            -o ConnectTimeout=30 \
+            trails@"$HOST" \
+            "TARBALL_B64='$TARBALL_B64' GHCR_TOKEN='$GHCR_TOKEN' bash -s" <<'REMOTE'
+          set -euo pipefail
+          mkdir -p ~/brouter && cd ~/brouter
+          echo "$TARBALL_B64" | base64 -d | tar -xzf -
+          chmod +x download-segments.sh
 
-            # GHCR images (brouter) are private; log in so pull works.
-            # Credentials stay in ~/.docker/config.json; acceptable on a
-            # single-tenant trails user.
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin
+          # Segment seeding is a one-shot operator task (~10 GB, a few
+          # minutes). CD must not rerun it on every deploy.
+          if [ ! -d segments ] || [ -z "$(ls -A segments 2>/dev/null)" ]; then
+            echo "WARNING: segments/ is empty. BRouter will start but return 404 until segments are seeded."
+            mkdir -p segments
+          fi
 
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker compose ps
+          # GHCR brouter image is private; log in so pull works.
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin
+
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker compose ps
+          REMOTE
 
       - name: Annotate deploy in flagship Grafana
         uses: appleboy/ssh-action@v1
