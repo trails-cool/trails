@@ -190,6 +190,7 @@ export default {
         heading: "Aktuelle Aktivitäten",
         empty: "Noch keine öffentlichen Aktivitäten.",
       },
+      dashboardEmpty: "Noch keine Aktivitäten. Erfasse oder importiere deine erste im Aktivitäten-Tab.",
       poweredBy: "Powered by trails.cool — über das Projekt",
     },
     routes: {
