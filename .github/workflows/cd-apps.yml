@@ -105,7 +105,9 @@ jobs:
             # Pull and deploy app containers
             docker compose --env-file app.env pull journal planner
             docker compose --env-file app.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
-            docker compose --env-file app.env up -d journal planner
+            # --remove-orphans cleans up containers whose service was deleted
+            # from the compose file, matching cd-infra's behaviour.
+            docker compose --env-file app.env up -d --remove-orphans journal planner
 
             # Clean up
             docker image prune -af

@@ -79,8 +79,11 @@ jobs:
             if [ "${{ github.event.inputs.restart_all }}" = "true" ]; then
               docker compose --env-file .env up -d --remove-orphans
             else
-              # Restart infra services (except Caddy — just reload its config)
-              docker compose --env-file .env up -d postgres prometheus loki promtail grafana postgres-exporter node-exporter cadvisor
+              # Restart infra services (except Caddy — just reload its config).
+              # --remove-orphans cleans up containers whose service was deleted
+              # from the compose file (e.g., the flagship `brouter` removal in
+              # PR #297 left an orphan that had to be removed by hand).
+              docker compose --env-file .env up -d --remove-orphans postgres prometheus loki promtail grafana postgres-exporter node-exporter cadvisor
               docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
             fi
 
