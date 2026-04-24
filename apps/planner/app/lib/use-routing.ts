@@ -2,6 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import type { YjsState } from "./use-yjs.ts";
 import { electHost } from "./host-election.ts";
+import {
+  hashNoGoAreas,
+  mergeGeoJsonSegments,
+  pairKey,
+  type NoGoArea,
+} from "./route-merge.ts";
+import { SegmentCache } from "./segment-cache.ts";
 
 interface RouteStats {
   distance?: number;
@@ -51,10 +58,14 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastGoodWaypointsRef = useRef<WaypointData[] | null>(null);
   const restoringRef = useRef(false);
-  // Cancels the in-flight /api/route call when a newer one starts. Without
+  // Cancels the in-flight fetch when a newer computeRoute starts. Without
   // this, rapid edits pile up on BRouter's thread pool and older requests
   // get killed by its contention watchdog, surfacing as spurious errors.
   const inflightAbortRef = useRef<AbortController | null>(null);
+  // Host-local segment cache. Moving a single waypoint invalidates only
+  // the two adjacent pair keys, so we fetch 2 segments from the server
+  // instead of N-1 on every recompute.
+  const segmentCacheRef = useRef<SegmentCache>(new SegmentCache());
 
   // Host election via Yjs awareness
   useEffect(() => {
@@ -81,7 +92,7 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
       if (!yjs || !isHost || waypoints.length < 2) return;
 
       // Collect no-go areas from Yjs
-      const noGoAreas = yjs.noGoAreas.toArray().map((yMap) => ({
+      const noGoAreas: NoGoArea[] = yjs.noGoAreas.toArray().map((yMap) => ({
         points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
       })).filter((a) => a.points.length >= 3);
 
@@ -92,33 +103,72 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
       inflightAbortRef.current?.abort();
       const controller = new AbortController();
       inflightAbortRef.current = controller;
+
+      const profile = (yjs.routeData.get("profile") as string) ?? "fastbike";
+      const noGoHash = hashNoGoAreas(noGoAreas);
+      const cache = segmentCacheRef.current;
+
+      // Build the ordered pair list. Each pair has a cache key; missing
+      // ones get collected for a single round-trip to the server.
+      const pairs = waypoints.slice(0, -1).map((from, i) => ({
+        from,
+        to: waypoints[i + 1]!,
+      }));
+      const pairKeys = pairs.map((p) => pairKey(p.from, p.to, profile, noGoHash));
+      const missingPairs: typeof pairs = [];
+      const missingIdx: number[] = [];
+      pairKeys.forEach((k, i) => {
+        if (!cache.has(k)) {
+          missingPairs.push(pairs[i]!);
+          missingIdx.push(i);
+        }
+      });
+
       try {
-        const response = await fetch("/api/route", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            waypoints,
-            profile: (yjs.routeData.get("profile") as string) ?? "fastbike",
-            noGoAreas: noGoAreas.length > 0 ? noGoAreas : undefined,
-            sessionId,
-          }),
-          signal: controller.signal,
-        });
+        // Only hit the server when we actually need a segment we don't
+        // have. A pure drag-refinement that happens to re-land on cached
+        // coordinates short-circuits here.
+        if (missingPairs.length > 0) {
+          const response = await fetch("/api/route-segments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pairs: missingPairs,
+              profile,
+              noGoAreas: noGoAreas.length > 0 ? noGoAreas : undefined,
+              sessionId,
+            }),
+            signal: controller.signal,
+          });
 
-        if (response.status === 429) {
-          setRouteError("rate_limit");
-          restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
-          return;
-        }
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          const code = (body as { code?: string }).code;
-          setRouteError(code === "no_route" ? "no_route" : "failed");
-          restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
-          return;
+          if (response.status === 429) {
+            setRouteError("rate_limit");
+            restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
+            return;
+          }
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            const code = (body as { code?: string }).code;
+            setRouteError(code === "no_route" ? "no_route" : "failed");
+            restoreWaypoints(yjs, lastGoodWaypointsRef.current ?? snapshotBeforeCompute, restoringRef);
+            return;
+          }
+
+          const payload = (await response.json()) as {
+            segments: Record<string, unknown>[];
+          };
+          payload.segments.forEach((seg, i) => {
+            cache.set(pairKeys[missingIdx[i]!]!, seg);
+          });
         }
 
-        const enriched = await response.json();
+        // Assemble the merged route from the cache. Guard against being
+        // superseded between the fetch completing and the merge — a newer
+        // call already owns the in-flight ref and will drive state.
+        if (inflightAbortRef.current !== controller) return;
+
+        const orderedSegments = pairKeys.map((k) => cache.get(k)!);
+        const enriched = mergeGeoJsonSegments(orderedSegments);
 
         setRouteError(null);
         lastGoodWaypointsRef.current = snapshotBeforeCompute;
