@@ -368,13 +368,41 @@ volumes:
 
 ## Infrastructure (trails.cool flagship)
 
-### Hosting: Hetzner Cloud
+### Hosting: Hetzner (Cloud + Robot)
 
-- Server: CX21 (2 vCPU, 4 GB RAM, 40 GB SSD) - ~5 EUR/month
-- Storage Box: 1 TB for RD5 segments + media - ~3.20 EUR/month
-- Infrastructure as Code: Terraform (Hetzner provider) + Docker Compose
-- CI/CD: GitHub Actions
-- Monitoring: Grafana + Prometheus + Loki (flagship only)
+trails.cool runs on two hosts in the same Falkenstein datacenter,
+bridged via a Hetzner vSwitch (VLAN 4000) to a private network:
+
+- **Flagship** — Hetzner Cloud cx23 (2 vCPU, 4 GB RAM, 40 GB SSD).
+  Runs Journal, Planner, Postgres+PostGIS, Caddy, Prometheus, Loki,
+  Grafana, and exporters. vSwitch IP `10.0.0.2`.
+- **BRouter host** — Hetzner Dedicated (operator-owned shared box,
+  currently `ullrich.is`; 3 TB RAID, 32 GB RAM). Runs only BRouter +
+  a Caddy auth sidecar + scoped cAdvisor/Promtail sidecars in a
+  `~trails/brouter/` compose project under a non-root `trails` user.
+  vSwitch IP `10.0.1.10`. BRouter covers the full planet
+  (~10 GB RD5 tiles) with an 8 GB JVM heap.
+
+Planner → BRouter traffic crosses the vSwitch; a shared-secret
+`X-BRouter-Auth` header enforced by the Caddy sidecar prevents any
+other process on the dedicated host from reaching BRouter even if
+they share the private network.
+
+BRouter container metrics and logs are scraped/shipped from the
+dedicated host to the flagship's Prometheus and Loki over the same
+vSwitch. Filtering (cAdvisor `--whitelisted_container_labels`, Promtail
+relabel-drop) keeps trails.cool observability scoped to trails
+containers only — none of the operator's other workloads on the
+shared host are ingested.
+
+- Storage Box: 1 TB for backups - ~3.20 EUR/month
+- Infrastructure as Code: Terraform (Hetzner Cloud provider); Hetzner
+  Robot side (dedicated server) is operator-managed
+- Docker Compose for runtime orchestration on both hosts
+- CI/CD: GitHub Actions — three workflows (`cd-apps`, `cd-infra`,
+  `cd-brouter`) with different SSH targets and deploy users
+- Monitoring: Grafana + Prometheus + Loki on flagship, scraping both
+  hosts
 - Error tracking: Sentry
 
 ### Services

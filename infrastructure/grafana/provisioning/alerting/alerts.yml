@@ -182,6 +182,30 @@ groups:
         annotations:
           summary: "Background jobs have failed in the last hour — check Grafana Service Health dashboard"
 
+      - uid: brouter-scrape-down
+        title: BRouter host unreachable
+        condition: B
+        noDataState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: up{job="brouter-cadvisor"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { params: [1], type: lt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 2m
+        annotations:
+          summary: "BRouter host metrics scrape has been failing for 2+ minutes — the dedicated host, vSwitch, or cAdvisor may be down"
+
       - uid: caddy-502-rate
         title: Caddy 502 errors detected
         condition: B

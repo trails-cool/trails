@@ -33,12 +33,10 @@ services:
         max-file: "3"
     labels:
       trails.cool.service: "brouter"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:17777/ >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
+    # No custom healthcheck: the BRouter image strips wget/curl post-build,
+    # and /bin/sh in the base image doesn't support /dev/tcp. Real health
+    # is observed via Caddy upstream (502 on outage) and the Planner-side
+    # brouter_request_duration_seconds metric.
 
   caddy:
     image: caddy:2-alpine
@@ -46,7 +44,7 @@ services:
     restart: unless-stopped
     depends_on:
       brouter:
-        condition: service_healthy
+        condition: service_started
     # Bind ONLY to the vSwitch IP on the host — the dedicated host's
     # public IP remains unaffected. UFW further restricts this to traffic
     # sourced from the flagship's private IP (10.0.0.2).
@@ -68,9 +66,61 @@ services:
     labels:
       trails.cool.service: "brouter-caddy"
 
+  # cAdvisor — container metrics scraped by flagship Prometheus over the
+  # vSwitch. We set container label filters so the exposed metrics only
+  # cover trails-labeled containers (brouter + caddy), not the operator's
+  # other workloads on this shared host.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: trails-brouter-cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "10.0.1.10:8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      # Only consider containers (not the host) and only those that carry
+      # our label; filters out everything else on the shared host.
+      - --docker_only=true
+      - --store_container_labels=false
+      - --whitelisted_container_labels=trails.cool.service
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      trails.cool.service: "brouter-cadvisor"
+
+  # Promtail — tails Docker logs for trails-labeled containers only and
+  # pushes to flagship Loki over the vSwitch. Does NOT scrape other
+  # containers' logs on this host.
+  promtail:
+    image: grafana/promtail:latest
+    container_name: trails-brouter-promtail
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - promtail-positions:/tmp
+    command: ["-config.file=/etc/promtail/config.yml"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      trails.cool.service: "brouter-promtail"
+
 volumes:
   caddy-data:
   caddy-config:
+  promtail-positions:
 
 networks:
   trails-brouter-internal:

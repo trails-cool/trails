@@ -3,7 +3,7 @@ FROM eclipse-temurin:11-jre-jammy
 WORKDIR /brouter
 
 # Download latest BRouter release
-ARG BROUTER_VERSION=1.7.8
+ARG BROUTER_VERSION=1.7.9
 RUN apt-get update && apt-get install -y --no-install-recommends wget unzip curl \
     && wget -q "https://github.com/abrensch/brouter/releases/download/v${BROUTER_VERSION}/brouter-${BROUTER_VERSION}.zip" \
     && unzip "brouter-${BROUTER_VERSION}.zip" \

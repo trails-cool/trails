@@ -145,24 +145,37 @@ Admins can bypass the PR workflow when necessary (e.g., CI is broken and needs a
 
 Three separate CD workflows triggered by path:
 
-| Workflow | Triggers on | Deploys |
-|----------|-------------|---------|
-| `cd-apps.yml` | `apps/`, `packages/`, `pnpm-lock.yaml` | journal, planner |
-| `cd-infra.yml` | `infrastructure/` | caddy, postgres, prometheus, loki, grafana, exporters |
-| `cd-brouter.yml` | `docker/brouter/` | brouter |
+| Workflow | Triggers on | Deploys | Target |
+|----------|-------------|---------|--------|
+| `cd-apps.yml` | `apps/`, `packages/`, `pnpm-lock.yaml` | journal, planner | flagship (`root@trails.cool`) |
+| `cd-infra.yml` | `infrastructure/` (except `brouter-host/**`) | caddy, postgres, prometheus, loki, grafana, exporters | flagship (`root@trails.cool`) |
+| `cd-brouter.yml` | `docker/brouter/`, `infrastructure/brouter-host/**` | brouter + caddy sidecar | dedicated (`trails@ullrich.is:2232`) |
+
+### Hosts
+
+trails.cool runs on two Hetzner boxes in the same Falkenstein datacenter:
+
+- **Flagship** — Hetzner Cloud `cx23`, public IP + vSwitch IP `10.0.0.2`. Runs Journal, Planner, Postgres, Caddy, Prometheus, Loki, Grafana.
+- **BRouter host** — Hetzner Dedicated `ullrich.is`, public IP `176.9.150.227` + vSwitch IP `10.0.1.10`. Shared self-hosted box; trails.cool owns only a non-root `trails` user with docker-group rights, scoped to `~trails/brouter/`. SSH is on port **2232**.
+
+The two hosts are bridged via Hetzner vSwitch #80672 (VLAN 4000). Planner → BRouter traffic crosses it; BRouter → Loki traffic (for log shipping) crosses it back.
 
 ### Secrets
-All secrets are stored in SOPS-encrypted files (`infrastructure/secrets.app.env`, `infrastructure/secrets.infra.env`). Edit with `sops infrastructure/secrets.app.env`. Only `AGE_SECRET_KEY`, `DEPLOY_SSH_KEY`, and `DEPLOY_HOST` remain as GitHub secrets.
+All secrets are SOPS-encrypted: `infrastructure/secrets.app.env` (apps + BRouter shared token), `infrastructure/secrets.infra.env` (flagship infra only). Edit with `sops infrastructure/secrets.app.env`. GitHub Actions secrets: `AGE_SECRET_KEY`, `DEPLOY_HOST` / `DEPLOY_SSH_KEY` (flagship), `BROUTER_DEPLOY_HOST` / `BROUTER_DEPLOY_SSH_KEY` / `BROUTER_DEPLOY_SSH_PORT` (dedicated).
 
 ### Full restart
-To restart **all** containers (not just the ones a workflow normally touches):
+To restart **all** containers on the flagship (not just the ones a workflow normally touches):
 ```bash
 gh workflow run cd-infra.yml -f restart_all=true
 ```
 
 ### Server access
 ```bash
+# Flagship — root, standard port, deploy key
 ssh -i ~/.ssh/trails-cool-deploy root@trails.cool
+
+# BRouter host — trails user, non-standard port, different deploy key
+ssh -i ~/.ssh/trails-brouter-deploy -p 2232 trails@ullrich.is
 ```
 
 ### Grafana

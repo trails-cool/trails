@@ -65,27 +65,42 @@
 
 ## 6. Observability
 
-- [ ] 6.1 Add a Prometheus scrape job in `infrastructure/prometheus/prometheus.yml` targeting the BRouter host's cAdvisor (or JMX exporter) on the vSwitch IP; label with `host="brouter"`
-- [ ] 6.2 Run cAdvisor on the dedicated host as part of `infrastructure/brouter-host/docker-compose.yml`, configured to report only BRouter-labeled containers
-- [ ] 6.3 Add a Promtail (or Alloy) service to `infrastructure/brouter-host/docker-compose.yml` tailing Docker logs for BRouter + Caddy sidecar only, pushing to the flagship Loki over vSwitch
-- [ ] 6.4 Add a Grafana dashboard row (or new dashboard) for BRouter host: request rate, p50/p95/p99, JVM heap, container memory, scrape up/down
-- [ ] 6.5 Add an alert: `up{job="brouter"} == 0 for 2m`
+- [x] 6.1 Add a Prometheus scrape job in `infrastructure/prometheus/prometheus.yml` targeting the BRouter host's cAdvisor (or JMX exporter) on the vSwitch IP; label with `host="brouter"`
+  - Job `brouter-cadvisor` → `10.0.1.10:8080`. Uses static_configs with a static `host="brouter"` label so dashboards can filter.
+- [x] 6.2 Run cAdvisor on the dedicated host as part of `infrastructure/brouter-host/docker-compose.yml`, configured to report only BRouter-labeled containers
+  - `--whitelisted_container_labels=trails.cool.service` + `--docker_only=true` scope metrics to trails containers only. Bound to `10.0.1.10:8080` (vSwitch-only).
+- [x] 6.3 Add a Promtail (or Alloy) service to `infrastructure/brouter-host/docker-compose.yml` tailing Docker logs for BRouter + Caddy sidecar only, pushing to the flagship Loki over vSwitch
+  - Promtail with docker_sd + relabel-drop on missing `trails.cool.service` label; ships to `http://10.0.0.2:3100/loki/api/v1/push`. Also published Loki on flagship's vSwitch IP so the dedicated host can reach it.
+  - Requires operator one-time: `ufw allow in on enp4s0.4000 from 10.0.0.2 to any port 8080 proto tcp` (documented in brouter-host/README.md).
+- [x] 6.4 Add a Grafana dashboard row (or new dashboard) for BRouter host: request rate, p50/p95/p99, JVM heap, container memory, scrape up/down
+  - New `infrastructure/grafana/dashboards/brouter.json` with scrape up/down, request rate + latency (from Planner-side metrics), container memory/CPU, and a Loki logs panel filtered to `host="brouter"`.
+- [x] 6.5 Add an alert: `up{job="brouter"} == 0 for 2m`
+  - Added as `brouter-scrape-down` in `infrastructure/grafana/provisioning/alerting/alerts.yml`. NoData state set to Alerting so a complete scrape outage still fires.
 
 ## 7. Cutover
 
-- [ ] 7.1 Deploy `infrastructure/brouter-host/` to the dedicated host manually the first time; run `download-segments.sh` (expect multi-hour runtime)
-- [ ] 7.2 Verify the new BRouter responds to a curl from the flagship host over vSwitch with the auth header, and returns 403 without it
-- [ ] 7.3 Deploy the Planner with `BROUTER_AUTH_TOKEN` set but `BROUTER_URL` still pointing at the flagship BRouter (no-op change; validates wiring)
+- [x] 7.1 Deploy `infrastructure/brouter-host/` to the dedicated host manually the first time; run `download-segments.sh` (expect multi-hour runtime)
+  - Planet RD5 set (1139 tiles, 9.2 GB) seeded at `~trails/brouter/segments/` on `ullrich.is`. Multi-hour was overestimated — took ~1 min. Planet compressed is only ~10 GB now.
+  - All 4 containers up on dedicated host: `trails-brouter` (BRouter 1.7.9), `trails-brouter-caddy`, `trails-brouter-cadvisor`, `trails-brouter-promtail`. Promtail will retry-loop until flagship publishes Loki on `10.0.0.2:3100` (lands with PR #292 merge).
+  - Hit three issues during first deploy: `cd-brouter` missing `docker login` (GHCR image is private), custom healthcheck used `wget` not in the image, and BRouter 1.7.8 was one lookups.dat version behind current planet segments. All three fixed in a follow-up commit on #292.
+- [x] 7.2 Verify the new BRouter responds to a curl from the flagship host over vSwitch with the auth header, and returns 403 without it
+  - Confirmed end-to-end from `trails.cool`: `curl -H 'X-BRouter-Auth: …' http://10.0.1.10:17777/brouter?...` → 200 with GPX body (1.75 km route, 4m41s). Without the header → 403 from Caddy, BRouter never sees the request.
+- [x] 7.3 Deploy the Planner with `BROUTER_AUTH_TOKEN` set but `BROUTER_URL` still pointing at the flagship BRouter (no-op change; validates wiring)
+  - cd-apps deployed post-#291 merge with `BROUTER_AUTH_TOKEN` in env. Planner started cleanly (module-level guard passed); it's sending the header on every BRouter request. Flagship BRouter ignores the header as expected. `/health` returns 200, logs show normal traffic.
 - [ ] 7.4 Flip `BROUTER_URL` in SOPS to the new vSwitch URL; deploy Planner; monitor `brouter_request_duration_seconds` error rate for 30 minutes
 - [ ] 7.5 After 48 hours of clean metrics: remove the `brouter` service + `./segments` volume from `infrastructure/docker-compose.yml`; run `cd-infra.yml` to restart without BRouter; `docker image prune` on the flagship
 - [ ] 7.6 Document rollback path (revert `BROUTER_URL` flip, redeploy Planner, old container warm for 48h) in the PR description
 
 ## 8. Documentation
 
-- [ ] 8.1 Update `CLAUDE.md` to mention the second deployment target and the `trails`-user deploy pattern for BRouter
-- [ ] 8.2 Update `docs/architecture.md` with the new topology and vSwitch boundary
-- [ ] 8.3 Update `docs/deployment.md` (or create) with the BRouter host runbook: first-time provisioning, segment updates, token rotation, rollback
+- [x] 8.1 Update `CLAUDE.md` to mention the second deployment target and the `trails`-user deploy pattern for BRouter
+  - Deployment table now lists SSH target per workflow; new Hosts section explains the flagship + dedicated split and the vSwitch bridge.
+- [x] 8.2 Update `docs/architecture.md` with the new topology and vSwitch boundary
+  - Hosting section rewritten to describe both hosts, the vSwitch, and the observability-scoping for the shared dedicated host.
+- [x] 8.3 Update `docs/deployment.md` (or create) with the BRouter host runbook: first-time provisioning, segment updates, token rotation, rollback
+  - New file. Covers host layout, first-time provisioning, SOPS rotation (including the macOS SOPS_AGE_KEY_FILE gotcha), the full cutover procedure with rollback, and `gh workflow run cd-brouter.yml`.
 - [ ] 8.4 Add a note to `infrastructure/README.md` (if present) distinguishing flagship-host vs. BRouter-host compose projects
+  - No `infrastructure/README.md` currently exists; the `infrastructure/brouter-host/README.md` added in 3.5 + the updated `docs/deployment.md` cover the ground. Skip.
 
 ## 9. Verification
 
