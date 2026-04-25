@@ -19,9 +19,12 @@ async function seedBrunoWithSyntheticRoute(): Promise<{ username: string; routeN
   const userId = randomUUID();
   const routeId = randomUUID();
   try {
+    // Demo bot needs profile_visibility='public' so anon visitors see
+    // his profile in full (the locked-account default would render a
+    // stub instead).
     await sql`
-      INSERT INTO journal.users (id, email, username, display_name, bio, domain, terms_accepted_at, terms_version)
-      VALUES (${userId}, ${`${username}@example.com`}, ${username}, 'Bruno', 'Professional park inspector.', 'localhost', now(), '2026-04-19')
+      INSERT INTO journal.users (id, email, username, display_name, bio, domain, profile_visibility, terms_accepted_at, terms_version)
+      VALUES (${userId}, ${`${username}@example.com`}, ${username}, 'Bruno', 'Professional park inspector.', 'localhost', 'public', now(), '2026-04-19')
     `;
     await sql`
       INSERT INTO journal.routes (id, owner_id, name, description, visibility, synthetic, distance, created_at, updated_at)
@@ -79,13 +82,18 @@ test.describe("Demo-bot UX", () => {
     // Use ON CONFLICT so a pre-existing prod `bruno` user doesn't block
     // the test; we don't clean up a row we didn't create.
     const created = await sql`
-      INSERT INTO journal.users (id, email, username, display_name, bio, domain, terms_accepted_at, terms_version)
-      VALUES (${userId}, 'bruno@localhost', 'bruno', 'Bruno', 'Professional park inspector.', 'localhost', now(), '2026-04-19')
+      INSERT INTO journal.users (id, email, username, display_name, bio, domain, profile_visibility, terms_accepted_at, terms_version)
+      VALUES (${userId}, 'bruno@localhost', 'bruno', 'Bruno', 'Professional park inspector.', 'localhost', 'public', now(), '2026-04-19')
       ON CONFLICT (username) DO NOTHING
       RETURNING id
     `;
     const weCreatedIt = created.length > 0;
     const effectiveUserId = weCreatedIt ? userId : (await sql`SELECT id FROM journal.users WHERE username='bruno'`)[0]!.id as string;
+    // Make sure bruno is public regardless of who created him — the
+    // demo profile must render in full for anon visitors. If he was
+    // pre-existing with `private` (e.g. on a fresh DB after the
+    // default flipped), force him public for this test's purposes.
+    await sql`UPDATE journal.users SET profile_visibility = 'public' WHERE id = ${effectiveUserId}`;
 
     await sql`
       INSERT INTO journal.routes (id, owner_id, name, description, visibility, synthetic, distance, created_at, updated_at)
