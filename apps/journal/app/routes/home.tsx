@@ -167,12 +167,20 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               {user.displayName ?? user.username}
             </a>
           </h1>
-          <a
-            href="/activities/new"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            {t("activities.new")}
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="/feed"
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              {t("social.feed.title")}
+            </a>
+            <a
+              href="/activities/new"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              {t("activities.new")}
+            </a>
+          </div>
         </div>
 
         {showAddPasskey && !passkeyDone && supportsPasskey === true && (

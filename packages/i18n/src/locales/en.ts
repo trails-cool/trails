@@ -229,9 +229,37 @@ export default {
     },
     profile: {
       ownNote: "This is your profile — visitors see only what you've marked public.",
+      privateNote: "Your profile is set to private. Visitors see a 404; public posts are still reachable by direct URL but you can't be followed.",
       goToSettings: "Go to settings",
       noPublicRoutes: "No public routes yet.",
       noPublicActivities: "No public activities yet.",
+    },
+    social: {
+      follow: "Follow",
+      unfollow: "Unfollow",
+      followers: {
+        label: "Followers",
+        heading: "Followers of {{user}}",
+        count: "{{count}} follower",
+        count_other: "{{count}} followers",
+        empty: "Nobody yet.",
+      },
+      following: {
+        label: "Following",
+        heading: "{{user}} is following",
+        count: "Following {{count}}",
+        count_other: "Following {{count}}",
+        empty: "Not following anyone yet.",
+      },
+      prevPage: "Previous",
+      nextPage: "Next",
+      pageOfTotal: "Page {{page}} of {{totalPages}}",
+      feed: {
+        title: "Feed",
+        heading: "Following",
+        empty: "You're not following anyone yet. Browse profiles and tap Follow to start building your feed.",
+        publicFeedLink: "Or browse the instance public feed →",
+      },
     },
     demo: {
       badge: "🐕 Demo account",
@@ -259,6 +287,13 @@ export default {
         displayName: "Display Name",
         bio: "Bio",
         saved: "Profile saved.",
+        visibility: {
+          label: "Profile visibility",
+          public: "Public",
+          publicHelp: "Your profile page is visible to anyone (when you have any public content). You can be followed.",
+          private: "Private",
+          privateHelp: "Your profile page returns 404. Public posts are still reachable by direct URL but you can't be followed.",
+        },
       },
       security: {
         title: "Security",

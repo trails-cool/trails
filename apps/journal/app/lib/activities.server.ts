@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
-import { activities, routes, syncImports, users } from "@trails-cool/db/schema/journal";
+import { activities, routes, syncImports, users, follows } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 import { parseGpxAsync } from "@trails-cool/gpx";
 import { setGeomFromGpx } from "./routes.server.ts";
@@ -128,6 +128,43 @@ export async function listPublicActivitiesForOwner(ownerId: string) {
     .from(activities)
     .where(and(eq(activities.ownerId, ownerId), eq(activities.visibility, "public")))
     .orderBy(desc(activities.createdAt));
+
+  const ids = rows.map((r) => r.id);
+  const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();
+  return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
+}
+
+/**
+ * Social feed: aggregated public activities from users that `followerId`
+ * follows (accepted only). Reverse-chronological. Joins users for owner
+ * attribution. Unlisted/private activities never appear, regardless of
+ * follow state.
+ */
+export async function listSocialFeed(followerId: string, limit: number = 50) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: activities.id,
+      name: activities.name,
+      distance: activities.distance,
+      elevationGain: activities.elevationGain,
+      duration: activities.duration,
+      startedAt: activities.startedAt,
+      createdAt: activities.createdAt,
+      ownerUsername: users.username,
+      ownerDisplayName: users.displayName,
+    })
+    .from(activities)
+    .innerJoin(follows, eq(follows.followedUserId, activities.ownerId))
+    .innerJoin(users, eq(activities.ownerId, users.id))
+    .where(
+      and(
+        eq(follows.followerId, followerId),
+        eq(activities.visibility, "public"),
+      ),
+    )
+    .orderBy(desc(activities.createdAt))
+    .limit(limit);
 
   const ids = rows.map((r) => r.id);
   const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();

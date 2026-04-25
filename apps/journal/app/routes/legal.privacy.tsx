@@ -394,6 +394,20 @@ export default function PrivacyPage() {
             including on your public profile at <code>/users/&lt;you&gt;</code>
             and on search engines that index those pages.
           </li>
+          <li>
+            Profile visibility (<code>public</code> / <code>private</code>,
+            default <code>public</code>): a separate switch from content
+            visibility. <code>private</code> 404s your profile page and makes
+            you unfollowable; you can still post <code>public</code> content
+            reachable by direct URL. Change anytime in account settings.
+          </li>
+          <li>
+            Follows: which users on this instance follow which. Visible to
+            anyone via your <code>/users/&lt;you&gt;/followers</code> and
+            <code>/users/&lt;you&gt;/following</code> pages, mirroring
+            Mastodon-style conventions. Set your profile to{" "}
+            <code>private</code> to be unfollowable.
+          </li>
         </ul>
       </section>
 

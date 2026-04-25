@@ -8,7 +8,9 @@ import { getSessionUser } from "~/lib/auth.server";
 import { listPublicRoutesForOwner } from "~/lib/routes.server";
 import { listPublicActivitiesForOwner } from "~/lib/activities.server";
 import { loadPersona } from "~/lib/demo-bot.server";
+import { countFollowers, countFollowing, getFollowState } from "~/lib/follow.server";
 import { ClientDate } from "~/components/ClientDate";
+import { FollowButton } from "~/components/FollowButton";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const db = getDb();
@@ -18,19 +20,32 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data({ error: "User not found" }, { status: 404 });
   }
 
-  const [publicRoutes, publicActivities, currentUser] = await Promise.all([
+  const [publicRoutes, publicActivities, currentUser, followers, following] = await Promise.all([
     listPublicRoutesForOwner(user.id),
     listPublicActivitiesForOwner(user.id),
     getSessionUser(request),
+    countFollowers(user.id),
+    countFollowing(user.id),
   ]);
 
   const isOwn = currentUser?.id === user.id;
 
-  // 404 for users with no public content at all, to prevent account
-  // enumeration. Owners still see their own profile even when empty.
+  // Profile-visibility gate: a `private` profile 404s for everyone but
+  // the owner, regardless of how much public content they have.
+  if (!isOwn && user.profileVisibility !== "public") {
+    throw data({ error: "User not found" }, { status: 404 });
+  }
+
+  // 404 for public-but-empty profiles to prevent account enumeration.
+  // Owners still see their own profile even when empty.
   if (!isOwn && publicRoutes.length === 0 && publicActivities.length === 0) {
     throw data({ error: "User not found" }, { status: 404 });
   }
+
+  // Follow state for non-owner viewers (null when anonymous).
+  const followState = !isOwn && currentUser
+    ? await getFollowState(currentUser.id, user.username)
+    : null;
 
   // Demo-account badge: true when this profile matches the instance's
   // configured demo persona username. Computed server-side so we don't
@@ -64,6 +79,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     })),
     isOwn,
     isDemoUser,
+    followers,
+    following,
+    followState,
+    isLoggedIn: currentUser !== null,
+    profileVisibility: user.profileVisibility,
   });
 }
 
@@ -89,7 +109,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, routes, activities, isOwn, isDemoUser } = loaderData;
+  const { user, routes, activities, isOwn, isDemoUser, followers, following, followState, isLoggedIn } = loaderData;
   const { t } = useTranslation("journal");
 
   return (
@@ -98,7 +118,7 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-600">
           {user.username[0]?.toUpperCase()}
         </div>
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-gray-900">
               {user.displayName ?? user.username}
@@ -113,10 +133,40 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
             @{user.username}@{user.domain}
           </p>
           {user.bio && <p className="mt-2 text-gray-700">{user.bio}</p>}
+          <div className="mt-2 flex gap-4 text-sm text-gray-600">
+            <a
+              href={`/users/${user.username}/followers`}
+              className="hover:text-gray-900 hover:underline"
+            >
+              <span className="font-semibold text-gray-900">{followers}</span>{" "}
+              {t("social.followers.label")}
+            </a>
+            <a
+              href={`/users/${user.username}/following`}
+              className="hover:text-gray-900 hover:underline"
+            >
+              <span className="font-semibold text-gray-900">{following}</span>{" "}
+              {t("social.following.label")}
+            </a>
+          </div>
         </div>
+        {!isOwn && isLoggedIn && (
+          <FollowButton
+            username={user.username}
+            initialState={followState}
+          />
+        )}
       </div>
 
-      {isOwn && (
+      {isOwn && loaderData.profileVisibility === "private" && (
+        <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {t("profile.privateNote")}{" "}
+          <a href="/settings" className="underline hover:text-amber-900">
+            {t("profile.goToSettings")}
+          </a>
+        </div>
+      )}
+      {isOwn && loaderData.profileVisibility === "public" && (
         <div className="mt-6 rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
           {t("profile.ownNote")}{" "}
           <a href="/settings" className="underline hover:text-blue-900">

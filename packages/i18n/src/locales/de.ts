@@ -229,9 +229,37 @@ export default {
     },
     profile: {
       ownNote: "Das ist dein Profil — Besucher:innen sehen nur Inhalte, die du als öffentlich markiert hast.",
+      privateNote: "Dein Profil ist auf Privat gestellt. Besucher:innen sehen 404; öffentliche Inhalte sind weiterhin per direkter URL erreichbar, aber du kannst nicht gefolgt werden.",
       goToSettings: "Zu den Einstellungen",
       noPublicRoutes: "Noch keine öffentlichen Routen.",
       noPublicActivities: "Noch keine öffentlichen Aktivitäten.",
+    },
+    social: {
+      follow: "Folgen",
+      unfollow: "Entfolgen",
+      followers: {
+        label: "Follower",
+        heading: "Follower von {{user}}",
+        count: "{{count}} Follower",
+        count_other: "{{count}} Follower",
+        empty: "Noch niemand.",
+      },
+      following: {
+        label: "Folgt",
+        heading: "{{user}} folgt",
+        count: "Folgt {{count}}",
+        count_other: "Folgt {{count}}",
+        empty: "Folgt noch niemandem.",
+      },
+      prevPage: "Zurück",
+      nextPage: "Weiter",
+      pageOfTotal: "Seite {{page}} von {{totalPages}}",
+      feed: {
+        title: "Feed",
+        heading: "Folge ich",
+        empty: "Du folgst noch niemandem. Stöbere Profile durch und klicke auf Folgen, um deinen Feed aufzubauen.",
+        publicFeedLink: "Oder durchstöbere den öffentlichen Feed dieser Instanz →",
+      },
     },
     demo: {
       badge: "🐕 Demo-Konto",
@@ -259,6 +287,13 @@ export default {
         displayName: "Anzeigename",
         bio: "Bio",
         saved: "Profil gespeichert.",
+        visibility: {
+          label: "Profil-Sichtbarkeit",
+          public: "Öffentlich",
+          publicHelp: "Deine Profilseite ist für alle sichtbar (sobald du öffentliche Inhalte hast). Du kannst gefolgt werden.",
+          private: "Privat",
+          privateHelp: "Deine Profilseite gibt 404 zurück. Öffentliche Inhalte sind weiterhin per direkter URL erreichbar, aber du kannst nicht gefolgt werden.",
+        },
       },
       security: {
         title: "Sicherheit",
