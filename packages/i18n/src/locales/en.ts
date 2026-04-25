@@ -245,6 +245,7 @@ export default {
       title: "Notifications",
       empty: "No notifications yet.",
       markAllRead: "Mark all read",
+      loadOlder: "Load older",
       someone: "Someone",
       summary: {
         followRequestReceived: "{{name}} requested to follow you",

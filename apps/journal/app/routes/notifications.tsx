@@ -14,7 +14,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   if (!user) throw redirect("/auth/login");
 
-  const rows = await listForUser(user.id, { page: 1 });
+  const url = new URL(request.url);
+  const before = url.searchParams.get("before") ?? undefined;
+  const { rows, nextCursor } = await listForUser(user.id, { before });
 
   // Renderer guard: drop activity_published rows whose subject is gone
   // or no longer public (visibility flipped from public → private/unlisted).
@@ -56,6 +58,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         payload,
       };
     }),
+    nextCursor,
   });
 }
 
@@ -145,7 +148,7 @@ function NotificationItem({ row }: { row: Row }) {
 }
 
 export default function Notifications({ loaderData }: Route.ComponentProps) {
-  const { notifications } = loaderData;
+  const { notifications, nextCursor } = loaderData;
   const { t } = useTranslation("journal");
   const markAll = useFetcher();
 
@@ -171,11 +174,23 @@ export default function Notifications({ loaderData }: Route.ComponentProps) {
       {notifications.length === 0 ? (
         <p className="mt-12 text-center text-gray-500">{t("notifications.empty")}</p>
       ) : (
-        <ul className="mt-6 rounded-lg border border-gray-200 bg-white">
-          {notifications.map((n) => (
-            <NotificationItem key={n.id} row={n} />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-6 rounded-lg border border-gray-200 bg-white">
+            {notifications.map((n) => (
+              <NotificationItem key={n.id} row={n} />
+            ))}
+          </ul>
+          {nextCursor && (
+            <div className="mt-4 text-center">
+              <a
+                href={`/notifications?before=${encodeURIComponent(nextCursor)}`}
+                className="text-sm font-medium text-blue-600 hover:underline"
+              >
+                {t("notifications.loadOlder")}
+              </a>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
