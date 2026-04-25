@@ -1,9 +1,7 @@
 ## Purpose
 
 The Journal home page (`/`) serves three audiences with one route: anonymous visitors arriving at the flagship trails.cool instance, anyone landing on a self-hosted Journal instance, and signed-in users returning to *their own* home. It introduces the product to visitors on the flagship, shows a public activity feed on every instance for visitors, and swaps in a personal activity stream for signed-in users so "home" means "your stuff."
-
 ## Requirements
-
 ### Requirement: Home behavior depends on session
 The `/` route SHALL render one of two distinct layouts based on whether the request carries a valid session. Signed-in users see a personal activity dashboard; signed-out visitors see the marketing + public-feed layout. The two layouts SHALL NOT render simultaneously — a signed-in user does not see the marketing blurbs, auth CTAs, or public instance feed on their home; a signed-out visitor does not see anyone's personal stream.
 
@@ -54,3 +52,15 @@ For signed-in users, the home page SHALL render a personal activity dashboard: a
 #### Scenario: Dashboard empty state
 - **WHEN** a signed-in user has no activities yet
 - **THEN** the dashboard shows an empty-state message pointing to activity creation, while the welcome line and New Activity CTA remain visible
+
+### Requirement: Social feed link for signed-in users
+For signed-in users, the personal dashboard SHALL include a prominent link to the social feed at `/feed` (see `social-follows` spec, "Social activity feed") alongside the existing "New Activity" CTA. The link SHALL be visible regardless of whether the user follows anyone yet — the social feed's own empty state handles the zero-follows case.
+
+#### Scenario: Feed link on personal dashboard
+- **WHEN** a signed-in user loads `/`
+- **THEN** the dashboard header shows a "Feed" (or equivalent) link to `/feed` next to the "New Activity" CTA
+
+#### Scenario: Feed link is not shown to signed-out visitors
+- **WHEN** an unauthenticated visitor loads `/`
+- **THEN** the visitor-home layout does not expose a link to `/feed` (the route requires authentication)
+
