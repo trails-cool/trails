@@ -396,17 +396,31 @@ export default function PrivacyPage() {
           </li>
           <li>
             Profile visibility (<code>public</code> / <code>private</code>,
-            default <code>public</code>): a separate switch from content
-            visibility. <code>private</code> 404s your profile page and makes
-            you unfollowable; you can still post <code>public</code> content
-            reachable by direct URL. Change anytime in account settings.
+            default <code>private</code> for new accounts): a separate
+            switch from content visibility. <code>public</code> means
+            anyone can view your profile and follows auto-accept.
+            <code> private</code> is Mastodon-style locked: visitors see
+            a stub with a Request-to-follow button; only accepted
+            followers see your public content. Change anytime in account
+            settings.
           </li>
           <li>
-            Follows: which users on this instance follow which. Visible to
-            anyone via your <code>/users/&lt;you&gt;/followers</code> and
-            <code>/users/&lt;you&gt;/following</code> pages, mirroring
-            Mastodon-style conventions. Set your profile to{" "}
-            <code>private</code> to be unfollowable.
+            Follows: which users on this instance follow which.
+            Accepted relations are visible to anyone via your{" "}
+            <code>/users/&lt;you&gt;/followers</code> and{" "}
+            <code>/users/&lt;you&gt;/following</code> pages. Pending
+            requests against private profiles are visible only to the
+            requester and the target.
+          </li>
+          <li>
+            Notifications: a per-recipient log of social events on this
+            instance (someone followed you, your follow request was
+            approved, a person you follow posted publicly). Includes
+            small per-event metadata (the actor's username + display
+            name; for activities, the activity name and id) for offline
+            renderers like future mobile push or email. Visible only to
+            the recipient. Read notifications are deleted after 90 days;
+            unread notifications are kept until you read them.
           </li>
         </ul>
       </section>

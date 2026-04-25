@@ -154,7 +154,7 @@ export async function registerWithMagicLink(
   email: string,
   username: string,
   termsVersion: string,
-): Promise<string> {
+): Promise<{ token: string; code: string }> {
   const db = getDb();
 
   const [existingEmail] = await db.select().from(users).where(eq(users.email, email));
@@ -175,18 +175,21 @@ export async function registerWithMagicLink(
     termsVersion,
   });
 
-  // Create magic token for verification
+  // Same shape as login's createMagicToken — token for the click-through
+  // link, 6-digit code for paste-from-email/SMS flows (mobile).
   const token = randomBytes(32).toString("base64url");
+  const code = generateLoginCode();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
   await db.insert(magicTokens).values({
     id: randomUUID(),
     email,
     token,
+    code,
     expiresAt,
   });
 
-  return token;
+  return { token, code };
 }
 
 // --- Passkey Login ---

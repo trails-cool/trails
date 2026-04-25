@@ -3,13 +3,30 @@ import { eq } from "drizzle-orm";
 import type { Route } from "./+types/users.$username.followers";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
-import { listFollowers, countFollowers } from "~/lib/follow.server";
+import { listFollowers, countFollowers, getFollowState } from "~/lib/follow.server";
+import { getSessionUser } from "~/lib/auth.server";
 import { CollectionPage } from "~/components/CollectionPage";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.username, params.username));
-  if (!user || user.profileVisibility !== "public") {
+  if (!user) {
+    throw data({ error: "User not found" }, { status: 404 });
+  }
+
+  // Locked-account model: only the owner and accepted followers can see
+  // a private user's followers list. Non-followers (anonymous or signed-in)
+  // get the same 404 a stranger sees, mirroring the profile-route policy.
+  const currentUser = await getSessionUser(request);
+  const isOwn = currentUser?.id === user.id;
+  const followState = !isOwn && currentUser
+    ? await getFollowState(currentUser.id, user.username)
+    : null;
+  const canSee =
+    isOwn ||
+    user.profileVisibility === "public" ||
+    (followState !== null && followState.following === true);
+  if (!canSee) {
     throw data({ error: "User not found" }, { status: 404 });
   }
 

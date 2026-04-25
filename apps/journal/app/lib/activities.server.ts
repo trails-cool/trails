@@ -28,7 +28,18 @@ export async function updateActivityVisibility(
     .set({ visibility })
     .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)))
     .returning({ id: activities.id });
-  return result.length > 0;
+  if (result.length === 0) return false;
+
+  // Notify followers when an activity becomes public. The unique
+  // (recipient, type, subject_id) partial index makes the fan-out
+  // idempotent, so toggling private→public→private→public won't spam
+  // followers (only the first transition per activity emits).
+  if (visibility === "public") {
+    const { enqueueOptional } = await import("./boss.server.ts");
+    await enqueueOptional("notifications-fanout", { activityId: id }, { source: "updateActivityVisibility" });
+  }
+
+  return true;
 }
 
 export async function createActivity(ownerId: string, input: ActivityInput) {
@@ -67,10 +78,19 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
     elevationGain,
     elevationLoss,
     startedAt,
+    ...(input.visibility ? { visibility: input.visibility } : {}),
   });
 
   if (input.gpx) {
     await setGeomFromGpx(id, "activities", input.gpx);
+  }
+
+  // Public activities at creation also fan out (matches the
+  // updateActivityVisibility path for the case where visibility is set
+  // up-front rather than flipped later).
+  if (input.visibility === "public") {
+    const { enqueueOptional } = await import("./boss.server.ts");
+    await enqueueOptional("notifications-fanout", { activityId: id }, { source: "createActivity" });
   }
 
   return id;

@@ -10,13 +10,17 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [supportsPasskey, setSupportsPasskey] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<"passkey" | "magic-link">("passkey");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
   const [hostname, setHostname] = useState("…");
 
   useEffect(() => {
     setHostname(window.location.hostname);
     import("@simplewebauthn/browser").then(({ browserSupportsWebAuthn }) => {
-      setSupportsPasskey(browserSupportsWebAuthn());
+      const supported = browserSupportsWebAuthn();
+      setSupportsPasskey(supported);
+      if (!supported) setMode("magic-link");
     });
   }, []);
 
@@ -105,10 +109,38 @@ export default function RegisterPage() {
 
       if (result.error) {
         setError(result.error);
-      } else if (result.devLink) {
-        window.location.href = result.devLink;
       } else {
+        // In dev the API also returns the link/code; we still show the
+        // code form so the dev can paste either, matching production
+        // behavior. Devs can copy `devLink` from the server log if they
+        // want the click-through path instead.
         setMagicLinkSent(true);
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      // The token row created by `register-magic-link` has the default
+      // `purpose: "login"`, so the existing login verify-code endpoint
+      // accepts it without a separate register-only verify path.
+      const resp = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: "verify-code", email, code: verifyCode }),
+      });
+      const result = await resp.json();
+      if (result.error) {
+        setError(result.error);
+      } else if (result.step === "done") {
+        window.location.href = "/?add-passkey=1";
       }
     } catch (err) {
       setError((err as Error).message);
@@ -121,13 +153,37 @@ export default function RegisterPage() {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <h1 className="text-2xl font-bold text-gray-900">{t("auth.register")}</h1>
-        <div className="mt-8 rounded-md bg-green-50 p-4">
-          <p className="text-sm text-green-800">
-            {t("auth.checkEmail")} <strong>{email}</strong>.
-          </p>
-          <p className="mt-2 text-xs text-green-600">
-            {t("auth.linkExpires")}
-          </p>
+        <div className="mt-8 space-y-4">
+          <div className="rounded-md bg-green-50 p-4">
+            <p className="text-sm text-green-800">
+              {t("auth.checkEmail")} <strong>{email}</strong>.
+            </p>
+            <p className="mt-2 text-xs text-green-600">
+              {t("auth.linkExpires")}
+            </p>
+          </div>
+
+          <form onSubmit={handleVerifyCode} className="space-y-3">
+            <p className="text-sm text-gray-600">{t("auth.codeHelp")}</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="000000"
+              value={verifyCode}
+              onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="block w-full rounded-md border border-gray-300 px-3 py-3 text-center text-2xl font-mono tracking-[0.3em] shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              disabled={loading || verifyCode.length !== 6}
+              className="w-full rounded-md bg-gray-800 px-4 py-2 text-white hover:bg-gray-900 disabled:opacity-50"
+            >
+              {loading ? t("auth.authenticating") : t("auth.verifyCode")}
+            </button>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </form>
         </div>
       </div>
     );
@@ -140,7 +196,7 @@ export default function RegisterPage() {
         {t("auth.registerDescription")}
       </p>
 
-      <form onSubmit={supportsPasskey ? handleRegisterPasskey : handleRegisterMagicLink} className="mt-8 space-y-4">
+      <form onSubmit={mode === "passkey" && supportsPasskey ? handleRegisterPasskey : handleRegisterMagicLink} className="mt-8 space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             {t("auth.email")}
@@ -200,7 +256,7 @@ export default function RegisterPage() {
           <p className="text-sm text-red-600">{error}</p>
         )}
 
-        {supportsPasskey ? (
+        {mode === "passkey" && supportsPasskey ? (
           <button
             type="submit"
             disabled={loading || !termsAccepted}
@@ -216,6 +272,18 @@ export default function RegisterPage() {
           >
             {loading ? t("auth.sending") : t("auth.registerWithMagicLink")}
           </button>
+        )}
+
+        {supportsPasskey && (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setMode(mode === "passkey" ? "magic-link" : "passkey")}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              {mode === "passkey" ? t("auth.useMagicLink") : t("auth.backToPasskey")}
+            </button>
+          </div>
         )}
 
         {supportsPasskey === false && (

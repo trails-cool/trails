@@ -58,7 +58,10 @@ async function setProfileVisibilityPublic(page: Page) {
   await page.goto("/settings");
   await page.locator('input[type=radio][name=profileVisibility][value=public]').check();
   await page.getByRole("button", { name: /^Save$/ }).first().click();
-  await page.waitForLoadState("networkidle");
+  // Don't wait for networkidle — the SSE connection to /api/events
+  // (added with notifications) keeps the network in-flight forever.
+  // Wait for the explicit save confirmation instead.
+  await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 10000 });
 }
 
 // Registration + WebAuthn virtual authenticator can race under parallel

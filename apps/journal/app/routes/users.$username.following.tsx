@@ -3,13 +3,29 @@ import { eq } from "drizzle-orm";
 import type { Route } from "./+types/users.$username.following";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
-import { listFollowing, countFollowing } from "~/lib/follow.server";
+import { listFollowing, countFollowing, getFollowState } from "~/lib/follow.server";
+import { getSessionUser } from "~/lib/auth.server";
 import { CollectionPage } from "~/components/CollectionPage";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.username, params.username));
-  if (!user || user.profileVisibility !== "public") {
+  if (!user) {
+    throw data({ error: "User not found" }, { status: 404 });
+  }
+
+  // Locked-account model — see users.$username.followers.tsx for the
+  // policy. Same canSee rule applies to the following list.
+  const currentUser = await getSessionUser(request);
+  const isOwn = currentUser?.id === user.id;
+  const followState = !isOwn && currentUser
+    ? await getFollowState(currentUser.id, user.username)
+    : null;
+  const canSee =
+    isOwn ||
+    user.profileVisibility === "public" ||
+    (followState !== null && followState.following === true);
+  if (!canSee) {
     throw data({ error: "User not found" }, { status: 404 });
   }
 

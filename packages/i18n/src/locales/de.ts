@@ -241,6 +241,18 @@ export default {
         bodyAnon: "Melde dich an und sende eine Folge-Anfrage, um die öffentlichen Routen und Aktivitäten zu sehen.",
       },
     },
+    notifications: {
+      title: "Benachrichtigungen",
+      empty: "Noch keine Benachrichtigungen.",
+      markAllRead: "Alle als gelesen markieren",
+      someone: "Jemand",
+      summary: {
+        followRequestReceived: "{{name}} möchte dir folgen",
+        followReceived: "{{name}} folgt dir jetzt",
+        followRequestApproved: "{{name}} hat deine Folge-Anfrage akzeptiert",
+        activityPublished: "{{owner}} hat „{{activity}}“ gepostet",
+      },
+    },
     social: {
       follow: "Folgen",
       unfollow: "Entfolgen",

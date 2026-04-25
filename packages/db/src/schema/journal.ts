@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgSchema,
   text,
@@ -230,4 +231,43 @@ export const follows = journalSchema.table("follows", {
   followerCreatedIdx: index("follows_follower_created_idx").on(t.followerId, t.createdAt.desc()),
   followedActorIdx: index("follows_followed_actor_idx").on(t.followedActorIri),
   followedUserIdx: index("follows_followed_user_idx").on(t.followedUserId),
+}));
+
+// Notifications. Each row is a single event the recipient should be
+// informed about. v1 types: follow_request_received, follow_request_approved,
+// follow_received, activity_published. The `payload` JSONB snapshots the
+// renderer-friendly fields at create time so future mobile push / email
+// renderers can render without a fresh DB lookup; `payloadVersion` lets
+// us evolve per-type payload shapes additively. See spec: notifications.
+export type NotificationType =
+  | "follow_request_received"
+  | "follow_request_approved"
+  | "follow_received"
+  | "activity_published";
+
+export const notifications = journalSchema.table("notifications", {
+  id: text("id").primaryKey(),
+  recipientUserId: text("recipient_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").$type<NotificationType>().notNull(),
+  actorUserId: text("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+  subjectId: text("subject_id"),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  payloadVersion: integer("payload_version").notNull().default(1),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  // Listing query: every load of /notifications joins on recipient + sorts by created_at desc.
+  recipientCreatedIdx: index("notifications_recipient_created_idx").on(t.recipientUserId, t.createdAt.desc()),
+  // Hot path: countUnread for the navbar badge runs on every page nav.
+  // Partial index keeps it tiny.
+  recipientUnreadIdx: index("notifications_recipient_unread_idx")
+    .on(t.recipientUserId, t.createdAt.desc())
+    .where(sql`${t.readAt} IS NULL`),
+  // Fan-out idempotency: prevent double-insert of activity_published rows
+  // when a pg-boss job retries. Soft uniqueness across (recipient, type, subject).
+  recipientTypeSubjectUnique: uniqueIndex("notifications_recipient_type_subject_unique")
+    .on(t.recipientUserId, t.type, t.subjectId)
+    .where(sql`${t.subjectId} IS NOT NULL`),
 }));

@@ -35,12 +35,15 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (step === "register-magic-link") {
-      const token = await registerWithMagicLink(email, username, termsVersion);
+      const { token, code } = await registerWithMagicLink(email, username, termsVersion);
       const link = `${origin}/auth/verify?token=${token}`;
       if (process.env.NODE_ENV !== "production") {
-        return data({ step: "magic-link-sent", devLink: link });
+        // Mirror the login endpoint so devs can grab either the link or
+        // the 6-digit code straight from the terminal.
+        console.log(`[Register Magic Link] ${email}: ${link} (code: ${code})`);
+        return data({ step: "magic-link-sent", devLink: link, code });
       }
-      await sendMagicLink(email, link);
+      await sendMagicLink(email, link, code);
       sendWelcome(email, username).catch((err) =>
         logger.error({ err }, "Failed to send welcome email"),
       );

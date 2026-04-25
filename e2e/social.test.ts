@@ -33,7 +33,8 @@ async function setProfileVisibility(page: Page, value: "public" | "private") {
   // in the Private radio's helper sentence).
   await page.locator(`input[type=radio][name=profileVisibility][value=${value}]`).check();
   await page.getByRole("button", { name: /^Save$/ }).first().click();
-  await page.waitForLoadState("networkidle");
+  // SSE keeps the network busy; wait for the save confirmation instead.
+  await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 10000 });
 }
 
 // WebAuthn + parallel workers + shared local Postgres race; serialize.
@@ -126,8 +127,8 @@ test.describe("Social follows + /feed", () => {
     await bPage.goto("/follows/requests");
     await expect(bPage.getByText(`@${aUsername}`)).toBeVisible();
     await bPage.getByRole("button", { name: "Approve" }).click();
-    await bPage.waitForLoadState("networkidle");
-    // Empty state after approval.
+    // Empty state after approval. The text-visibility assertion below
+    // already polls; explicit networkidle would hang on SSE.
     await expect(bPage.getByText(/No pending follow requests/i)).toBeVisible();
 
     // A reloads B's profile — now sees full content (no stub) + Unfollow.
