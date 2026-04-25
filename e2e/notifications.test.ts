@@ -28,7 +28,10 @@ async function setProfileVisibility(page: Page, value: "public" | "private") {
   await page.goto("/settings");
   await page.locator(`input[type=radio][name=profileVisibility][value=${value}]`).check();
   await page.getByRole("button", { name: /^Save$/ }).first().click();
-  await page.waitForLoadState("networkidle");
+  // Don't use waitForLoadState("networkidle") — the SSE connection to
+  // /api/events keeps the network busy indefinitely. Wait for the
+  // explicit save confirmation instead.
+  await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 10000 });
 }
 
 test.describe.configure({ mode: "serial" });
@@ -67,10 +70,10 @@ test.describe("Notifications", () => {
     await bPage.goto("/notifications");
     await expect(bPage.getByText(new RegExp(`${aUsername}.+started following`))).toBeVisible({ timeout: 10000 });
 
-    // Mark all read clears the unread badge.
+    // Mark all read clears the unread badge. The button disappears when
+    // hasUnread flips to false; the toBeHidden assertion polls.
     await bPage.getByRole("button", { name: /Mark all read/i }).click();
-    await bPage.waitForLoadState("networkidle");
-    await expect(bPage.getByRole("button", { name: /Mark all read/i })).toBeHidden();
+    await expect(bPage.getByRole("button", { name: /Mark all read/i })).toBeHidden({ timeout: 10000 });
 
     await bCtx.close();
   });
@@ -99,10 +102,11 @@ test.describe("Notifications", () => {
     await page.getByRole("button", { name: /Request to follow/i }).click();
     await expect(page.getByRole("button", { name: /Requested/i })).toBeVisible({ timeout: 5000 });
 
-    // B approves the request.
+    // B approves the request. After the fetcher.Form revalidates, the
+    // empty-state copy replaces the request row.
     await bPage.goto("/follows/requests");
     await bPage.getByRole("button", { name: "Approve" }).click();
-    await bPage.waitForLoadState("networkidle");
+    await expect(bPage.getByText(/No pending follow requests/i)).toBeVisible({ timeout: 10000 });
 
     // A reloads /notifications — should see follow_request_approved
     // referencing B (the target's username).
