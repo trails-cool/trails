@@ -28,11 +28,10 @@ async function registerUser(page: Page, email: string, username: string) {
 
 async function setProfileVisibility(page: Page, value: "public" | "private") {
   await page.goto("/settings");
-  if (value === "public") {
-    await page.getByLabel("Public").check();
-  } else {
-    await page.getByLabel(/Private/).check();
-  }
+  // Target the radio by name+value; getByLabel collides because the
+  // help text of one radio mentions the other's word ("public" appears
+  // in the Private radio's helper sentence).
+  await page.locator(`input[type=radio][name=profileVisibility][value=${value}]`).check();
   await page.getByRole("button", { name: /^Save$/ }).first().click();
   await page.waitForLoadState("networkidle");
 }

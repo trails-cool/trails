@@ -50,9 +50,13 @@ async function setRouteVisibility(
 // New users default to profile_visibility='private' (locked-account
 // model). Tests that need an anon visitor to see the profile in full
 // have to flip the owner to public first.
+//
+// The radio is targeted by name+value rather than getByLabel because
+// the Private radio's help-text label happens to contain the word
+// "public", which trips Playwright's strict-mode match.
 async function setProfileVisibilityPublic(page: Page) {
   await page.goto("/settings");
-  await page.getByLabel("Public").check();
+  await page.locator('input[type=radio][name=profileVisibility][value=public]').check();
   await page.getByRole("button", { name: /^Save$/ }).first().click();
   await page.waitForLoadState("networkidle");
 }
