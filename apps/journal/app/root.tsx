@@ -88,6 +88,9 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
           </Link>
           {user && (
             <>
+              <Link to="/feed" className={linkClass("/feed")}>
+                {t("social.feed.title")}
+              </Link>
               <Link to="/routes" className={linkClass("/routes")}>
                 {t("nav.routes")}
               </Link>

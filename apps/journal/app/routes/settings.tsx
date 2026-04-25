@@ -48,6 +48,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       email: user.email,
       displayName: user.displayName,
       bio: user.bio,
+      profileVisibility: user.profileVisibility,
     },
     passkeys: passkeys.map((p) => ({
       id: p.id,
@@ -77,6 +78,9 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
 
   const [displayName, setDisplayName] = useState(user.displayName ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
+  const [profileVisibility, setProfileVisibility] = useState<"public" | "private">(
+    user.profileVisibility,
+  );
   const [profileSaved, setProfileSaved] = useState(false);
 
   const [newEmail, setNewEmail] = useState("");
@@ -202,6 +206,49 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
             />
             <p className="mt-1 text-xs text-gray-500">{bio.length}/160</p>
           </div>
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700">
+              {t("settings.profile.visibility.label")}
+            </legend>
+            <div className="mt-2 space-y-2">
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="profileVisibility"
+                  value="public"
+                  checked={profileVisibility === "public"}
+                  onChange={() => setProfileVisibility("public")}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-medium text-gray-900">
+                    {t("settings.profile.visibility.public")}
+                  </span>
+                  <span className="ml-2 text-gray-500">
+                    {t("settings.profile.visibility.publicHelp")}
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="profileVisibility"
+                  value="private"
+                  checked={profileVisibility === "private"}
+                  onChange={() => setProfileVisibility("private")}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-medium text-gray-900">
+                    {t("settings.profile.visibility.private")}
+                  </span>
+                  <span className="ml-2 text-gray-500">
+                    {t("settings.profile.visibility.privateHelp")}
+                  </span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
           <div className="flex items-center gap-3">
             <button
               type="submit"

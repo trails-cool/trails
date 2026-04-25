@@ -7,6 +7,8 @@ import {
   jsonb,
   boolean,
   customType,
+  uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 
 const bytea = customType<{ data: Buffer }>({
@@ -23,6 +25,8 @@ const lineString = customType<{ data: string }>({
 
 export const journalSchema = pgSchema("journal");
 
+export type ProfileVisibility = "public" | "private";
+
 export const users = journalSchema.table("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -30,6 +34,11 @@ export const users = journalSchema.table("users", {
   displayName: text("display_name"),
   bio: text("bio"),
   domain: text("domain").notNull(),
+  // Whether the user is discoverable on this instance and (later) over
+  // ActivityPub. `private` 404s the profile and disables follows; `public`
+  // means /users/:username renders when the user has any public content.
+  // See spec: journal-landing + public-profiles + social-follows.
+  profileVisibility: text("profile_visibility").$type<ProfileVisibility>().notNull().default("public"),
   termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   termsVersion: text("terms_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -195,3 +204,27 @@ export const syncImports = journalSchema.table("sync_imports", {
   activityId: text("activity_id").references(() => activities.id, { onDelete: "set null" }),
   importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Social follow relation. Always originates from a local user (`followerId`).
+// The followed side is keyed by an actor IRI for federation forward-compat —
+// today every IRI is local (`https://{DOMAIN}/users/{username}`); future
+// `social-federation` change extends this to remote IRIs without migration.
+// `followedUserId` is denormalized for fast local joins; populated for every
+// row in this change. `acceptedAt` is always set today (auto-accept for
+// public local profiles); the column stays nullable so federation's Pending
+// state lands cleanly.
+export const follows = journalSchema.table("follows", {
+  id: text("id").primaryKey(),
+  followerId: text("follower_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  followedActorIri: text("followed_actor_iri").notNull(),
+  followedUserId: text("followed_user_id").references(() => users.id, { onDelete: "cascade" }),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  followerActorUnique: uniqueIndex("follows_follower_actor_unique").on(t.followerId, t.followedActorIri),
+  followerCreatedIdx: index("follows_follower_created_idx").on(t.followerId, t.createdAt.desc()),
+  followedActorIdx: index("follows_followed_actor_idx").on(t.followedActorIri),
+  followedUserIdx: index("follows_followed_user_idx").on(t.followedUserId),
+}));
