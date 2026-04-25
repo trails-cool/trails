@@ -31,14 +31,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const isOwn = currentUser?.id === user.id;
 
   // Profile-visibility gate: a `private` profile 404s for everyone but
-  // the owner, regardless of how much public content they have.
+  // the owner, regardless of how much public content they have. With
+  // explicit `profile_visibility` we no longer 404 public profiles that
+  // happen to have zero public items — the page renders with empty
+  // sections, matching Mastodon-style "discoverable account, no posts
+  // yet" behavior. Existence-leak risk is accepted: explicit visibility
+  // is the contract.
   if (!isOwn && user.profileVisibility !== "public") {
-    throw data({ error: "User not found" }, { status: 404 });
-  }
-
-  // 404 for public-but-empty profiles to prevent account enumeration.
-  // Owners still see their own profile even when empty.
-  if (!isOwn && publicRoutes.length === 0 && publicActivities.length === 0) {
     throw data({ error: "User not found" }, { status: 404 });
   }
 

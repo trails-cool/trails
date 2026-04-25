@@ -17,27 +17,32 @@ Every user SHALL have an explicit `profile_visibility` of `public` or `private`.
 
 #### Scenario: User toggles profile back to public
 - **WHEN** a previously-private user switches `profile_visibility` to `public` and saves
-- **THEN** their `/users/:username` becomes reachable again (subject to the existing "has public content" gate) and Follow buttons reappear for visitors
+- **THEN** their `/users/:username` becomes reachable again and Follow buttons reappear for visitors
 
 ## MODIFIED Requirements
 
 ### Requirement: Public profile page
-The Journal SHALL serve a public profile page at `/users/:username` that lists the user's public routes and activities in reverse chronological order, viewable without authentication. The page SHALL render only when the user's `profile_visibility` is `public` AND they have at least one `public` route or activity. For signed-in viewers other than the owner, the page SHALL display a Follow / Unfollow toggle that mirrors the current follow relation (see `social-follows` spec). The page SHALL also display follower and following counts with links to the respective collections.
+The Journal SHALL serve a public profile page at `/users/:username` that lists the user's public routes and activities in reverse chronological order, viewable without authentication. The page SHALL render whenever the user's `profile_visibility` is `public`, even if they have no public routes or activities yet — the empty case shows the profile shell with empty section copy. For signed-in viewers other than the owner, the page SHALL display a Follow / Unfollow toggle that mirrors the current follow relation (see `social-follows` spec). The page SHALL also display follower and following counts with links to the respective collections.
 
-#### Scenario: Logged-out visitor views a public profile with public content
-- **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user whose `profile_visibility` is `public` and who has at least one `public` route or activity
+#### Scenario: Logged-out visitor views a public profile
+- **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user whose `profile_visibility` is `public`
 - **THEN** the page renders that user's display name (falling back to username), the `@username@domain` handle, follower and following counts, and a reverse-chronological list of their `public` routes and `public` activities
 - **AND** items marked `unlisted` or `private` do NOT appear in the list
 
-#### Scenario: Profile 404 cases are indistinguishable
-- **WHEN** a visitor navigates to `/users/:username` for any of: a user with `profile_visibility = 'private'`, a user with `profile_visibility = 'public'` but zero public items, a user whose content is all `private` or `unlisted`, or a username that does not exist
+#### Scenario: Empty public profile renders an empty shell
+- **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user with `profile_visibility = 'public'` but no `public` routes or activities
+- **THEN** the page returns HTTP 200 and renders the profile header (display name, handle, counts) plus empty-state copy in the routes and activities sections
+- **AND** the user is followable: the Follow button (for signed-in viewers other than the owner) is rendered
+
+#### Scenario: Profile 404 cases
+- **WHEN** a visitor navigates to `/users/:username` for a user with `profile_visibility = 'private'` OR a username that does not exist
 - **THEN** the server responds with HTTP 404
-- **AND** the response does NOT distinguish the cases, so existence of a private account is not leaked
+- **AND** the response does NOT distinguish the two cases, so existence of a private account is not leaked
 
 #### Scenario: Owner sees their own profile
 - **WHEN** a user navigates to their own `/users/:username` while logged in
-- **THEN** if their `profile_visibility = 'public'` and they have at least one public item, the page renders exactly the same as for a logged-out visitor, plus a small owner-only control strip linking to settings
-- **AND** if their profile would 404 for visitors (private or no public content), they are redirected to settings or shown an owner-only "your profile isn't public yet" view (implementation detail)
+- **THEN** if their `profile_visibility = 'public'`, the page renders exactly the same as for a logged-out visitor, plus a small owner-only control strip linking to settings
+- **AND** if their `profile_visibility = 'private'`, the page renders for them with an amber explainer banner noting that visitors see a 404
 - **AND** no Follow button is shown (users cannot follow themselves)
 
 #### Scenario: Signed-in viewer sees a Follow control on a public profile

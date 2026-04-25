@@ -36,14 +36,14 @@ Add `users.profile_visibility: 'public' | 'private'` (NOT NULL, default `'public
 
 The new rules:
 
-- `/users/:username` returns 200 iff `profile_visibility = 'public'` **AND** the user has at least one `public` route or activity. The "has public content" gate is preserved so a brand-new public-by-default account doesn't expose a 200 page that says "no posts yet" — that would leak existence.
-- A user is followable iff `profile_visibility = 'public'`, regardless of whether they have content yet. (Following someone before they post is reasonable; the follower's feed just stays empty for that follow until the user posts.)
+- `/users/:username` returns 200 iff `profile_visibility = 'public'`. A public profile with zero `public` items renders an empty shell (header + empty-state copy in the routes/activities sections), matching Mastodon-style "discoverable account, no posts yet" behavior. The explicit `profile_visibility` toggle is the contract for hiding the profile; existence of a public-but-empty account is observable, and that's accepted.
+- A user is followable iff `profile_visibility = 'public'`, regardless of whether they have content yet. Following someone before they post is reasonable; the follower's feed just stays empty for that follow until the user posts.
 
 When `social-federation` lands, the local user's ActivityPub actor object will gate on the same `profile_visibility = 'public'` check — private profiles will return 404 to federation lookups too.
 
 **Default `'public'`:** matches fediverse convention (Mastodon defaults to discoverable; "lock" is opt-in), aligns with the existing implicit behavior where any user *could* be public, and keeps onboarding smooth (post a public route → it's listed on your profile, no extra toggle). Activity-level privacy still defaults to `'private'`, so content stays private by default; *being findable on the network* is the part we default open.
 
-**Migration:** backfill all existing users to `'public'`. Their effective profile reachability is unchanged (still gated on having public content). Operators can flip themselves to `'private'` post-migration if desired.
+**Migration:** backfill all existing users to `'public'`. Operators can flip themselves to `'private'` post-migration if desired.
 
 **Why explicit, why now:** with follows landing, the question "can someone follow you?" needs a deterministic answer. Deriving it from "do you have any public content?" is fragile (toggling content visibility silently flips followability). The toggle also pre-pays for `locked-local-accounts`, which will extend this enum or add a `users.locked` flag.
 
