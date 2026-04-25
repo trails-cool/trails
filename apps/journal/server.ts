@@ -133,13 +133,23 @@ server.listen(port, async () => {
   }
 
   // Start background job worker
-  const demoJobs: Parameters<typeof startWorker>[1] = [];
+  const jobs: Parameters<typeof startWorker>[1] = [];
   if (enableDemoJobs) {
     const { demoBotGenerateJob } = await import("./app/jobs/demo-bot-generate.ts");
     const { demoBotPruneJob } = await import("./app/jobs/demo-bot-prune.ts");
-    demoJobs.push(demoBotGenerateJob, demoBotPruneJob);
+    jobs.push(demoBotGenerateJob, demoBotPruneJob);
   }
+  // Notifications jobs always run (no feature flag): a journal without
+  // notifications wired up would silently drop fan-out enqueues.
+  const { notificationsFanoutJob } = await import("./app/jobs/notifications-fanout.ts");
+  const { notificationsPurgeJob } = await import("./app/jobs/notifications-purge.ts");
+  jobs.push(notificationsFanoutJob, notificationsPurgeJob);
+
   const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
-  await startWorker(boss, demoJobs);
+  await startWorker(boss, jobs);
+  // Register the started boss so feature code can enqueue jobs against
+  // the same instance via getBoss() / enqueueOptional().
+  const { setBoss } = await import("./app/lib/boss.server.ts");
+  setBoss(boss);
   logger.info("Background job worker started");
 });

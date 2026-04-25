@@ -8,6 +8,7 @@ import { detectLocale } from "@trails-cool/i18n";
 import { getSessionUser } from "~/lib/auth.server";
 import { LocaleProvider } from "~/components/LocaleContext";
 import { AlphaBanner } from "~/components/AlphaBanner";
+import { useUnreadNotifications } from "~/hooks/useUnreadNotifications";
 import { Footer } from "~/components/Footer";
 import { initSentryClient, stopSentryClient } from "~/lib/sentry.client";
 import { TERMS_VERSION } from "~/lib/legal";
@@ -67,27 +68,38 @@ export async function loader({ request }: Route.LoaderArgs) {
   // users. Hidden behind a dynamic import so the root layout doesn't
   // pull in the follow module on anonymous renders.
   let pendingFollowRequests = 0;
+  let unreadNotifications = 0;
   if (user) {
     const { countPendingFollowRequests } = await import("./lib/follow.server.ts");
-    pendingFollowRequests = await countPendingFollowRequests(user.id);
+    const { countUnread } = await import("./lib/notifications.server.ts");
+    [pendingFollowRequests, unreadNotifications] = await Promise.all([
+      countPendingFollowRequests(user.id),
+      countUnread(user.id),
+    ]);
   }
 
   return {
     user: user ? { id: user.id, username: user.username } : null,
     locale,
     pendingFollowRequests,
+    unreadNotifications,
   };
 }
 
 function NavBar({
   user,
   pendingFollowRequests,
+  unreadNotifications,
 }: {
   user: { id: string; username: string } | null;
   pendingFollowRequests: number;
+  unreadNotifications: number;
 }) {
   const { t } = useTranslation("journal");
   const location = useLocation();
+  // Live-updating unread count for the navbar badge. Loader value is
+  // the SSR baseline; SSE pushes overrides after first event.
+  const liveUnread = useUnreadNotifications(unreadNotifications, user !== null);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
@@ -123,6 +135,33 @@ function NavBar({
         <div className="flex items-center gap-4">
           {user ? (
             <>
+              <Link
+                to="/notifications"
+                className={`relative inline-flex items-center ${linkClass("/notifications")}`}
+                aria-label={t("notifications.title")}
+                title={t("notifications.title")}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.75}
+                  stroke="currentColor"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                  />
+                </svg>
+                {liveUnread > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                    {liveUnread}
+                  </span>
+                )}
+              </Link>
               <Link
                 to="/follows/requests"
                 className={`relative ${linkClass("/follows/requests")}`}
@@ -176,6 +215,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
   const user = loaderData?.user;
   const locale = loaderData?.locale ?? "en";
   const pendingFollowRequests = loaderData?.pendingFollowRequests ?? 0;
+  const unreadNotifications = loaderData?.unreadNotifications ?? 0;
   useEffect(() => {
     if (user) {
       initSentryClient();
@@ -189,7 +229,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <LocaleProvider locale={locale}>
       <AlphaBanner />
-      <NavBar user={user ?? null} pendingFollowRequests={pendingFollowRequests} />
+      <NavBar
+        user={user ?? null}
+        pendingFollowRequests={pendingFollowRequests}
+        unreadNotifications={unreadNotifications}
+      />
       <Outlet />
       <Footer />
     </LocaleProvider>

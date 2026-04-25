@@ -241,6 +241,18 @@ export default {
         bodyAnon: "Sign in and request to follow them to see their public routes and activities.",
       },
     },
+    notifications: {
+      title: "Notifications",
+      empty: "No notifications yet.",
+      markAllRead: "Mark all read",
+      someone: "Someone",
+      summary: {
+        followRequestReceived: "{{name}} requested to follow you",
+        followReceived: "{{name}} started following you",
+        followRequestApproved: "{{name}} accepted your follow request",
+        activityPublished: "{{owner}} posted “{{activity}}”",
+      },
+    },
     social: {
       follow: "Follow",
       unfollow: "Unfollow",

@@ -62,6 +62,14 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
       },
     },
+    {
+      name: "notifications",
+      testMatch: "notifications.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
   ],
   webServer: process.env.CI
     ? [

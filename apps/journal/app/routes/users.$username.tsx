@@ -146,20 +146,34 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
           </p>
           {user.bio && <p className="mt-2 text-gray-700">{user.bio}</p>}
           <div className="mt-2 flex gap-4 text-sm text-gray-600">
-            <a
-              href={`/users/${user.username}/followers`}
-              className="hover:text-gray-900 hover:underline"
-            >
-              <span className="font-semibold text-gray-900">{followers}</span>{" "}
-              {t("social.followers.label")}
-            </a>
-            <a
-              href={`/users/${user.username}/following`}
-              className="hover:text-gray-900 hover:underline"
-            >
-              <span className="font-semibold text-gray-900">{following}</span>{" "}
-              {t("social.following.label")}
-            </a>
+            {canSeeContent ? (
+              <a
+                href={`/users/${user.username}/followers`}
+                className="hover:text-gray-900 hover:underline"
+              >
+                <span className="font-semibold text-gray-900">{followers}</span>{" "}
+                {t("social.followers.label")}
+              </a>
+            ) : (
+              <span>
+                <span className="font-semibold text-gray-900">{followers}</span>{" "}
+                {t("social.followers.label")}
+              </span>
+            )}
+            {canSeeContent ? (
+              <a
+                href={`/users/${user.username}/following`}
+                className="hover:text-gray-900 hover:underline"
+              >
+                <span className="font-semibold text-gray-900">{following}</span>{" "}
+                {t("social.following.label")}
+              </a>
+            ) : (
+              <span>
+                <span className="font-semibold text-gray-900">{following}</span>{" "}
+                {t("social.following.label")}
+              </span>
+            )}
           </div>
         </div>
         {!isOwn && isLoggedIn && (
