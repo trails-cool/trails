@@ -62,10 +62,30 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
   }
 
-  return { user: user ? { id: user.id, username: user.username } : null, locale };
+  // Pending follow-request count for the navbar badge. Cheap (a single
+  // `count(*) WHERE accepted_at IS NULL`); only computed for signed-in
+  // users. Hidden behind a dynamic import so the root layout doesn't
+  // pull in the follow module on anonymous renders.
+  let pendingFollowRequests = 0;
+  if (user) {
+    const { countPendingFollowRequests } = await import("./lib/follow.server.ts");
+    pendingFollowRequests = await countPendingFollowRequests(user.id);
+  }
+
+  return {
+    user: user ? { id: user.id, username: user.username } : null,
+    locale,
+    pendingFollowRequests,
+  };
 }
 
-function NavBar({ user }: { user: { id: string; username: string } | null }) {
+function NavBar({
+  user,
+  pendingFollowRequests,
+}: {
+  user: { id: string; username: string } | null;
+  pendingFollowRequests: number;
+}) {
   const { t } = useTranslation("journal");
   const location = useLocation();
 
@@ -103,6 +123,18 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
         <div className="flex items-center gap-4">
           {user ? (
             <>
+              <Link
+                to="/follows/requests"
+                className={`relative ${linkClass("/follows/requests")}`}
+                title={t("social.requests.title")}
+              >
+                {t("social.requests.title")}
+                {pendingFollowRequests > 0 && (
+                  <span className="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
+                    {pendingFollowRequests}
+                  </span>
+                )}
+              </Link>
               <Link
                 to={`/users/${user.username}`}
                 className={linkClass(`/users/${user.username}`)}
@@ -143,6 +175,7 @@ function NavBar({ user }: { user: { id: string; username: string } | null }) {
 export default function App({ loaderData }: Route.ComponentProps) {
   const user = loaderData?.user;
   const locale = loaderData?.locale ?? "en";
+  const pendingFollowRequests = loaderData?.pendingFollowRequests ?? 0;
   useEffect(() => {
     if (user) {
       initSentryClient();
@@ -156,7 +189,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <LocaleProvider locale={locale}>
       <AlphaBanner />
-      <NavBar user={user ?? null} />
+      <NavBar user={user ?? null} pendingFollowRequests={pendingFollowRequests} />
       <Outlet />
       <Footer />
     </LocaleProvider>

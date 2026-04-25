@@ -20,34 +20,35 @@ This change is local-only social: follows between users on the same Journal inst
 
 **Non-Goals:**
 - **All ActivityPub federation primitives** — Fedify integration, actor objects, WebFinger, signed inbox/outbox, remote actor caching, audience-aware ingestion. Deferred to `social-federation`. The `follows` schema is shaped to accept remote IRIs but no remote IRIs will land in this change.
-- **Locked local accounts** (a manual approval flow for our own users). Out of scope; the `'public' | 'private'` enum on `profile_visibility` is intentionally minimal so a `locked` value or `users.locked` flag can extend it cleanly. Tracked as follow-up `locked-local-accounts`.
 - Blocking, muting, or report flows.
 - Direct messages or any non-activity ActivityPub object.
 - Real-time WebSocket feed updates. The feed is loader-driven and refreshes on page load.
 - A "people you may know" / suggestions surface.
+- A unified notification center. The follow-request count badge in the navbar covers this one signal; broader notifications (for new public activities from people you follow, replies, etc.) will be designed in a follow-up.
 
 ## Decisions
 
-### Decision: Make profile visibility explicit on the `users` row
+### Decision: Locked-account model — `private` means stub-with-request, not 404
 
-Today the Journal has no profile-level visibility setting. A profile is "public" implicitly: `/users/:username` returns 200 iff the user has at least one `public` route or activity, otherwise 404 (and the 404 doesn't distinguish "no such user" from "private content only" so existence isn't leaked).
+`users.profile_visibility: 'public' | 'private'` (NOT NULL). New users default to **`'private'`**; existing users were backfilled to **`'public'`** on first migration so behavior didn't change for anyone already on the instance.
 
-Add `users.profile_visibility: 'public' | 'private'` (NOT NULL, default `'public'`).
+Behavior:
 
-The new rules:
+- **Public profile**: `/users/:username` renders fully to anyone. Follows auto-accept.
+- **Private (locked) profile**: `/users/:username` renders a stub for non-owner viewers without an accepted follow — header (display name, handle, follower/following counts) plus a 🔒 badge plus a "this profile is private" body and a Request-to-Follow button. Accepted followers (from earlier approval) see the full profile; the owner always sees their own profile. Follows against a private profile create a Pending row (`accepted_at = NULL`) which the owner approves or rejects from `/follows/requests`.
+- **Approve/reject**: dedicated endpoints + a navbar entry with a count badge. Approving sets `accepted_at = now()`; rejecting deletes the row so the requester can re-request later.
 
-- `/users/:username` returns 200 iff `profile_visibility = 'public'` **AND** the user has at least one `public` route or activity. The "has public content" gate is preserved so a brand-new public-by-default account doesn't expose a 200 page that says "no posts yet" — that would leak existence.
-- A user is followable iff `profile_visibility = 'public'`, regardless of whether they have content yet. (Following someone before they post is reasonable; the follower's feed just stays empty for that follow until the user posts.)
+This is the Mastodon "locked account" pattern, applied locally. It composes with federation cleanly: when `social-federation` lands, remote inbound `Follow` activities targeting a local private user will follow the same Pending → Accepted lifecycle.
 
-When `social-federation` lands, the local user's ActivityPub actor object will gate on the same `profile_visibility = 'public'` check — private profiles will return 404 to federation lookups too.
+**Default `'private'`:** matches trails.cool's privacy-first content defaults (activities and routes already default `'private'`). The earlier proposal defaulted public to mirror Mastodon, but Mastodon's default-public is for discoverable + auto-accept; ours is now stronger ("locked"), so opt-in is the right inversion.
 
-**Default `'public'`:** matches fediverse convention (Mastodon defaults to discoverable; "lock" is opt-in), aligns with the existing implicit behavior where any user *could* be public, and keeps onboarding smooth (post a public route → it's listed on your profile, no extra toggle). Activity-level privacy still defaults to `'private'`, so content stays private by default; *being findable on the network* is the part we default open.
+**Existence is observable.** Even on a private profile the URL returns 200 with a stub. We accept that "the username exists" is leaked — `private` is about gating *content*, not gating *existence*. Hiding existence entirely is a different feature (and not one we ship; if you want to be undiscoverable, don't share your handle).
 
-**Migration:** backfill all existing users to `'public'`. Their effective profile reachability is unchanged (still gated on having public content). Operators can flip themselves to `'private'` post-migration if desired.
+**Migration:** backfill existing users to `'public'` so accounts created before this change keep their open behavior; new accounts post-deploy default `'private'`. No backfill of follow state needed because the social layer didn't exist before.
 
-**Why explicit, why now:** with follows landing, the question "can someone follow you?" needs a deterministic answer. Deriving it from "do you have any public content?" is fragile (toggling content visibility silently flips followability). The toggle also pre-pays for `locked-local-accounts`, which will extend this enum or add a `users.locked` flag.
+**Why now (not deferred to a separate change):** the 404-for-private model that an earlier draft of this spec described would have required a follow-up that re-implements the entire profile loader to switch to a stub. Doing the locked model from the start avoids that churn.
 
-**Alternative considered:** add a `'public' | 'unlisted' | 'private'` triple to mirror activity visibility. Rejected for now — `'unlisted'` for profiles ("actor object resolvable but profile page 404s") is a real fediverse pattern but a confusing UX surface to ship before users ask for it. Add as a third state if needed later.
+**Alternative considered:** add a `'public' | 'unlisted' | 'private'` triple where `unlisted` means "profile page 404s but actor object exists for federation." Rejected for now; we don't need three states, and `unlisted` is a confusing UX surface to ship without user demand.
 
 ### Decision: Pull-based feed, not fan-out-on-write
 

@@ -279,6 +279,11 @@ export async function ensureDemoUser(
       displayName: persona.displayName,
       bio: persona.bio,
       domain,
+      // The demo persona is meant to be discoverable to anyone — its
+      // entire purpose is to populate empty instances with public
+      // content. Force `public` even though new accounts default to
+      // `private` (locked-account model).
+      profileVisibility: "public",
       termsAcceptedAt: new Date(),
       termsVersion: TERMS_VERSION,
     })

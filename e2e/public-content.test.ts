@@ -47,6 +47,20 @@ async function setRouteVisibility(
   await page.waitForURL(new RegExp(`/routes/${id}$`), { timeout: 10000 });
 }
 
+// New users default to profile_visibility='private' (locked-account
+// model). Tests that need an anon visitor to see the profile in full
+// have to flip the owner to public first.
+//
+// The radio is targeted by name+value rather than getByLabel because
+// the Private radio's help-text label happens to contain the word
+// "public", which trips Playwright's strict-mode match.
+async function setProfileVisibilityPublic(page: Page) {
+  await page.goto("/settings");
+  await page.locator('input[type=radio][name=profileVisibility][value=public]').check();
+  await page.getByRole("button", { name: /^Save$/ }).first().click();
+  await page.waitForLoadState("networkidle");
+}
+
 // Registration + WebAuthn virtual authenticator can race under parallel
 // Playwright workers on a shared local Postgres; run this file serially.
 test.describe.configure({ mode: "serial" });
@@ -111,19 +125,28 @@ test.describe("Public content visibility", () => {
     await expect(page.getByRole("heading", { name: "My only route" })).toBeVisible();
   });
 
-  test("profile 404 when user has no public content", async ({ page, browser }) => {
+  test("profile renders private stub when user has no public content (locked model)", async ({ page, browser }) => {
     const cdp = await page.context().newCDPSession(page);
     await setupVirtualAuthenticator(cdp);
 
     const email = `pcv-empty-${Date.now()}@example.com`;
     const username = `pcvempty${Date.now()}`;
     await registerUser(page, email, username);
-    await createRoute(page, "Private thoughts"); // left private
+    // New users default to profile_visibility='private', so an anonymous
+    // visitor sees the locked-account stub (200, not 404). Their private
+    // route never appears.
+    const id = await createRoute(page, "Private thoughts"); // left private
 
     const anonCtx = await browser.newContext();
     const anon = await anonCtx.newPage();
     const resp = await anon.goto(`/users/${username}`);
-    expect(resp?.status()).toBe(404);
+    expect(resp?.status()).toBe(200);
+    await expect(anon.getByText(/This profile is private/i)).toBeVisible();
+    await expect(anon.getByText("Private thoughts")).not.toBeVisible();
+    // Direct route URL still 404s for visitors because the route itself
+    // is private-visibility.
+    const direct = await anon.goto(`/routes/${id}`);
+    expect(direct?.status()).toBe(404);
     await anonCtx.close();
   });
 
@@ -134,6 +157,7 @@ test.describe("Public content visibility", () => {
     const email = `pcv-prof-${Date.now()}@example.com`;
     const username = `pcvprof${Date.now()}`;
     await registerUser(page, email, username);
+    await setProfileVisibilityPublic(page);
     const id = await createRoute(page, "Bikepacking loop");
     await setRouteVisibility(page, id, "public");
 
@@ -154,6 +178,7 @@ test.describe("Public content visibility", () => {
     const email = `pcv-unl-${Date.now()}@example.com`;
     const username = `pcvunl${Date.now()}`;
     await registerUser(page, email, username);
+    await setProfileVisibilityPublic(page);
 
     // Two routes: one unlisted, one public — profile shows only the public one.
     const publicId = await createRoute(page, "Public one");

@@ -229,14 +229,30 @@ export default {
     },
     profile: {
       ownNote: "This is your profile — visitors see only what you've marked public.",
-      privateNote: "Your profile is set to private. Visitors see a 404; public posts are still reachable by direct URL but you can't be followed.",
+      privateNote: "Your profile is set to private (locked). Visitors see a stub with a Request-to-follow button; only accepted followers see your public content.",
       goToSettings: "Go to settings",
       noPublicRoutes: "No public routes yet.",
       noPublicActivities: "No public activities yet.",
+      lockedBadge: "Private",
+      lockedTitle: "This profile is private. Follow requests need approval.",
+      privateStub: {
+        heading: "This profile is private",
+        bodyAuth: "Send a follow request to see their public routes and activities. They'll need to approve it.",
+        bodyAnon: "Sign in and request to follow them to see their public routes and activities.",
+      },
     },
     social: {
       follow: "Follow",
       unfollow: "Unfollow",
+      requestToFollow: "Request to follow",
+      pendingCancel: "Requested",
+      requests: {
+        title: "Follow requests",
+        empty: "No pending follow requests.",
+        approve: "Approve",
+        reject: "Reject",
+        receivedAt: "Requested {{date}}",
+      },
       followers: {
         label: "Followers",
         heading: "Followers of {{user}}",
@@ -290,9 +306,9 @@ export default {
         visibility: {
           label: "Profile visibility",
           public: "Public",
-          publicHelp: "Your profile page is visible to anyone (when you have any public content). You can be followed.",
-          private: "Private",
-          privateHelp: "Your profile page returns 404. Public posts are still reachable by direct URL but you can't be followed.",
+          publicHelp: "Anyone can view your profile and your public content. Follows auto-accept.",
+          private: "Private (locked)",
+          privateHelp: "Visitors see a stub with a Request-to-follow button. Only accepted followers see your public content. You manage requests at /follows/requests.",
         },
       },
       security: {

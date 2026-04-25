@@ -34,11 +34,14 @@ export const users = journalSchema.table("users", {
   displayName: text("display_name"),
   bio: text("bio"),
   domain: text("domain").notNull(),
-  // Whether the user is discoverable on this instance and (later) over
-  // ActivityPub. `private` 404s the profile and disables follows; `public`
-  // means /users/:username renders when the user has any public content.
-  // See spec: journal-landing + public-profiles + social-follows.
-  profileVisibility: text("profile_visibility").$type<ProfileVisibility>().notNull().default("public"),
+  // Profile visibility / lock setting. `public` means anyone can view
+  // the profile and follows auto-accept. `private` is Mastodon-style
+  // locked: the profile renders a stub for non-followers, and follows
+  // require manual approval (Pending → Accepted via /follows/requests).
+  // New users default to `private` to match trails.cool's privacy-first
+  // content defaults; existing users were backfilled to `public` by an
+  // earlier migration so behavior didn't change for them.
+  profileVisibility: text("profile_visibility").$type<ProfileVisibility>().notNull().default("private"),
   termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   termsVersion: text("terms_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { eq, and, count, desc } from "drizzle-orm";
+import { eq, and, count, desc, isNull, isNotNull } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { users, follows } from "@trails-cool/db/schema/journal";
 import { localActorIri } from "./actor-iri.ts";
 
 export class FollowError extends Error {
-  readonly code: "self_follow" | "private_profile" | "user_not_found" | "not_found";
+  readonly code: "self_follow" | "user_not_found" | "not_found" | "forbidden";
   constructor(code: FollowError["code"], message: string) {
     super(message);
     this.name = "FollowError";
@@ -34,17 +34,15 @@ async function loadFollowableTarget(targetUsername: string) {
 
 /**
  * Create a follow row from `followerId` to the local user with username
- * `targetUsername`. Auto-accepted because the target is local + public.
- * Idempotent: re-following an already-followed user returns the same state
- * without creating a duplicate row.
+ * `targetUsername`. Public targets auto-accept (`accepted_at = now()`),
+ * private (locked) targets land Pending (`accepted_at = NULL`) and
+ * appear in the target's /follows/requests list for manual approval.
+ * Idempotent: re-following keeps the existing row's state.
  */
 export async function followUser(followerId: string, targetUsername: string): Promise<FollowState> {
   const target = await loadFollowableTarget(targetUsername);
   if (target.id === followerId) {
     throw new FollowError("self_follow", "Users cannot follow themselves");
-  }
-  if (target.profileVisibility !== "public") {
-    throw new FollowError("private_profile", "This profile is not followable");
   }
 
   const db = getDb();
@@ -57,15 +55,19 @@ export async function followUser(followerId: string, targetUsername: string): Pr
     return { following: existing.acceptedAt !== null, pending: existing.acceptedAt === null };
   }
 
+  const acceptedAt = target.profileVisibility === "public" ? new Date() : null;
   await db.insert(follows).values({
     id: randomUUID(),
     followerId,
     followedActorIri,
     followedUserId: target.id,
-    acceptedAt: new Date(),
+    acceptedAt,
   });
 
-  return { following: true, pending: false };
+  return {
+    following: acceptedAt !== null,
+    pending: acceptedAt === null,
+  };
 }
 
 /**
@@ -101,12 +103,16 @@ export async function getFollowState(
   return { following: row.acceptedAt !== null, pending: row.acceptedAt === null };
 }
 
+// Counts include only accepted relations — Pending requests don't count
+// toward the public follower/following tallies (a request not yet
+// approved isn't a real follow).
+
 export async function countFollowers(userId: string): Promise<number> {
   const db = getDb();
   const [row] = await db
     .select({ n: count() })
     .from(follows)
-    .where(eq(follows.followedUserId, userId));
+    .where(and(eq(follows.followedUserId, userId), isNotNull(follows.acceptedAt)));
   return row?.n ?? 0;
 }
 
@@ -115,8 +121,89 @@ export async function countFollowing(userId: string): Promise<number> {
   const [row] = await db
     .select({ n: count() })
     .from(follows)
-    .where(eq(follows.followerId, userId));
+    .where(and(eq(follows.followerId, userId), isNotNull(follows.acceptedAt)));
   return row?.n ?? 0;
+}
+
+/**
+ * Count of incoming Pending follow requests for `userId`. Drives the
+ * navbar badge. Distinct from countFollowers (which is accepted-only).
+ */
+export async function countPendingFollowRequests(userId: string): Promise<number> {
+  const db = getDb();
+  const [row] = await db
+    .select({ n: count() })
+    .from(follows)
+    .where(and(eq(follows.followedUserId, userId), isNull(follows.acceptedAt)));
+  return row?.n ?? 0;
+}
+
+export interface FollowRequest {
+  id: string;
+  followerUsername: string;
+  followerDisplayName: string | null;
+  followerDomain: string;
+  createdAt: Date;
+}
+
+/**
+ * Pending incoming follow requests for `userId`. Used by /follows/requests.
+ * Reverse-chronological by request creation time.
+ */
+export async function listPendingFollowRequests(userId: string): Promise<FollowRequest[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: follows.id,
+      followerUsername: users.username,
+      followerDisplayName: users.displayName,
+      followerDomain: users.domain,
+      createdAt: follows.createdAt,
+    })
+    .from(follows)
+    .innerJoin(users, eq(follows.followerId, users.id))
+    .where(and(eq(follows.followedUserId, userId), isNull(follows.acceptedAt)))
+    .orderBy(desc(follows.createdAt));
+  return rows;
+}
+
+/**
+ * Approve a Pending follow request. Owner-bound: `ownerId` must equal
+ * `follows.followedUserId` for the row, otherwise the call is a no-op.
+ */
+export async function approveFollowRequest(ownerId: string, followId: string): Promise<boolean> {
+  const db = getDb();
+  const result = await db
+    .update(follows)
+    .set({ acceptedAt: new Date() })
+    .where(
+      and(
+        eq(follows.id, followId),
+        eq(follows.followedUserId, ownerId),
+        isNull(follows.acceptedAt),
+      ),
+    )
+    .returning({ id: follows.id });
+  return result.length > 0;
+}
+
+/**
+ * Reject a Pending follow request. Deletes the row entirely so the
+ * follower can re-request later if they want.
+ */
+export async function rejectFollowRequest(ownerId: string, followId: string): Promise<boolean> {
+  const db = getDb();
+  const result = await db
+    .delete(follows)
+    .where(
+      and(
+        eq(follows.id, followId),
+        eq(follows.followedUserId, ownerId),
+        isNull(follows.acceptedAt),
+      ),
+    )
+    .returning({ id: follows.id });
+  return result.length > 0;
 }
 
 export interface CollectionEntry {
@@ -128,7 +215,8 @@ export interface CollectionEntry {
 const COLLECTION_PAGE_SIZE = 50;
 
 /**
- * Paginated list of users who follow `userId`. Newest acceptance first.
+ * Paginated list of accepted followers of `userId`. Newest acceptance first.
+ * Pending requests are excluded — they live in /follows/requests.
  */
 export async function listFollowers(userId: string, page: number = 1): Promise<CollectionEntry[]> {
   const db = getDb();
@@ -141,7 +229,7 @@ export async function listFollowers(userId: string, page: number = 1): Promise<C
     })
     .from(follows)
     .innerJoin(users, eq(follows.followerId, users.id))
-    .where(eq(follows.followedUserId, userId))
+    .where(and(eq(follows.followedUserId, userId), isNotNull(follows.acceptedAt)))
     .orderBy(desc(follows.acceptedAt))
     .limit(COLLECTION_PAGE_SIZE)
     .offset(offset);
@@ -149,9 +237,8 @@ export async function listFollowers(userId: string, page: number = 1): Promise<C
 }
 
 /**
- * Paginated list of users that `userId` follows. Newest acceptance first.
- * Limited to local follows in this change (`followedUserId IS NOT NULL`);
- * federation will surface remote actors here too.
+ * Paginated list of accepted follows from `userId`. Newest acceptance first.
+ * Pending outgoing follows (against private/locked targets) are excluded.
  */
 export async function listFollowing(userId: string, page: number = 1): Promise<CollectionEntry[]> {
   const db = getDb();
@@ -164,7 +251,7 @@ export async function listFollowing(userId: string, page: number = 1): Promise<C
     })
     .from(follows)
     .innerJoin(users, eq(follows.followedUserId, users.id))
-    .where(eq(follows.followerId, userId))
+    .where(and(eq(follows.followerId, userId), isNotNull(follows.acceptedAt)))
     .orderBy(desc(follows.acceptedAt))
     .limit(COLLECTION_PAGE_SIZE)
     .offset(offset);
