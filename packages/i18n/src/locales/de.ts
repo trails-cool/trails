@@ -229,14 +229,30 @@ export default {
     },
     profile: {
       ownNote: "Das ist dein Profil — Besucher:innen sehen nur Inhalte, die du als öffentlich markiert hast.",
-      privateNote: "Dein Profil ist auf Privat gestellt. Besucher:innen sehen 404; öffentliche Inhalte sind weiterhin per direkter URL erreichbar, aber du kannst nicht gefolgt werden.",
+      privateNote: "Dein Profil ist auf Privat (gesperrt) gestellt. Besucher:innen sehen eine Hinweisseite mit einem Anfrage-Button; nur akzeptierte Follower sehen deine öffentlichen Inhalte.",
       goToSettings: "Zu den Einstellungen",
       noPublicRoutes: "Noch keine öffentlichen Routen.",
       noPublicActivities: "Noch keine öffentlichen Aktivitäten.",
+      lockedBadge: "Privat",
+      lockedTitle: "Dieses Profil ist privat. Folge-Anfragen müssen genehmigt werden.",
+      privateStub: {
+        heading: "Dieses Profil ist privat",
+        bodyAuth: "Sende eine Folge-Anfrage, um die öffentlichen Routen und Aktivitäten zu sehen. Die Person muss sie freigeben.",
+        bodyAnon: "Melde dich an und sende eine Folge-Anfrage, um die öffentlichen Routen und Aktivitäten zu sehen.",
+      },
     },
     social: {
       follow: "Folgen",
       unfollow: "Entfolgen",
+      requestToFollow: "Folgen anfragen",
+      pendingCancel: "Angefragt",
+      requests: {
+        title: "Folge-Anfragen",
+        empty: "Keine offenen Folge-Anfragen.",
+        approve: "Annehmen",
+        reject: "Ablehnen",
+        receivedAt: "Angefragt am {{date}}",
+      },
       followers: {
         label: "Follower",
         heading: "Follower von {{user}}",
@@ -290,9 +306,9 @@ export default {
         visibility: {
           label: "Profil-Sichtbarkeit",
           public: "Öffentlich",
-          publicHelp: "Deine Profilseite ist für alle sichtbar (sobald du öffentliche Inhalte hast). Du kannst gefolgt werden.",
-          private: "Privat",
-          privateHelp: "Deine Profilseite gibt 404 zurück. Öffentliche Inhalte sind weiterhin per direkter URL erreichbar, aber du kannst nicht gefolgt werden.",
+          publicHelp: "Alle sehen dein Profil und deine öffentlichen Inhalte. Folge-Anfragen werden automatisch akzeptiert.",
+          private: "Privat (gesperrt)",
+          privateHelp: "Besucher:innen sehen nur eine Hinweisseite mit Anfrage-Button. Nur akzeptierte Follower sehen deine öffentlichen Inhalte. Anfragen verwaltest du unter /follows/requests.",
         },
       },
       security: {

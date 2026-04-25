@@ -6,17 +6,18 @@ This change ships the *local* social layer: follows between users on the same Jo
 
 ## What Changes
 
-- Add an explicit `users.profile_visibility` setting (`'public' | 'private'`, default `'public'`). Today profile-publicness is implicit (derived from "has any public content"); making it explicit unifies the mental model with activity/route visibility, gives users a real toggle for "be discoverable at all," and gates future federation cleanly. Existing users migrate to `'public'`.
-- Users SHALL be able to follow another *local* user (same instance) by clicking a Follow button on the user's profile page. Local public profiles auto-accept the follow.
-- A signed-in user SHALL be able to view a **social feed** of public activities from the users they follow, reverse-chronological, at a dedicated `/feed` route linked from the nav.
+- Add an explicit `users.profile_visibility` setting (`'public' | 'private'`). New accounts default to `'private'` (matches trails.cool's privacy-first content defaults); existing accounts are backfilled to `'public'` so deploy doesn't lock anyone down. `private` is functionally Mastodon's "locked" account: profile renders a stub with a Request-to-follow button for non-followers; only accepted followers see content; follows land Pending until the owner approves.
+- Users SHALL be able to follow another *local* user (same instance) by clicking a Follow / Request-to-follow button on the user's profile page. Public targets auto-accept; private targets create a Pending row that the owner approves or rejects from `/follows/requests`.
+- A signed-in user SHALL have a `/follows/requests` page listing all incoming Pending requests with Approve / Reject actions; the navbar shows a count badge linking to that page.
+- A signed-in user SHALL be able to view a **social feed** of public activities from the users they follow with an accepted relation, reverse-chronological, at a dedicated `/feed` route linked from the nav.
 - The logged-in home (`/`) SHALL link prominently to the new social feed; personal dashboard content stays as-is for now.
-- Public profile pages SHALL show follower and following counts and a Follow / Unfollow toggle for the viewing user.
-- Privacy: the follow relationship on a single instance is queryable (follower/following lists are public) matching Mastodon-style conventions. Only `public` activities appear in the feed — `unlisted` and `private` stay out even if you follow the owner.
+- Profile pages SHALL show follower and following counts (accepted-only) and a context-aware Follow control (Follow / Request to follow / Requested / Unfollow).
+- Privacy: follower/following counts and lists are public per instance. Only `public` activities appear in the feed; pending follows don't contribute content.
 - Privacy manifest: documents the new `follows` relation as data the instance retains about who follows whom.
 - **Forward-compatible schema**: `follows` is keyed by an `actor_iri TEXT` column even though all rows are local now (local user IRIs look like `https://{DOMAIN}/users/{username}`). When `social-federation` lands, remote IRIs go in the same column with no migration.
 - **Out of scope** (tracked as follow-ups):
   - ActivityPub federation primitives — `social-federation`. Goal there is "Mastodon can follow a trails account" inbound and "trails can follow other trails instances" outbound.
-  - Locked local accounts (manual follow approval) — `locked-local-accounts`. The current `'public' | 'private'` enum is intentionally minimal so the locked enum value (or a separate `users.locked` flag) can be added cleanly later.
+  - A unified notification UI. The follow-request count badge is a one-off; broader notifications (e.g., "your follow request was approved", "new public activity from people you follow") will be designed in a follow-up.
 
 ## Capabilities
 

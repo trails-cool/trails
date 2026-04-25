@@ -9,7 +9,10 @@ import {
   getFollowState,
   countFollowers,
   countFollowing,
-  FollowError,
+  countPendingFollowRequests,
+  listPendingFollowRequests,
+  approveFollowRequest,
+  rejectFollowRequest,
 } from "./follow.server.ts";
 
 // Opt-in: these talk to real Postgres. Gated by an env flag so laptop
@@ -74,12 +77,14 @@ describe.skipIf(!runIntegration)("follow.server integration", () => {
     expect(aRow.username.startsWith("f_a_")).toBe(true);
   });
 
-  it("refuses to follow a private profile", async () => {
+  it("creates a Pending follow against a private profile (not a refusal)", async () => {
     const a = await makeUser({ username: `f_pa_${Date.now()}` });
     const b = await makeUser({ username: `f_pb_${Date.now()}`, profileVisibility: "private" });
     const bRow = (await getDb().select().from(users).where(eq(users.id, b)))[0]!;
-    await expect(followUser(a, bRow.username)).rejects.toBeInstanceOf(FollowError);
-    await expect(followUser(a, bRow.username)).rejects.toMatchObject({ code: "private_profile" });
+    const s = await followUser(a, bRow.username);
+    expect(s).toEqual({ following: false, pending: true });
+    // Pending is excluded from accepted-only counts.
+    expect(await countFollowers(b)).toBe(0);
     expect(await countFollowing(a)).toBe(0);
   });
 
@@ -87,6 +92,48 @@ describe.skipIf(!runIntegration)("follow.server integration", () => {
     const a = await makeUser({ username: `f_self_${Date.now()}` });
     const aRow = (await getDb().select().from(users).where(eq(users.id, a)))[0]!;
     await expect(followUser(a, aRow.username)).rejects.toMatchObject({ code: "self_follow" });
+  });
+
+  it("approve flips Pending → Accepted; reject deletes the request", async () => {
+    const a = await makeUser({ username: `f_apr_${Date.now()}` });
+    const b = await makeUser({ username: `f_apb_${Date.now()}`, profileVisibility: "private" });
+    const bRow = (await getDb().select().from(users).where(eq(users.id, b)))[0]!;
+    await followUser(a, bRow.username);
+    expect(await countPendingFollowRequests(b)).toBe(1);
+
+    const reqs = await listPendingFollowRequests(b);
+    expect(reqs.length).toBe(1);
+    const reqId = reqs[0]!.id;
+
+    const approved = await approveFollowRequest(b, reqId);
+    expect(approved).toBe(true);
+    expect(await countPendingFollowRequests(b)).toBe(0);
+    expect(await countFollowers(b)).toBe(1);
+    expect(await getFollowState(a, bRow.username)).toEqual({ following: true, pending: false });
+
+    // Idempotent: approving again is a no-op.
+    expect(await approveFollowRequest(b, reqId)).toBe(false);
+
+    // Reject path: a fresh request from a 3rd user, B rejects.
+    const c = await makeUser({ username: `f_apc_${Date.now()}` });
+    await followUser(c, bRow.username);
+    const reqs2 = await listPendingFollowRequests(b);
+    expect(reqs2.length).toBe(1);
+    expect(await rejectFollowRequest(b, reqs2[0]!.id)).toBe(true);
+    expect(await countPendingFollowRequests(b)).toBe(0);
+    expect(await getFollowState(c, bRow.username)).toBeNull();
+  });
+
+  it("approve/reject is owner-bound (other users can't approve someone else's request)", async () => {
+    const a = await makeUser({ username: `f_obA_${Date.now()}` });
+    const b = await makeUser({ username: `f_obB_${Date.now()}`, profileVisibility: "private" });
+    const bRow = (await getDb().select().from(users).where(eq(users.id, b)))[0]!;
+    const c = await makeUser({ username: `f_obC_${Date.now()}` });
+    await followUser(a, bRow.username);
+    const reqs = await listPendingFollowRequests(b);
+    // C tries to approve B's incoming request — should be a no-op.
+    expect(await approveFollowRequest(c, reqs[0]!.id)).toBe(false);
+    expect(await countPendingFollowRequests(b)).toBe(1);
   });
 
   it("404s on unknown username", async () => {

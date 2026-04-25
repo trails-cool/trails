@@ -26,12 +26,28 @@ async function registerUser(page: Page, email: string, username: string) {
   await expect(page).toHaveURL("/", { timeout: 10000 });
 }
 
+async function setProfileVisibility(page: Page, value: "public" | "private") {
+  await page.goto("/settings");
+  if (value === "public") {
+    await page.getByLabel("Public").check();
+  } else {
+    await page.getByLabel(/Private/).check();
+  }
+  await page.getByRole("button", { name: /^Save$/ }).first().click();
+  await page.waitForLoadState("networkidle");
+}
+
 // WebAuthn + parallel workers + shared local Postgres race; serialize.
 test.describe.configure({ mode: "serial" });
 
 test.describe("Social follows + /feed", () => {
   test("/feed redirects anonymous visitors to login", async ({ page }) => {
     await page.goto("/feed");
+    await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
+  });
+
+  test("/follows/requests redirects anonymous visitors to login", async ({ page }) => {
+    await page.goto("/follows/requests");
     await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
   });
 
@@ -45,31 +61,17 @@ test.describe("Social follows + /feed", () => {
     const bEmail = `social-b-${stamp}@example.com`;
     const bUsername = `sb${stamp}`;
 
-    // Register A in the main page.
     await registerUser(page, aEmail, aUsername);
 
-    // Register B in a separate browser context (independent session).
+    // Register B in a separate browser context so we have two independent
+    // sessions. New users default to `private` — B flips to public so this
+    // test exercises the auto-accept path.
     const bCtx = await browser.newContext();
     const bPage = await bCtx.newPage();
     const bCdp = await bPage.context().newCDPSession(bPage);
     await setupVirtualAuthenticator(bCdp);
     await registerUser(bPage, bEmail, bUsername);
-
-    // B's profile alone won't render publicly without any public content;
-    // that's tested elsewhere. For follow-button transitions, we use the
-    // user-list page directly (which gates only on profile_visibility).
-    // Instead, seed a public route from B via the existing routes.new
-    // flow so B's profile renders.
-    await bPage.goto("/routes/new");
-    await bPage.getByLabel("Name").fill("Public ride");
-    await bPage.getByRole("button", { name: "Create Route" }).click();
-    await bPage.waitForURL(/\/routes\/[0-9a-f-]+$/, { timeout: 10000 });
-    const url = bPage.url();
-    const id = url.split("/").pop()!;
-    await bPage.goto(`/routes/${id}/edit`);
-    await bPage.getByLabel("Visibility").selectOption("public");
-    await bPage.getByRole("button", { name: "Save Changes" }).click();
-    await bPage.waitForURL(new RegExp(`/routes/${id}$`), { timeout: 10000 });
+    await setProfileVisibility(bPage, "public");
 
     // A visits B's profile and follows.
     await page.goto(`/users/${bUsername}`);
@@ -81,57 +83,76 @@ test.describe("Social follows + /feed", () => {
     await page.reload();
     await expect(page.getByRole("link", { name: /1\s+Followers/i })).toBeVisible();
 
-    // Unfollow goes back to Follow.
+    // Unfollow.
     await page.getByRole("button", { name: "Unfollow" }).click();
     await expect(page.getByRole("button", { name: "Follow" })).toBeVisible({ timeout: 5000 });
 
     await bCtx.close();
   });
 
-  test("Profile visibility toggle: private 404s, public restores", async ({ page, browser }) => {
+  test("Private profile: stub for visitors, Request → Pending → Approve → full view", async ({ page, browser }) => {
     const cdp = await page.context().newCDPSession(page);
     await setupVirtualAuthenticator(cdp);
 
     const stamp = Date.now();
-    const ownerEmail = `vis-${stamp}@example.com`;
-    const ownerUsername = `vu${stamp}`;
-    await registerUser(page, ownerEmail, ownerUsername);
+    const aEmail = `req-a-${stamp}@example.com`;
+    const aUsername = `ra${stamp}`;
+    const bEmail = `req-b-${stamp}@example.com`;
+    const bUsername = `rb${stamp}`;
 
-    // Create a public route so the owner's profile would otherwise render.
-    await page.goto("/routes/new");
-    await page.getByLabel("Name").fill("Trail run");
-    await page.getByRole("button", { name: "Create Route" }).click();
-    await page.waitForURL(/\/routes\/[0-9a-f-]+$/, { timeout: 10000 });
-    const url = page.url();
-    const id = url.split("/").pop()!;
-    await page.goto(`/routes/${id}/edit`);
-    await page.getByLabel("Visibility").selectOption("public");
-    await page.getByRole("button", { name: "Save Changes" }).click();
-    await page.waitForURL(new RegExp(`/routes/${id}$`), { timeout: 10000 });
+    await registerUser(page, aEmail, aUsername);
 
-    // Visitor: profile reachable.
+    const bCtx = await browser.newContext();
+    const bPage = await bCtx.newPage();
+    const bCdp = await bPage.context().newCDPSession(bPage);
+    await setupVirtualAuthenticator(bCdp);
+    await registerUser(bPage, bEmail, bUsername);
+    // B stays at the default `private`. Verify by loading the profile
+    // anonymously and seeing the stub.
+
     const anonCtx = await browser.newContext();
     const anon = await anonCtx.newPage();
-    const before = await anon.goto(`/users/${ownerUsername}`);
-    expect(before?.status()).toBe(200);
+    const anonResp = await anon.goto(`/users/${bUsername}`);
+    expect(anonResp?.status()).toBe(200);
+    await expect(anon.getByText(/This profile is private/i)).toBeVisible();
 
-    // Owner flips to private.
-    await page.goto("/settings");
-    await page.getByLabel("Private").check();
-    await page.getByRole("button", { name: /^Save$/ }).first().click();
-    await page.waitForLoadState("networkidle");
+    // A (signed in) visits B's private profile — sees stub + Request button.
+    await page.goto(`/users/${bUsername}`);
+    await expect(page.getByText(/This profile is private/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Request to follow/i })).toBeVisible();
+    await page.getByRole("button", { name: /Request to follow/i }).click();
+    await expect(page.getByRole("button", { name: /Requested/i })).toBeVisible({ timeout: 5000 });
 
-    const after = await anon.goto(`/users/${ownerUsername}`);
-    expect(after?.status()).toBe(404);
+    // B sees the request in /follows/requests with badge in nav.
+    await bPage.goto("/follows/requests");
+    await expect(bPage.getByText(`@${aUsername}`)).toBeVisible();
+    await bPage.getByRole("button", { name: "Approve" }).click();
+    await bPage.waitForLoadState("networkidle");
+    // Empty state after approval.
+    await expect(bPage.getByText(/No pending follow requests/i)).toBeVisible();
 
-    // Flip back to public.
-    await page.goto("/settings");
-    await page.getByLabel("Public").check();
-    await page.getByRole("button", { name: /^Save$/ }).first().click();
-    await page.waitForLoadState("networkidle");
+    // A reloads B's profile — now sees full content (no stub) + Unfollow.
+    await page.goto(`/users/${bUsername}`);
+    await expect(page.getByText(/This profile is private/i)).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Unfollow" })).toBeVisible();
 
-    const restored = await anon.goto(`/users/${ownerUsername}`);
-    expect(restored?.status()).toBe(200);
+    await bCtx.close();
+    await anonCtx.close();
+  });
+
+  test("Private profile: visitor sees stub layout (200, not 404)", async ({ page, browser }) => {
+    const cdp = await page.context().newCDPSession(page);
+    await setupVirtualAuthenticator(cdp);
+    const stamp = Date.now();
+    const username = `priv${stamp}`;
+    await registerUser(page, `priv-${stamp}@example.com`, username);
+    // User stays at default `private`.
+
+    const anonCtx = await browser.newContext();
+    const anon = await anonCtx.newPage();
+    const resp = await anon.goto(`/users/${username}`);
+    expect(resp?.status()).toBe(200);
+    await expect(anon.getByText(/This profile is private/i)).toBeVisible();
 
     await anonCtx.close();
   });

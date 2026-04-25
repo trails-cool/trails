@@ -1,49 +1,58 @@
 ## ADDED Requirements
 
-### Requirement: Profile visibility setting
-Every user SHALL have an explicit `profile_visibility` of `public` or `private`. New accounts SHALL default to `public`. Users SHALL be able to change their profile visibility from account settings at any time.
+### Requirement: Profile visibility setting (locked accounts)
+Every user SHALL have an explicit `profile_visibility` of `public` or `private`. New accounts SHALL default to `private` (locked: profile is reachable but content is gated behind follow approval). Users SHALL be able to change their profile visibility from account settings at any time. `private` is functionally Mastodon's "locked" / "manually approves followers" — visitors see a stub with a Request-to-follow button, follows land in a Pending state, and content is only revealed to accepted followers.
 
 #### Scenario: Default for a new account
 - **WHEN** a user registers
-- **THEN** their `profile_visibility` is `public`
+- **THEN** their `profile_visibility` is `private`
 
 #### Scenario: Existing user backfilled to public
 - **WHEN** the migration that introduces `profile_visibility` runs against pre-existing rows
-- **THEN** every existing user's `profile_visibility` is set to `public`, preserving current effective behavior
+- **THEN** every existing user's `profile_visibility` is set to `public`, preserving current effective behavior (no surprise lock-down at deploy)
 
 #### Scenario: User toggles profile to private
 - **WHEN** a user changes their profile visibility to `private` in settings and saves
-- **THEN** subsequent requests to `/users/:username` return HTTP 404 (regardless of how much public content they have), and they become unfollowable (existing follow rows are unaffected, but no new follows can be created)
+- **THEN** subsequent visitor requests to `/users/:username` return HTTP 200 but render a stub page (header + Request-to-follow button) with no content; existing follow rows are unaffected; new follows from anyone other than already-accepted followers are recorded as Pending
 
 #### Scenario: User toggles profile back to public
 - **WHEN** a previously-private user switches `profile_visibility` to `public` and saves
-- **THEN** their `/users/:username` becomes reachable again (subject to the existing "has public content" gate) and Follow buttons reappear for visitors
+- **THEN** their `/users/:username` renders the full profile to anyone again, and any incoming follows auto-accept going forward
 
 ## MODIFIED Requirements
 
 ### Requirement: Public profile page
-The Journal SHALL serve a public profile page at `/users/:username` that lists the user's public routes and activities in reverse chronological order, viewable without authentication. The page SHALL render only when the user's `profile_visibility` is `public` AND they have at least one `public` route or activity. For signed-in viewers other than the owner, the page SHALL display a Follow / Unfollow toggle that mirrors the current follow relation (see `social-follows` spec). The page SHALL also display follower and following counts with links to the respective collections.
+The Journal SHALL serve a profile page at `/users/:username` for any user who exists. The render SHALL depend on the viewer relationship to the profile owner:
+- If the username does not exist, return HTTP 404.
+- If the owner's `profile_visibility = 'public'`, render the full profile (display name, handle, follower/following counts, public routes, public activities) regardless of who is viewing.
+- If the owner's `profile_visibility = 'private'`, render a stub page (header + handle + counts + lock badge) for non-owner viewers who do NOT have an accepted follow relation. Render the full profile for the owner themselves and for accepted followers.
 
-#### Scenario: Logged-out visitor views a public profile with public content
-- **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user whose `profile_visibility` is `public` and who has at least one `public` route or activity
-- **THEN** the page renders that user's display name (falling back to username), the `@username@domain` handle, follower and following counts, and a reverse-chronological list of their `public` routes and `public` activities
-- **AND** items marked `unlisted` or `private` do NOT appear in the list
+The page SHALL display follower and following counts (always, regardless of stub vs. full). For signed-in viewers other than the owner, the page SHALL render a Follow button whose label depends on the relation: "Follow" against a public profile with no relation, "Request to follow" against a private profile with no relation, "Requested" (cancellable) when a Pending request exists, "Unfollow" when an accepted relation exists.
 
-#### Scenario: Profile 404 cases are indistinguishable
-- **WHEN** a visitor navigates to `/users/:username` for any of: a user with `profile_visibility = 'private'`, a user with `profile_visibility = 'public'` but zero public items, a user whose content is all `private` or `unlisted`, or a username that does not exist
-- **THEN** the server responds with HTTP 404
-- **AND** the response does NOT distinguish the cases, so existence of a private account is not leaked
+#### Scenario: Logged-out visitor views a public profile
+- **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user whose `profile_visibility` is `public`
+- **THEN** the page renders the full profile (display name, handle, counts, public routes, public activities)
+
+#### Scenario: Logged-out visitor views a private profile
+- **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user whose `profile_visibility` is `private`
+- **THEN** the page returns HTTP 200 and renders the stub layout — header with display name, handle, and counts; a 🔒 "Private" badge; a body block with "This profile is private" and a sign-in prompt; no routes or activities are rendered
+
+#### Scenario: Signed-in visitor views a private profile they don't follow
+- **WHEN** a signed-in user other than the owner navigates to `/users/:username` for a private profile, with no follow row OR a Pending follow row
+- **THEN** the page returns 200 and renders the stub layout, plus a Follow button (or Pending indicator) so the viewer can request access
+
+#### Scenario: Signed-in viewer with accepted follow sees full private profile
+- **WHEN** a signed-in user with an accepted follow against a private user navigates to that user's profile
+- **THEN** the page returns 200 and renders the full profile — same as a public profile would render — plus an Unfollow button
 
 #### Scenario: Owner sees their own profile
 - **WHEN** a user navigates to their own `/users/:username` while logged in
-- **THEN** if their `profile_visibility = 'public'` and they have at least one public item, the page renders exactly the same as for a logged-out visitor, plus a small owner-only control strip linking to settings
-- **AND** if their profile would 404 for visitors (private or no public content), they are redirected to settings or shown an owner-only "your profile isn't public yet" view (implementation detail)
-- **AND** no Follow button is shown (users cannot follow themselves)
+- **THEN** the full profile renders regardless of `profile_visibility`, plus a small owner-only banner (blue "ownNote" for public profiles, amber "private/locked" explanation for private profiles), plus a link to settings; no Follow button is shown
 
-#### Scenario: Signed-in viewer sees a Follow control on a public profile
-- **WHEN** a signed-in user other than the owner loads a profile that returns 200
-- **THEN** the page renders a Follow button if no follow row exists for them against this user, and an Unfollow button if one does
+#### Scenario: Profile 404 only for nonexistent users
+- **WHEN** a visitor navigates to `/users/:username` for a username that does not exist
+- **THEN** the server responds with HTTP 404
 
 #### Scenario: Profile page emits social-share metadata
-- **WHEN** any visitor loads a populated `/users/:username`
+- **WHEN** any visitor loads a populated `/users/:username` (full or stub)
 - **THEN** the page emits Open Graph tags (`og:title`, `og:site_name`, `og:type="profile"`) so links shared on social platforms render a meaningful preview

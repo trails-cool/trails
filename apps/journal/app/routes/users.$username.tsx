@@ -20,32 +20,35 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data({ error: "User not found" }, { status: 404 });
   }
 
-  const [publicRoutes, publicActivities, currentUser, followers, following] = await Promise.all([
-    listPublicRoutesForOwner(user.id),
-    listPublicActivitiesForOwner(user.id),
-    getSessionUser(request),
-    countFollowers(user.id),
-    countFollowing(user.id),
-  ]);
-
+  const currentUser = await getSessionUser(request);
   const isOwn = currentUser?.id === user.id;
 
-  // Profile-visibility gate: a `private` profile 404s for everyone but
-  // the owner, regardless of how much public content they have.
-  if (!isOwn && user.profileVisibility !== "public") {
-    throw data({ error: "User not found" }, { status: 404 });
-  }
-
-  // 404 for public-but-empty profiles to prevent account enumeration.
-  // Owners still see their own profile even when empty.
-  if (!isOwn && publicRoutes.length === 0 && publicActivities.length === 0) {
-    throw data({ error: "User not found" }, { status: 404 });
-  }
-
-  // Follow state for non-owner viewers (null when anonymous).
+  // Follow state: null when anonymous or owner; { following, pending }
+  // otherwise.
   const followState = !isOwn && currentUser
     ? await getFollowState(currentUser.id, user.username)
     : null;
+
+  // Locked-account model: a private profile renders a stub for
+  // non-followers (anonymous OR signed-in but not an accepted follower).
+  // Owners always see their own profile in full.
+  const canSeeContent =
+    isOwn ||
+    user.profileVisibility === "public" ||
+    (followState !== null && followState.following === true);
+
+  // For private-stub viewers we still want counts (cheap) but skip the
+  // expensive content fetches.
+  const [followers, following] = await Promise.all([
+    countFollowers(user.id),
+    countFollowing(user.id),
+  ]);
+  const [publicRoutes, publicActivities] = canSeeContent
+    ? await Promise.all([
+        listPublicRoutesForOwner(user.id),
+        listPublicActivitiesForOwner(user.id),
+      ])
+    : [[], []];
 
   // Demo-account badge: true when this profile matches the instance's
   // configured demo persona username. Computed server-side so we don't
@@ -84,6 +87,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     followState,
     isLoggedIn: currentUser !== null,
     profileVisibility: user.profileVisibility,
+    canSeeContent,
   });
 }
 
@@ -109,7 +113,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, routes, activities, isOwn, isDemoUser, followers, following, followState, isLoggedIn } = loaderData;
+  const { user, routes, activities, isOwn, isDemoUser, followers, following, followState, isLoggedIn, canSeeContent } = loaderData;
   const { t } = useTranslation("journal");
 
   return (
@@ -123,6 +127,14 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
             <h1 className="text-2xl font-bold text-gray-900">
               {user.displayName ?? user.username}
             </h1>
+            {loaderData.profileVisibility === "private" && !isOwn && (
+              <span
+                className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700"
+                title={t("profile.lockedTitle")}
+              >
+                🔒 {t("profile.lockedBadge")}
+              </span>
+            )}
             {isDemoUser && (
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                 {t("demo.badge")}
@@ -153,10 +165,33 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
         {!isOwn && isLoggedIn && (
           <FollowButton
             username={user.username}
+            isPrivateTarget={loaderData.profileVisibility === "private"}
             initialState={followState}
           />
         )}
       </div>
+
+      {!canSeeContent && (
+        <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+          <p className="text-2xl" aria-hidden="true">🔒</p>
+          <p className="mt-2 text-sm font-medium text-gray-900">
+            {t("profile.privateStub.heading")}
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            {isLoggedIn
+              ? t("profile.privateStub.bodyAuth")
+              : t("profile.privateStub.bodyAnon")}
+          </p>
+          {!isLoggedIn && (
+            <a
+              href="/auth/login"
+              className="mt-4 inline-block rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              {t("auth.login")}
+            </a>
+          )}
+        </div>
+      )}
 
       {isOwn && loaderData.profileVisibility === "private" && (
         <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
@@ -175,6 +210,8 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
+      {canSeeContent && (
+        <>
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-gray-900">
           {t("routes.title")} ({routes.length})
@@ -238,6 +275,8 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
           </ul>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }
