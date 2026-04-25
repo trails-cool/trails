@@ -70,10 +70,10 @@ The Journal SHALL expose a single server-side helper `linkFor(notification)` ret
 - **THEN** the existing notification rows remain in the database but are filtered out of the recipient's `/notifications` listing (the renderer skips rows whose subject the recipient can no longer see)
 
 ### Requirement: Notifications page and unread count
-The Journal SHALL expose `/notifications` to signed-in users only. The page SHALL list the user's notifications reverse-chronological, with each row showing the actor's display name + handle, a type-specific summary line, the timestamp, and a clickable link to the relevant subject. The navbar SHALL surface an unread count badge linking to `/notifications`; the count is `notifications.read_at IS NULL` for the current user. Logged-out visitors requesting `/notifications` SHALL be redirected to `/auth/login`.
+The Journal SHALL expose `/notifications` to signed-in users only. The page SHALL list the user's notifications reverse-chronological, with each row showing the actor's display name + handle, a type-specific summary line, the timestamp, and a clickable link to the relevant subject. The page SHALL paginate via opaque cursor (a `before` query parameter); when more rows exist past the current page, the page SHALL surface a "Load older" affordance that fetches the next page using the cursor. Page size defaults to 50 and is capped at 100. The navbar SHALL surface an unread count badge linking to `/notifications`; the count is `notifications.read_at IS NULL` for the current user. Logged-out visitors requesting `/notifications` SHALL be redirected to `/auth/login`.
 
 #### Scenario: Logged-in user with notifications
-- **WHEN** a signed-in user with N notifications loads `/notifications`
+- **WHEN** a signed-in user with N notifications (N ≤ page size) loads `/notifications`
 - **THEN** the page lists all N rows reverse-chronological by `created_at`, with unread rows visually distinct from read rows
 
 #### Scenario: Logged-in user with no notifications
@@ -88,6 +88,19 @@ The Journal SHALL expose `/notifications` to signed-in users only. The page SHAL
 - **WHEN** a signed-in user has K > 0 unread notifications
 - **THEN** the "Notifications" navbar entry renders with a count badge showing K
 - **AND** when K = 0, the entry renders without a badge
+
+#### Scenario: Paginates older notifications via cursor
+- **WHEN** a signed-in user has more notifications than fit in one page and clicks "Load older"
+- **THEN** the next request includes the previous response's cursor as `?before=<cursor>` and the page renders the next batch, strictly older than the cursor's `(created_at, id)` position
+- **AND** when the final page has been reached the response no longer surfaces "Load older"
+
+#### Scenario: Cursor is stable across rows with identical timestamps
+- **WHEN** two notification rows share the exact same `created_at`
+- **THEN** pagination orders them deterministically by `id` (descending) as a tiebreaker, so neither page omits nor duplicates them
+
+#### Scenario: Malformed cursor is ignored, not surfaced as an error
+- **WHEN** a request reaches `/notifications` with a `before` value that doesn't decode to a valid cursor
+- **THEN** the page renders from the top (newest rows) instead of returning a 400, since the cursor is opaque and clients should not need to validate it
 
 ### Requirement: Mark-as-read controls
 A signed-in user SHALL be able to mark an individual notification as read via `POST /api/notifications/:id/read`, and to mark all of their unread notifications as read via `POST /api/notifications/read-all`. Both endpoints are owner-bound: only the recipient may mark their own notifications.

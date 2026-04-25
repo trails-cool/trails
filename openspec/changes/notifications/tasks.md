@@ -7,7 +7,7 @@
 
 ## 2. Server library
 
-- [x] 2.1 Create `apps/journal/app/lib/notifications.server.ts` with: `createNotification`, `listForUser(userId, { page })`, `countUnread(userId)`, `markRead(ownerId, id)`, `markAllRead(ownerId)`, `purgeReadOlderThan(days)`. `createNotification` accepts a typed payload + version per type — TS unions enforce per-type shapes at the call site
+- [x] 2.1 Create `apps/journal/app/lib/notifications.server.ts` with: `createNotification`, `listForUser(userId, { before, limit })` (cursor-paginated, returns `{ rows, nextCursor }`), `countUnread(userId)`, `markRead(ownerId, id)`, `markAllRead(ownerId)`, `purgeReadOlderThan(days)`. `createNotification` accepts a typed payload + version per type — TS unions enforce per-type shapes at the call site
 - [x] 2.2 Define per-type payload TypeScript types (`FollowPayloadV1`, `ApprovalPayloadV1`, `ActivityPayloadV1`) in `apps/journal/app/lib/notifications/payload.ts`. Each generation hook writes `payload_version = 1` plus the matching shape
 - [x] 2.3 Create `apps/journal/app/lib/notifications/link-for.ts` with `linkFor(notification): LinkBundle` returning `{ web, mobile?, email? }` — handles all four v1 types; consults `subject_id` first, falls back to `payload` fields
 - [x] 2.4 Make `markRead` and `markAllRead` owner-bound (predicate includes `recipient_user_id = ownerId`)
@@ -47,7 +47,7 @@
 
 ## 5. Routes + UI
 
-- [x] 5.1 New `/notifications` route (signed-in only; redirect anonymous to `/auth/login`). Loader fetches `listForUser(currentUser.id, { page: 1 })` and `countUnread(currentUser.id)`
+- [x] 5.1 New `/notifications` route (signed-in only; redirect anonymous to `/auth/login`). Loader fetches `listForUser(currentUser.id, { before: searchParams.get("before") })` and surfaces a "Load older" link when `nextCursor` is non-null
 - [x] 5.2 Render: list of cards. Each card shows the actor's display name + handle (live where available, payload-snapshot fallback if the actor row is gone), a type-specific summary line (i18n keyed), the timestamp, and an action whose href comes from `linkFor(notification).web`. Unread cards are visually distinct (e.g. background tint + unread dot)
 - [x] 5.3 Implement click-through: clicking a card POSTs to `/api/notifications/:id/read` and then navigates to `linkFor(notification).web`. Server-side redirect after mark-read is the simplest path
 - [x] 5.4 "Mark all read" button at the top of the page; clicking POSTs to `/api/notifications/read-all` and the page reloads with empty unread state

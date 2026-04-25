@@ -75,12 +75,12 @@ describe.skipIf(!runIntegration)("notifications-fanout integration", () => {
     const activityId = await makeActivity(owner, "public", "Public Walk");
     await fanout(activityId);
 
-    expect((await listForUser(a1)).length).toBe(1);
-    expect((await listForUser(a2)).length).toBe(1);
-    expect((await listForUser(p1)).length).toBe(0);
-    expect((await listForUser(p2)).length).toBe(0);
+    expect((await listForUser(a1)).rows.length).toBe(1);
+    expect((await listForUser(a2)).rows.length).toBe(1);
+    expect((await listForUser(p1)).rows.length).toBe(0);
+    expect((await listForUser(p2)).rows.length).toBe(0);
 
-    const a1Rows = await listForUser(a1);
+    const a1Rows = (await listForUser(a1)).rows;
     expect(a1Rows[0]?.type).toBe("activity_published");
     expect((a1Rows[0]?.payload as { activityName?: string })?.activityName).toBe("Public Walk");
   });
@@ -95,7 +95,7 @@ describe.skipIf(!runIntegration)("notifications-fanout integration", () => {
     await fanout(privateAct);
     await fanout(unlistedAct);
 
-    expect((await listForUser(f)).length).toBe(0);
+    expect((await listForUser(f)).rows.length).toBe(0);
   });
 
   it("is idempotent under retry — second fanout doesn't double-insert", async () => {
@@ -107,6 +107,6 @@ describe.skipIf(!runIntegration)("notifications-fanout integration", () => {
     await fanout(activityId);
     await fanout(activityId);
 
-    expect((await listForUser(f)).length).toBe(1);
+    expect((await listForUser(f)).rows.length).toBe(1);
   });
 });

@@ -235,6 +235,16 @@ EventSource auto-reconnects on transient disconnects; we just open and close.
 
 **Single-process today, Redis-pub/sub when we go multi-process.** The `emitTo(userId, event, data)` interface is the swap point — the in-process `Map` becomes a Redis subscriber that listens to per-user channels, and `emitTo` becomes a publish. The hooks don't change.
 
+### Decision: Cursor-based pagination for `/notifications`
+
+`listForUser` accepts an opaque `before` cursor (`base64url(JSON{ts, id})`) and orders rows by `(created_at DESC, id DESC)`. `id` is a tiebreaker for rows with identical `created_at`, so two callers paging through the list see neither duplicates nor gaps even if a fan-out job inserted a hundred rows at the same instant. Default page size is 50, hard-capped at 100.
+
+**Why cursor, not page-offset:** notifications grow at the head, not the tail — every new event prepends a row. A page-offset query (`OFFSET 50`) would shift under the user as new rows arrive, causing duplicates on page 2. Cursor pagination pins the boundary to a stable position in the data. It also matches the partial unread index (`(recipient_user_id, created_at DESC)`) without needing `OFFSET`'s implicit table scan.
+
+**Why opaque (base64-encoded JSON) over raw `(ts, id)` query params:** clients should not have to know or validate the cursor format. We get to evolve the encoding (e.g. add a `version` field, or include `read_at` for unread-only feeds) without breaking deep links. A malformed cursor is treated as "start from the top" rather than 400, so an old saved URL still renders something useful.
+
+**No total count, deliberately:** the page shows "Load older" while a `nextCursor` exists; once the cursor is `null`, the user has reached the bottom. Computing a total `COUNT(*)` per page load would defeat the cheap-pagination win and is only useful for a "page 5 of 12" UI that we're not building.
+
 ## Risks / Trade-offs
 
 - **Activity fan-out spam**: a user with thousands of followers posting a public activity creates thousands of rows. → At our scale this is invisible; the cost ceiling is documented above. If we ever need to soften, batch the inserts or move to read-time.

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { notifications } from "@trails-cool/db/schema/journal";
 import type { NotificationType } from "@trails-cool/db/schema/journal";
@@ -87,14 +87,86 @@ export interface NotificationRow {
   createdAt: Date;
 }
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 100;
 
+export interface ListOptions {
+  /**
+   * Opaque cursor from a previous response. When set, returns rows
+   * strictly older than the cursor's `(createdAt, id)` position, so
+   * pagination is stable even when two rows share `created_at`.
+   */
+  before?: string;
+  /** Soft cap; clamped to `[1, MAX_PAGE_SIZE]`. Defaults to 50. */
+  limit?: number;
+}
+
+export interface ListResult {
+  rows: NotificationRow[];
+  /**
+   * Opaque cursor for the next page, or `null` when the caller has
+   * reached the end. Pass back as `before` on the next request.
+   */
+  nextCursor: string | null;
+}
+
+interface CursorShape {
+  ts: string;
+  id: string;
+}
+
+function encodeCursor(c: CursorShape): string {
+  return Buffer.from(JSON.stringify(c), "utf8").toString("base64url");
+}
+
+function decodeCursor(s: string): CursorShape | null {
+  try {
+    const obj = JSON.parse(Buffer.from(s, "base64url").toString("utf8")) as {
+      ts?: unknown;
+      id?: unknown;
+    };
+    if (typeof obj.ts !== "string" || typeof obj.id !== "string") return null;
+    if (Number.isNaN(Date.parse(obj.ts))) return null;
+    return { ts: obj.ts, id: obj.id };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cursor-paginated list of `userId`'s notifications, newest first.
+ * Pass the previous response's `nextCursor` as `before` to fetch the
+ * next page; an unknown / malformed cursor is treated as "start from
+ * the top" rather than 400-ing, since the cursor is opaque to clients.
+ */
 export async function listForUser(
   userId: string,
-  opts: { page?: number } = {},
-): Promise<NotificationRow[]> {
+  opts: ListOptions = {},
+): Promise<ListResult> {
   const db = getDb();
-  const page = Math.max(1, opts.page ?? 1);
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, opts.limit ?? DEFAULT_PAGE_SIZE));
+  const cursor = opts.before ? decodeCursor(opts.before) : null;
+
+  const baseWhere = eq(notifications.recipientUserId, userId);
+  const where = cursor
+    ? and(
+        baseWhere,
+        // (created_at, id) < (cursor.ts, cursor.id)
+        // Keyset comparison broken into the two-row form so Postgres
+        // uses the (recipient, created_at desc) index for the leading
+        // column.
+        or(
+          lt(notifications.createdAt, new Date(cursor.ts)),
+          and(
+            eq(notifications.createdAt, new Date(cursor.ts)),
+            lt(notifications.id, cursor.id),
+          ),
+        ),
+      )
+    : baseWhere;
+
+  // Fetch limit + 1 so we can decide whether a `nextCursor` exists
+  // without a separate count query.
   const rows = await db
     .select({
       id: notifications.id,
@@ -107,11 +179,18 @@ export async function listForUser(
       createdAt: notifications.createdAt,
     })
     .from(notifications)
-    .where(eq(notifications.recipientUserId, userId))
-    .orderBy(desc(notifications.createdAt))
-    .limit(PAGE_SIZE)
-    .offset((page - 1) * PAGE_SIZE);
-  return rows;
+    .where(where)
+    .orderBy(desc(notifications.createdAt), desc(notifications.id))
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const trimmed = hasMore ? rows.slice(0, limit) : rows;
+  const last = trimmed[trimmed.length - 1];
+  const nextCursor = hasMore && last
+    ? encodeCursor({ ts: last.createdAt.toISOString(), id: last.id })
+    : null;
+
+  return { rows: trimmed, nextCursor };
 }
 
 export async function countUnread(userId: string): Promise<number> {

@@ -71,8 +71,9 @@ describe.skipIf(!runIntegration)("notifications.server integration", () => {
     });
     expect(second).toBe(false);
 
-    const rows = await listForUser(a);
+    const { rows, nextCursor } = await listForUser(a);
     expect(rows.length).toBe(1);
+    expect(nextCursor).toBeNull();
     expect(rows[0]?.payloadVersion).toBe(1);
     expect(rows[0]?.payload).toMatchObject({ activityId: subject });
   });
@@ -90,7 +91,7 @@ describe.skipIf(!runIntegration)("notifications.server integration", () => {
     });
     expect(await countUnread(a)).toBe(1);
 
-    const all = await listForUser(a);
+    const all = (await listForUser(a)).rows;
     const id = all[0]!.id;
 
     // Foreign user can't mark a's notification read.
@@ -197,13 +198,13 @@ describe.skipIf(!runIntegration)("notifications.server integration", () => {
     const bRow = (await getDb().select().from(users).where(eq(users.id, b)))[0]!;
 
     await followUser(a, bRow.username);
-    let bRows = await listForUser(b);
+    let bRows = (await listForUser(b)).rows;
     expect(bRows.length).toBe(1);
     expect(bRows[0]?.type).toBe("follow_received");
 
     // Re-follow is idempotent at the follow layer — and must NOT emit again.
     await followUser(a, bRow.username);
-    bRows = await listForUser(b);
+    bRows = (await listForUser(b)).rows;
     expect(bRows.length).toBe(1);
   });
 
@@ -213,7 +214,7 @@ describe.skipIf(!runIntegration)("notifications.server integration", () => {
     const bRow = (await getDb().select().from(users).where(eq(users.id, b)))[0]!;
 
     await followUser(a, bRow.username);
-    const bRows = await listForUser(b);
+    const bRows = (await listForUser(b)).rows;
     expect(bRows.length).toBe(1);
     expect(bRows[0]?.type).toBe("follow_request_received");
 
@@ -221,13 +222,64 @@ describe.skipIf(!runIntegration)("notifications.server integration", () => {
     expect(reqs.length).toBe(1);
 
     await approveFollowRequest(b, reqs[0]!.id);
-    const aRows = await listForUser(a);
+    const aRows = (await listForUser(a)).rows;
     expect(aRows.length).toBe(1);
     expect(aRows[0]?.type).toBe("follow_request_approved");
 
     // Idempotent re-approval must not double-emit.
     await approveFollowRequest(b, reqs[0]!.id);
-    const aRowsAfter = await listForUser(a);
+    const aRowsAfter = (await listForUser(a)).rows;
     expect(aRowsAfter.length).toBe(1);
+  });
+
+  it("paginates with nextCursor; cursor is stable across pages and ends with null", async () => {
+    const a = await makeUser({ username: `n_pg_a_${Date.now()}` });
+    // Insert 7 notifications, each older than the previous, so we can
+    // page through them with limit: 3. Each row has a unique subject so
+    // the partial-unique constraint doesn't deduplicate them.
+    for (let i = 0; i < 7; i++) {
+      await createNotification({
+        type: "activity_published",
+        recipientUserId: a,
+        actorUserId: null,
+        subjectId: randomUUID(),
+        payload: {
+          activityId: randomUUID(),
+          activityName: `act-${i}`,
+          ownerUsername: "x",
+          ownerDisplayName: null,
+        },
+      });
+    }
+
+    const p1 = await listForUser(a, { limit: 3 });
+    expect(p1.rows.length).toBe(3);
+    expect(p1.nextCursor).not.toBeNull();
+    const p1Names = p1.rows.map((r) => (r.payload as { activityName?: string })?.activityName);
+
+    const p2 = await listForUser(a, { limit: 3, before: p1.nextCursor! });
+    expect(p2.rows.length).toBe(3);
+    expect(p2.nextCursor).not.toBeNull();
+    const p2Names = p2.rows.map((r) => (r.payload as { activityName?: string })?.activityName);
+    // Pages must not overlap.
+    expect(p1Names.some((n) => p2Names.includes(n))).toBe(false);
+
+    const p3 = await listForUser(a, { limit: 3, before: p2.nextCursor! });
+    expect(p3.rows.length).toBe(1);
+    // Only one row left → nextCursor is null (no more pages).
+    expect(p3.nextCursor).toBeNull();
+  });
+
+  it("treats malformed cursor as 'start from top' rather than erroring", async () => {
+    const a = await makeUser({ username: `n_pgbad_a_${Date.now()}` });
+    await createNotification({
+      type: "follow_received",
+      recipientUserId: a,
+      actorUserId: null,
+      subjectId: null,
+      payload: { followerUsername: "x", followerDisplayName: null },
+    });
+    const r = await listForUser(a, { before: "not-a-real-cursor" });
+    expect(r.rows.length).toBe(1);
   });
 });

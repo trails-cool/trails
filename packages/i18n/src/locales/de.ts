@@ -245,6 +245,7 @@ export default {
       title: "Benachrichtigungen",
       empty: "Noch keine Benachrichtigungen.",
       markAllRead: "Alle als gelesen markieren",
+      loadOlder: "Ältere laden",
       someone: "Jemand",
       summary: {
         followRequestReceived: "{{name}} möchte dir folgen",
