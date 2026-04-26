@@ -291,7 +291,15 @@ export default {
         title: "Feed",
         heading: "Folge ich",
         empty: "Du folgst noch niemandem. Stöbere Profile durch und klicke auf Folgen, um deinen Feed aufzubauen.",
-        publicFeedLink: "Oder durchstöbere den öffentlichen Feed dieser Instanz →",
+        seePublic: "Oder durchstöbere den öffentlichen Feed dieser Instanz →",
+        toggle: {
+          followed: "Folge ich",
+          public: "Öffentlich",
+        },
+        public: {
+          heading: "Öffentlich",
+          empty: "Noch keine öffentlichen Aktivitäten auf dieser Instanz.",
+        },
       },
     },
     demo: {

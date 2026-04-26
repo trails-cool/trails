@@ -62,15 +62,19 @@ Activities SHALL be allowed to exist without a linked route.
 - **THEN** the activity is stored with route_id as null
 
 ### Requirement: Instance-wide public activity feed
-The Journal SHALL expose a reverse-chronological feed of every activity on the instance with visibility `public`. This feed powers the instance home page (see `journal-landing`). `private` and `unlisted` activities SHALL NOT appear in this feed; `unlisted` stays reachable by direct URL only.
+The Journal SHALL expose a reverse-chronological feed of every activity on the instance with visibility `public`. This feed powers the visitor home page (see `journal-landing`) for anonymous traffic and the Public view of `/feed` (see `social-follows` spec, "Social activity feed") for signed-in viewers. `private` and `unlisted` activities SHALL NOT appear in this feed; `unlisted` stays reachable by direct URL only.
 
-#### Scenario: Public activity appears in the instance feed
-- **WHEN** an owner marks an activity as `public` and another visitor loads the home page
+#### Scenario: Public activity appears in the visitor home feed
+- **WHEN** an owner marks an activity as `public` and an anonymous visitor loads the home page
 - **THEN** the visitor sees the activity in the instance feed, with the owner's display name, distance, and start date
+
+#### Scenario: Public activity appears in the signed-in /feed?view=public view
+- **WHEN** an owner marks an activity as `public` and a signed-in user loads `/feed?view=public`
+- **THEN** the signed-in user sees the activity in the Public view, regardless of whether they follow the owner
 
 #### Scenario: Private or unlisted activities stay out of the feed
 - **WHEN** an activity's visibility is `private` or `unlisted`
-- **THEN** it does not appear in the instance feed, regardless of who is viewing
+- **THEN** it does not appear in the instance feed on either surface, regardless of who is viewing
 
 ### Requirement: Activity visibility
 The Journal SHALL persist a `visibility` value on every activity and SHALL allow the owner to change it.

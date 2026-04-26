@@ -82,22 +82,34 @@ A signed-in user SHALL have an actionable surface listing every Pending follow r
 - **THEN** they are redirected to `/auth/login`
 
 ### Requirement: Social activity feed
-The Journal SHALL expose a feed at `/feed`, visible only to signed-in users, listing public activities from the local users they follow with an accepted relation. `private` and `unlisted` activities SHALL NOT appear regardless of follow state. Pending follows SHALL NOT contribute content to the feed.
+The Journal SHALL expose a feed at `/feed`, visible only to signed-in users, with two views selectable via `?view=`: **Followed** (default; public activities from the local users they follow with an accepted relation) and **Public** (instance-wide public activities — see `activity-feed` spec, "Instance-wide public activity feed"). The page SHALL render a tab/toggle at the top so the viewer can switch between the two views. `private` and `unlisted` activities SHALL NOT appear in either view. Pending follows SHALL NOT contribute content to the Followed view.
 
-#### Scenario: Feed aggregates accepted-followed users' public activities
-- **WHEN** a signed-in user with one or more accepted follows loads `/feed`
-- **THEN** the page shows the most recent public activities across all accepted-followed users, reverse-chronological, up to 50 per page, with owner attribution, distance, date, and a map thumbnail
+#### Scenario: Followed view aggregates accepted-followed users' public activities
+- **WHEN** a signed-in user with one or more accepted follows loads `/feed` (or `/feed?view=followed`)
+- **THEN** the Followed view is selected and shows the most recent public activities across all accepted-followed users, reverse-chronological, up to 50 per page, with owner attribution, distance, date, and a map thumbnail
 
-#### Scenario: Pending follows don't contribute to the feed
-- **WHEN** a signed-in user has only Pending follows (no acceptance yet)
-- **THEN** the feed renders the empty state — no Pending-target content is fetched or shown
+#### Scenario: Public view aggregates instance-wide public activities
+- **WHEN** a signed-in user loads `/feed?view=public`
+- **THEN** the Public view is selected and shows the most recent public activities across the entire instance, reverse-chronological, up to 50 per page, regardless of follow state
 
-#### Scenario: Empty feed state
+#### Scenario: Pending follows don't contribute to the Followed view
+- **WHEN** a signed-in user has only Pending follows (no acceptance yet) and loads the Followed view
+- **THEN** the view renders the empty state — no Pending-target content is fetched or shown
+
+#### Scenario: Empty Followed view links to the Public view
 - **WHEN** a signed-in user with zero accepted follows loads `/feed`
-- **THEN** the page shows an empty-state message pointing them to `/users/:username` pages to follow someone, and suggests the instance public feed as an alternative
+- **THEN** the Followed view shows an empty-state message and an in-page link to switch to the Public view (`?view=public`), so they can browse the instance without leaving `/feed`
+
+#### Scenario: Empty Public view
+- **WHEN** the instance has zero public activities and a signed-in user loads `/feed?view=public`
+- **THEN** the Public view shows an empty-state message; no link to elsewhere is required
+
+#### Scenario: Unrecognized view value falls back to Followed
+- **WHEN** a signed-in user loads `/feed?view=<anything-other-than-public>`
+- **THEN** the loader treats the request as the Followed view (default) without raising an error — the parameter is opaque from the client's perspective
 
 #### Scenario: Logged-out visitor cannot access the feed
-- **WHEN** an unauthenticated visitor requests `/feed`
+- **WHEN** an unauthenticated visitor requests `/feed` (any view)
 - **THEN** they are redirected to `/auth/login`
 
 ### Requirement: Schema is forward-compatible with federation
