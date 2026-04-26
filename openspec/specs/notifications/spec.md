@@ -1,7 +1,7 @@
 # notifications Specification
 
 ## Purpose
-In-app notifications for things that happened to a user that they didn't trigger themselves: their follow request was approved, someone followed them, a friend posted a public activity. Distinct from `/follows/requests` (which is the actionable surface for *incoming* Pending requests) and `/feed` (which is content from people you follow). Includes the `notifications` table, generation hooks, the `/notifications` page, mark-read APIs, retention, and the SSE-driven live unread badge (the SSE transport itself lives in `sse-broker`).
+In-app notifications for things that happened to a user that they didn't trigger themselves: their follow request was approved, someone followed them, a friend posted a public activity. The `/notifications` page is a tabbed inbox with two surfaces — the **Activity** tab (the read-only event log) and the **Requests** tab (the actionable surface for *incoming* Pending follow requests, where Approve / Reject lives). `/feed` is a separate destination for content from people you follow. Includes the `notifications` table, generation hooks, the `/notifications` page, mark-read APIs, retention, and the SSE-driven live unread badge (the SSE transport itself lives in `sse-broker`).
 
 ## Requirements
 
@@ -32,9 +32,9 @@ The Journal SHALL maintain a `notifications` table where each row records a sing
 - **WHEN** a target approves, rejects, or the requester cancels a Pending follow that previously emitted `follow_request_received`
 - **THEN** the `follow_request_received` notification row stays in the database with its existing read-state intact (the event happened; the historical record is preserved independently of the request's eventual outcome)
 
-#### Scenario: follow_request_received card links to /follows/requests, not inline Approve/Reject
-- **WHEN** a recipient renders a `follow_request_received` notification on `/notifications`
-- **THEN** the card shows a "Review request" link that navigates to `/follows/requests`; Approve / Reject buttons are NOT rendered on `/notifications`
+#### Scenario: follow_request_received card on the Activity tab links to the Requests tab, not inline Approve/Reject
+- **WHEN** a recipient renders a `follow_request_received` notification on the Activity tab of `/notifications`
+- **THEN** the card shows a "Review request" link that navigates to `/notifications?tab=requests`; Approve / Reject buttons are NOT rendered on the Activity tab
 
 #### Scenario: Read-state is independent from request resolution
 - **WHEN** a recipient marks a `follow_request_received` notification read OR approves/rejects the request
@@ -60,7 +60,7 @@ The Journal SHALL expose a single server-side helper `linkFor(notification)` ret
 
 #### Scenario: Web loader resolves a click-through link
 - **WHEN** the `/notifications` loader prepares a row for render
-- **THEN** the row carries `linkFor(row).web` so the card's anchor can navigate to the right page (`/activities/...`, `/users/...`, or `/follows/requests`)
+- **THEN** the row carries `linkFor(row).web` so the card's anchor can navigate to the right page (`/activities/...`, `/users/...`, or `/notifications?tab=requests`)
 
 #### Scenario: Helper builds links from subject_id with payload fallback
 - **WHEN** `linkFor` is invoked on a notification whose `subject_id` is non-null
@@ -75,24 +75,41 @@ The Journal SHALL expose a single server-side helper `linkFor(notification)` ret
 - **THEN** the existing notification rows remain in the database but are filtered out of the recipient's `/notifications` listing (the renderer skips rows whose subject the recipient can no longer see)
 
 ### Requirement: Notifications page and unread count
-The Journal SHALL expose `/notifications` to signed-in users only. The page SHALL list the user's notifications reverse-chronological, with each row showing the actor's display name + handle, a type-specific summary line, the timestamp, and a clickable link to the relevant subject. The page SHALL paginate via opaque cursor (a `before` query parameter); when more rows exist past the current page, the page SHALL surface a "Load older" affordance that fetches the next page using the cursor. Page size defaults to 50 and is capped at 100. The navbar SHALL surface an unread count badge linking to `/notifications`; the count is `notifications.read_at IS NULL` for the current user. Logged-out visitors requesting `/notifications` SHALL be redirected to `/auth/login`. The live-update transport for the unread badge is `sse-broker` (`/api/events`); this spec only requires the badge to reflect the count.
+The Journal SHALL expose `/notifications` to signed-in users only. The page is the user's single inbox surface and SHALL render two tabs selectable via `?tab=`: **Activity** (default, the read-only event log) and **Requests** (the actionable list of incoming Pending follow requests with Approve / Reject controls — the same surface previously at `/follows/requests`, which now 301-redirects here). The Activity tab SHALL list notifications reverse-chronological with each row showing the actor's display name + handle, a type-specific summary line, the timestamp, and a clickable link to the relevant subject. The Activity tab SHALL paginate via opaque cursor (a `before` query parameter); when more rows exist past the current page, it SHALL surface a "Load older" affordance that fetches the next page using the cursor. Page size defaults to 50 and is capped at 100. The Requests tab SHALL list pending rows reverse-chronological by request creation time and SHALL render Approve / Reject buttons per row (delegated to `/api/follows/:id/approve|reject`). The navbar SHALL surface a single bell entry with an unread count badge linking to `/notifications`; the count is `notifications.read_at IS NULL` for the current user. The Requests tab itself SHALL render its own count indicator (the pending-request count, regardless of read state) so the user can see they still have action items even if the underlying notifications have been read. Logged-out visitors requesting `/notifications` (any tab) SHALL be redirected to `/auth/login`. The live-update transport for the unread badge is `sse-broker` (`/api/events`); this spec only requires the badge to reflect the count.
 
-#### Scenario: Logged-in user with notifications
-- **WHEN** a signed-in user with N notifications (N ≤ page size) loads `/notifications`
-- **THEN** the page lists all N rows reverse-chronological by `created_at`, with unread rows visually distinct from read rows
+#### Scenario: Logged-in user with notifications (Activity tab)
+- **WHEN** a signed-in user with N notifications (N ≤ page size) loads `/notifications` (or `/notifications?tab=activity`)
+- **THEN** the Activity tab is selected and lists all N rows reverse-chronological by `created_at`, with unread rows visually distinct from read rows
 
-#### Scenario: Logged-in user with no notifications
+#### Scenario: Logged-in user with no notifications (Activity tab)
 - **WHEN** a signed-in user with zero notifications loads `/notifications`
-- **THEN** the page renders an empty-state message
+- **THEN** the Activity tab renders an empty-state message; the Requests tab remains selectable
+
+#### Scenario: Logged-in user with pending follow requests (Requests tab)
+- **WHEN** a signed-in user with M Pending incoming follow requests loads `/notifications?tab=requests`
+- **THEN** the Requests tab is selected and lists all M rows reverse-chronological by request creation time, with Approve and Reject buttons per row
+
+#### Scenario: Logged-in user with no pending follow requests (Requests tab)
+- **WHEN** a signed-in user with zero pending requests loads `/notifications?tab=requests`
+- **THEN** the Requests tab renders the empty-state message
+
+#### Scenario: /follows/requests still resolves to the Requests tab
+- **WHEN** any visitor (anonymous or signed-in) requests `/follows/requests`
+- **THEN** the server responds with HTTP 301 to `/notifications?tab=requests`, preserving deep-links from existing notifications, emails, and external bookmarks
 
 #### Scenario: Anonymous request
-- **WHEN** an unauthenticated visitor requests `/notifications`
+- **WHEN** an unauthenticated visitor requests `/notifications` (any tab)
 - **THEN** they are redirected to `/auth/login`
 
 #### Scenario: Navbar badge reflects unread count
 - **WHEN** a signed-in user has K > 0 unread notifications
-- **THEN** the "Notifications" navbar entry renders with a count badge showing K
+- **THEN** the bell entry in the navbar renders with a count badge showing K
 - **AND** when K = 0, the entry renders without a badge
+
+#### Scenario: Requests tab badge reflects pending count regardless of read state
+- **WHEN** a signed-in user has M > 0 pending follow requests, even if all corresponding `follow_request_received` notifications have been read
+- **THEN** the Requests tab in the page header renders with a count badge showing M (the user still has actions to take)
+- **AND** when M = 0, the tab renders without a badge
 
 #### Scenario: Paginates older notifications via cursor
 - **WHEN** a signed-in user has more notifications than fit in one page and clicks "Load older"

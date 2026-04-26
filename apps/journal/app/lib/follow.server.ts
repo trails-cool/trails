@@ -38,7 +38,7 @@ async function loadFollowableTarget(targetUsername: string) {
  * Create a follow row from `followerId` to the local user with username
  * `targetUsername`. Public targets auto-accept (`accepted_at = now()`),
  * private (locked) targets land Pending (`accepted_at = NULL`) and
- * appear in the target's /follows/requests list for manual approval.
+ * appear in the target's Requests tab on /notifications for manual approval.
  * Idempotent: re-following keeps the existing row's state.
  */
 export async function followUser(followerId: string, targetUsername: string): Promise<FollowState> {
@@ -188,7 +188,8 @@ export interface FollowRequest {
 }
 
 /**
- * Pending incoming follow requests for `userId`. Used by /follows/requests.
+ * Pending incoming follow requests for `userId`. Drives the Requests tab
+ * on /notifications.
  * Reverse-chronological by request creation time.
  */
 export async function listPendingFollowRequests(userId: string): Promise<FollowRequest[]> {
@@ -285,7 +286,8 @@ const COLLECTION_PAGE_SIZE = 50;
 
 /**
  * Paginated list of accepted followers of `userId`. Newest acceptance first.
- * Pending requests are excluded — they live in /follows/requests.
+ * Pending requests are excluded — they live in the Requests tab on
+ * /notifications.
  */
 export async function listFollowers(userId: string, page: number = 1): Promise<CollectionEntry[]> {
   const db = getDb();

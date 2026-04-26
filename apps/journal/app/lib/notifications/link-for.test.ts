@@ -25,14 +25,14 @@ describe("linkFor", () => {
     expect(link.web).toBe("/");
   });
 
-  it("follow_request_received always points at the requests page", () => {
+  it("follow_request_received always points at the Requests tab on /notifications", () => {
     const link = linkFor({
       type: "follow_request_received",
       subjectId: null,
       payloadVersion: 1,
       payload: { followerUsername: "bob", followerDisplayName: null },
     });
-    expect(link.web).toBe("/follows/requests");
+    expect(link.web).toBe("/notifications?tab=requests");
   });
 
   it("follow_request_approved uses payload.targetUsername", () => {

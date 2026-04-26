@@ -63,36 +63,30 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
   }
 
-  // Pending follow-request count for the navbar badge. Cheap (a single
-  // `count(*) WHERE accepted_at IS NULL`); only computed for signed-in
-  // users. Hidden behind a dynamic import so the root layout doesn't
-  // pull in the follow module on anonymous renders.
-  let pendingFollowRequests = 0;
+  // Unread-notification count for the navbar bell badge. Pending follow
+  // requests are not separately counted here — each pending request
+  // creates an unread `follow_request_received` notification, so the
+  // unread count already covers them. Hidden behind a dynamic import so
+  // the root layout doesn't pull in the notifications module on
+  // anonymous renders.
   let unreadNotifications = 0;
   if (user) {
-    const { countPendingFollowRequests } = await import("./lib/follow.server.ts");
     const { countUnread } = await import("./lib/notifications.server.ts");
-    [pendingFollowRequests, unreadNotifications] = await Promise.all([
-      countPendingFollowRequests(user.id),
-      countUnread(user.id),
-    ]);
+    unreadNotifications = await countUnread(user.id);
   }
 
   return {
     user: user ? { id: user.id, username: user.username } : null,
     locale,
-    pendingFollowRequests,
     unreadNotifications,
   };
 }
 
 function NavBar({
   user,
-  pendingFollowRequests,
   unreadNotifications,
 }: {
   user: { id: string; username: string } | null;
-  pendingFollowRequests: number;
   unreadNotifications: number;
 }) {
   const { t } = useTranslation("journal");
@@ -163,18 +157,6 @@ function NavBar({
                 )}
               </Link>
               <Link
-                to="/follows/requests"
-                className={`relative ${linkClass("/follows/requests")}`}
-                title={t("social.requests.title")}
-              >
-                {t("social.requests.title")}
-                {pendingFollowRequests > 0 && (
-                  <span className="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
-                    {pendingFollowRequests}
-                  </span>
-                )}
-              </Link>
-              <Link
                 to={`/users/${user.username}`}
                 className={linkClass(`/users/${user.username}`)}
               >
@@ -214,7 +196,6 @@ function NavBar({
 export default function App({ loaderData }: Route.ComponentProps) {
   const user = loaderData?.user;
   const locale = loaderData?.locale ?? "en";
-  const pendingFollowRequests = loaderData?.pendingFollowRequests ?? 0;
   const unreadNotifications = loaderData?.unreadNotifications ?? 0;
   useEffect(() => {
     if (user) {
@@ -231,7 +212,6 @@ export default function App({ loaderData }: Route.ComponentProps) {
       <AlphaBanner />
       <NavBar
         user={user ?? null}
-        pendingFollowRequests={pendingFollowRequests}
         unreadNotifications={unreadNotifications}
       />
       <Outlet />
