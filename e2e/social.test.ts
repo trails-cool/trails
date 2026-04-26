@@ -46,9 +46,26 @@ test.describe("Social follows + /feed", () => {
     await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
   });
 
-  test("/follows/requests redirects anonymous visitors to login", async ({ page }) => {
+  test("/follows/requests redirects to /notifications?tab=requests", async ({ page, browser }) => {
+    // The route was folded into the Notifications page as a tab. The
+    // 301 still resolves; for anonymous visitors the notifications
+    // loader then redirects to /auth/login.
     await page.goto("/follows/requests");
     await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
+
+    // Signed-in visitors land on /notifications?tab=requests after the
+    // 301.
+    const cdp = await page.context().newCDPSession(page);
+    await setupVirtualAuthenticator(cdp);
+    const stamp = Date.now();
+    const ctx = await browser.newContext();
+    const p2 = await ctx.newPage();
+    const p2cdp = await p2.context().newCDPSession(p2);
+    await setupVirtualAuthenticator(p2cdp);
+    await registerUser(p2, `redir-${stamp}@example.com`, `redir${stamp}`);
+    await p2.goto("/follows/requests");
+    await expect(p2).toHaveURL(/\/notifications\?tab=requests/, { timeout: 10000 });
+    await ctx.close();
   });
 
   test("Follow button toggles state on a public profile", async ({ page, browser }) => {
@@ -123,8 +140,8 @@ test.describe("Social follows + /feed", () => {
     await page.getByRole("button", { name: /Request to follow/i }).click();
     await expect(page.getByRole("button", { name: /Requested/i })).toBeVisible({ timeout: 5000 });
 
-    // B sees the request in /follows/requests with badge in nav.
-    await bPage.goto("/follows/requests");
+    // B sees the request in the Requests tab on /notifications.
+    await bPage.goto("/notifications?tab=requests");
     await expect(bPage.getByText(`@${aUsername}`)).toBeVisible();
     await bPage.getByRole("button", { name: "Approve" }).click();
     // Empty state after approval. The text-visibility assertion below

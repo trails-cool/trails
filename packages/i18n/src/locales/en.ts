@@ -247,6 +247,10 @@ export default {
       markAllRead: "Mark all read",
       loadOlder: "Load older",
       someone: "Someone",
+      tabs: {
+        activity: "Activity",
+        requests: "Requests",
+      },
       summary: {
         followRequestReceived: "{{name}} requested to follow you",
         followReceived: "{{name}} started following you",
@@ -321,7 +325,7 @@ export default {
           public: "Public",
           publicHelp: "Anyone can view your profile and your public content. Follows auto-accept.",
           private: "Private (locked)",
-          privateHelp: "Visitors see a stub with a Request-to-follow button. Only accepted followers see your public content. You manage requests at /follows/requests.",
+          privateHelp: "Visitors see a stub with a Request-to-follow button. Only accepted followers see your public content. You manage requests in the Requests tab on /notifications.",
         },
       },
       security: {

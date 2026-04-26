@@ -247,6 +247,10 @@ export default {
       markAllRead: "Alle als gelesen markieren",
       loadOlder: "Ältere laden",
       someone: "Jemand",
+      tabs: {
+        activity: "Aktivität",
+        requests: "Anfragen",
+      },
       summary: {
         followRequestReceived: "{{name}} möchte dir folgen",
         followReceived: "{{name}} folgt dir jetzt",
@@ -321,7 +325,7 @@ export default {
           public: "Öffentlich",
           publicHelp: "Alle sehen dein Profil und deine öffentlichen Inhalte. Folge-Anfragen werden automatisch akzeptiert.",
           private: "Privat (gesperrt)",
-          privateHelp: "Besucher:innen sehen nur eine Hinweisseite mit Anfrage-Button. Nur akzeptierte Follower sehen deine öffentlichen Inhalte. Anfragen verwaltest du unter /follows/requests.",
+          privateHelp: "Besucher:innen sehen nur eine Hinweisseite mit Anfrage-Button. Nur akzeptierte Follower sehen deine öffentlichen Inhalte. Anfragen verwaltest du im Reiter „Anfragen“ unter /notifications.",
         },
       },
       security: {

@@ -102,9 +102,10 @@ test.describe("Notifications", () => {
     await page.getByRole("button", { name: /Request to follow/i }).click();
     await expect(page.getByRole("button", { name: /Requested/i })).toBeVisible({ timeout: 5000 });
 
-    // B approves the request. After the fetcher.Form revalidates, the
-    // empty-state copy replaces the request row.
-    await bPage.goto("/follows/requests");
+    // B approves the request from the Requests tab on /notifications.
+    // After the fetcher.Form revalidates, the empty-state copy
+    // replaces the request row.
+    await bPage.goto("/notifications?tab=requests");
     await bPage.getByRole("button", { name: "Approve" }).click();
     await expect(bPage.getByText(/No pending follow requests/i)).toBeVisible({ timeout: 10000 });
 

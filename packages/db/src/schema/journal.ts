@@ -38,7 +38,8 @@ export const users = journalSchema.table("users", {
   // Profile visibility / lock setting. `public` means anyone can view
   // the profile and follows auto-accept. `private` is Mastodon-style
   // locked: the profile renders a stub for non-followers, and follows
-  // require manual approval (Pending → Accepted via /follows/requests).
+  // require manual approval (Pending → Accepted via the Requests tab on
+  // /notifications).
   // New users default to `private` to match trails.cool's privacy-first
   // content defaults; existing users were backfilled to `public` by an
   // earlier migration so behavior didn't change for them.

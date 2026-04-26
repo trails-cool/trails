@@ -66,12 +66,16 @@ For signed-in users, the personal dashboard SHALL include a prominent link to th
 
 
 ### Requirement: Notifications entry in the navbar
-The navbar SHALL render a "Notifications" entry for signed-in users, linking to `/notifications`. It SHALL render an unread count badge when the user has at least one unread notification, and no badge when the count is zero. This entry SHALL be distinct from the existing "Follow requests" entry — they cover different categories (informational vs. actionable). The badge live-updates via `sse-broker`; the loader-driven count is the SSR baseline.
+The navbar SHALL render a single inbox entry — a bell icon — for signed-in users, linking to `/notifications`. It SHALL render an unread count badge when the user has at least one unread notification, and no badge when the count is zero. The badge live-updates via `sse-broker`; the loader-driven count is the SSR baseline. Follow-request actions (Approve / Reject) live as the Requests tab inside `/notifications` (see `notifications` spec); the navbar SHALL NOT render a separate "Follow requests" entry — the bell is the single inbox surface.
 
 #### Scenario: Signed-in user sees the entry
 - **WHEN** a signed-in user loads any page
-- **THEN** the navbar includes a "Notifications" link to `/notifications`, and a count badge if the user has unread rows
+- **THEN** the navbar includes a single bell entry linking to `/notifications`, and a count badge if the user has unread rows
 
 #### Scenario: Anonymous user does not see the entry
 - **WHEN** an unauthenticated visitor loads any page
-- **THEN** the navbar does not include the Notifications entry (the route requires authentication anyway)
+- **THEN** the navbar does not include the bell entry (the route requires authentication anyway)
+
+#### Scenario: No standalone Follow requests entry
+- **WHEN** a signed-in user with one or more pending follow requests loads any page
+- **THEN** the navbar does NOT render a separate "Follow requests" link; the bell's unread badge already counts the corresponding `follow_request_received` notifications, and the Requests tab inside `/notifications` is the actionable surface

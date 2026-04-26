@@ -27,15 +27,16 @@ export function linkFor(n: NotificationForLink): LinkBundle {
   switch (n.type) {
     case "follow_received":
     case "follow_request_received": {
-      // The actionable surface for a request lives at /follows/requests
-      // (where Approve/Reject is); a received auto-accept notification
-      // links to the new follower's profile. Both fall back to the
-      // payload's followerUsername if the actor account is gone.
+      // The actionable surface for a request lives in the Requests tab
+      // of /notifications (where Approve/Reject is); a received
+      // auto-accept notification links to the new follower's profile.
+      // Both fall back to the payload's followerUsername if the actor
+      // account is gone.
       const username =
         p && "followerUsername" in p ? p.followerUsername : null;
       const path =
         n.type === "follow_request_received"
-          ? "/follows/requests"
+          ? "/notifications?tab=requests"
           : username
           ? `/users/${username}`
           : "/";

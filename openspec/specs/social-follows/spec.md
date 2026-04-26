@@ -1,10 +1,10 @@
 # social-follows Specification
 
 ## Purpose
-Local social follow relationships between Journal users — the follow API, follower/following collections (with locked-account access rules), the Pending request lifecycle for private profiles, and the activity feed driven by accepted follows. Federation of follows across instances is out of scope here and lives in `social-federation`.
+Local social follow relationships between Journal users — the follow API, follower/following collections (with locked-account access rules), the Pending request lifecycle for private profiles, and the activity feed driven by accepted follows. The actionable inbox for incoming Pending requests lives as the Requests tab on `/notifications` (see `notifications` spec); this spec covers the lifecycle and the data model behind it. Federation of follows across instances is out of scope here and lives in `social-federation`.
 ## Requirements
 ### Requirement: Follow another user
-A signed-in user SHALL be able to follow another local user from a profile page. Public targets auto-accept (`accepted_at = now()`); private (locked) targets land in a Pending state (`accepted_at = NULL`) until the target approves the request from `/follows/requests`. Following remote ActivityPub actors is out of scope here and tracked in the `social-federation` change.
+A signed-in user SHALL be able to follow another local user from a profile page. Public targets auto-accept (`accepted_at = now()`); private (locked) targets land in a Pending state (`accepted_at = NULL`) until the target approves the request from the Requests tab on `/notifications`. Following remote ActivityPub actors is out of scope here and tracked in the `social-federation` change.
 
 #### Scenario: Follow a local public profile
 - **WHEN** a signed-in user clicks "Follow" on a local user with `profile_visibility = 'public'`
@@ -12,7 +12,7 @@ A signed-in user SHALL be able to follow another local user from a profile page.
 
 #### Scenario: Follow a local private (locked) profile
 - **WHEN** a signed-in user clicks "Request to follow" on a local user with `profile_visibility = 'private'`
-- **THEN** a follow row is recorded with `accepted_at = NULL`, the button becomes "Requested" (cancellable), the request appears in the target's `/follows/requests` page, and the target's follower count does NOT increment
+- **THEN** a follow row is recorded with `accepted_at = NULL`, the button becomes "Requested" (cancellable), the request appears in the target's Requests tab on `/notifications` (`/notifications?tab=requests`), and the target's follower count does NOT increment
 
 #### Scenario: Cannot follow yourself
 - **WHEN** a signed-in user attempts to follow their own profile
@@ -63,23 +63,23 @@ Every local user SHALL expose follower and following counts on their profile and
 - **THEN** the page lists the accepted relations in reverse-chronological order of acceptance, 50 per page
 
 ### Requirement: Pending follow request management
-A signed-in user SHALL have a dedicated `/follows/requests` page listing every Pending follow request targeting them (where `followed_user_id = currentUser.id` AND `accepted_at IS NULL`). The page SHALL provide Approve and Reject actions for each request. The navbar SHALL surface a count badge linking to this page when at least one request is pending.
+A signed-in user SHALL have an actionable surface listing every Pending follow request targeting them (where `followed_user_id = currentUser.id` AND `accepted_at IS NULL`), with Approve and Reject buttons per row. This surface lives as the Requests tab on `/notifications` (see `notifications` spec for the page-level behavior, including the tabbed layout and the per-tab pending-count indicator). The standalone `/follows/requests` URL is preserved as a 301 redirect to the new location so deep-links from prior notifications, emails, and bookmarks still resolve.
 
 #### Scenario: Owner sees their pending requests
-- **WHEN** a signed-in user with N Pending incoming requests loads `/follows/requests`
+- **WHEN** a signed-in user with N Pending incoming requests loads `/notifications?tab=requests`
 - **THEN** the page lists all N requests reverse-chronologically by request creation time, with Approve and Reject buttons per request
 
-#### Scenario: Empty requests page
-- **WHEN** a signed-in user with zero pending requests loads `/follows/requests`
-- **THEN** the page renders an empty-state message
+#### Scenario: Empty requests tab
+- **WHEN** a signed-in user with zero pending requests loads `/notifications?tab=requests`
+- **THEN** the tab renders an empty-state message
 
-#### Scenario: Anonymous visitor cannot access requests page
-- **WHEN** an unauthenticated visitor requests `/follows/requests`
+#### Scenario: Legacy URL redirects to the Requests tab
+- **WHEN** any visitor requests `/follows/requests`
+- **THEN** the server responds with HTTP 301 to `/notifications?tab=requests`
+
+#### Scenario: Anonymous visitor cannot reach the Requests tab
+- **WHEN** an unauthenticated visitor requests `/notifications?tab=requests` (or `/follows/requests`, which redirects there)
 - **THEN** they are redirected to `/auth/login`
-
-#### Scenario: Navbar badge reflects pending count
-- **WHEN** a signed-in user has N > 0 pending follow requests
-- **THEN** the "Follow requests" link in the navbar renders with a small red count badge of N; when N = 0 the link still renders but without a badge
 
 ### Requirement: Social activity feed
 The Journal SHALL expose a feed at `/feed`, visible only to signed-in users, listing public activities from the local users they follow with an accepted relation. `private` and `unlisted` activities SHALL NOT appear regardless of follow state. Pending follows SHALL NOT contribute content to the feed.
