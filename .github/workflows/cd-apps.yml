@@ -115,8 +115,16 @@ jobs:
             docker image prune -af
             docker compose ps
 
-            # Annotate deploy in Grafana
-            GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env | cut -d= -f2- 2>/dev/null)
+            # Annotate deploy in Grafana. GRAFANA_SERVICE_TOKEN lives
+            # in secrets.infra.env (decrypted by cd-infra.yml into the
+            # merged /opt/trails-cool/.env on the server). cd-apps's
+            # own app.env intentionally does NOT carry it — apps don't
+            # need it at runtime. So we read from the merged `.env`
+            # that cd-infra populated. If cd-infra has never run on
+            # this host, .env may not exist; the `2>/dev/null` and
+            # the `if -n` guard make the annotation a silent no-op
+            # rather than a deploy failure in that case.
+            GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env 2>/dev/null | cut -d= -f2-)
             if [ -n "$GRAFANA_TOKEN" ]; then
               docker compose exec -T grafana curl -sf -X POST \
                 -H "Authorization: Bearer $GRAFANA_TOKEN" \

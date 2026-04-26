@@ -206,6 +206,12 @@ groups:
         annotations:
           summary: "BRouter host metrics scrape has been failing for 2+ minutes — the dedicated host, vSwitch, or cAdvisor may be down"
 
+      # The threshold here is intentionally `> 0` for 2m — *any*
+      # sustained 502 stream is real. Deploy-time restarts no longer
+      # produce 502s thanks to `lb_try_duration` on Caddy's reverse
+      # proxy (see `infrastructure/Caddyfile`); if 502s appear here
+      # it means the upstream has been unreachable for longer than
+      # Caddy's retry window, which is a genuine outage.
       - uid: caddy-502-rate
         title: Caddy 502 errors detected
         condition: B
