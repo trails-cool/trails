@@ -111,6 +111,19 @@ jobs:
             # from the compose file, matching cd-infra's behaviour.
             docker compose --env-file app.env up -d --remove-orphans journal planner
 
+            # Reload Caddy with the Caddyfile we just scp'd. cd-apps
+            # ships infrastructure/Caddyfile alongside docker-compose.yml
+            # (see scp step above), but containers don't auto-pick-up
+            # config changes. cd-infra reloads Caddy as part of its
+            # deploy; cd-apps did NOT, which meant any Caddyfile change
+            # touching only `apps/`/`packages/` paths sat on disk
+            # unapplied until the next cd-infra run. The reload is
+            # idempotent (Caddy validates first, swaps live, no
+            # downtime) so doing it on every cd-apps deploy is safe
+            # even when Caddyfile is unchanged. `|| true` keeps the
+            # deploy from failing if Caddy itself is unhealthy.
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
+
             # Clean up
             docker image prune -af
             docker compose ps
