@@ -1,7 +1,8 @@
 # public-profiles Specification
 
 ## Purpose
-TBD - created by archiving change public-content-visibility. Update Purpose after archive.
+Profile pages at `/users/:username`, including the locked-account model (private profiles render a stub for non-followers), per-route visibility (`public` / `unlisted` / `private`) and the social-share metadata (Open Graph) that public pages emit. The drilldown collection routes (`/users/:username/followers` and `/users/:username/following`) and the access rule that gates them live in `social-follows` — this spec links to them but does not duplicate the rule.
+
 ## Requirements
 ### Requirement: Public profile page
 The Journal SHALL serve a profile page at `/users/:username` for any user who exists. The render SHALL depend on the viewer relationship to the profile owner:
@@ -9,7 +10,7 @@ The Journal SHALL serve a profile page at `/users/:username` for any user who ex
 - If the owner's `profile_visibility = 'public'`, render the full profile (display name, handle, follower/following counts, public routes, public activities) regardless of who is viewing.
 - If the owner's `profile_visibility = 'private'`, render a stub page (header + handle + counts + lock badge) for non-owner viewers who do NOT have an accepted follow relation. Render the full profile for the owner themselves and for accepted followers.
 
-The page SHALL display follower and following counts (always, regardless of stub vs. full). For signed-in viewers other than the owner, the page SHALL render a Follow button whose label depends on the relation: "Follow" against a public profile with no relation, "Request to follow" against a private profile with no relation, "Requested" (cancellable) when a Pending request exists, "Unfollow" when an accepted relation exists.
+The page SHALL display follower and following counts (always, regardless of stub vs. full). The counts SHALL link into `/users/:username/followers` and `/users/:username/following` only when the viewer is permitted to see the underlying lists (per `social-follows`); otherwise they render as plain text. For signed-in viewers other than the owner, the page SHALL render a Follow button whose label depends on the relation: "Follow" against a public profile with no relation, "Request to follow" against a private profile with no relation, "Requested" (cancellable) when a Pending request exists, "Unfollow" when an accepted relation exists.
 
 #### Scenario: Logged-out visitor views a public profile
 - **WHEN** an unauthenticated visitor navigates to `/users/:username` for a user whose `profile_visibility` is `public`
@@ -38,6 +39,10 @@ The page SHALL display follower and following counts (always, regardless of stub
 #### Scenario: Profile page emits social-share metadata
 - **WHEN** any visitor loads a populated `/users/:username` (full or stub)
 - **THEN** the page emits Open Graph tags (`og:title`, `og:site_name`, `og:type="profile"`) so links shared on social platforms render a meaningful preview
+
+#### Scenario: Counts degrade to plain text for viewers who can't see the lists
+- **WHEN** a viewer who is not permitted to see the followers/following lists per `social-follows` (e.g. an anonymous visitor or non-follower of a private profile) loads any profile page
+- **THEN** the follower and following counts render as plain text rather than as anchors, so the visible count doesn't surface a clickable link to a route that would 404
 
 ### Requirement: Profile visibility setting (locked accounts)
 Every user SHALL have an explicit `profile_visibility` of `public` or `private`. New accounts SHALL default to `private` (locked: profile is reachable but content is gated behind follow approval). Users SHALL be able to change their profile visibility from account settings at any time. `private` is functionally Mastodon's "locked" / "manually approves followers" — visitors see a stub with a Request-to-follow button, follows land in a Pending state, and content is only revealed to accepted followers.
