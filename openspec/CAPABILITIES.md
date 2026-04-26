@@ -22,6 +22,7 @@ When adding a new spec, slot it into the most relevant group below and update th
 
 - [`social-follows`](specs/social-follows/spec.md) — follow API, follower/following collections (with locked-account access rules), Pending request lifecycle, `/feed`.
 - [`activity-feed`](specs/activity-feed/spec.md) — the `/feed` aggregation behavior (note: also referenced from `social-follows`; this spec covers feed-specific concerns).
+- [`explore`](specs/explore/spec.md) — `/explore` page: paginated local user directory (public profiles only) ordered by recent public activity, plus an "Active recently" sub-section. Reachable to both signed-in users and anonymous visitors.
 
 ## Notifications & realtime
 
