@@ -1,7 +1,6 @@
-import { and, count, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, follows, users } from "@trails-cool/db/schema/journal";
-import { loadPersona } from "./demo-bot.server.ts";
 import { localActorIri } from "./actor-iri.ts";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -42,13 +41,11 @@ function clampPage(raw: number | undefined): number {
 }
 
 function exclusionFilters() {
-  // Public-only and not the demo persona. Banned/suspended users would
+  // Public-only. The demo persona IS included on /explore — its whole
+  // purpose is to give new users a follow target, and the per-row demo
+  // badge in the UI signals what it is. Banned/suspended users would
   // be filtered here too once such a status column exists — see design.md.
-  const persona = loadPersona();
-  return and(
-    eq(users.profileVisibility, "public"),
-    ne(users.username, persona.username),
-  );
+  return eq(users.profileVisibility, "public");
 }
 
 /**

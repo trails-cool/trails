@@ -80,12 +80,14 @@ describe.skipIf(!runIntegration)("explore.server integration", () => {
     expect(rows.find((r) => r.id === id)).toBeUndefined();
   });
 
-  it("demo persona is excluded from the directory", async () => {
+  it("demo persona is INCLUDED in the directory", async () => {
     const persona = loadPersona();
-    // Insert a user with the persona's username — should still be filtered out.
+    // Insert a user with the persona's username — should appear like any
+    // other public user. The /explore loader is responsible for the
+    // demo-badge tagging at render time, not the directory query.
     const id = await makeUser({ username: persona.username });
     const { rows } = await listDirectory({ page: 1, perPage: 50 });
-    expect(rows.find((r) => r.id === id)).toBeUndefined();
+    expect(rows.find((r) => r.id === id)).toBeDefined();
   });
 
   it("orders by most-recent public activity, NULLS LAST", async () => {

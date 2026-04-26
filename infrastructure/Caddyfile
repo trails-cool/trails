@@ -28,7 +28,17 @@
 		output stdout
 		format json
 	}
-	reverse_proxy journal:3000
+	reverse_proxy journal:3000 {
+		# During an `apps` deploy the journal container is briefly down
+		# (~10–30s) while compose swaps containers. Without these,
+		# Caddy returns 502 immediately and the `caddy-502-rate` alert
+		# trips on every deploy. With them, Caddy holds and retries
+		# against the upstream for up to 30s — restart becomes
+		# invisible to clients. A real outage longer than 30s still
+		# 502s and correctly trips the alert.
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
 }
 
 www.{$DOMAIN:trails.cool} {
@@ -53,5 +63,9 @@ planner.{$DOMAIN:trails.cool} {
 		output stdout
 		format json
 	}
-	reverse_proxy planner:3001
+	reverse_proxy planner:3001 {
+		# Same rationale as the journal block — see the comment there.
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
 }
