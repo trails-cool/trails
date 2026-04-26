@@ -1,8 +1,9 @@
 # Information Architecture Review
 
-*Snapshot date: 2026-04-26.* If the navbar, route table, or feed model has
-shifted since then, treat this doc as stale and refresh against
-`apps/journal/app/routes.ts` + `apps/journal/app/root.tsx`.
+*Snapshot date: 2026-04-26 (post-streams).* Streams A, B, C, D, E, F all
+shipped on 2026-04-26 (see backlog below for PR numbers). If the navbar,
+route table, or feed model has shifted since then, treat this doc as stale
+and refresh against `apps/journal/app/routes.ts` + `apps/journal/app/root.tsx`.
 
 To regenerate this doc (fresh or refresh), invoke the **`/ia-review`**
 skill — it walks the route tables + nav surfaces, builds the sitemap,
@@ -31,6 +32,7 @@ trails.cool ships two front-ends:
 
 ```
 /                              Anonymous home (hero + marketing + public feed)
+/explore                       Local user directory (also reachable to signed-in)
 /users/:username               Public profile (full or locked stub)
 /users/:username/followers     Followers list (404 on private profile)
 /users/:username/following     Following list (404 on private profile)
@@ -52,9 +54,10 @@ trails.cool ships two front-ends:
 
 ```
 /                              Personal dashboard ("your activities" stream)
-/feed                          Social feed (people you follow, accepted)
-/notifications                 Notifications log (4 event types, cursor paginated)
-/follows/requests              Incoming Pending follow requests inbox
+/feed                          Feed (Followed default, ?view=public for instance-wide)
+/explore                       Local user directory (also reachable to anonymous)
+/notifications                 Tabbed inbox: Activity (default) | ?tab=requests
+/follows/requests              301 → /notifications?tab=requests (legacy URL)
 
 /users/:username               Any profile (own, followed, or locked stub)
 /users/:username/followers     Gated by locked-account rule
@@ -69,7 +72,11 @@ trails.cool ships two front-ends:
 /activities/new                Create activity
 /activities/:id                View
 
-/settings                      Profile + email + passkeys + sync + danger zone
+/settings                      → /settings/profile (redirect)
+/settings/profile              Display name, bio, profile visibility
+/settings/account              Email + danger zone (delete account)
+/settings/security             Passkeys
+/settings/connections          Sync providers (Wahoo today)
 
 /sync/import/:provider         Wahoo import flow
 /auth/logout                   Logout
@@ -77,14 +84,21 @@ trails.cool ships two front-ends:
 
 ### Navigation surfaces
 
-**Top navbar (logged-in)** — in document order:
+**Top navbar (logged-in, desktop ≥ md)** — in document order:
 
 ```
-[trails.cool]   Feed   Routes   Activities   ...   🔔   Follow requests   <username>   Settings   Logout
-                                                  └─ unread badge        └─ pending badge
+[trails.cool]   Feed   Explore   Routes   Activities   ...   🔔     [Avatar ▾]
+                                                            └─ unread badge   └─ Profile / Settings / Log Out
 ```
 
-**Top navbar (logged-out):**
+**Top navbar (logged-in, mobile < md):**
+
+```
+[trails.cool]                                                ...   🔔   [☰]
+                                                                       └─ drawer with all destinations + account
+```
+
+**Top navbar (logged-out, all viewports):**
 
 ```
 [trails.cool]   ...   Login   [Register]
@@ -92,8 +106,9 @@ trails.cool ships two front-ends:
 
 **Footer (everywhere):** Imprint · Privacy · Terms · Source (GitHub) · "Alpha".
 
-**Profile self-link in nav** points to `/users/<self>`. There is no separate
-"My profile" route; you reach your own profile via your own username.
+**Profile self-link** is the avatar dropdown's first item (Profile →
+`/users/<self>`). There is no separate "My profile" route; you reach
+your own profile via your own username.
 
 ---
 
@@ -141,36 +156,40 @@ Implementation notes (for whoever picks this up):
 
 ---
 
-## Notifications vs follow requests
+## Notifications and follow requests (single inbox)
 
-Two adjacent inboxes, two navbar entries:
+Folded into `/notifications` as a tabbed page (Stream B, PR #316). One
+navbar entry — the bell — covers both surfaces:
 
-| | `/notifications` | `/follows/requests` |
+| Tab | URL | Purpose |
 |---|---|---|
-| Purpose | Read-only event log | Actionable Approve/Reject |
-| Types covered | follow_received, follow_request_received, follow_request_approved, activity_published | Only Pending follows targeting you |
-| Navbar surface | 🔔 icon + red unread badge | "Follow requests" text + red pending count |
-| State | `read_at` per row | None — Approve/Reject mutates the follow row |
+| **Activity** (default) | `/notifications` | Read-only event log: follow_received, follow_request_received, follow_request_approved, activity_published |
+| **Requests** | `/notifications?tab=requests` | Actionable list of Pending follow requests with Approve / Reject buttons |
 
-A `follow_request_received` notification points its "Review request" link at
-`/follows/requests`, so the two surfaces are explicitly cross-linked rather
-than merged. Mastodon makes the same split.
+The bell badge counts unread notifications (which already includes
+`follow_request_received` rows, so pending requests are reflected). The
+Requests tab shows an additional dot reflecting the *pending* count
+regardless of read state, so a user who's read the notification but
+hasn't acted yet still sees there's something to do. The legacy
+`/follows/requests` URL 301-redirects to the Requests tab.
 
 ---
 
 ## Settings
 
-`/settings` is a single scrollable page with five concerns stacked top to
-bottom:
+Split into four sub-pages behind a shared sidebar layout (Stream E,
+PR #323). `/settings` itself redirects to `/settings/profile`.
 
-1. Profile (display name, bio, profile visibility)
-2. Email change (with re-verification)
-3. Passkeys (list, add, delete)
-4. Connected services (Wahoo today, Strava/Garmin later)
-5. Danger zone (delete account)
+| URL | Concerns |
+|---|---|
+| `/settings/profile` | display name, bio, profile visibility |
+| `/settings/account` | email change + danger zone (delete account) |
+| `/settings/security` | passkeys |
+| `/settings/connections` | sync providers (Wahoo today) |
 
-Spec was recently split into three (`profile-settings`, `account-management`,
-`connected-services`) but the UI is still one page.
+Specs (`profile-settings`, `account-management`, `connected-services`)
+describe behavior, not URL structure — the URL split is a UI choice that
+doesn't change the requirements.
 
 ---
 
@@ -263,7 +282,7 @@ worth discussing before the navbar redesign locks in shapes:
 Decisions captured above translate into two work-streams. Items marked
 *needs decision* are blockers — confirm before starting that stream.
 
-### Stream A — Merge Social and Public feeds into `/feed`
+### Stream A — Merge Social and Public feeds into `/feed`  ✅ Shipped (PR #319)
 
 **Code changes:**
 
@@ -372,7 +391,7 @@ Requests tab is the actionable surface, the Activity tab is the log.
   in the navbar** requirement should clarify that this is the only
   inbox-style entry (no separate Follow requests entry).
 
-### Stream C — Navbar redesign
+### Stream C — Navbar redesign  ✅ Shipped (PR #324)
 
 **Scope (decided):**
 
@@ -394,7 +413,7 @@ Requests tab is the actionable surface, the Activity tab is the log.
   role (click → profile, dropdown chevron → menu), or does Profile live
   only inside the dropdown?
 
-### Stream D — Drop the redundant "Feed" button on logged-in `/`
+### Stream D — Drop the redundant "Feed" button on logged-in `/`  ✅ Shipped (PR #318)
 
 **Decision (2026-04-26):** logged-in `/` no longer needs a "Feed" button
 in the page header — the navbar entry is the single discoverable path.
@@ -411,7 +430,7 @@ in the page header — the navbar entry is the single discoverable path.
 
 Tiny PR, ~5 lines + a spec update.
 
-### Stream E — Break Settings apart
+### Stream E — Break Settings apart  ✅ Shipped (PR #323)
 
 **Decision (2026-04-26):** `/settings` becomes a sectioned area rather
 than a single scrollable page. Spec was already split into three
@@ -437,7 +456,7 @@ should follow.
 not URL structure. Whichever URL pattern wins, only `journal-landing`
 (or wherever the navbar currently sits) needs to know.
 
-### Stream F — Propose an `/explore` spec
+### Stream F — Propose an `/explore` spec  ✅ Shipped (proposal #320, implementation #321, archive/promote #322)
 
 **Decision (2026-04-26):** the gap between "I want to find people to
 follow" and "I have a username from outside" needs an in-app path.
