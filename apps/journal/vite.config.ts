@@ -49,6 +49,37 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    // Pre-transform the entry + every route at server startup so Vite
+    // discovers every dependency it'll ever need before the first
+    // browser request lands. Two real benefits:
+    //
+    // 1. Eliminates the `[vite] new dependencies optimized → reloading`
+    //    full page reload that otherwise fires on the *first* visit to
+    //    a route Vite hasn't seen yet. For everyday dev this reload is
+    //    a one-time blip; for batch operations (e.g. e2e runs hitting
+    //    many routes back-to-back on a fresh server) it's a real source
+    //    of flakiness.
+    //
+    // 2. Hydration is faster on first visit because the JS bundle is
+    //    already optimized, which incidentally narrows (but does NOT
+    //    fully close) a separate Playwright-vs-hydration race in the
+    //    auth e2e tests. That race is hydration-timing, not Vite
+    //    dep-discovery, and needs a different fix to fully resolve.
+    //
+    // Listing all route .tsx files via a glob keeps this future-proof
+    // — any new route added under app/routes/ is included automatically.
+    warmup: {
+      clientFiles: [
+        "./app/entry.client.tsx",
+        "./app/root.tsx",
+        // Page routes only (.tsx). The .ts handlers under routes/ are
+        // server-only API endpoints that import `*.server.ts` modules
+        // — Vite refuses to transform those for the client and prints
+        // "Server-only module referenced by client" if you include them.
+        // Page components alone are enough to drive dep discovery.
+        "./app/routes/**/*.tsx",
+      ],
+    },
     // Force HTTP/1.1 over TLS in HTTPS dev. Vite v8 starts an
     // `http2.createSecureServer({ allowHTTP1: true })` for any HTTPS
     // config, so ALPN negotiates h2 by default. That breaks
