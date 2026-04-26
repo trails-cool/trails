@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useLocation, Form, Link, redirect } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useLocation, Link, redirect } from "react-router";
 import type { LinksFunction } from "react-router";
 import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
@@ -10,6 +10,8 @@ import { LocaleProvider } from "~/components/LocaleContext";
 import { AlphaBanner } from "~/components/AlphaBanner";
 import { useUnreadNotifications } from "~/hooks/useUnreadNotifications";
 import { Footer } from "~/components/Footer";
+import { AccountDropdown } from "~/components/AccountDropdown";
+import { MobileNavMenu } from "~/components/MobileNavMenu";
 import { initSentryClient, stopSentryClient } from "~/lib/sentry.client";
 import { TERMS_VERSION } from "~/lib/legal";
 import stylesheet from "@trails-cool/ui/styles.css?url";
@@ -76,17 +78,51 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return {
-    user: user ? { id: user.id, username: user.username } : null,
+    user: user
+      ? { id: user.id, username: user.username, displayName: user.displayName }
+      : null,
     locale,
     unreadNotifications,
   };
+}
+
+function BellLink({ unread, label }: { unread: number; label: string }) {
+  return (
+    <Link
+      to="/notifications"
+      className="relative inline-flex items-center text-gray-600 hover:text-gray-900"
+      aria-label={label}
+      title={label}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.75}
+        stroke="currentColor"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+        />
+      </svg>
+      {unread > 0 && (
+        <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+          {unread}
+        </span>
+      )}
+    </Link>
+  );
 }
 
 function NavBar({
   user,
   unreadNotifications,
 }: {
-  user: { id: string; username: string } | null;
+  user: { id: string; username: string; displayName: string | null } | null;
   unreadNotifications: number;
 }) {
   const { t } = useTranslation("journal");
@@ -100,20 +136,19 @@ function NavBar({
 
   const linkClass = (path: string) =>
     `text-sm font-medium ${
-      isActive(path)
-        ? "text-blue-600"
-        : "text-gray-600 hover:text-gray-900"
+      isActive(path) ? "text-blue-600" : "text-gray-600 hover:text-gray-900"
     }`;
 
   return (
     <nav className="border-b border-gray-200 bg-white px-4 py-2">
-      <div className="mx-auto flex max-w-6xl items-center justify-between">
-        <div className="flex items-center gap-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+        {/* Brand + (desktop-only) primary nav */}
+        <div className="flex min-w-0 items-center gap-6">
           <Link to="/" className="text-lg font-semibold text-gray-900">
             {t("title")}
           </Link>
           {user && (
-            <>
+            <div className="hidden items-center gap-6 md:flex">
               <Link to="/feed" className={linkClass("/feed")}>
                 {t("social.feed.title")}
               </Link>
@@ -126,56 +161,30 @@ function NavBar({
               <Link to="/activities" className={linkClass("/activities")}>
                 {t("nav.activities")}
               </Link>
-            </>
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-4">
+
+        {/* Right-side cluster */}
+        <div className="flex items-center gap-3">
           {user ? (
             <>
-              <Link
-                to="/notifications"
-                className={`relative inline-flex items-center ${linkClass("/notifications")}`}
-                aria-label={t("notifications.title")}
-                title={t("notifications.title")}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.75}
-                  stroke="currentColor"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-                  />
-                </svg>
-                {liveUnread > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
-                    {liveUnread}
-                  </span>
-                )}
-              </Link>
-              <Link
-                to={`/users/${user.username}`}
-                className={linkClass(`/users/${user.username}`)}
-              >
-                {user.username}
-              </Link>
-              <Link to="/settings" className={linkClass("/settings")}>
-                {t("nav.settings")}
-              </Link>
-              <Form method="post" action="/auth/logout">
-                <button
-                  type="submit"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
-                >
-                  {t("nav.logout")}
-                </button>
-              </Form>
+              {/* Bell shows on every viewport size */}
+              <BellLink unread={liveUnread} label={t("notifications.title")} />
+
+              {/* Desktop: avatar dropdown */}
+              <div className="hidden md:block">
+                <AccountDropdown
+                  user={{ username: user.username, displayName: user.displayName }}
+                />
+              </div>
+
+              {/* Mobile: hamburger drawer */}
+              <div className="md:hidden">
+                <MobileNavMenu
+                  user={{ username: user.username, displayName: user.displayName }}
+                />
+              </div>
             </>
           ) : (
             <>

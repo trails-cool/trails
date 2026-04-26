@@ -398,6 +398,8 @@ export default {
       profile: "Profile",
       settings: "Settings",
       logout: "Log Out",
+      openMenu: "Open menu",
+      closeMenu: "Close menu",
     },
     explore: {
       heading: "Explore",

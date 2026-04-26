@@ -139,18 +139,22 @@ test.describe("Account Settings", () => {
     await removeVirtualAuthenticator(cdp, authenticatorId);
   });
 
-  test("settings link visible in nav when logged in", async ({ page }) => {
+  test("settings link reachable from nav when logged in", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    await registerAndLogin(page, cdp);
+    const { username } = await registerAndLogin(page, cdp);
 
-    await expect(page.getByRole("navigation").getByRole("link", { name: "Settings" })).toBeVisible();
+    // Settings now lives inside the avatar dropdown; opening the
+    // dropdown reveals the menuitem.
+    await page.getByRole("navigation").getByRole("button", { name: username }).click();
+    await expect(page.getByRole("menuitem", { name: "Settings" })).toBeVisible();
 
     await removeVirtualAuthenticator(cdp, authenticatorId);
   });
 
   test("settings link not visible when logged out", async ({ page }) => {
     await page.goto("/");
+    // Anonymous navbar has neither the avatar nor the Settings link.
     await expect(page.getByRole("navigation").getByRole("link", { name: "Settings" })).not.toBeVisible();
   });
 
