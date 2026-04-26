@@ -13,7 +13,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "pg-boss": "^12.0.0"
+    "pg-boss": "^12.18.0"
   },
   "devDependencies": {
     "@types/node": "catalog:"
