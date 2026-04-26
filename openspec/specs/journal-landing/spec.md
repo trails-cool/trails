@@ -53,18 +53,6 @@ For signed-in users, the home page SHALL render a personal activity dashboard: a
 - **WHEN** a signed-in user has no activities yet
 - **THEN** the dashboard shows an empty-state message pointing to activity creation, while the welcome line and New Activity CTA remain visible
 
-### Requirement: Social feed link for signed-in users
-For signed-in users, the personal dashboard SHALL include a prominent link to the social feed at `/feed` (see `social-follows` spec, "Social activity feed") alongside the existing "New Activity" CTA. The link SHALL be visible regardless of whether the user follows anyone yet — the social feed's own empty state handles the zero-follows case.
-
-#### Scenario: Feed link on personal dashboard
-- **WHEN** a signed-in user loads `/`
-- **THEN** the dashboard header shows a "Feed" (or equivalent) link to `/feed` next to the "New Activity" CTA
-
-#### Scenario: Feed link is not shown to signed-out visitors
-- **WHEN** an unauthenticated visitor loads `/`
-- **THEN** the visitor-home layout does not expose a link to `/feed` (the route requires authentication)
-
-
 ### Requirement: Notifications entry in the navbar
 The navbar SHALL render a single inbox entry — a bell icon — for signed-in users, linking to `/notifications`. It SHALL render an unread count badge when the user has at least one unread notification, and no badge when the count is zero. The badge live-updates via `sse-broker`; the loader-driven count is the SSR baseline. Follow-request actions (Approve / Reject) live as the Requests tab inside `/notifications` (see `notifications` spec); the navbar SHALL NOT render a separate "Follow requests" entry — the bell is the single inbox surface.
 
