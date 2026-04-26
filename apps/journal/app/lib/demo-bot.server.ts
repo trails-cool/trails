@@ -80,6 +80,7 @@ export const DEFAULT_PERSONA: DemoPersona = Object.freeze<DemoPersona>({
   content: {
     names: {
       en: [
+        // Original Bruno-the-park-inspector roster
         "Grunewald north-loop patrol",
         "Tiergarten perimeter audit",
         "Tempelhof runway inspection",
@@ -92,8 +93,37 @@ export const DEFAULT_PERSONA: DemoPersona = Object.freeze<DemoPersona>({
         "Tennis ball reconnaissance",
         "Pretzel-crumb cleanup detail",
         "Bruno vs. the pigeons",
+        // More Berlin neighborhoods
+        "Mauerpark Sunday compliance walk",
+        "Görlitzer Park: known incidents follow-up",
+        "Treptower Park waterfront inquiry",
+        "Hasenheide irregularities review",
+        "Charlottenburg statue patrol",
+        "Viktoriapark summit assessment",
+        "Friedrichshain east-end sweep",
+        "Boxhagener flea-market reconnaissance",
+        "Wedding canal-side audit",
+        "Prenzlauer Berg playground inspection",
+        // Time-of-day variants
+        "Pre-breakfast investigative loop",
+        "Post-lunch dignity walk",
+        "Late-night ambient sniff",
+        "Twilight pigeon survey",
+        // Bureaucratic-deadpan
+        "Quarterly bush audit, Schöneberg branch",
+        "Cross-functional squirrel summit",
+        "Annual review: leaf situation",
+        "Briefing: tennis ball protocol updates",
+        "Field test: new harness",
+        // Specific events / one-offs
+        "Special operation: lost glove",
+        "Investigation: who left this baguette",
+        "Inter-park diplomatic mission",
+        "Currywurst stand perimeter check",
+        "Bruno briefly considered the lake",
       ],
       de: [
+        // Original
         "Grunewald-Nordschleife-Patrouille",
         "Tiergarten-Umfangsprüfung",
         "Tempelhof-Startbahn-Inspektion",
@@ -106,10 +136,39 @@ export const DEFAULT_PERSONA: DemoPersona = Object.freeze<DemoPersona>({
         "Tennisball-Aufklärung",
         "Brezel-Krümel-Aufräumdienst",
         "Bruno gegen die Tauben",
+        // More Berlin neighborhoods
+        "Mauerpark-Sonntagskontrolle",
+        "Görlitzer Park: bekannte Vorfälle, Folgetermin",
+        "Treptower-Park-Uferprüfung",
+        "Hasenheide-Unregelmäßigkeiten",
+        "Charlottenburg-Statuenrunde",
+        "Viktoriapark-Gipfelinspektion",
+        "Friedrichshain-Ostseite-Durchgang",
+        "Boxhagener Flohmarkt-Aufklärung",
+        "Wedding-Kanalrunde",
+        "Prenzlauer Berg-Spielplatz-Inspektion",
+        // Time-of-day variants
+        "Vor-Frühstücks-Ermittlungsschleife",
+        "Würderunde nach dem Mittag",
+        "Spätabendliches Ambient-Schnüffeln",
+        "Dämmerungs-Taubenkontrolle",
+        // Bureaucratic-deadpan
+        "Quartalsbuschprüfung, Filiale Schöneberg",
+        "Funktionsübergreifender Eichhörnchen-Gipfel",
+        "Jahresbericht: Blätterlage",
+        "Briefing: aktualisiertes Tennisballprotokoll",
+        "Feldtest: neues Geschirr",
+        // Specific events / one-offs
+        "Sondereinsatz: verlorener Handschuh",
+        "Ermittlung: wer hat das Baguette liegen gelassen",
+        "Interparkische diplomatische Mission",
+        "Currywurst-Bude-Umkreissuche",
+        "Bruno hat kurz den See in Erwägung gezogen",
       ],
     },
     descriptions: {
       en: [
+        // Original
         "Inspected several bushes. All present and accounted for.",
         "Three squirrels successfully monitored. Two got away.",
         "Good sticks: 2. Great sticks: 1. Excellent sticks: 0.",
@@ -120,8 +179,34 @@ export const DEFAULT_PERSONA: DemoPersona = Object.freeze<DemoPersona>({
         "Finished the route ahead of schedule. Extra treats expected.",
         "Investigated one suspicious paper bag. False alarm.",
         "Logged one (1) successful puddle inspection.",
+        // Field-report flavor
+        "Perimeter secure. Mood: tactical.",
+        "Briefly mistaken for a smaller dog. Reputation restored within 30 seconds.",
+        "Two leaves of interest. One required additional sniffing.",
+        "Successfully ignored one bicycle bell.",
+        "Greeted seven (7) humans. Three returned the gesture.",
+        "Discovered a new puddle. Filed under: assets.",
+        // Wildlife encounters
+        "Squirrel made eye contact. Negotiations ongoing.",
+        "Encountered a leashed cat. Status: confused but respectful.",
+        "Heard distant fireworks. Posture: brave.",
+        "One duck observed at safe distance. Coexistence achieved.",
+        // Stick + ball lore
+        "Stick acquired. Stick relinquished. Stick re-acquired.",
+        "Located the same tennis ball as yesterday. Filing under: recurring asset.",
+        "Considered carrying a larger stick. Settled for two medium ones.",
+        // Self-aware moments
+        "Decided against the third loop. Dignity intact.",
+        "Confirmed: the bench is still there.",
+        "Park bench occupancy: nominal.",
+        "Pawprints on the kitchen floor: regrettable.",
+        "Got distracted by a leaf around minute 14. No further comment.",
+        // Berlin weather
+        "Rain commenced at minute 12. Coat: damp but professional.",
+        "Berlin drizzle. Standard operating posture.",
       ],
       de: [
+        // Original
         "Mehrere Büsche inspiziert. Alle vorhanden.",
         "Drei Eichhörnchen erfolgreich beobachtet. Zwei entkommen.",
         "Gute Stöcke: 2. Großartige Stöcke: 1. Exzellente Stöcke: 0.",
@@ -132,6 +217,31 @@ export const DEFAULT_PERSONA: DemoPersona = Object.freeze<DemoPersona>({
         "Route vor dem Zeitplan abgeschlossen. Zusätzliche Leckerlis erwartet.",
         "Eine verdächtige Papiertüte untersucht. Fehlalarm.",
         "Eine (1) erfolgreiche Pfützen-Inspektion protokolliert.",
+        // Field-report flavor
+        "Perimeter gesichert. Stimmung: taktisch.",
+        "Kurz mit einem kleineren Hund verwechselt. Ruf binnen 30 Sekunden wiederhergestellt.",
+        "Zwei interessante Blätter. Eines erforderte zusätzliches Schnüffeln.",
+        "Erfolgreich eine Fahrradklingel ignoriert.",
+        "Sieben (7) Menschen begrüßt. Drei haben die Geste erwidert.",
+        "Eine neue Pfütze entdeckt. Vermerkt als: Vermögenswert.",
+        // Wildlife encounters
+        "Eichhörnchen hat Blickkontakt aufgenommen. Verhandlungen laufen.",
+        "Eine angeleinte Katze getroffen. Status: verwirrt aber respektvoll.",
+        "Entferntes Feuerwerk vernommen. Haltung: tapfer.",
+        "Eine Ente in sicherer Entfernung beobachtet. Koexistenz erreicht.",
+        // Stick + ball lore
+        "Stock erworben. Stock abgegeben. Stock erneut erworben.",
+        "Denselben Tennisball wie gestern lokalisiert. Vermerkt als: wiederkehrender Vermögenswert.",
+        "Einen größeren Stock erwogen. Auf zwei mittelgroße geeinigt.",
+        // Self-aware moments
+        "Gegen die dritte Runde entschieden. Würde unangetastet.",
+        "Bestätigt: die Bank steht noch.",
+        "Bank-Belegung: regulär.",
+        "Pfotenabdrücke auf dem Küchenboden: bedauerlich.",
+        "Bei Minute 14 von einem Blatt abgelenkt. Kein weiterer Kommentar.",
+        // Berlin weather
+        "Regen ab Minute 12. Mantel: feucht aber professionell.",
+        "Berliner Schmuddelwetter. Standardhaltung im Einsatz.",
       ],
     },
   },
