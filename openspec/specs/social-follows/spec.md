@@ -1,7 +1,7 @@
 # social-follows Specification
 
 ## Purpose
-TBD - created by archiving change social-feed. Update Purpose after archive.
+Local social follow relationships between Journal users — the follow API, follower/following collections (with locked-account access rules), the Pending request lifecycle for private profiles, and the activity feed driven by accepted follows. Federation of follows across instances is out of scope here and lives in `social-federation`.
 ## Requirements
 ### Requirement: Follow another user
 A signed-in user SHALL be able to follow another local user from a profile page. Public targets auto-accept (`accepted_at = now()`); private (locked) targets land in a Pending state (`accepted_at = NULL`) until the target approves the request from `/follows/requests`. Following remote ActivityPub actors is out of scope here and tracked in the `social-federation` change.
@@ -35,14 +35,31 @@ A signed-in user SHALL be able to follow another local user from a profile page.
 - **THEN** the API returns 404 (no leak of who the row targets) and the row state is unchanged
 
 ### Requirement: Follower and following collections
-Every local user SHALL expose follower and following counts on their profile and paginated collection pages, listing only **accepted** relations. Pending requests do not count toward the public tallies.
+Every local user SHALL expose follower and following counts on their profile and paginated collection pages, listing only **accepted** relations. Pending requests do not count toward the public tallies. The collection pages themselves SHALL be access-gated under the locked-account model: only the owner, accepted followers, and viewers of public profiles can drill into the list. Counts remain visible to everyone (Mastodon-equivalent surface), but the underlying list of usernames is gated.
 
-#### Scenario: Follower count on profile
+#### Scenario: Follower count on profile (always visible)
 - **WHEN** any visitor loads a profile (public or private stub)
-- **THEN** the page displays the follower and following counts of accepted relations, linking to paginated `/users/:username/followers` and `/users/:username/following` pages
+- **THEN** the page displays the follower and following counts of accepted relations
+- **AND** the counts link to the paginated `/users/:username/followers` and `/users/:username/following` pages when the viewer is permitted to see the lists; otherwise the counts render as plain text without links
+
+#### Scenario: Owner sees their own list
+- **WHEN** the profile owner loads `/users/:username/followers` or `/users/:username/following` for their own username
+- **THEN** the page renders the list regardless of their `profile_visibility` setting
+
+#### Scenario: Public profile list is reachable by anyone
+- **WHEN** any visitor (anonymous or signed-in) loads `/users/:username/followers` or `/users/:username/following` for a user with `profile_visibility = 'public'`
+- **THEN** the page renders the list
+
+#### Scenario: Private profile list visible to accepted followers
+- **WHEN** a signed-in user with an accepted follow relation against a private user loads that user's `/followers` or `/following` page
+- **THEN** the page renders the list
+
+#### Scenario: Private profile list is 404 for non-followers
+- **WHEN** a visitor (anonymous, or signed-in but with no follow row, or with a Pending follow row) loads `/users/:username/followers` or `/users/:username/following` for a private user
+- **THEN** the server responds with HTTP 404 — the same opaque response a stranger would see, with no leak of the user's existence beyond what the profile route already exposes
 
 #### Scenario: Collection pagination
-- **WHEN** a visitor loads `/users/:username/followers` or `/users/:username/following`
+- **WHEN** a visitor permitted to see the list loads `/users/:username/followers` or `/users/:username/following`
 - **THEN** the page lists the accepted relations in reverse-chronological order of acceptance, 50 per page
 
 ### Requirement: Pending follow request management
@@ -94,3 +111,31 @@ The `follows` table SHALL key the followed side by an `actor_iri TEXT` column (n
 - **WHEN** any local follow row is created against a private target in this change
 - **THEN** `accepted_at` is set to `NULL`; against a public target it is set to `now()`. Federation's remote-Pending state lands here without schema change
 
+
+### Requirement: Follow lifecycle emits notifications
+The follow lifecycle SHALL produce notifications for the recipient of the social event (see `notifications` spec for the row shape):
+
+- Auto-accepted public follow → `follow_received` to the followed user.
+- Pending follow against a private profile → `follow_request_received` to the followed user.
+- Approved Pending request → `follow_request_approved` to the follower (now accepted).
+- Reject and unfollow do NOT produce notifications.
+
+#### Scenario: Public auto-accept notifies the target
+- **WHEN** a user follows another user whose `profile_visibility = 'public'` (auto-accept path)
+- **THEN** a `follow_received` notification is created for the followed user
+
+#### Scenario: Pending request notifies the target
+- **WHEN** a user requests to follow another user whose `profile_visibility = 'private'`
+- **THEN** a `follow_request_received` notification is created for the followed user (the historical record persists even if the request is later rejected or canceled)
+
+#### Scenario: Approval notifies the requester
+- **WHEN** a private user approves a Pending follow request
+- **THEN** a `follow_request_approved` notification is created for the follower
+
+#### Scenario: Reject does not notify
+- **WHEN** a private user rejects a Pending follow request
+- **THEN** no notification is created (silent rejection — the follower can re-request later if they want)
+
+#### Scenario: Unfollow does not notify
+- **WHEN** a follower unfollows or cancels a Pending request
+- **THEN** no notification is created on the followed side

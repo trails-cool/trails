@@ -1,16 +1,20 @@
-## Purpose
+# journal-auth Specification
 
-Authentication for the Journal app, including OAuth token storage for external services in the sync_connections table.
+## Purpose
+Session management and the terms-of-service consent gate for the Journal app. The credentials a user authenticates with (passkeys, magic links, magic codes) and the registration UX live in `authentication-methods`; OAuth tokens for third-party services (Wahoo etc.) live in `connected-services`. This spec is the cross-cutting layer: cookie sessions, the Terms-version gate that wraps every authenticated request, and the rules for safely returning users to where they came from.
 
 ## Requirements
 
-### Requirement: Store external service tokens
-The journal auth system SHALL store OAuth tokens for external services alongside user credentials.
+### Requirement: Cookie session for signed-in users
+The Journal SHALL identify signed-in users via a server-set HTTP cookie (`__session`) that carries a serialized JSON payload containing `userId`. The cookie SHALL be `HttpOnly`, `SameSite=Lax`, signed with the server secret, and have a finite max-age. Anonymous browsers SHALL render the public surface (anonymous home, public profiles, public routes/activities) without a session cookie present.
 
-#### Scenario: Wahoo token storage
-- **WHEN** a user connects their Wahoo account
-- **THEN** access token, refresh token, expiry time, and Wahoo user ID are stored in the `wahoo_tokens` table
-- **AND** tokens are associated with the journal user ID
+#### Scenario: Set cookie on successful authentication
+- **WHEN** any authentication path (passkey finish, magic-link verify, code verify) succeeds
+- **THEN** the response carries a `Set-Cookie: __session=...` header binding the resulting `userId` to the browser
+
+#### Scenario: Anonymous request renders public surface
+- **WHEN** a request arrives without `__session` (or with one that fails to verify)
+- **THEN** loaders treat the request as anonymous; routes that require auth either redirect to `/auth/login` or render the public layout per their own spec
 
 ### Requirement: Terms acknowledgement at signup
 The registration form SHALL require explicit acknowledgement of the Terms of Service before an account can be created.
