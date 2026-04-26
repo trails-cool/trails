@@ -68,6 +68,40 @@ pnpm db:push          # Push Drizzle schema to local PostgreSQL
 pnpm db:studio        # Open Drizzle Studio (DB browser)
 ```
 
+### Local HTTPS dev (rare — most contributors never need this)
+
+The default dev loop runs the journal on plain HTTP at
+`http://localhost:3000`. WebAuthn passkeys, magic links, sessions, the
+Terms gate, SSE — everything works over HTTP because the WebAuthn spec
+treats `localhost` as a secure context regardless of scheme. CI's e2e
+suite runs over plain HTTP too.
+
+There is exactly one feature that requires local HTTPS: **Wahoo OAuth**.
+Wahoo (and most OAuth providers) reject `http://` redirect URIs, so the
+`/api/sync/connect/wahoo` callback flow can only complete against an
+HTTPS dev server. To run that flow:
+
+```bash
+HTTPS=1 ORIGIN=https://localhost:3000 pnpm --filter @trails-cool/journal dev
+```
+
+`HTTPS=1` enables the `@vitejs/plugin-basic-ssl` cert + the ALPN
+HTTP/1.1 workaround in `apps/journal/vite.config.ts`. `ORIGIN` makes the
+WebAuthn server expect the HTTPS origin (set this together with HTTPS=1
+or you'll get origin-mismatch errors). Use `pnpm --filter` (not
+`pnpm dev`) because turbo doesn't pass `HTTPS` through unless added to
+its `globalPassThroughEnv` — `pnpm --filter` bypasses turbo entirely.
+
+**Don't set `ORIGIN=https://localhost:3000` in your `apps/journal/.env`
+unless you intend to always run with `HTTPS=1`.** Mismatched values
+break the e2e suite and generic dev. See
+`apps/journal/.env.example` for what each var means.
+
+If you find yourself wanting `HTTPS=1` for any reason other than Wahoo
+testing, write it down here so the assumption stays auditable —
+"everything but Wahoo works over HTTP locally" is what keeps CI and
+local config symmetric.
+
 ## Testing Strategy
 
 - **Unit tests** (Vitest + jsdom): For packages, components, utilities, and app logic.
