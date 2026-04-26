@@ -168,6 +168,7 @@ export default {
       tryPlannerPrefix: "Oder ",
       tryPlannerLink: "öffne den Planer ohne Konto",
       tryPlannerSuffix: " →",
+      exploreLink: "Wer ist hier? →",
       marketing: {
         planner: {
           title: "Routen gemeinsam planen",
@@ -385,11 +386,22 @@ export default {
     nav: {
       routes: "Routen",
       activities: "Aktivitäten",
+      explore: "Entdecken",
       login: "Anmelden",
       register: "Registrieren",
       profile: "Profil",
       settings: "Einstellungen",
       logout: "Abmelden",
+    },
+    explore: {
+      heading: "Entdecken",
+      empty: "Auf dieser Instanz hat noch niemand ein öffentliches Profil.",
+      activeRecently: {
+        heading: "Kürzlich aktiv",
+      },
+      directory: {
+        heading: "Alle",
+      },
     },
     alpha: {
       message: "trails.cool befindet sich in früher Entwicklung — deine Daten können zurückgesetzt werden.",

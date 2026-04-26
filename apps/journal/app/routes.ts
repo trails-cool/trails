@@ -31,6 +31,7 @@ export default [
   route("api/follows/:id/approve", "routes/api.follows.$id.approve.ts"),
   route("api/follows/:id/reject", "routes/api.follows.$id.reject.ts"),
   route("feed", "routes/feed.tsx"),
+  route("explore", "routes/explore.tsx"),
   route("api/events", "routes/api.events.ts"),
   route("notifications", "routes/notifications.tsx"),
   route("api/notifications/:id/read", "routes/api.notifications.$id.read.ts"),
