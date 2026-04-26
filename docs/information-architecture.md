@@ -4,6 +4,12 @@
 shifted since then, treat this doc as stale and refresh against
 `apps/journal/app/routes.ts` + `apps/journal/app/root.tsx`.
 
+To regenerate this doc (fresh or refresh), invoke the **`/ia-review`**
+skill — it walks the route tables + nav surfaces, builds the sitemap,
+flags drift since this snapshot, and preserves the decisions/backlog
+already captured below. The companion **`/spec-drift-review`** skill
+does the equivalent for `openspec/specs/` against shipped code.
+
 A snapshot of where every page lives, who sees it, and how visitors navigate
 between them. Intended for review — flag anything that doesn't make sense or
 should change.
@@ -200,44 +206,42 @@ each is a deliberate IA choice that's worth confirming.
 1. **`/` is two different products.** Logged-in `/` is "your stuff," logged-out
    `/` is "the instance." Discoverable? Or should logged-in `/` keep showing
    *something* of the public surface (e.g., a "Discover" tab)?
+   *Status: open — not sure yet if this needs resolving.*
 
 2. ~~**Signed-in users can't see the public instance feed.**~~ *Resolved:
    merged into `/feed` with a Followed / Public toggle (see above).*
 
-3. **The navbar's account cluster is busy.** `<username>` + `Settings` + `Logout`
-   is three controls for the same concept. Already on the redesign list —
-   collapsing into an avatar dropdown is the natural fix.
+3. ~~**The navbar's account cluster is busy.**~~ *Folded into Stream C
+   (navbar redesign): regroup the cluster behind an avatar dropdown.*
 
-4. **`/feed` is reachable from both the navbar AND a button on the home page.**
-   The button on logged-in `/` (currently labelled "Feed") is mildly redundant
-   with the navbar entry. Worth keeping if Personal and Followed feel like
-   separate destinations; worth dropping if the navbar's "Feed" link is
-   obvious enough on its own.
+4. ~~**`/feed` is reachable from both the navbar AND a button on the home
+   page.**~~ *Decision: drop the button on logged-in `/` — the navbar
+   entry is enough. See Stream D.*
 
-5. **🔔 vs "Follow requests" are visually inconsistent.** One is an icon, the
-   other is a text link. Either both icons (consistent) or both text
-   (discoverable) would be more legible. Mobile wrap is already going to be a
-   problem.
+5. ~~**🔔 vs "Follow requests" are visually inconsistent.**~~ *Resolved by
+   Stream B — Follow requests folded into the bell as a Requests tab, so
+   there's a single inbox icon in the navbar.*
 
 6. **Routes and Activities are siblings, not nested.** That's correct today —
-   an activity can exist without a route, and vice versa. Worth flagging only
-   because some apps merge them into a single "history" timeline.
+   an activity can exist without a route, and vice versa. *Flagged for a
+   broader review: the concept of routes-vs-activities, plus the impending
+   word collision with social "activities" (comment, like, publish) once
+   federation lands. Tracked separately — see "Open exploration"
+   below.*
 
-7. **`/settings` is one page.** Fine for now (5 sections, ~6 controls per
-   section). At ~10 sections it becomes a tab strip; at ~15 it becomes a left
-   nav. Not urgent.
+7. ~~**`/settings` is one page.**~~ *Decision: break it apart. See Stream E.*
 
-8. **No `/explore`, no `/users` directory, no search.** A signed-in user who
-   wants to *find* people to follow has no in-app path — they need a username
-   from outside. Federation (Phase 2) makes this worse before it gets better.
+8. ~~**No `/explore`, no `/users` directory, no search.**~~ *Decision:
+   propose an `/explore` spec. See Stream F.*
 
-9. **No mobile breakpoint for the navbar.** The cluster of 7 links on the
-   right will wrap on phones today. Tied to the navbar redesign.
+9. ~~**No mobile breakpoint for the navbar.**~~ *Decision: include mobile
+   responsiveness in Stream C (navbar redesign).*
 
 10. **Profile vs identity.** Your own profile is at `/users/<you>` not
     `/me` or `/profile`. Reachable via the navbar self-link. Fine, but means
     "view as logged-out visitor" is non-trivial — opening incognito is the
     only way to see your locked stub.
+    *Status: open — no decision yet.*
 
 ---
 
@@ -300,7 +304,7 @@ Decisions captured above translate into two work-streams. Items marked
 - `openspec/specs/journal-landing/spec.md` — no change. Logged-in `/`
   already shows the personal stream; this is unchanged.
 
-### Stream B — Merge Follow requests into Notifications
+### Stream B — Merge Follow requests into Notifications  ✅ Shipped (PR #316)
 
 **Decision (2026-04-26):** fold `/follows/requests` into `/notifications`
 as a tabbed sub-page (Activity / Requests). The bell icon stays the
@@ -370,17 +374,91 @@ Requests tab is the actionable surface, the Activity tab is the log.
 
 ### Stream C — Navbar redesign
 
-*Pending tomorrow. Principles agreed in the IA review; specifics still
-need decisions before implementation.*
+**Scope (decided):**
 
-**Needs decision:**
+- Regroup the account cluster (`<username>` + Settings + Logout) behind
+  an avatar dropdown.
+- Treat mobile responsiveness as a first-class concern in the redesign,
+  not a phase-2 follow-up. Today the navbar wraps badly on phones.
+- The bell + Requests tab from Stream B already gives the navbar a
+  consistent inbox surface; nothing further needed there.
+
+**Needs decision before implementation:**
 
 - **Avatar dropdown content.** Profile · Settings · Logout — any others?
   (Theme toggle? Language toggle? Account switcher when federation lands?)
-- **Mobile target.** Hamburger? Bottom tab bar? "Phase 2, just don't break"?
-- **Self-link vs avatar.** Today the navbar has a `<username>` text link to
-  your profile. After the avatar dropdown, does the avatar take that role,
-  or does Profile live only inside the dropdown?
+- **Mobile pattern.** Hamburger drawer? Bottom tab bar? Condensed top
+  bar with the dropdown absorbing most controls?
+- **Self-link vs avatar.** Today the navbar has a `<username>` text link
+  to your profile. After the avatar dropdown, does the avatar take that
+  role (click → profile, dropdown chevron → menu), or does Profile live
+  only inside the dropdown?
+
+### Stream D — Drop the redundant "Feed" button on logged-in `/`
+
+**Decision (2026-04-26):** logged-in `/` no longer needs a "Feed" button
+in the page header — the navbar entry is the single discoverable path.
+
+**Code changes:**
+
+- `apps/journal/app/routes/home.tsx` — remove the `<a href="/feed">`
+  button next to the "New Activity" CTA in the signed-in branch
+  (currently lines ~170–183). Keep "New Activity" as the only header
+  action.
+- No spec changes; `journal-landing/spec.md` has a **Social feed link
+  for signed-in users** requirement that mentions a "Feed (or
+  equivalent) link" — that requirement should be retired.
+
+Tiny PR, ~5 lines + a spec update.
+
+### Stream E — Break Settings apart
+
+**Decision (2026-04-26):** `/settings` becomes a sectioned area rather
+than a single scrollable page. Spec was already split into three
+(`profile-settings`, `account-management`, `connected-services`); the UI
+should follow.
+
+**Needs decision before implementation:**
+
+- **Layout pattern.** Tab strip on `/settings` (single URL, JS-driven
+  tabs)? Nested routes (`/settings/profile`, `/settings/security`,
+  `/settings/connections`, `/settings/danger`)? Sidebar nav?
+- **Section list.** The current page has five concerns:
+  1. Profile (display name, bio, profile visibility)
+  2. Email (with re-verification)
+  3. Passkeys
+  4. Connected services (Wahoo today)
+  5. Danger zone (delete account)
+  Keep five? Merge "Email" into "Profile"? Pull "Danger zone" into
+  "Account" alongside Email?
+
+**Spec impact:** `profile-settings`, `account-management`, and
+`connected-services` are already separate specs — they describe behavior,
+not URL structure. Whichever URL pattern wins, only `journal-landing`
+(or wherever the navbar currently sits) needs to know.
+
+### Stream F — Propose an `/explore` spec
+
+**Decision (2026-04-26):** the gap between "I want to find people to
+follow" and "I have a username from outside" needs an in-app path.
+Federation (Phase 2) makes this more valuable, but local-only `/explore`
+is useful on day one.
+
+**Approach:** kick off an OpenSpec proposal via `/opsx:propose` rather
+than diving into code. The proposal phase decides:
+
+- What `/explore` actually shows. A directory of all local users? A
+  curated "active in the last N days" list? A randomized rotation? Just
+  the public activity feed (which is currently buried on logged-out `/`)?
+- Whether search is part of v1 or a follow-up.
+- Where the link lives in the navbar (its own entry vs. inside `/feed`).
+- Privacy: private profiles need to be excluded from any directory; this
+  is the same locked-account access rule that already gates
+  followers/following lists.
+
+**Spec impact:** new spec file at
+`openspec/specs/explore/spec.md` (or similar — name TBD by the proposal),
+plus an entry in `CAPABILITIES.md`.
 
 **Code changes (assuming avatar dropdown + icon-only Follow requests + no
 mobile work yet):**
@@ -424,12 +502,58 @@ mobile work yet):**
 
 These came up in the IA review but aren't part of this round:
 
-- **Search / `/explore` directory.** No way to find users in-app. Defer
-  until federation (Phase 2) makes it more painful.
-- **Settings sectioning.** Single scrollable page is fine at 5 sections.
 - **`/me` alias for own profile.** Marginal value; navbar self-link is
   enough.
 - **Mobile breakpoints across the app.** Bigger than just the navbar.
+  Stream C handles the navbar; the rest of the app is a separate effort.
+
+---
+
+## Open exploration
+
+Items that aren't ready for an implementation backlog because the
+underlying *concept* still needs work, not just the UI.
+
+### Routes vs Activities — terminology and model
+
+The IA review flagged that Routes and Activities are sibling top-level
+concepts. Two reasons to revisit this beyond the URL structure:
+
+1. **Conceptual overlap.** A *route* is a planned path. An *activity*
+   is a recorded outing (often along a route). Some apps (Strava,
+   Komoot) collapse these into one timeline; we keep them split. Worth
+   confirming the split still earns its keep.
+2. **Word collision with social "activities".** Once federation lands
+   (and arguably already, with the `activity_published` notification
+   type), "activity" will be overloaded:
+   - **Athletic activity:** a bike ride, a hike, a run.
+   - **Social activity:** a comment, a like, a follow, a publish event.
+     This is the ActivityPub sense — and it's the one that will appear
+     in feeds, notifications, and remote inboxes.
+
+   The collision is going to bite. ActivityPub uses "Activity" as a
+   technical term throughout; the user-facing "Activity" (a ride) will
+   constantly be next to ActivityPub Activities (a follow, a like) in
+   logs, diagrams, and possibly UI strings.
+
+**Plan:** dedicate a separate review doc (e.g.
+`docs/routes-vs-activities.md`) to think this through before any spec
+or code change. Open questions for that doc:
+
+- Do we rename the user-facing "Activity" to something else (Outing?
+  Trip? Ride? Record? Trace?) before federation cements the social
+  meaning?
+- Or do we keep "Activity" for the user-facing object and use "Event"
+  or "Stream item" for the social/ActivityPub sense?
+- Are Routes still needed as a top-level object, or could they be a
+  subordinate concept of Activities (a "saved planned version" of
+  something you may eventually ride)?
+- What does the export/import story look like — GPX is route-shaped;
+  Strava's TCX is activity-shaped; how do we want the model to talk
+  about each?
+
+Not urgent, but worth resolving before federation is far enough along
+that renaming is a migration headache.
 - **Is "Follow requests" a sub-page of Notifications or a sibling?** Today
   it's a sibling (separate navbar item). Could be a tab inside `/notifications`.
 - **Avatar dropdown content.** Profile · Settings · Logout — anything else?
