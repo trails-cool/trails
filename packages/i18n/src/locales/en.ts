@@ -291,7 +291,15 @@ export default {
         title: "Feed",
         heading: "Following",
         empty: "You're not following anyone yet. Browse profiles and tap Follow to start building your feed.",
-        publicFeedLink: "Or browse the instance public feed →",
+        seePublic: "Or browse the instance public feed →",
+        toggle: {
+          followed: "Following",
+          public: "Public",
+        },
+        public: {
+          heading: "Public",
+          empty: "No public activities on this instance yet.",
+        },
       },
     },
     demo: {
