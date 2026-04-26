@@ -324,6 +324,12 @@ export default {
     },
     settings: {
       title: "Settings",
+      nav: {
+        profile: "Profile",
+        account: "Account",
+        security: "Security",
+        connections: "Connected services",
+      },
       profile: {
         title: "Profile",
         displayName: "Display Name",
