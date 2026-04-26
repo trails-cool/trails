@@ -14,10 +14,10 @@ Both apps SHALL expose a `/health` endpoint returning service and database statu
 - **THEN** `GET /health` returns `{ "status": "degraded", "db": "unreachable", "version": "<string>" }` with HTTP 503
 
 ### Requirement: Prometheus metrics
-Both apps SHALL expose a `/metrics` endpoint with Prometheus-formatted metrics.
+Both apps SHALL expose a Prometheus-formatted metrics endpoint. The Planner exposes it at `/metrics` (a server-side route handler outside the React Router app); the Journal exposes it at `/api/metrics` (a route under the React Router app — the `/api` prefix matches the rest of the app's route handlers and avoids colliding with any user-facing `/metrics` page). Prometheus's scrape config in `infrastructure/prometheus/prometheus.yml` reflects this split.
 
 #### Scenario: Default Node.js metrics
-- **WHEN** Prometheus scrapes `/metrics`
+- **WHEN** Prometheus scrapes the Journal's `/api/metrics` (or the Planner's `/metrics`)
 - **THEN** it receives event loop lag, heap usage, and GC metrics
 
 #### Scenario: HTTP request metrics

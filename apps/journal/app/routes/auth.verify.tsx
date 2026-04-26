@@ -16,7 +16,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       const user = await getSessionUser(request);
       if (!user) return redirect("/auth/login");
       await verifyEmailChange(token, user.id);
-      return redirect("/settings#account");
+      return redirect("/settings/account");
     }
 
     const userId = await verifyMagicToken(token);

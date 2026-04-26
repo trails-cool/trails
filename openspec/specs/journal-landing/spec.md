@@ -53,16 +53,36 @@ For signed-in users, the home page SHALL render a personal activity dashboard: a
 - **WHEN** a signed-in user has no activities yet
 - **THEN** the dashboard shows an empty-state message pointing to activity creation, while the welcome line and New Activity CTA remain visible
 
-### Requirement: Notifications entry in the navbar
-The navbar SHALL render a single inbox entry — a bell icon — for signed-in users, linking to `/notifications`. It SHALL render an unread count badge when the user has at least one unread notification, and no badge when the count is zero. The badge live-updates via `sse-broker`; the loader-driven count is the SSR baseline. Follow-request actions (Approve / Reject) live as the Requests tab inside `/notifications` (see `notifications` spec); the navbar SHALL NOT render a separate "Follow requests" entry — the bell is the single inbox surface.
+### Requirement: Top navbar shape (signed-in vs anonymous)
+The Journal SHALL render a top navbar on every page. The navbar's contents depend on whether the request carries a session and on viewport size; this requirement consolidates the full shape so the navbar's makeup is captured in one place rather than scattered across feature specs.
 
-#### Scenario: Signed-in user sees the entry
-- **WHEN** a signed-in user loads any page
-- **THEN** the navbar includes a single bell entry linking to `/notifications`, and a count badge if the user has unread rows
+**Anonymous (any viewport):** brand link to `/` · `Sign In` · `Register` (primary CTA). No primary nav entries.
 
-#### Scenario: Anonymous user does not see the entry
+**Signed-in, desktop (≥ md / 768px):** brand link to `/` · primary-nav cluster (`Feed` → `/feed`, `Explore` → `/explore`, `Routes` → `/routes`, `Activities` → `/activities`) · bell icon → `/notifications` (with live unread badge per the `notifications` spec) · avatar dropdown trigger.
+
+**Signed-in, mobile (< md):** brand link · bell icon · hamburger trigger. Tapping the hamburger opens a slide-out drawer that contains the same primary-nav cluster, the bell entry repeated as a labelled link, plus the avatar-dropdown items (Profile / Settings / Log Out). The drawer locks body scroll while open and closes on navigation or Escape.
+
+The avatar dropdown trigger SHALL render an Avatar (initials fallback when no image — the `users` table has no avatar column today, so initials are the only state) with `aria-label = displayName ?? username` and `aria-expanded` reflecting the open state. Opening the dropdown reveals three menuitems (`role="menuitem"`): Profile (links to `/users/<self>`), Settings (links to `/settings`), Log Out (a `<button>` inside a logout `<Form>` posting to `/auth/logout`). Click-outside or Escape SHALL close the dropdown.
+
+The navbar SHALL NOT render a separate "Follow requests" entry — follow-request actions are the Requests tab inside `/notifications` (see `notifications` spec) and the bell's unread badge already counts the corresponding `follow_request_received` rows.
+
+#### Scenario: Anonymous navbar
 - **WHEN** an unauthenticated visitor loads any page
-- **THEN** the navbar does not include the bell entry (the route requires authentication anyway)
+- **THEN** the navbar shows the brand link, a `Sign In` link, and a `Register` button — no primary-nav cluster, no bell, no avatar
+
+#### Scenario: Signed-in desktop navbar
+- **WHEN** a signed-in user loads any page on a viewport ≥ 768px
+- **THEN** the navbar shows the brand, the primary-nav cluster (Feed, Explore, Routes, Activities), the bell (with live unread badge per `notifications`), and the avatar dropdown trigger
+
+#### Scenario: Signed-in mobile navbar
+- **WHEN** a signed-in user loads any page on a viewport < 768px
+- **THEN** the navbar shows the brand, the bell, and a hamburger trigger
+- **AND** tapping the hamburger opens a drawer containing all primary-nav entries plus Profile / Settings / Log Out
+
+#### Scenario: Avatar dropdown reveals account menuitems
+- **WHEN** a signed-in user clicks (or taps) the avatar trigger on desktop
+- **THEN** a popup with `role="menu"` opens, containing three items with `role="menuitem"`: Profile (→ `/users/<self>`), Settings (→ `/settings`), Log Out (POST to `/auth/logout`)
+- **AND** clicking outside the popup, pressing Escape, or selecting a menuitem closes it
 
 #### Scenario: No standalone Follow requests entry
 - **WHEN** a signed-in user with one or more pending follow requests loads any page

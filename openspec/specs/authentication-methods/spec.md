@@ -73,10 +73,10 @@ The register form and the login form SHALL both render a small text toggle that 
 - **THEN** the form starts in passkey mode and renders the same toggle to switch to magic-link mode
 
 ### Requirement: Add passkey to an existing account
-A signed-in user SHALL be able to add an additional passkey to their account from the settings page (or from the post-login `/?add-passkey=1` prompt). The flow SHALL reuse the WebAuthn registration ceremony but bind the credential to the existing `users.id` rather than creating a new account.
+A signed-in user SHALL be able to add an additional passkey to their account from the Security settings page (`/settings/security`) or from the post-login `/?add-passkey=1` prompt. The flow SHALL reuse the WebAuthn registration ceremony but bind the credential to the existing `users.id` rather than creating a new account.
 
 #### Scenario: Add passkey from settings
-- **WHEN** a signed-in user clicks "Add passkey" in settings
+- **WHEN** a signed-in user clicks "Add passkey" on `/settings/security`
 - **THEN** a WebAuthn registration ceremony runs against the existing user id and a new row is inserted in `credentials` linked to that user
 
 #### Scenario: Post-login add-passkey nudge
@@ -84,7 +84,7 @@ A signed-in user SHALL be able to add an additional passkey to their account fro
 - **THEN** the home page surfaces an "Add a passkey for faster sign-in" prompt; if dismissed it does not re-appear automatically
 
 ### Requirement: Passkey deletion
-A signed-in user SHALL be able to remove a passkey from their account via the settings page. The Journal SHALL prevent deletion of the user's last remaining passkey if no alternative auth method (a verified email for magic-link login) is available, to avoid lock-out.
+A signed-in user SHALL be able to remove a passkey from their account via the Security settings page (`/settings/security`). The Journal SHALL prevent deletion of the user's last remaining passkey if no alternative auth method (a verified email for magic-link login) is available, to avoid lock-out.
 
 #### Scenario: Delete one of multiple passkeys
 - **WHEN** a user with 2+ passkeys removes one via `/api/settings/passkey/delete`

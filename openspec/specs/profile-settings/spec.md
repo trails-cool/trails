@@ -5,8 +5,8 @@ The user-facing profile editing surface — display name, bio, and `profile_visi
 
 ## Requirements
 
-### Requirement: Profile section on the settings page
-The settings page SHALL include a "Profile" section where the signed-in user can edit their display name, bio, and profile visibility, and save the changes through `POST /api/settings/profile`. Save SHALL be optimistic via a fetcher; success SHALL be confirmed with a visible "Profile saved." line and the form SHALL re-render with the persisted values.
+### Requirement: Profile settings page at `/settings/profile`
+The Journal SHALL expose a Profile settings page at `/settings/profile` (one of the four sub-pages of `/settings` — the bare `/settings` URL redirects here). The page SHALL let the signed-in user edit their display name, bio, and profile visibility, and save the changes through `POST /api/settings/profile`. Save SHALL be optimistic via a fetcher; success SHALL be confirmed with a visible "Profile saved." line and the form SHALL re-render with the persisted values.
 
 #### Scenario: Edit display name and bio
 - **WHEN** a signed-in user changes the display name and/or bio fields and clicks Save
@@ -17,7 +17,7 @@ The settings page SHALL include a "Profile" section where the signed-in user can
 - **THEN** the form renders the error inline and the values are not persisted
 
 ### Requirement: Profile visibility toggle
-The Profile section SHALL include a `profileVisibility` radio group with `public` and `private` options. New accounts default to `private` (locked-account model). Changing the value and saving SHALL update `users.profile_visibility` and take effect on the next page render across the site (counts, profile-route gating, follow-button state).
+The Profile settings page SHALL include a `profileVisibility` radio group with `public` and `private` options. New accounts default to `private` (locked-account model). Changing the value and saving SHALL update `users.profile_visibility` and take effect on the next page render across the site (counts, profile-route gating, follow-button state).
 
 #### Scenario: Toggle to private
 - **WHEN** a public-profile user selects "private" and saves

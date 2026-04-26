@@ -6,7 +6,7 @@ Lifecycle operations on a user's account: changing the registered email address 
 ## Requirements
 
 ### Requirement: Email change with verification
-The settings page SHALL include an "Email" section where the signed-in user can request a new email address via `POST /api/settings/email`. The change SHALL NOT take effect until the user clicks a verification link delivered to the new email; the original address remains active until verification completes.
+The Account settings page (`/settings/account`) SHALL include an "Email" section where the signed-in user can request a new email address via `POST /api/settings/email`. The change SHALL NOT take effect until the user clicks a verification link delivered to the new email; the original address remains active until verification completes.
 
 #### Scenario: Initiate email change
 - **WHEN** a signed-in user submits a new email address that is not already in use by another account
@@ -17,15 +17,15 @@ The settings page SHALL include an "Email" section where the signed-in user can 
 - **THEN** the server responds with a validation error and the verification email is not sent
 
 #### Scenario: Verification link applies the change
-- **WHEN** the user follows the verification link (`/auth/verify-email-change?token=...`)
-- **THEN** the server validates the token (matching purpose, not expired, not used), updates `users.email`, marks the token used, and signs the user back in if necessary
+- **WHEN** the user follows the verification link (`/auth/verify?email-change=1&token=...`)
+- **THEN** the server validates the token (matching purpose, not expired, not used), updates `users.email`, marks the token used, signs the user back in if necessary, and redirects to `/settings/account`
 
 #### Scenario: Expired verification link
 - **WHEN** the verification link is more than 15 minutes old or has already been used
 - **THEN** the page shows an expired/used message and the email is unchanged
 
 ### Requirement: Account deletion is irreversible and owner-bound
-The settings page SHALL include a "Delete account" section behind a confirmation step. Deletion SHALL be irreversible and SHALL cascade to all rows owned by the user (per the existing FK ON DELETE CASCADE rules: routes, activities, follows, notifications, magic tokens, sync connections, oauth tokens). Pending follow requests targeting the deleted user SHALL also be cleared.
+The Account settings page (`/settings/account`) SHALL include a "Delete account" section behind a confirmation step. Deletion SHALL be irreversible and SHALL cascade to all rows owned by the user (per the existing FK ON DELETE CASCADE rules: routes, activities, follows, notifications, magic tokens, sync connections, oauth tokens). Pending follow requests targeting the deleted user SHALL also be cleared.
 
 #### Scenario: Authenticated user deletes their account
 - **WHEN** a signed-in user POSTs to `/api/settings/delete-account` with the confirmation step satisfied
@@ -42,6 +42,6 @@ The settings page SHALL include a "Delete account" section behind a confirmation
 ### Requirement: Terms re-acceptance gate (cross-cutting)
 Settings pages SHALL be reachable while the user has a stale `terms_version` so they can read the current Terms or sign out, but action endpoints behind settings SHALL NOT execute side effects until the user has re-accepted the current Terms version. The cross-cutting gate that enforces this lives in `journal-auth`'s "Re-accept updated Terms on next visit" requirement; this spec only documents the dependency so settings UX is read in context.
 
-#### Scenario: Stale-terms user can read settings but is blocked from saving
-- **WHEN** a user with a stale `terms_version` navigates to `/settings`
-- **THEN** the loader-level Terms gate redirects them to `/auth/accept-terms` first (per `journal-auth`); after re-acceptance they return to the settings page and side effects work normally
+#### Scenario: Stale-terms user is redirected before reaching settings
+- **WHEN** a user with a stale `terms_version` navigates to `/settings` (or any sub-page like `/settings/account`)
+- **THEN** the root loader's Terms gate redirects them to `/auth/accept-terms` first (per `journal-auth`); after re-acceptance they return to the settings page and side effects work normally
