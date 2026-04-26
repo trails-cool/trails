@@ -10,6 +10,7 @@ import {
   listActiveRecently,
   listDirectory,
 } from "~/lib/explore.server";
+import { loadPersona } from "~/lib/demo-bot.server";
 import { FollowButton } from "~/components/FollowButton";
 
 const BIO_TRUNCATE = 120;
@@ -44,6 +45,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     : new Map();
 
   const isSelf = (rowId: string) => viewer?.id === rowId;
+  const personaUsername = loadPersona().username;
 
   const decorate = (row: typeof allRows[number]) => ({
     id: row.id,
@@ -53,6 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     followerCount: followerCounts.get(row.id) ?? 0,
     followState: followStates.get(row.id) ?? null,
     isSelf: isSelf(row.id),
+    isDemoUser: row.username === personaUsername,
   });
 
   // Resolved page size (after loader-side clamping inside listDirectory)
@@ -85,6 +88,7 @@ interface DecoratedRow {
   followerCount: number;
   followState: { following: boolean; pending: boolean } | null;
   isSelf: boolean;
+  isDemoUser: boolean;
 }
 
 function DirectoryRow({ row, isSignedIn }: { row: DecoratedRow; isSignedIn: boolean }) {
@@ -92,12 +96,22 @@ function DirectoryRow({ row, isSignedIn }: { row: DecoratedRow; isSignedIn: bool
   return (
     <li className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-4 last:border-b-0">
       <div className="min-w-0 flex-1">
-        <Link
-          to={`/users/${row.username}`}
-          className="text-sm font-medium text-gray-900 hover:underline"
-        >
-          {row.displayName ?? row.username}
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to={`/users/${row.username}`}
+            className="text-sm font-medium text-gray-900 hover:underline"
+          >
+            {row.displayName ?? row.username}
+          </Link>
+          {row.isDemoUser && (
+            <span
+              className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+              title={t("demo.badge")}
+            >
+              {t("demo.badge")}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-500">
           @{row.username} · {t("social.followers.count", { count: row.followerCount })}
         </p>

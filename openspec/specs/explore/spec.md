@@ -43,25 +43,26 @@ The directory SHALL be ordered by `MAX(activities.created_at) DESC` per user, co
 The directory SHALL exclude:
 
 1. Users with `profile_visibility = 'private'` — they have explicitly opted out of public discovery (Mastodon-style locked accounts).
-2. The instance's demo persona, identified by the username returned by `loadPersona()` — the demo bot is not a real user and should not appear in real discovery.
-3. (Forward-compat) Users in any future banned/suspended state — when such a status column exists, it SHALL be added to the exclusion filter.
+2. (Forward-compat) Users in any future banned/suspended state — when such a status column exists, it SHALL be added to the exclusion filter.
 
 Excluded users SHALL NOT appear on `/explore` even if they have public activities and would otherwise sort to the top of the directory.
+
+The demo persona (identified by `loadPersona().username`) is **not** excluded — its purpose is to give new users a follow target, so it appears in the directory like any other public user. The directory row SHALL render a "demo account" badge next to the display name so viewers know what they're following.
 
 #### Scenario: Private profile is excluded from the directory
 - **WHEN** user A has `profile_visibility = 'private'` and any activity history
 - **THEN** A does not appear in the `/explore` directory regardless of which page is requested
 
-#### Scenario: Demo persona is excluded
-- **WHEN** the demo persona username (per `loadPersona()`) matches a row that would otherwise appear
-- **THEN** that row is filtered out of the directory
+#### Scenario: Demo persona appears with a demo badge
+- **WHEN** the demo persona username (per `loadPersona()`) matches a row in the directory
+- **THEN** the row is rendered like any other public user, with an additional small "demo account" badge next to the display name
 
 #### Scenario: Public user with no activities is included
 - **WHEN** user A has `profile_visibility = 'public'` but has never created an activity
 - **THEN** A still appears in the directory (sorted toward the end by the recency rule)
 
 ### Requirement: "Active recently" sub-section
-The `/explore` page SHALL render an "Active recently" sub-section at the top of the directory, listing up to N (default 5) public users who have created at least one public activity in the last 30 days, ordered by `MAX(activities.created_at) DESC`. The sub-section SHALL apply the same exclusion rules as the main directory (private profiles, demo persona, future banned/suspended users). When fewer than 1 user qualifies, the sub-section SHALL be omitted entirely (no empty header).
+The `/explore` page SHALL render an "Active recently" sub-section at the top of the directory, listing up to N (default 5) public users who have created at least one public activity in the last 30 days, ordered by `MAX(activities.created_at) DESC`. The sub-section SHALL apply the same exclusion rules as the main directory (private profiles, future banned/suspended users — the demo persona is included like any other public user, with the same demo-badge treatment). When fewer than 1 user qualifies, the sub-section SHALL be omitted entirely (no empty header).
 
 #### Scenario: Active-recently strip rendered with qualifying users
 - **WHEN** at least one public local user (excluding private/demo) has a public activity within the last 30 days
@@ -71,9 +72,13 @@ The `/explore` page SHALL render an "Active recently" sub-section at the top of 
 - **WHEN** no public local user (excluding private/demo) has any public activity within the last 30 days
 - **THEN** the "Active recently" sub-section is not rendered at all; the main directory is the only listing on the page
 
-#### Scenario: Strip respects exclusion rules
-- **WHEN** a private profile or the demo persona has a recent public activity
-- **THEN** they are not included in the "Active recently" strip — the same exclusion rules apply as for the main directory
+#### Scenario: Strip excludes private profiles
+- **WHEN** a private profile has a recent public activity
+- **THEN** they are not included in the "Active recently" strip — the same private-profile exclusion as the main directory
+
+#### Scenario: Strip includes the demo persona
+- **WHEN** the demo persona has a recent public activity
+- **THEN** it appears in the "Active recently" strip like any other public user, carrying the same demo-account badge as in the main directory
 
 ### Requirement: Pagination
 The directory SHALL paginate via `?page=N` (1-indexed) and `?perPage=K` query parameters. Page size SHALL default to 20 per page and SHALL be capped at 100; `perPage` values outside `[1, 100]` SHALL be clamped to that range without raising an error. The response SHALL surface a "Next page" link when more rows exist past the current page, and a "Previous page" link when `page > 1`.
