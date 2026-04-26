@@ -64,7 +64,8 @@ The reverse proxy in front of the Journal (Caddy v2) SHALL pass `text/event-stre
 
 #### Scenario: Caddy reverse_proxy block carries no buffering tweaks
 - **WHEN** the Journal upstream is added to `infrastructure/Caddyfile`
-- **THEN** the entry is a plain `reverse_proxy journal:3000` (no `flush_interval` or buffering directive needed)
+- **THEN** the `reverse_proxy journal:3000` entry contains no `flush_interval`, `buffer_requests`, or buffering-related directive
+- **AND** unrelated directives that don't affect streaming (e.g. `lb_try_duration` / `lb_try_interval` for retry-on-restart, added to silence deploy-time 502 alerts) are permitted because they only fire when the upstream is unreachable, not on a successful streaming response
 
 ### Requirement: In-process today, Redis-pub/sub when multi-process
 The broker SHALL be implemented as an in-process `Map` for the single-process deployment shipped today. The same `register` / `emitTo` interface SHALL be the swap point for a future Redis pub/sub adapter when the Journal scales to multiple processes; callers SHALL NOT need to change.

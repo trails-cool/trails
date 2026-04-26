@@ -5,12 +5,12 @@ Third-party service connections (Wahoo today; future Strava, Garmin, etc.) that 
 
 ## Requirements
 
-### Requirement: Connected Services section on the settings page
-The settings page SHALL include a "Connected Services" section listing each external integration the Journal supports, each row showing the connection state (Connect / Disconnect) and the link to start the OAuth flow when not connected.
+### Requirement: Connections settings page at `/settings/connections`
+The Journal SHALL expose a Connected services page at `/settings/connections` (one of the four sub-pages of `/settings`). The page SHALL list each external integration the Journal supports, each row showing the connection state (Connect / Disconnect) and the link to start the OAuth flow when not connected.
 
 #### Scenario: Wahoo connection status renders both states
-- **WHEN** a user views the settings page
-- **THEN** a "Connected Services" section shows Wahoo as connected or disconnected
+- **WHEN** a user loads `/settings/connections`
+- **THEN** the page lists Wahoo as connected or disconnected
 - **AND** connected state shows a "Disconnect" button that POSTs to `/api/sync/disconnect/<provider>`
 - **AND** disconnected state shows a "Connect Wahoo" button that begins the OAuth handshake
 
