@@ -277,13 +277,19 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </a>
         </div>
         {/* Demoted escape hatch: the Planner is anonymous and useful
-            on its own, but shouldn't compete visually with sign-up. */}
+            on its own, but shouldn't compete visually with sign-up.
+            Same line surfaces /explore so first-time visitors have an
+            in-app path to the local user directory before signing up. */}
         <p className="mt-3 text-sm text-gray-500">
           {t("home.tryPlannerPrefix")}
           <a href={plannerUrl} className="text-blue-600 hover:underline">
             {t("home.tryPlannerLink")}
           </a>
           {t("home.tryPlannerSuffix")}
+          {" · "}
+          <a href="/explore" className="text-blue-600 hover:underline">
+            {t("home.exploreLink")}
+          </a>
         </p>
       </section>
 

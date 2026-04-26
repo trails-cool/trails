@@ -117,6 +117,9 @@ function NavBar({
               <Link to="/feed" className={linkClass("/feed")}>
                 {t("social.feed.title")}
               </Link>
+              <Link to="/explore" className={linkClass("/explore")}>
+                {t("nav.explore")}
+              </Link>
               <Link to="/routes" className={linkClass("/routes")}>
                 {t("nav.routes")}
               </Link>
