@@ -11,15 +11,15 @@
 
 ## 2. Database schema for push tracking
 
-- [ ] 2.1 Add `sync_pushes` table to `apps/journal/db/schema.ts` with columns from design.md §3 and a unique index on `(user_id, route_id, route_version, provider)`
-- [ ] 2.2 Add a `granted_scopes text[]` column to `sync_connections`, defaulting to an empty array, and backfill existing rows with the legacy scopes (`workouts_read`, `user_read`, `offline_data`)
-- [ ] 2.3 Generate the Drizzle migration via `pnpm --filter @trails-cool/journal db:generate`
+- [ ] 2.1 Add `sync_pushes` table to `packages/db/src/schema/journal.ts` with columns from design.md §3 and a unique index on `(user_id, route_id, route_version, provider)`
+- [ ] 2.2 Add a `granted_scopes text[]` column to `sync_connections` in the same schema file, defaulting to an empty array, and backfill existing rows with the legacy scopes (`workouts_read`, `user_read`, `offline_data`)
+- [ ] 2.3 Generate the Drizzle migration via `pnpm --filter @trails-cool/db db:generate` (migration files land in `packages/db/migrations/`)
 - [ ] 2.4 Apply locally via `pnpm db:push` and verify with `pnpm db:studio`
 
 ## 3. Wahoo provider scope upgrade
 
 - [ ] 3.1 Add `routes_write` to the Wahoo scopes array in `apps/journal/app/lib/sync/providers/wahoo.ts:14`
-- [ ] 3.2 Persist `granted_scopes` on the `sync_connections` row at `exchangeCode` time (Wahoo returns granted scopes in the token response, or we record the requested set as granted)
+- [ ] 3.2 Persist `granted_scopes` on the `sync_connections` row at `exchangeCode` time. Wahoo's token endpoint does not return a `scope` field and grants scopes all-or-nothing, so record the requested scope set as granted. The scope-mismatch detection in §5.2 is therefore a comparison against our own constant, not against provider-reported state — that's intentional and only needs to flag pre-`routes_write` connections.
 - [ ] 3.3 Implement `pushRoute(connection, { gpx, name, description, externalId })` on the Wahoo provider: base64-encode the FIT, build the form-encoded body, POST `/v1/routes`, return `{ remoteId }` on success or throw a typed error on failure (token expired, scope missing, validation error, rate limit, generic)
 - [ ] 3.4 Wire token-refresh-on-401 through the new push call (reuse the existing `withFreshToken` helper or equivalent)
 

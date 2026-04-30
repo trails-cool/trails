@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Send to Wahoo action on route detail page
-The Journal SHALL show a "Send to Wahoo" button on the route detail page when all of the following hold: the viewer owns the route, the viewer has a connected Wahoo account, and the route has stored geometry (`geojson` is non-null). The button SHALL trigger a server action that pushes the current route version to Wahoo.
+The Journal SHALL show a "Send to Wahoo" button on the route detail page when all of the following hold: the viewer owns the route, the viewer has a connected Wahoo account, and the route has stored geometry (`routes.geom` is non-null and `routes.gpx` is non-empty). The button SHALL trigger a server action that pushes the current route version to Wahoo.
 
 #### Scenario: Owner with connected Wahoo and a route with geometry
 - **WHEN** the route owner loads a route detail page for a route that has geometry
@@ -18,7 +18,7 @@ The Journal SHALL show a "Send to Wahoo" button on the route detail page when al
 - **THEN** the "Send to Wahoo" button is not rendered, regardless of the viewer's own Wahoo connection
 
 #### Scenario: Route without geometry
-- **WHEN** the route owner loads a route detail page for a route whose `geojson` is null
+- **WHEN** the route owner loads a route detail page for a route whose `geom` is null or whose `gpx` is empty
 - **THEN** the "Send to Wahoo" button is not rendered
 
 ### Requirement: Server-side route push pipeline

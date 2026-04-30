@@ -25,7 +25,7 @@ The existing Wahoo integration is read-only: we pull completed workouts back int
   - `apps/journal/app/lib/sync/providers/wahoo.ts` — add `routes_write` scope, implement `pushRoute`, surface scope-mismatch errors.
   - `apps/journal/app/lib/sync/types.ts` — extend `SyncProvider` interface.
   - `apps/journal/app/routes/` — new `/api/sync/push/wahoo/:routeId` action; "Send to Wahoo" button on the route detail page.
-  - `apps/journal/db/schema.ts` — new `sync_pushes` table + Drizzle migration.
+  - `packages/db/src/schema/journal.ts` — new `sync_pushes` table + `granted_scopes` column on `sync_connections`, plus the generated Drizzle migration in `packages/db/migrations/`.
   - **New package** `packages/fit/` — GPX→FIT Course encoder, co-located tests with FIT-decoder round-trip fixtures.
 - **Dependencies**: One new dep — a JS FIT encoder. Candidates to evaluate in design.md: `@garmin/fitsdk-javascript` (official, large), `fit-file-writer`, or a thin hand-rolled encoder against the FIT SDK profile (Course message + Record + Lap).
 - **External API**: Net-new outbound calls to `api.wahooligan.com/v1/routes`. No webhook changes.
