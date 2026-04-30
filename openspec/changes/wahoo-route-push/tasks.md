@@ -1,13 +1,13 @@
 ## 1. FIT Course encoder package
 
-- [ ] 1.1 Scaffold `packages/fit/` (package.json, tsconfig, vitest config) following the pattern of `packages/gpx/`
-- [ ] 1.2 Add the package to `pnpm-workspace.yaml` and reference it from `apps/journal/package.json`
-- [ ] 1.3 Implement low-level FIT primitives: file header, definition messages, data messages, CRC-16. Cover only the field types needed (`enum`, `uint8`, `uint16`, `uint32`, `sint32`, `string`, `float32`)
-- [ ] 1.4 Implement message encoders for `file_id` (type=course), `file_creator`, `course` (name, sport, capabilities), `lap` (start/end position, distance, elapsed time = 0), `event` (timer start at first record, timer stop at last), and `record` (position_lat, position_long, altitude, distance)
-- [ ] 1.5 Implement `gpxToFitCourse({ gpx, name, description?, sport? })`: parse GPX via `@trails-cool/gpx`, compute distance and ascent, emit the message stream, return `Uint8Array`
-- [ ] 1.6 Add fixtures in `packages/fit/__fixtures__/` covering: short flat route, alpine route with elevation, multi-day route, route with single track point (should still encode), zero-track-point route (should throw)
-- [ ] 1.7 Write round-trip tests: encode each fixture, decode with `fit-file-parser`, assert track-point count and lat/lon/elevation parity within tolerance (1e-5 deg, 0.5 m)
-- [ ] 1.8 Add the package to `pnpm test` and `pnpm typecheck` runs (should be automatic via Turborepo)
+- [x] 1.1 Scaffold `packages/fit/` (package.json, tsconfig, vitest config) following the pattern of `packages/gpx/`
+- [x] 1.2 Add the package to `pnpm-workspace.yaml` and reference it from `apps/journal/package.json`
+- [x] 1.3 Add `@garmin/fitsdk` dependency to `packages/fit/package.json` and a small ambient `src/fitsdk.d.ts` declaring the `Encoder`, `Stream`, and `Profile.MesgNum` shapes we use (the SDK ships no types)
+- [x] 1.4 Wrap the SDK Encoder to emit the Course message stream Wahoo needs: `file_id` (type=course), `file_creator`, `course` (name, sport, capabilities), `lap` (start/end position, distance, elapsed time = 0), `event` (timer start at first record, timer stop at last), and `record` (position_lat, position_long, altitude, distance)
+- [x] 1.5 Implement `gpxToFitCourse({ gpx, name, description?, sport? })`: parse GPX via `@trails-cool/gpx`, compute distance and ascent, drive the SDK encoder, return `Uint8Array`
+- [x] 1.6 Add fixtures in `packages/fit/__fixtures__/` covering: short flat route, alpine route with elevation, multi-day route, route with single track point (should still encode), zero-track-point route (should throw)
+- [x] 1.7 Write round-trip tests: encode each fixture, decode with `fit-file-parser`, assert track-point count and lat/lon/elevation parity within tolerance (1e-5 deg, 0.5 m)
+- [x] 1.8 Add the package to `pnpm test` and `pnpm typecheck` runs (should be automatic via Turborepo)
 
 ## 2. Database schema for push tracking
 
@@ -59,7 +59,7 @@
 
 ## 9. Tests
 
-- [ ] 9.1 Unit tests for `gpxToFitCourse` — already covered in §1.7
+- [x] 9.1 Unit tests for `gpxToFitCourse` — already covered in §1.7
 - [ ] 9.2 Unit tests for the action route's idempotency logic (mock Wahoo HTTP layer): fresh push, re-push of pushed version, retry of failed push, push of new version after edit
 - [ ] 9.3 Unit tests for the scope-mismatch redirect flow
 - [ ] 9.4 E2E test in `e2e/`: log in as a user with a (mocked) Wahoo connection, open a route detail page, click "Send to Wahoo", assert the success toast and the "Sent to Wahoo on …" status appear

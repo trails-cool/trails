@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="trails.cool" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>Alpine climb</name></metadata>
+  <trk><trkseg>
+    <trkpt lat="46.5000" lon="11.3000"><ele>800.0</ele></trkpt>
+    <trkpt lat="46.5050" lon="11.3050"><ele>950.5</ele></trkpt>
+    <trkpt lat="46.5100" lon="11.3100"><ele>1100.2</ele></trkpt>
+    <trkpt lat="46.5150" lon="11.3150"><ele>1280.7</ele></trkpt>
+    <trkpt lat="46.5200" lon="11.3200"><ele>1450.0</ele></trkpt>
+    <trkpt lat="46.5250" lon="11.3250"><ele>1620.3</ele></trkpt>
+    <trkpt lat="46.5300" lon="11.3300"><ele>1800.0</ele></trkpt>
+    <trkpt lat="46.5350" lon="11.3350"><ele>1750.0</ele></trkpt>
+    <trkpt lat="46.5400" lon="11.3400"><ele>1600.0</ele></trkpt>
+    <trkpt lat="46.5450" lon="11.3450"><ele>1400.0</ele></trkpt>
+  </trkseg></trk>
+</gpx>

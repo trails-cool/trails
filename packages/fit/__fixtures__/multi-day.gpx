@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="trails.cool" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>Multi-day tour</name></metadata>
+  <trk><trkseg>
+    <trkpt lat="47.0000" lon="10.0000"><ele>500</ele></trkpt>
+    <trkpt lat="47.0500" lon="10.0500"><ele>650</ele></trkpt>
+    <trkpt lat="47.1000" lon="10.1000"><ele>800</ele></trkpt>
+    <trkpt lat="47.1500" lon="10.1500"><ele>720</ele></trkpt>
+    <trkpt lat="47.2000" lon="10.2000"><ele>600</ele></trkpt>
+    <trkpt lat="47.2500" lon="10.2500"><ele>550</ele></trkpt>
+    <trkpt lat="47.3000" lon="10.3000"><ele>700</ele></trkpt>
+    <trkpt lat="47.3500" lon="10.3500"><ele>900</ele></trkpt>
+    <trkpt lat="47.4000" lon="10.4000"><ele>1100</ele></trkpt>
+    <trkpt lat="47.4500" lon="10.4500"><ele>1050</ele></trkpt>
+    <trkpt lat="47.5000" lon="10.5000"><ele>900</ele></trkpt>
+    <trkpt lat="47.5500" lon="10.5500"><ele>750</ele></trkpt>
+    <trkpt lat="47.6000" lon="10.6000"><ele>600</ele></trkpt>
+    <trkpt lat="47.6500" lon="10.6500"><ele>500</ele></trkpt>
+    <trkpt lat="47.7000" lon="10.7000"><ele>450</ele></trkpt>
+  </trkseg></trk>
+</gpx>
