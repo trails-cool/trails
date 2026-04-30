@@ -196,6 +196,15 @@ export const syncConnections = journalSchema.table("sync_connections", {
   refreshToken: text("refresh_token").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   providerUserId: text("provider_user_id"),
+  // Scopes the user actually granted at OAuth time. Wahoo doesn't return a
+  // scope field in token responses and grants scopes all-or-nothing, so we
+  // record the requested scope set on exchangeCode. Used to detect when an
+  // existing connection predates a scope upgrade (e.g. routes_write) and
+  // needs a re-auth before a new push call can succeed.
+  grantedScopes: text("granted_scopes")
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -209,6 +218,40 @@ export const syncImports = journalSchema.table("sync_imports", {
   activityId: text("activity_id").references(() => activities.id, { onDelete: "set null" }),
   importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Tracks outbound route pushes to external providers (Wahoo today). One row
+// per (user, route, version, provider) — push idempotency lives here. A row
+// with `pushedAt` set means we have a confirmed remote_id and won't re-call
+// the provider; a row with `error` set and no `pushedAt` is a failed attempt
+// that can be retried in place.
+export const syncPushes = journalSchema.table(
+  "sync_pushes",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    routeId: text("route_id")
+      .notNull()
+      .references(() => routes.id, { onDelete: "cascade" }),
+    routeVersion: integer("route_version").notNull(),
+    provider: text("provider").notNull(),
+    externalId: text("external_id").notNull(),
+    remoteId: text("remote_id"),
+    pushedAt: timestamp("pushed_at", { withTimezone: true }),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userRouteVersionProviderUnique: uniqueIndex("sync_pushes_user_route_version_provider_unique").on(
+      t.userId,
+      t.routeId,
+      t.routeVersion,
+      t.provider,
+    ),
+  }),
+);
 
 // Social follow relation. Always originates from a local user (`followerId`).
 // The followed side is keyed by an actor IRI for federation forward-compat —
