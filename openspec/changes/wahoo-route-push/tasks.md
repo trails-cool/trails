@@ -31,17 +31,17 @@
 
 ## 5. Push action route and idempotency layer
 
-- [ ] 5.1 Add an action route at `/api/sync/push/wahoo/:routeId` that resolves the route, verifies the requesting user is the owner, looks up the user's Wahoo connection, and runs the push
-- [ ] 5.2 Before calling Wahoo, check `sync_connections.granted_scopes` for `routes_write`; if missing, redirect to `getAuthUrl` with state `{ return_to, push_after }`
-- [ ] 5.3 Look up an existing `sync_pushes` row for `(user_id, route_id, route_version, 'wahoo')` — if `pushed_at` is set, return the existing `remote_id` without calling Wahoo
-- [ ] 5.4 On a fresh push, build the payload (`external_id = "route:<routeId>:v<version>"`, current timestamp, route name/description, start lat/lng, computed distance and ascent), call `provider.pushRoute`, and write the result to `sync_pushes` (insert on success, update existing row on retry of a failed attempt)
-- [ ] 5.5 Map error types to user-facing copy: scope missing → re-auth redirect; token expired after refresh → reconnect prompt; 422 validation → "We couldn't send this route — try editing the name or description"; 5xx / network → generic retry
+- [x] 5.1 Add an action route at `/api/sync/push/wahoo/:routeId` that resolves the route, verifies the requesting user is the owner, looks up the user's Wahoo connection, and runs the push
+- [x] 5.2 Before calling Wahoo, check `sync_connections.granted_scopes` for `routes_write`; if missing, redirect to `getAuthUrl` with state `{ return_to, push_after }`
+- [x] 5.3 Look up an existing `sync_pushes` row for `(user_id, route_id, route_version, 'wahoo')` — if `pushed_at` is set, return the existing `remote_id` without calling Wahoo
+- [x] 5.4 On a fresh push, build the payload (`external_id = "route:<routeId>:v<version>"`, current timestamp, route name/description, start lat/lng, computed distance and ascent), call `provider.pushRoute`, and write the result to `sync_pushes` (insert on success, update existing row on retry of a failed attempt)
+- [x] 5.5 Map error types to user-facing copy: scope missing → re-auth redirect; token expired after refresh → reconnect prompt; 422 validation → "We couldn't send this route — try editing the name or description"; 5xx / network → generic retry
 
 ## 6. OAuth callback resumes pending push
 
-- [ ] 6.1 Extend the OAuth callback handler at `/api/sync/callback/wahoo` to parse `state.push_after` and `state.return_to`
-- [ ] 6.2 If `push_after`, after persisting the new tokens and scopes, run the push pipeline server-side and redirect to `return_to` with a success or failure flash message
-- [ ] 6.3 If the user denied the new scope (callback arrives with `?error=access_denied`), redirect to `return_to` with the "needs route permission" notice
+- [x] 6.1 Extend the OAuth callback handler at `/api/sync/callback/wahoo` to parse `state.push_after` and `state.return_to`
+- [x] 6.2 If `push_after`, after persisting the new tokens and scopes, run the push pipeline server-side and redirect to `return_to` with a success or failure flash message
+- [x] 6.3 If the user denied the new scope (callback arrives with `?error=access_denied`), redirect to `return_to` with the "needs route permission" notice
 
 ## 7. Route detail page UI
 
@@ -60,8 +60,8 @@
 ## 9. Tests
 
 - [x] 9.1 Unit tests for `gpxToFitCourse` — already covered in §1.7
-- [ ] 9.2 Unit tests for the action route's idempotency logic (mock Wahoo HTTP layer): fresh push, re-push of pushed version, retry of failed push, push of new version after edit
-- [ ] 9.3 Unit tests for the scope-mismatch redirect flow
+- [x] 9.2 Unit tests for the action route's idempotency logic (mock Wahoo HTTP layer): fresh push, re-push of pushed version, retry of failed push, push of new version after edit
+- [x] 9.3 Unit tests for the scope-mismatch redirect flow
 - [ ] 9.4 E2E test in `e2e/`: log in as a user with a (mocked) Wahoo connection, open a route detail page, click "Send to Wahoo", assert the success toast and the "Sent to Wahoo on …" status appear
 - [ ] 9.5 E2E test for the re-auth flow: user without `routes_write` clicks Send to Wahoo, redirects to OAuth (mocked), returns, push completes, status renders
 
