@@ -45,25 +45,25 @@
 
 ## 7. Route detail page UI
 
-- [ ] 7.1 In the route detail loader, include the latest `sync_pushes` row for the current version and the user's Wahoo connection presence + scopes
-- [ ] 7.2 Render the "Send to Wahoo" button next to the existing Export GPX action when conditions in spec §1 are met
-- [ ] 7.3 Render the post-push status: "Sent to Wahoo on <date>" replacing the button when a successful push exists
-- [ ] 7.4 Render the failed-push state: "Last attempt failed: <short error>" with the button still active
-- [ ] 7.5 Add the button copy "This sends your route to Wahoo" as a tooltip or helper text near the button (privacy disclosure at the action point)
-- [ ] 7.6 Add i18n strings for all new UI copy (English + German) per the i18n convention in CLAUDE.md
+- [x] 7.1 In the route detail loader, include the latest `sync_pushes` row for the current version and the user's Wahoo connection presence + scopes
+- [x] 7.2 Render the "Send to Wahoo" button next to the existing Export GPX action when conditions in spec §1 are met
+- [x] 7.3 Render the post-push status: "Sent to Wahoo on <date>" replacing the button when a successful push exists
+- [x] 7.4 Render the failed-push state: "Last attempt failed: <short error>" with the button still active
+- [x] 7.5 Add the button copy "This sends your route to Wahoo" as a tooltip or helper text near the button (privacy disclosure at the action point)
+- [x] 7.6 Add i18n strings for all new UI copy (English + German) per the i18n convention in CLAUDE.md
 
 ## 8. Privacy manifest
 
-- [ ] 8.1 Update `docs/privacy.md` (or whichever file holds the privacy manifest) to declare that route geometry, name, and description are sent to Wahoo when the user clicks "Send to Wahoo"
-- [ ] 8.2 Cross-link the privacy entry from the proposal and from this change's README in `openspec/changes/wahoo-route-push/`
+- [x] 8.1 Privacy disclosure added to `apps/journal/app/routes/legal.privacy.tsx` (the live in-app /legal/privacy page — this repo doesn't have a separate `docs/privacy.md` manifest). The new bullet describes that route geometry, name, and description are transmitted to Wahoo on opt-in.
+- [x] 8.2 Cross-linked: proposal.md already references the privacy disclosure, and `legal.privacy.tsx` is the canonical disclosure surface.
 
 ## 9. Tests
 
 - [x] 9.1 Unit tests for `gpxToFitCourse` — already covered in §1.7
 - [x] 9.2 Unit tests for the action route's idempotency logic (mock Wahoo HTTP layer): fresh push, re-push of pushed version, retry of failed push, push of new version after edit
 - [x] 9.3 Unit tests for the scope-mismatch redirect flow
-- [ ] 9.4 E2E test in `e2e/`: log in as a user with a (mocked) Wahoo connection, open a route detail page, click "Send to Wahoo", assert the success toast and the "Sent to Wahoo on …" status appear
-- [ ] 9.5 E2E test for the re-auth flow: user without `routes_write` clicks Send to Wahoo, redirects to OAuth (mocked), returns, push completes, status renders
+- [ ] 9.4 E2E test for the success path — deferred. Needs new infra: a Wahoo HTTP mock alongside the dev server (intercepting `api.wahooligan.com/v1/routes` server-side, not via Playwright `page.route`). The unit-test layer in slice 4 already covers the pipeline against a mocked provider; promoting these to full-stack E2E should land with a shared `wahoo-mock.ts` fixture once we have a second push provider or a real-API smoke harness.
+- [ ] 9.5 E2E test for the re-auth flow — deferred for the same reason as 9.4.
 
 ## 10. Manual verification before merge
 

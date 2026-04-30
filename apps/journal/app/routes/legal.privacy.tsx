@@ -272,6 +272,19 @@ export default function PrivacyPage() {
             Instanzen konfigurieren ihren eigenen Mailserver.
           </li>
           <li>
+            <strong>Wahoo</strong> (Wahoo Fitness LLC) – Optionaler Sync mit
+            einem Wahoo-Konto. Beim Verbinden über &bdquo;Mit Wahoo
+            verbinden&ldquo; werden OAuth-Tokens ausgetauscht und Wahoo-
+            Workouts können in den Journal importiert werden (eingehender
+            Sync). Beim ausdrücklichen Klick auf &bdquo;An Wahoo senden&ldquo;
+            auf einer Routenseite werden zusätzlich <strong>Routengeometrie,
+            Routenname und Routenbeschreibung</strong> an Wahoo übertragen,
+            damit die Route auf dem Bike-Computer (ELEMNT/BOLT/ROAM)
+            erscheint. Es gilt die Datenschutzerklärung von Wahoo. Pro
+            Routenversion erfolgt höchstens eine Übermittlung; Sie können
+            die Wahoo-Verbindung jederzeit in den Einstellungen trennen.
+          </li>
+          <li>
             <strong>Hosting</strong> – Die Dienste werden in Rechenzentren
             innerhalb der EU betrieben. Ein Auftragsverarbeitungsvertrag mit
             dem Hoster besteht.
@@ -284,7 +297,10 @@ export default function PrivacyPage() {
           tiles); Overpass (via our server-side proxy, so upstream only sees
           our server); BRouter (self-hosted, no third party involved); SMTP
           provider (your email address for magic link / welcome mail);
-          hosting provider in the EU under a DPA.
+          Wahoo (only when you opt in: OAuth tokens for sync, plus route
+          geometry/name/description when you click &ldquo;Send to
+          Wahoo&rdquo; on a route — sent so the route appears on your
+          ELEMNT/BOLT/ROAM); hosting provider in the EU under a DPA.
         </p>
       </section>
 
