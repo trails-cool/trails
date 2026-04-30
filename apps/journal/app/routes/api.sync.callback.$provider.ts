@@ -20,7 +20,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   try {
     const tokens = await provider.exchangeCode(code, redirectUri);
-    await saveConnection(user.id, provider.id, tokens);
+    // Wahoo's token endpoint doesn't return a `scope` field and grants
+    // scopes all-or-nothing, so the requested set is the granted set.
+    await saveConnection(user.id, provider.id, tokens, provider.scopes);
   } catch (e) {
     console.error(`OAuth callback failed for ${params.provider}:`, e);
     return redirect("/settings?error=sync_failed");

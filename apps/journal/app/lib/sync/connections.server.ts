@@ -8,6 +8,7 @@ export async function saveConnection(
   userId: string,
   provider: string,
   tokens: TokenSet,
+  grantedScopes: string[] = [],
 ) {
   const db = getDb();
   // Upsert: delete existing connection for this user+provider, then insert
@@ -22,6 +23,7 @@ export async function saveConnection(
     refreshToken: tokens.refreshToken,
     expiresAt: tokens.expiresAt,
     providerUserId: tokens.providerUserId ?? null,
+    grantedScopes,
   });
 }
 

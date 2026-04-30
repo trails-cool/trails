@@ -18,16 +18,16 @@
 
 ## 3. Wahoo provider scope upgrade
 
-- [ ] 3.1 Add `routes_write` to the Wahoo scopes array in `apps/journal/app/lib/sync/providers/wahoo.ts:14`
-- [ ] 3.2 Persist `granted_scopes` on the `sync_connections` row at `exchangeCode` time. Wahoo's token endpoint does not return a `scope` field and grants scopes all-or-nothing, so record the requested scope set as granted. The scope-mismatch detection in §5.2 is therefore a comparison against our own constant, not against provider-reported state — that's intentional and only needs to flag pre-`routes_write` connections.
-- [ ] 3.3 Implement `pushRoute(connection, { gpx, name, description, externalId })` on the Wahoo provider: base64-encode the FIT, build the form-encoded body, POST `/v1/routes`, return `{ remoteId }` on success or throw a typed error on failure (token expired, scope missing, validation error, rate limit, generic)
-- [ ] 3.4 Wire token-refresh-on-401 through the new push call (reuse the existing `withFreshToken` helper or equivalent)
+- [x] 3.1 Add `routes_write` to the Wahoo scopes array in `apps/journal/app/lib/sync/providers/wahoo.ts:14`
+- [x] 3.2 Persist `granted_scopes` on the `sync_connections` row at `exchangeCode` time. Wahoo's token endpoint does not return a `scope` field and grants scopes all-or-nothing, so record the requested scope set as granted. The scope-mismatch detection in §5.2 is therefore a comparison against our own constant, not against provider-reported state — that's intentional and only needs to flag pre-`routes_write` connections.
+- [x] 3.3 Implement `pushRoute(connection, { gpx, name, description, externalId })` on the Wahoo provider: base64-encode the FIT, build the form-encoded body, POST `/v1/routes`, return `{ remoteId }` on success or throw a typed error on failure (token expired, scope missing, validation error, rate limit, generic)
+- [x] 3.4 Wire token-refresh-on-401 through the new push call. Implemented at the boundary instead of inside `pushRoute`: the provider throws `PushError({ code: "token_expired" })` on 401 and the slice-4 action route catches it, calls `provider.refreshToken`, persists, and retries once. (No `withFreshToken` helper exists in this repo today; the existing webhook handler does the same inline.)
 
 ## 4. Sync provider interface extension
 
-- [ ] 4.1 Add an optional `pushRoute?: (connection, payload) => Promise<{ remoteId: string }>` method to the `SyncProvider` interface in `apps/journal/app/lib/sync/types.ts`
-- [ ] 4.2 Define the `PushRoutePayload` and `PushRouteResult` types alongside it
-- [ ] 4.3 Add a `providerSupportsPush(provider)` helper for use in loaders/UI
+- [x] 4.1 Add an optional `pushRoute?: (connection, payload) => Promise<{ remoteId: string }>` method to the `SyncProvider` interface in `apps/journal/app/lib/sync/types.ts`
+- [x] 4.2 Define the `PushRoutePayload` and `PushRouteResult` types alongside it
+- [x] 4.3 Add a `providerSupportsPush(provider)` helper for use in loaders/UI
 
 ## 5. Push action route and idempotency layer
 
