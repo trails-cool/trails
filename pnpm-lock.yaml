@@ -218,6 +218,9 @@ importers:
       '@trails-cool/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@trails-cool/fit':
+        specifier: workspace:*
+        version: link:../../packages/fit
       '@trails-cool/gpx':
         specifier: workspace:*
         version: link:../../packages/gpx
@@ -591,6 +594,22 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.17
+
+  packages/fit:
+    dependencies:
+      '@garmin/fitsdk':
+        specifier: ^21.202.0
+        version: 21.202.0
+      '@trails-cool/gpx':
+        specifier: workspace:*
+        version: link:../gpx
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.17
+      fit-file-parser:
+        specifier: ^2.3.3
+        version: 2.3.3
 
   packages/gpx:
     dependencies:
@@ -1927,6 +1946,9 @@ packages:
     resolution: {integrity: sha512-3TASCATfw+ctICSb4ymrv7iCm0qJ0N9CarB+CZ7zIJ7KqNbwI5JjyDL1/sxoC0ccTO1Zyd1iQ+oqncPg5FJXaA==}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
+
+  '@garmin/fitsdk@21.202.0':
+    resolution: {integrity: sha512-WeveKUCKZSehRdM6JY/n0embblH18z5sY0KkJye5Z9nJ8Qv2S6EEmoSuBrW2ew45OtTGph0bu4/jxlO6VRP+Qw==}
 
   '@geoman-io/leaflet-geoman-free@2.19.3':
     resolution: {integrity: sha512-HjbEpfAEUs0NyI1Dhvz3SMVG6m0pAN/1Eo0tRKsz9cpaROTrFtmJGY22swEir1Uj/8IeGF1NJId38C5Fu+nZGQ==}
@@ -8941,6 +8963,8 @@ snapshots:
       minimatch: 10.2.5
     transitivePeerDependencies:
       - supports-color
+
+  '@garmin/fitsdk@21.202.0': {}
 
   '@geoman-io/leaflet-geoman-free@2.19.3(leaflet@1.9.4)':
     dependencies:

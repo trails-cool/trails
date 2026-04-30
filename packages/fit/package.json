@@ -1,0 +1,23 @@
+{
+  "name": "@trails-cool/fit",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@garmin/fitsdk": "^21.202.0",
+    "@trails-cool/gpx": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "fit-file-parser": "^2.3.3"
+  }
+}

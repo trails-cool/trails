@@ -27,7 +27,7 @@ The existing Wahoo integration is read-only: we pull completed workouts back int
   - `apps/journal/app/routes/` — new `/api/sync/push/wahoo/:routeId` action; "Send to Wahoo" button on the route detail page.
   - `packages/db/src/schema/journal.ts` — new `sync_pushes` table + `granted_scopes` column on `sync_connections`, plus the generated Drizzle migration in `packages/db/migrations/`.
   - **New package** `packages/fit/` — GPX→FIT Course encoder, co-located tests with FIT-decoder round-trip fixtures.
-- **Dependencies**: One new dep — a JS FIT encoder. Candidates to evaluate in design.md: `@garmin/fitsdk-javascript` (official, large), `fit-file-writer`, or a thin hand-rolled encoder against the FIT SDK profile (Course message + Record + Lap).
+- **Dependencies**: One new dep — `@garmin/fitsdk` (Garmin's official ESM-native FIT SDK; see design.md §1 for evaluation). `fit-file-parser` is already a dep on the import path and is reused as the round-trip oracle in tests.
 - **External API**: Net-new outbound calls to `api.wahooligan.com/v1/routes`. No webhook changes.
 - **Privacy manifest**: Update `docs/privacy.md` (or wherever the manifest lives) to declare that route geometry + name + description are sent to Wahoo when the user opts in by clicking "Send to Wahoo".
 - **Out of scope for this change**: bulk push ("send all my routes"), automatic push on route save, push to non-Wahoo providers, and pushing route updates after the initial send (PUT /v1/routes/:id can come later — first send wins).

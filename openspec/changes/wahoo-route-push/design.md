@@ -23,17 +23,22 @@ There is no FIT *encoder* in the repo today — we only decode. FIT Course encod
 
 ## Decisions
 
-### 1. Use a hand-rolled FIT Course encoder, not the official Garmin SDK
+### 1. Use Garmin's official `@garmin/fitsdk` package server-side
 
-**Decision**: Add a small (~300 LOC) hand-rolled FIT encoder to `packages/fit/` that emits exactly the message types Wahoo needs for a Course: `file_id`, `file_creator`, `course`, `lap`, `event` (start/stop), and `record`. No dependency on Garmin's SDK.
+**Decision**: Depend on `@garmin/fitsdk` (the renamed, current package — formerly published as `@garmin/fitsdk-javascript`) and wrap it in `packages/fit/` with a single `gpxToFitCourse(...)` export. Encoding runs server-side in the Journal action route only — the SDK does not ship to the planner browser bundle.
 
-**Why**:
-- `@garmin/fitsdk-javascript` is the official option but ships ~1 MB of profile metadata and a CommonJS-only build that fights our ESM/Vite setup. Pulling it into the journal bundle is wasteful when we use ~5 message types.
-- `fit-file-writer` (npm) is the closest community option, but unmaintained since 2021 and ships TypeScript types that disagree with the runtime API. We'd be patching it on day one.
-- The FIT binary format is a documented, stable protocol (header + variable-length records + CRC). Encoding the seven messages we need is small enough to own.
-- `fit-file-parser` (used today on the import path) gives us a free correctness oracle: every encoded file gets round-tripped through the parser in tests and asserted to match the source GPX track points.
+**Why** (revised after re-evaluating the SDK as of 2026-04):
+- The SDK is now **pure ESM** (`"type": "module"`, zero deps). The earlier ESM/Vite friction is gone.
+- Actively maintained by Garmin, published quarterly in lockstep with the FIT profile (latest 21.202.0, Apr 2026).
+- First-class Course encoder API (`new Encoder()` + `writeMesg(...)` + `close()` → `Uint8Array`) with an official cookbook at <https://developer.garmin.com/fit/cookbook/encoding-course-files/>.
+- The ~1 MB unpacked size is real but irrelevant: encoding lives behind `/api/sync/push/wahoo/:routeId` (Node 20). Nothing in the planner imports `@trails-cool/fit`.
+- Avoids ~400 LOC of binary plumbing (file header, definition messages, data messages, CRC-16) that we'd otherwise own and maintain against future FIT spec updates.
 
-**Alternatives considered**: `@garmin/fitsdk-javascript` (rejected: bundle size, ESM friction), `fit-file-writer` (rejected: unmaintained), shelling out to the Python `fit-tool` (rejected: adds a runtime dependency on the deploy host that doesn't already exist).
+**Round-trip oracle**: `fit-file-parser` (already a dep on the import path) decodes every encoded fixture in tests and asserts track-point parity with the source GPX. Same correctness story as before — just with less code in our repo.
+
+**Cost**: TypeScript types aren't shipped, so `packages/fit/` includes a small ambient `fitsdk.d.ts` (~30 lines covering `Encoder`, `Stream`, `Profile.MesgNum`).
+
+**Alternatives considered**: hand-rolled encoder (rejected: 400 LOC of binary format we'd own forever, plus ongoing maintenance against FIT spec updates — net loss now that the SDK's ESM/maintenance objections are resolved); `fit-file-writer` (rejected: appears unpublished from npm registry); shelling out to Python `fit-tool` (rejected: new runtime dependency on the deploy host).
 
 ### 2. New `packages/fit/` package, GPX-shaped public API
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="trails.cool" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>Short flat loop</name></metadata>
+  <trk><name>Short flat loop</name><trkseg>
+    <trkpt lat="52.5200" lon="13.4050"><ele>34.0</ele></trkpt>
+    <trkpt lat="52.5210" lon="13.4060"><ele>34.5</ele></trkpt>
+    <trkpt lat="52.5220" lon="13.4070"><ele>35.0</ele></trkpt>
+    <trkpt lat="52.5230" lon="13.4080"><ele>34.5</ele></trkpt>
+    <trkpt lat="52.5240" lon="13.4090"><ele>34.0</ele></trkpt>
+  </trkseg></trk>
+</gpx>
