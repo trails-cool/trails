@@ -11,10 +11,10 @@
 
 ## 2. Database schema for push tracking
 
-- [ ] 2.1 Add `sync_pushes` table to `packages/db/src/schema/journal.ts` with columns from design.md §3 and a unique index on `(user_id, route_id, route_version, provider)`
-- [ ] 2.2 Add a `granted_scopes text[]` column to `sync_connections` in the same schema file, defaulting to an empty array, and backfill existing rows with the legacy scopes (`workouts_read`, `user_read`, `offline_data`)
-- [ ] 2.3 Generate the Drizzle migration via `pnpm --filter @trails-cool/db db:generate` (migration files land in `packages/db/migrations/`)
-- [ ] 2.4 Apply locally via `pnpm db:push` and verify with `pnpm db:studio`
+- [x] 2.1 Add `sync_pushes` table to `packages/db/src/schema/journal.ts` with columns from design.md §3 and a unique index on `(user_id, route_id, route_version, provider)`
+- [x] 2.2 Add a `granted_scopes text[]` column to `sync_connections` in the same schema file, defaulting to an empty array. (Backfill happens at `exchangeCode` time in slice 3 — pre-existing connections will be recognized as scope-mismatched on first push and trigger re-auth, which is the intended UX.)
+- [x] 2.3 ~~Generate Drizzle migration files~~ — N/A: this repo runs `drizzle-kit push --force` schema-first, no checked-in `migrations/` directory. The schema edit is the migration source.
+- [ ] 2.4 Apply locally via `pnpm db:push` against a running dev Postgres and verify with `pnpm db:studio` — deferred: requires `pnpm dev:services` (Docker) which isn't running in this workspace. CI applies on deploy.
 
 ## 3. Wahoo provider scope upgrade
 
