@@ -220,10 +220,11 @@ export const syncImports = journalSchema.table("sync_imports", {
 });
 
 // Tracks outbound route pushes to external providers (Wahoo today). One row
-// per (user, route, version, provider) — push idempotency lives here. A row
-// with `pushedAt` set means we have a confirmed remote_id and won't re-call
-// the provider; a row with `error` set and no `pushedAt` is a failed attempt
-// that can be retried in place.
+// per (user, route, provider) — a logical Wahoo route is per-route, not
+// per-version. `lastPushedVersion` records which local version is currently
+// reflected on the remote side; `remoteId` lets subsequent pushes PUT in
+// place. A row with `error` set and no `pushedAt` is a failed attempt that
+// can be retried (POST if `remoteId` is null, PUT otherwise).
 export const syncPushes = journalSchema.table(
   "sync_pushes",
   {
@@ -234,20 +235,19 @@ export const syncPushes = journalSchema.table(
     routeId: text("route_id")
       .notNull()
       .references(() => routes.id, { onDelete: "cascade" }),
-    routeVersion: integer("route_version").notNull(),
     provider: text("provider").notNull(),
     externalId: text("external_id").notNull(),
     remoteId: text("remote_id"),
+    lastPushedVersion: integer("last_pushed_version"),
     pushedAt: timestamp("pushed_at", { withTimezone: true }),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
-    userRouteVersionProviderUnique: uniqueIndex("sync_pushes_user_route_version_provider_unique").on(
+    userRouteProviderUnique: uniqueIndex("sync_pushes_user_route_provider_unique").on(
       t.userId,
       t.routeId,
-      t.routeVersion,
       t.provider,
     ),
   }),

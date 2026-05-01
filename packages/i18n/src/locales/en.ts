@@ -209,6 +209,8 @@ export default {
       sentToWahoo: "Sent to Wahoo on {{date}}",
       sendToWahooFailed: "Last attempt failed: {{error}}",
       sendToWahooSending: "Sending…",
+      onWahooNewer: "On Wahoo (v{{n}}) — local version is newer",
+      sendUpdatedVersion: "Send updated version",
       sendToWahooBanner: {
         success: "Route sent to Wahoo. Check your Wahoo App or bike computer.",
         needsPermission: "We need your permission to send routes to Wahoo. Please reconnect.",

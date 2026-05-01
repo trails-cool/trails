@@ -17,6 +17,65 @@ const WAHOO_AUTH = "https://api.wahooligan.com/oauth";
 const clientId = () => process.env.WAHOO_CLIENT_ID ?? "";
 const clientSecret = () => process.env.WAHOO_CLIENT_SECRET ?? "";
 
+function buildRouteFormBody(payload: PushRoutePayload): URLSearchParams {
+  // Wahoo expects route[file] as a data URI, not raw base64. Sending plain
+  // base64 results in a route record where file.url is null and the Wahoo
+  // app shows the route in the list (with metadata) but renders no track.
+  const fitDataUri = `data:application/vnd.fit;base64,${Buffer.from(payload.fit).toString("base64")}`;
+  const body = new URLSearchParams({
+    "route[external_id]": payload.externalId,
+    "route[provider_updated_at]": payload.providerUpdatedAt.toISOString(),
+    "route[name]": payload.name,
+    "route[workout_type_family_id]": "0",
+    "route[start_lat]": payload.startLat.toString(),
+    "route[start_lng]": payload.startLng.toString(),
+    "route[distance]": payload.distance.toString(),
+    "route[ascent]": payload.ascent.toString(),
+    "route[file]": fitDataUri,
+  });
+  if (payload.description) body.set("route[description]", payload.description);
+  if (payload.filename) body.set("route[filename]", payload.filename);
+  return body;
+}
+
+async function wahooRouteRequest(
+  tokens: TokenSet,
+  method: "POST" | "PUT",
+  url: string,
+  payload: PushRoutePayload,
+  opts: { fallbackRemoteId?: string } = {},
+): Promise<PushRouteResult> {
+  const resp = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${tokens.accessToken}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: buildRouteFormBody(payload).toString(),
+  });
+
+  if (resp.ok) {
+    // PUT may respond 200/204 without a body. The remote id is unchanged in
+    // that case, so fall back to the one we just targeted.
+    let remoteId: string | undefined;
+    if (resp.status !== 204) {
+      const data = (await resp.json().catch(() => null)) as { id?: number | string } | null;
+      remoteId = data?.id?.toString();
+    }
+    remoteId ??= opts.fallbackRemoteId;
+    if (!remoteId) throw new PushError("generic", "Wahoo response missing route id", resp.status);
+    return { remoteId };
+  }
+
+  const text = await resp.text().catch(() => "");
+  if (resp.status === 401) throw new PushError("token_expired", text || "Unauthorized", 401);
+  if (resp.status === 403) throw new PushError("scope_missing", text || "Forbidden", 403);
+  if (resp.status === 404) throw new PushError("not_found", text || "Not Found", 404);
+  if (resp.status === 422) throw new PushError("validation", text || "Validation failed", 422);
+  if (resp.status === 429) throw new PushError("rate_limit", text || "Rate limited", 429);
+  throw new PushError("generic", `Wahoo route ${method} failed: ${resp.status} ${text}`, resp.status);
+}
+
 export const wahooProvider: SyncProvider = {
   id: "wahoo",
   name: "Wahoo",
@@ -181,46 +240,21 @@ export const wahooProvider: SyncProvider = {
   },
 
   async pushRoute(tokens: TokenSet, payload: PushRoutePayload): Promise<PushRouteResult> {
-    // Wahoo expects route[file] as a data URI, not raw base64. Sending plain
-    // base64 results in a route record where file.url is null and the Wahoo
-    // app shows the route in the list (with metadata) but renders no track.
-    const fitDataUri = `data:application/vnd.fit;base64,${Buffer.from(payload.fit).toString("base64")}`;
-    const body = new URLSearchParams({
-      "route[external_id]": payload.externalId,
-      "route[provider_updated_at]": payload.providerUpdatedAt.toISOString(),
-      "route[name]": payload.name,
-      "route[workout_type_family_id]": "0",
-      "route[start_lat]": payload.startLat.toString(),
-      "route[start_lng]": payload.startLng.toString(),
-      "route[distance]": payload.distance.toString(),
-      "route[ascent]": payload.ascent.toString(),
-      "route[file]": fitDataUri,
-    });
-    if (payload.description) body.set("route[description]", payload.description);
-    if (payload.filename) body.set("route[filename]", payload.filename);
+    return wahooRouteRequest(tokens, "POST", `${WAHOO_API}/v1/routes`, payload);
+  },
 
-    const resp = await fetch(`${WAHOO_API}/v1/routes`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: body.toString(),
-    });
-
-    if (resp.ok) {
-      const data = (await resp.json()) as { id?: number | string };
-      const remoteId = data.id?.toString();
-      if (!remoteId) throw new PushError("generic", "Wahoo response missing route id", resp.status);
-      return { remoteId };
-    }
-
-    const text = await resp.text().catch(() => "");
-    if (resp.status === 401) throw new PushError("token_expired", text || "Unauthorized", 401);
-    if (resp.status === 403) throw new PushError("scope_missing", text || "Forbidden", 403);
-    if (resp.status === 422) throw new PushError("validation", text || "Validation failed", 422);
-    if (resp.status === 429) throw new PushError("rate_limit", text || "Rate limited", 429);
-    throw new PushError("generic", `Wahoo route push failed: ${resp.status} ${text}`, resp.status);
+  async updateRoute(
+    tokens: TokenSet,
+    remoteId: string,
+    payload: PushRoutePayload,
+  ): Promise<PushRouteResult> {
+    return wahooRouteRequest(
+      tokens,
+      "PUT",
+      `${WAHOO_API}/v1/routes/${encodeURIComponent(remoteId)}`,
+      payload,
+      { fallbackRemoteId: remoteId },
+    );
   },
 
   async revoke(tokens: TokenSet): Promise<void> {
