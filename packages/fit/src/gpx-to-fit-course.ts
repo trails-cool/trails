@@ -1,3 +1,4 @@
+import "./fitsdk-shim.ts";
 import { Encoder, Profile } from "@garmin/fitsdk";
 import { parseGpxAsync } from "@trails-cool/gpx";
 import type { TrackPoint } from "@trails-cool/gpx";

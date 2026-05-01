@@ -52,6 +52,7 @@ export default [
   route("api/sync/callback/:provider", "routes/api.sync.callback.$provider.ts"),
   route("api/sync/disconnect/:provider", "routes/api.sync.disconnect.$provider.ts"),
   route("api/sync/webhook/:provider", "routes/api.sync.webhook.$provider.ts"),
+  route("api/sync/push/:provider/:routeId", "routes/api.sync.push.$provider.$routeId.ts"),
   route("privacy", "routes/privacy.tsx"),
   route("legal/imprint", "routes/legal.imprint.tsx"),
   route("legal/terms", "routes/legal.terms.tsx"),
