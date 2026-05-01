@@ -49,12 +49,24 @@ export async function gpxToFitCourse(input: GpxToFitCourseInput): Promise<Uint8A
     hardwareVersion: 0,
   });
 
+  // courseCapabilities bitfield (FIT Profile):
+  //   0x02 valid | 0x08 distance | 0x10 position
+  // Previously this was 0x04 ("time" only), which falsely told consumers the
+  // course had no position data — Wahoo accepted the route but rendered an
+  // empty map.
+  const COURSE_CAPABILITIES_VALID_DISTANCE_POSITION = 0x1a;
+
   encoder.writeMesg({
     mesgNum: Profile.MesgNum.COURSE,
     name: input.name,
     sport: SPORT_ENUM[input.sport ?? "cycling"],
-    capabilities: 0x00000004,
+    capabilities: COURSE_CAPABILITIES_VALID_DISTANCE_POSITION,
   });
+
+  // Records below are written at 1Hz starting at startTime, so elapsed time
+  // matches (points.length - 1) seconds. A zero-duration lap can be rejected
+  // as malformed by stricter consumers.
+  const totalElapsedSeconds = points.length - 1;
 
   encoder.writeMesg({
     mesgNum: Profile.MesgNum.LAP,
@@ -64,8 +76,8 @@ export async function gpxToFitCourse(input: GpxToFitCourseInput): Promise<Uint8A
     startPositionLong: degToSemicircles(first.lon),
     endPositionLat: degToSemicircles(last.lat),
     endPositionLong: degToSemicircles(last.lon),
-    totalElapsedTime: 0,
-    totalTimerTime: 0,
+    totalElapsedTime: totalElapsedSeconds,
+    totalTimerTime: totalElapsedSeconds,
     totalDistance: data.distance,
   });
 
