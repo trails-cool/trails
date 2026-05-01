@@ -106,6 +106,9 @@ jobs:
 
             # Pull and deploy app containers
             docker compose --env-file app.env pull journal planner
+            # Hand-written data migrations (idempotent) run BEFORE drizzle-kit
+            # push so unique-key reshapes can collapse duplicate rows first.
+            docker compose --env-file app.env run --rm journal node --experimental-strip-types /app/packages/db/src/migrate-data.ts
             docker compose --env-file app.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
             # --remove-orphans cleans up containers whose service was deleted
             # from the compose file, matching cd-infra's behaviour.

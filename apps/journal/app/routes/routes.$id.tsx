@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { canView, getSessionUser } from "~/lib/auth.server";
 import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
 import { getDb } from "~/lib/db";
@@ -44,20 +44,32 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   const currentVersion = route.versions[0]?.version ?? 1;
 
-  // Wahoo push state — only meaningful for the owner. Includes the latest
-  // sync_pushes row for the current version (if any) and whether the user
-  // has a Wahoo connection with the routes_write scope.
+  // Wahoo push state — only meaningful for the owner. The single
+  // sync_pushes row per (user, route, wahoo) carries `lastPushedVersion`,
+  // which we compare against the current local version to render one of
+  // three states: matches, local newer, or last attempt failed.
   let wahooPush:
     | {
         canPush: boolean;
         needsReauth: boolean;
-        latest: { pushedAt: string | null; remoteId: string | null; error: string | null } | null;
+        currentVersion: number;
+        latest: {
+          pushedAt: string | null;
+          remoteId: string | null;
+          lastPushedVersion: number | null;
+          error: string | null;
+        } | null;
       }
     | null = null;
   if (isOwner && user && !!route.gpx) {
     const connection = await getConnection(user.id, "wahoo");
     let latest:
-      | { pushedAt: string | null; remoteId: string | null; error: string | null }
+      | {
+          pushedAt: string | null;
+          remoteId: string | null;
+          lastPushedVersion: number | null;
+          error: string | null;
+        }
       | null = null;
     if (connection) {
       const db = getDb();
@@ -68,16 +80,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
           and(
             eq(syncPushes.userId, user.id),
             eq(syncPushes.routeId, route.id),
-            eq(syncPushes.routeVersion, currentVersion),
             eq(syncPushes.provider, "wahoo"),
           ),
         )
-        .orderBy(desc(syncPushes.createdAt))
         .limit(1);
       latest = row
         ? {
             pushedAt: row.pushedAt ? row.pushedAt.toISOString() : null,
             remoteId: row.remoteId,
+            lastPushedVersion: row.lastPushedVersion,
             error: row.error,
           }
         : null;
@@ -85,6 +96,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     wahooPush = {
       canPush: !!connection,
       needsReauth: !!connection && !connection.grantedScopes.includes("routes_write"),
+      currentVersion,
       latest,
     };
   }
@@ -237,33 +249,49 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
                 {t("routes.exportGpx")}
               </a>
             )}
-            {wahooPush?.canPush && (
-              wahooPush.latest?.pushedAt ? (
-                <span
-                  className="rounded-md bg-green-50 px-3 py-1.5 text-sm text-green-800"
-                  title={t("routes.sendToWahooHelp")}
-                >
-                  {t("routes.sentToWahoo", {
-                    date: new Date(wahooPush.latest.pushedAt).toLocaleDateString(i18n.language),
-                  })}
-                </span>
-              ) : (
+            {wahooPush?.canPush && (() => {
+              const latest = wahooPush.latest;
+              const matches =
+                latest?.pushedAt &&
+                latest.lastPushedVersion === wahooPush.currentVersion;
+              const localNewer =
+                latest?.pushedAt &&
+                latest.lastPushedVersion != null &&
+                latest.lastPushedVersion < wahooPush.currentVersion;
+              if (matches) {
+                return (
+                  <span
+                    className="rounded-md bg-green-50 px-3 py-1.5 text-sm text-green-800"
+                    title={t("routes.sendToWahooHelp")}
+                  >
+                    {t("routes.sentToWahoo", {
+                      date: new Date(latest!.pushedAt!).toLocaleDateString(i18n.language),
+                    })}
+                  </span>
+                );
+              }
+              return (
                 <form method="post" action={`/api/sync/push/wahoo/${route.id}`} className="inline">
+                  {localNewer && (
+                    <span className="mr-2 rounded-md bg-amber-50 px-3 py-1.5 text-sm text-amber-900">
+                      {t("routes.onWahooNewer", { n: latest!.lastPushedVersion })}
+                    </span>
+                  )}
                   <button
                     type="submit"
                     className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                     title={t("routes.sendToWahooHelp")}
                   >
-                    {t("routes.sendToWahoo")}
+                    {localNewer ? t("routes.sendUpdatedVersion") : t("routes.sendToWahoo")}
                   </button>
-                  {wahooPush.latest?.error && (
+                  {latest?.error && (
                     <span className="ml-2 text-sm text-red-700">
-                      {t("routes.sendToWahooFailed", { error: wahooPush.latest.error })}
+                      {t("routes.sendToWahooFailed", { error: latest.error })}
                     </span>
                   )}
                 </form>
-              )
-            )}
+              );
+            })()}
           </div>
         )}
       </div>

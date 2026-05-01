@@ -58,7 +58,9 @@ export async function pushRouteToProvider(opts: PushRouteOptions): Promise<PushO
   const versionNumber = latestVersion?.version ?? 1;
   if (!versionGpx) return { status: "no_geometry" };
 
-  // Idempotency: if this exact (user, route, version) was already pushed, return that result.
+  // Idempotency key is per (user, route, provider) — a logical Wahoo route is
+  // per-route, not per-version. The version that's currently on Wahoo is a
+  // property of the row, not part of the key.
   const existing = await db
     .select()
     .from(syncPushes)
@@ -66,13 +68,17 @@ export async function pushRouteToProvider(opts: PushRouteOptions): Promise<PushO
       and(
         eq(syncPushes.userId, userId),
         eq(syncPushes.routeId, routeId),
-        eq(syncPushes.routeVersion, versionNumber),
         eq(syncPushes.provider, providerId),
       ),
     )
     .limit(1);
   const existingRow = existing[0];
-  if (existingRow?.pushedAt && existingRow.remoteId) {
+  // Already-pushed unchanged route: short-circuit.
+  if (
+    existingRow?.pushedAt &&
+    existingRow.remoteId &&
+    existingRow.lastPushedVersion === versionNumber
+  ) {
     return { status: "success", remoteId: existingRow.remoteId, pushedAt: existingRow.pushedAt };
   }
 
@@ -87,7 +93,7 @@ export async function pushRouteToProvider(opts: PushRouteOptions): Promise<PushO
     description: route.description ?? undefined,
   });
 
-  const externalId = `route:${routeId}:v${versionNumber}`;
+  const externalId = `route:${routeId}`;
   const payload = {
     fit,
     externalId,
@@ -123,6 +129,7 @@ export async function pushRouteToProvider(opts: PushRouteOptions): Promise<PushO
         .update(syncPushes)
         .set({
           remoteId,
+          lastPushedVersion: success ? versionNumber : existingRow.lastPushedVersion,
           pushedAt: success ? now : null,
           error,
           updatedAt: now,
@@ -133,26 +140,43 @@ export async function pushRouteToProvider(opts: PushRouteOptions): Promise<PushO
         id: randomUUID(),
         userId,
         routeId,
-        routeVersion: versionNumber,
         provider: providerId,
         externalId,
         remoteId,
+        lastPushedVersion: success ? versionNumber : null,
         pushedAt: success ? now : null,
         error,
       });
     }
   };
 
+  // POST on first push (or after a failed push with no remote_id), PUT on
+  // subsequent pushes. PUT 404 means the user deleted the Wahoo route on
+  // their side — fall back to POST and overwrite remote_id.
+  const callProvider = async (toks: TokenSet) => {
+    if (existingRow?.remoteId && provider.updateRoute) {
+      try {
+        return await provider.updateRoute(toks, existingRow.remoteId, payload);
+      } catch (e) {
+        if (e instanceof PushError && e.code === "not_found") {
+          return provider.pushRoute(toks, payload);
+        }
+        throw e;
+      }
+    }
+    return provider.pushRoute(toks, payload);
+  };
+
   try {
     let result;
     try {
-      result = await provider.pushRoute(tokens, payload);
+      result = await callProvider(tokens);
     } catch (e) {
       if (e instanceof PushError && e.code === "token_expired") {
         // 401 mid-call — refresh once and retry.
         tokens = await provider.refreshToken(tokens.refreshToken);
         await updateTokens(connection.id, tokens);
-        result = await provider.pushRoute(tokens, payload);
+        result = await callProvider(tokens);
       } else {
         throw e;
       }
@@ -163,7 +187,11 @@ export async function pushRouteToProvider(opts: PushRouteOptions): Promise<PushO
     if (e instanceof PushError) {
       await recordResult(false, null, `${e.code}: ${e.message}`);
       if (e.code === "scope_missing") return { status: "scope_missing" };
-      return { status: "error", code: e.code, message: e.message };
+      // not_found should have been handled by the PUT→POST fallback; if it
+      // ever surfaces here it means even the POST returned 404. Surface as
+      // a generic error rather than widening the public PushOutcome union.
+      const code = e.code === "not_found" ? "generic" : e.code;
+      return { status: "error", code, message: e.message };
     }
     const message = e instanceof Error ? e.message : String(e);
     await recordResult(false, null, `generic: ${message}`);

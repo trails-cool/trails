@@ -32,7 +32,7 @@ export interface WebhookEvent {
 export interface PushRoutePayload {
   /** Pre-encoded FIT Course bytes — the action route runs gpxToFitCourse before calling pushRoute. */
   fit: Uint8Array;
-  /** Stable per (route, version) — `route:<routeId>:v<version>` for trails.cool. */
+  /** Stable per route — `route:<routeId>` for trails.cool. */
   externalId: string;
   providerUpdatedAt: Date;
   name: string;
@@ -56,6 +56,7 @@ export type PushErrorCode =
   | "token_expired"
   | "validation"
   | "rate_limit"
+  | "not_found"
   | "generic";
 
 export type OAuthErrorCode = "too_many_tokens" | "generic";
@@ -101,6 +102,16 @@ export interface SyncProvider {
 
   /** Optional: providers that can accept routes implement this. UI hides the action when undefined. */
   pushRoute?: (tokens: TokenSet, payload: PushRoutePayload) => Promise<PushRouteResult>;
+
+  /**
+   * Optional: update an already-pushed route in place. Throws PushError("not_found")
+   * if the remote route no longer exists; callers should fall back to pushRoute.
+   */
+  updateRoute?: (
+    tokens: TokenSet,
+    remoteId: string,
+    payload: PushRoutePayload,
+  ) => Promise<PushRouteResult>;
 
   /** Optional: revoke the given access token at the provider. Best-effort — failures should be swallowed by callers. */
   revoke?: (tokens: TokenSet) => Promise<void>;
