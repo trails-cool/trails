@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { wahooProvider } from "./wahoo";
+import { PushError } from "../types.ts";
 
 const fixturePath = resolve(__dirname, "__fixtures__/wahoo-ride.fit");
 const fitBuffer = readFileSync(fixturePath);
@@ -59,5 +60,89 @@ describe("wahooProvider.convertToGpx", () => {
     const gpx = await wahooProvider.convertToGpx(Buffer.from(fitBuffer));
     expect(gpx).not.toBeNull();
     expect(gpx).toContain("<ele>");
+  });
+});
+
+describe("wahooProvider.pushRoute", () => {
+  const tokens = {
+    accessToken: "test-token",
+    refreshToken: "refresh",
+    expiresAt: new Date(Date.now() + 3600_000),
+  };
+  const fit = new Uint8Array([0x01, 0x02, 0x03]);
+  const basePayload = {
+    fit,
+    externalId: "route:abc:v1",
+    providerUpdatedAt: new Date("2026-04-30T12:00:00Z"),
+    name: "Test route",
+    description: "A test",
+    startLat: 52.52,
+    startLng: 13.405,
+    distance: 12345,
+    ascent: 200,
+  };
+
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts a base64 FIT and returns the remote id", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 9876 }),
+    });
+
+    const result = await wahooProvider.pushRoute!(tokens, basePayload);
+
+    expect(result.remoteId).toBe("9876");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.wahooligan.com/v1/routes");
+    expect(init.method).toBe("POST");
+    expect(init.headers.Authorization).toBe("Bearer test-token");
+    expect(init.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    const body = new URLSearchParams(init.body as string);
+    expect(body.get("route[external_id]")).toBe("route:abc:v1");
+    expect(body.get("route[name]")).toBe("Test route");
+    expect(body.get("route[description]")).toBe("A test");
+    expect(body.get("route[start_lat]")).toBe("52.52");
+    expect(body.get("route[file]")).toBe(Buffer.from(fit).toString("base64"));
+  });
+
+  it.each([
+    [401, "token_expired"],
+    [403, "scope_missing"],
+    [422, "validation"],
+    [429, "rate_limit"],
+    [500, "generic"],
+  ])("maps HTTP %i to PushError code %s", async (status, code) => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status,
+      text: async () => "boom",
+    });
+
+    await expect(wahooProvider.pushRoute!(tokens, basePayload)).rejects.toMatchObject({
+      name: "PushError",
+      code,
+      status,
+    });
+  });
+
+  it("throws generic PushError when response lacks an id", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    });
+    await expect(wahooProvider.pushRoute!(tokens, basePayload)).rejects.toBeInstanceOf(PushError);
   });
 });

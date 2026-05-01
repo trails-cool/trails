@@ -1,6 +1,15 @@
 import FitParser from "fit-file-parser";
 import { generateGpx } from "@trails-cool/gpx";
-import type { SyncProvider, TokenSet, Workout, WorkoutList, WebhookEvent } from "../types.ts";
+import type {
+  SyncProvider,
+  TokenSet,
+  Workout,
+  WorkoutList,
+  WebhookEvent,
+  PushRoutePayload,
+  PushRouteResult,
+} from "../types.ts";
+import { PushError } from "../types.ts";
 
 const WAHOO_API = "https://api.wahooligan.com";
 const WAHOO_AUTH = "https://api.wahooligan.com/oauth";
@@ -11,7 +20,7 @@ const clientSecret = () => process.env.WAHOO_CLIENT_SECRET ?? "";
 export const wahooProvider: SyncProvider = {
   id: "wahoo",
   name: "Wahoo",
-  scopes: ["workouts_read", "user_read", "offline_data"],
+  scopes: ["workouts_read", "user_read", "offline_data", "routes_write"],
 
   getAuthUrl(redirectUri: string, state: string): string {
     const params = new URLSearchParams({
@@ -160,6 +169,46 @@ export const wahooProvider: SyncProvider = {
       name: "Wahoo workout",
       tracks: [trackPoints],
     });
+  },
+
+  async pushRoute(tokens: TokenSet, payload: PushRoutePayload): Promise<PushRouteResult> {
+    const fitBase64 = Buffer.from(payload.fit).toString("base64");
+    const body = new URLSearchParams({
+      "route[external_id]": payload.externalId,
+      "route[provider_updated_at]": payload.providerUpdatedAt.toISOString(),
+      "route[name]": payload.name,
+      "route[workout_type_family_id]": "0",
+      "route[start_lat]": payload.startLat.toString(),
+      "route[start_lng]": payload.startLng.toString(),
+      "route[distance]": payload.distance.toString(),
+      "route[ascent]": payload.ascent.toString(),
+      "route[file]": fitBase64,
+    });
+    if (payload.description) body.set("route[description]", payload.description);
+    if (payload.filename) body.set("route[filename]", payload.filename);
+
+    const resp = await fetch(`${WAHOO_API}/v1/routes`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tokens.accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+
+    if (resp.ok) {
+      const data = (await resp.json()) as { id?: number | string };
+      const remoteId = data.id?.toString();
+      if (!remoteId) throw new PushError("generic", "Wahoo response missing route id", resp.status);
+      return { remoteId };
+    }
+
+    const text = await resp.text().catch(() => "");
+    if (resp.status === 401) throw new PushError("token_expired", text || "Unauthorized", 401);
+    if (resp.status === 403) throw new PushError("scope_missing", text || "Forbidden", 403);
+    if (resp.status === 422) throw new PushError("validation", text || "Validation failed", 422);
+    if (resp.status === 429) throw new PushError("rate_limit", text || "Rate limited", 429);
+    throw new PushError("generic", `Wahoo route push failed: ${resp.status} ${text}`, resp.status);
   },
 
   parseWebhook(body: unknown): WebhookEvent | null {
