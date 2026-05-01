@@ -389,6 +389,12 @@ export default {
         connect: "Verbinden",
         disconnect: "Trennen",
         connectedAs: "Verbunden (ID: {{id}})",
+        errors: {
+          too_many_tokens:
+            "Für diesen Dienst gibt es zu viele aktive Autorisierungen für dein Konto. Öffne die App des Anbieters, widerrufe dort die trails.cool-Autorisierung und versuche es dann erneut.",
+          sync_failed: "Verbindung fehlgeschlagen — der Anbieter hat die Anfrage abgelehnt. Bitte versuche es erneut.",
+          generic: "Verbindung fehlgeschlagen — der Anbieter hat die Anfrage abgelehnt. Bitte versuche es erneut.",
+        },
       },
     },
     sync: {

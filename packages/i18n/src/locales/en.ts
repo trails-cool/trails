@@ -389,6 +389,12 @@ export default {
         connect: "Connect",
         disconnect: "Disconnect",
         connectedAs: "Connected (ID: {{id}})",
+        errors: {
+          too_many_tokens:
+            "This provider has too many active authorizations for your account. Open the provider's app, revoke the trails.cool authorization there, then try connecting again.",
+          sync_failed: "Couldn't connect — the provider rejected the request. Please try again.",
+          generic: "Couldn't connect — the provider rejected the request. Please try again.",
+        },
       },
     },
     sync: {
