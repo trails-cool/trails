@@ -114,7 +114,9 @@ describe("wahooProvider.pushRoute", () => {
     expect(body.get("route[name]")).toBe("Test route");
     expect(body.get("route[description]")).toBe("A test");
     expect(body.get("route[start_lat]")).toBe("52.52");
-    expect(body.get("route[file]")).toBe(Buffer.from(fit).toString("base64"));
+    expect(body.get("route[file]")).toBe(
+      `data:application/vnd.fit;base64,${Buffer.from(fit).toString("base64")}`,
+    );
   });
 
   it.each([
