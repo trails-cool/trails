@@ -36,16 +36,19 @@ export const wahooProvider: SyncProvider = {
   async exchangeCode(code: string, redirectUri: string): Promise<TokenSet> {
     const resp = await fetch(`${WAHOO_AUTH}/token`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
         client_id: clientId(),
         client_secret: clientSecret(),
         code,
         grant_type: "authorization_code",
         redirect_uri: redirectUri,
-      }),
+      }).toString(),
     });
-    if (!resp.ok) throw new Error(`Wahoo token exchange failed: ${resp.status}`);
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      throw new Error(`Wahoo token exchange failed: ${resp.status} ${text}`);
+    }
     const data = await resp.json() as { access_token: string; refresh_token: string; expires_in: number };
 
     // Fetch user info to get provider user ID
@@ -65,15 +68,18 @@ export const wahooProvider: SyncProvider = {
   async refreshToken(refreshToken: string): Promise<TokenSet> {
     const resp = await fetch(`${WAHOO_AUTH}/token`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
         client_id: clientId(),
         client_secret: clientSecret(),
         grant_type: "refresh_token",
         refresh_token: refreshToken,
-      }),
+      }).toString(),
     });
-    if (!resp.ok) throw new Error(`Wahoo token refresh failed: ${resp.status}`);
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      throw new Error(`Wahoo token refresh failed: ${resp.status} ${text}`);
+    }
     const data = await resp.json() as { access_token: string; refresh_token: string; expires_in: number };
     return {
       accessToken: data.access_token,
