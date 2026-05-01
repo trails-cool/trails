@@ -20,7 +20,7 @@ const clientSecret = () => process.env.WAHOO_CLIENT_SECRET ?? "";
 export const wahooProvider: SyncProvider = {
   id: "wahoo",
   name: "Wahoo",
-  scopes: ["workouts_read", "user_read", "offline_data", "routes_write"],
+  scopes: ["workouts_read", "user_read", "offline_data", "routes_read", "routes_write"],
 
   getAuthUrl(redirectUri: string, state: string): string {
     const params = new URLSearchParams({
