@@ -17,8 +17,10 @@ async function loadFixture(name: string): Promise<string> {
 
 interface ParsedFit {
   records: Array<{ position_lat?: number; position_long?: number; altitude?: number }>;
-  course?: Array<{ name?: string; sport?: string }> | { name?: string; sport?: string };
-  laps?: Array<unknown>;
+  course?:
+    | Array<{ name?: string; sport?: string; capabilities?: unknown }>
+    | { name?: string; sport?: string; capabilities?: unknown };
+  laps?: Array<{ total_elapsed_time?: number; total_timer_time?: number }>;
 }
 
 function decode(bytes: Uint8Array): Promise<ParsedFit> {
@@ -63,6 +65,35 @@ describe("gpxToFitCourse", () => {
   it("throws on a GPX with zero track points", async () => {
     const gpx = await loadFixture("empty.gpx");
     await expect(gpxToFitCourse({ gpx, name: "Empty" })).rejects.toThrow(/zero track points/);
+  });
+
+  it("advertises position+distance course capabilities (not time-only)", async () => {
+    const gpx = await loadFixture("short-flat.gpx");
+    const bytes = await gpxToFitCourse({ gpx, name: "Caps", sport: "cycling" });
+    const parsed = await decode(bytes);
+    const course = Array.isArray(parsed.course) ? parsed.course[0] : parsed.course;
+    // fit-file-parser returns capabilities as a single-element array of the raw bitfield.
+    const caps = course?.capabilities;
+    const value = Array.isArray(caps) ? Number(caps[0]) : Number(caps);
+    const VALID = 0x02;
+    const DISTANCE = 0x08;
+    const POSITION = 0x10;
+    const TIME = 0x04;
+    expect(value & VALID).toBe(VALID);
+    expect(value & DISTANCE).toBe(DISTANCE);
+    expect(value & POSITION).toBe(POSITION);
+    expect(value & TIME).toBe(0);
+  });
+
+  it("writes a non-zero lap elapsed time matching record count", async () => {
+    const gpx = await loadFixture("short-flat.gpx");
+    const source = await parseGpxAsync(gpx);
+    const sourcePoints = source.tracks.flat();
+    const bytes = await gpxToFitCourse({ gpx, name: "Lap", sport: "cycling" });
+    const parsed = await decode(bytes);
+    const lap = parsed.laps?.[0];
+    expect(lap?.total_elapsed_time).toBe(sourcePoints.length - 1);
+    expect(lap?.total_timer_time).toBe(sourcePoints.length - 1);
   });
 
   it("encodes course name and sport", async () => {
