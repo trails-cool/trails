@@ -2,8 +2,12 @@ import { useState, useCallback } from "react";
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
+import { and, desc, eq } from "drizzle-orm";
 import { canView, getSessionUser } from "~/lib/auth.server";
 import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
+import { getDb } from "~/lib/db";
+import { syncPushes } from "@trails-cool/db/schema/journal";
+import { getConnection } from "~/lib/sync/connections.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 
@@ -38,6 +42,53 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
   }
 
+  const currentVersion = route.versions[0]?.version ?? 1;
+
+  // Wahoo push state — only meaningful for the owner. Includes the latest
+  // sync_pushes row for the current version (if any) and whether the user
+  // has a Wahoo connection with the routes_write scope.
+  let wahooPush:
+    | {
+        canPush: boolean;
+        needsReauth: boolean;
+        latest: { pushedAt: string | null; remoteId: string | null; error: string | null } | null;
+      }
+    | null = null;
+  if (isOwner && user && !!route.gpx) {
+    const connection = await getConnection(user.id, "wahoo");
+    let latest:
+      | { pushedAt: string | null; remoteId: string | null; error: string | null }
+      | null = null;
+    if (connection) {
+      const db = getDb();
+      const [row] = await db
+        .select()
+        .from(syncPushes)
+        .where(
+          and(
+            eq(syncPushes.userId, user.id),
+            eq(syncPushes.routeId, route.id),
+            eq(syncPushes.routeVersion, currentVersion),
+            eq(syncPushes.provider, "wahoo"),
+          ),
+        )
+        .orderBy(desc(syncPushes.createdAt))
+        .limit(1);
+      latest = row
+        ? {
+            pushedAt: row.pushedAt ? row.pushedAt.toISOString() : null,
+            remoteId: row.remoteId,
+            error: row.error,
+          }
+        : null;
+    }
+    wahooPush = {
+      canPush: !!connection,
+      needsReauth: !!connection && !connection.grantedScopes.includes("routes_write"),
+      latest,
+    };
+  }
+
   return data({
     route: {
       id: route.id,
@@ -61,6 +112,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       createdAt: v.createdAt.toISOString(),
     })),
     isOwner,
+    wahooPush,
   });
 }
 
@@ -122,10 +174,17 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
-  const { route, dayStats, versions, isOwner } = loaderData;
-  const { t } = useTranslation("journal");
+  const { route, dayStats, versions, isOwner, wahooPush } = loaderData;
+  const { t, i18n } = useTranslation("journal");
   const [editLoading, setEditLoading] = useState(false);
   const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
+
+  const pushStatus = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("push")
+    : null;
+  const pushErrorCode = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("code")
+    : null;
 
   // A route is "empty" when it has no geometry and no computed distance —
   // i.e. nobody has planned any waypoints yet. Surfaced as a dedicated
@@ -178,9 +237,59 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
                 {t("routes.exportGpx")}
               </a>
             )}
+            {wahooPush?.canPush && (
+              wahooPush.latest?.pushedAt ? (
+                <span
+                  className="rounded-md bg-green-50 px-3 py-1.5 text-sm text-green-800"
+                  title={t("routes.sendToWahooHelp")}
+                >
+                  {t("routes.sentToWahoo", {
+                    date: new Date(wahooPush.latest.pushedAt).toLocaleDateString(i18n.language),
+                  })}
+                </span>
+              ) : (
+                <form method="post" action={`/api/sync/push/wahoo/${route.id}`} className="inline">
+                  <button
+                    type="submit"
+                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                    title={t("routes.sendToWahooHelp")}
+                  >
+                    {t("routes.sendToWahoo")}
+                  </button>
+                  {wahooPush.latest?.error && (
+                    <span className="ml-2 text-sm text-red-700">
+                      {t("routes.sendToWahooFailed", { error: wahooPush.latest.error })}
+                    </span>
+                  )}
+                </form>
+              )
+            )}
           </div>
         )}
       </div>
+
+      {pushStatus && (
+        <div
+          className={`mt-4 rounded-md px-3 py-2 text-sm ${
+            pushStatus === "success"
+              ? "bg-green-50 text-green-800"
+              : "bg-amber-50 text-amber-900"
+          }`}
+        >
+          {pushStatus === "success" && t("routes.sendToWahooBanner.success")}
+          {pushStatus === "needs_permission" && t("routes.sendToWahooBanner.needsPermission")}
+          {pushStatus === "no_connection" && t("routes.sendToWahooBanner.noConnection")}
+          {pushStatus === "no_geometry" && t("routes.sendToWahooBanner.noGeometry")}
+          {pushStatus === "error" && pushErrorCode === "validation" &&
+            t("routes.sendToWahooBanner.validation")}
+          {pushStatus === "error" && pushErrorCode === "rate_limit" &&
+            t("routes.sendToWahooBanner.rateLimit")}
+          {pushStatus === "error" && pushErrorCode === "token_expired" &&
+            t("routes.sendToWahooBanner.tokenExpired")}
+          {pushStatus === "error" && (!pushErrorCode || pushErrorCode === "generic") &&
+            t("routes.sendToWahooBanner.generic")}
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {route.distance != null && (
