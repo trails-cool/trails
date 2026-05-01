@@ -181,7 +181,10 @@ export const wahooProvider: SyncProvider = {
   },
 
   async pushRoute(tokens: TokenSet, payload: PushRoutePayload): Promise<PushRouteResult> {
-    const fitBase64 = Buffer.from(payload.fit).toString("base64");
+    // Wahoo expects route[file] as a data URI, not raw base64. Sending plain
+    // base64 results in a route record where file.url is null and the Wahoo
+    // app shows the route in the list (with metadata) but renders no track.
+    const fitDataUri = `data:application/vnd.fit;base64,${Buffer.from(payload.fit).toString("base64")}`;
     const body = new URLSearchParams({
       "route[external_id]": payload.externalId,
       "route[provider_updated_at]": payload.providerUpdatedAt.toISOString(),
@@ -191,7 +194,7 @@ export const wahooProvider: SyncProvider = {
       "route[start_lng]": payload.startLng.toString(),
       "route[distance]": payload.distance.toString(),
       "route[ascent]": payload.ascent.toString(),
-      "route[file]": fitBase64,
+      "route[file]": fitDataUri,
     });
     if (payload.description) body.set("route[description]", payload.description);
     if (payload.filename) body.set("route[filename]", payload.filename);
