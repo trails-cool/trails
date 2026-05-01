@@ -18,6 +18,7 @@ COPY packages/api/package.json packages/api/
 COPY packages/map-core/package.json packages/map-core/
 COPY packages/db/package.json packages/db/
 COPY packages/jobs/package.json packages/jobs/
+COPY packages/fit/package.json packages/fit/
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
