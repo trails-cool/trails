@@ -4,6 +4,7 @@ import { getSessionUser } from "~/lib/auth.server";
 import { getProvider } from "~/lib/sync/registry";
 import { saveConnection } from "~/lib/sync/connections.server";
 import { decodeOAuthState, pushRouteToProvider } from "~/lib/sync/pushes.server";
+import { OAuthError } from "~/lib/sync/types";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
@@ -35,7 +36,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     await saveConnection(user.id, provider.id, tokens, provider.scopes);
   } catch (e) {
     console.error(`OAuth callback failed for ${params.provider}:`, e);
-    return redirect(`${fallbackReturn}?error=sync_failed`);
+    const code = e instanceof OAuthError ? e.code : "sync_failed";
+    return redirect(`${fallbackReturn}?error=${code}`);
   }
 
   if (state.pushAfter?.routeId) {

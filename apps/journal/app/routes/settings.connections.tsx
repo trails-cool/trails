@@ -1,4 +1,4 @@
-import { data, redirect } from "react-router";
+import { data, redirect, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings.connections";
@@ -6,6 +6,12 @@ import { getSessionUser } from "~/lib/auth.server";
 import { getDb } from "~/lib/db";
 import { syncConnections } from "@trails-cool/db/schema/journal";
 import { getAllProviders } from "~/lib/sync/registry";
+
+const KNOWN_ERRORS = ["too_many_tokens", "sync_failed", "generic"] as const;
+type KnownError = (typeof KNOWN_ERRORS)[number];
+function isKnownError(value: string | null): value is KnownError {
+  return value !== null && (KNOWN_ERRORS as readonly string[]).includes(value);
+}
 
 export function meta() {
   return [{ title: "Connected services — Settings — trails.cool" }];
@@ -35,10 +41,21 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function ConnectionsSettings({ loaderData }: Route.ComponentProps) {
   const { providers } = loaderData;
   const { t } = useTranslation(["journal"]);
+  const [searchParams] = useSearchParams();
+  const errorParam = searchParams.get("error");
+  const errorKey: KnownError | null = isKnownError(errorParam) ? errorParam : errorParam ? "generic" : null;
 
   return (
     <section>
       <h2 className="text-lg font-semibold text-gray-900">{t("settings.services.title")}</h2>
+      {errorKey && (
+        <div
+          role="alert"
+          className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {t(`settings.services.errors.${errorKey}`)}
+        </div>
+      )}
       <div className="mt-4 space-y-3">
         {providers.map((p) => (
           <div

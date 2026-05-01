@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { wahooProvider } from "./wahoo";
-import { PushError } from "../types.ts";
+import { PushError, OAuthError } from "../types.ts";
 
 const fixturePath = resolve(__dirname, "__fixtures__/wahoo-ride.fit");
 const fitBuffer = readFileSync(fixturePath);
@@ -144,5 +144,64 @@ describe("wahooProvider.pushRoute", () => {
       json: async () => ({}),
     });
     await expect(wahooProvider.pushRoute!(tokens, basePayload)).rejects.toBeInstanceOf(PushError);
+  });
+});
+
+describe("wahooProvider.exchangeCode", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("maps Wahoo's 'too many unrevoked access tokens' 400 to OAuthError(too_many_tokens)", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () =>
+        '{"error":"Too many unrevoked access tokens exist for this app and user. ..."}',
+    });
+    await expect(wahooProvider.exchangeCode("code", "https://x/cb")).rejects.toMatchObject({
+      name: "OAuthError",
+      code: "too_many_tokens",
+      status: 400,
+    });
+  });
+});
+
+describe("wahooProvider.revoke", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("DELETEs /v1/permissions with the bearer token", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 204, text: async () => "" });
+    await wahooProvider.revoke!({
+      accessToken: "tok",
+      refreshToken: "r",
+      expiresAt: new Date(),
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://api.wahooligan.com/v1/permissions");
+    expect(init.method).toBe("DELETE");
+    expect(init.headers.Authorization).toBe("Bearer tok");
+  });
+
+  it("throws on non-OK response", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401, text: async () => "bad" });
+    await expect(
+      wahooProvider.revoke!({ accessToken: "tok", refreshToken: "r", expiresAt: new Date() }),
+    ).rejects.toThrow();
+    // Reference OAuthError to keep the import used even if future tests trim above blocks.
+    expect(OAuthError).toBeDefined();
   });
 });

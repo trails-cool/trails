@@ -58,6 +58,20 @@ export type PushErrorCode =
   | "rate_limit"
   | "generic";
 
+export type OAuthErrorCode = "too_many_tokens" | "generic";
+
+export class OAuthError extends Error {
+  code: OAuthErrorCode;
+  status?: number;
+
+  constructor(code: OAuthErrorCode, message: string, status?: number) {
+    super(message);
+    this.name = "OAuthError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export class PushError extends Error {
   code: PushErrorCode;
   status?: number;
@@ -87,6 +101,9 @@ export interface SyncProvider {
 
   /** Optional: providers that can accept routes implement this. UI hides the action when undefined. */
   pushRoute?: (tokens: TokenSet, payload: PushRoutePayload) => Promise<PushRouteResult>;
+
+  /** Optional: revoke the given access token at the provider. Best-effort — failures should be swallowed by callers. */
+  revoke?: (tokens: TokenSet) => Promise<void>;
 }
 
 export function providerSupportsPush(

@@ -9,7 +9,7 @@ import type {
   PushRoutePayload,
   PushRouteResult,
 } from "../types.ts";
-import { PushError } from "../types.ts";
+import { PushError, OAuthError } from "../types.ts";
 
 const WAHOO_API = "https://api.wahooligan.com";
 const WAHOO_AUTH = "https://api.wahooligan.com/oauth";
@@ -47,7 +47,10 @@ export const wahooProvider: SyncProvider = {
     });
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
-      throw new Error(`Wahoo token exchange failed: ${resp.status} ${text}`);
+      if (text.includes("Too many unrevoked access tokens")) {
+        throw new OAuthError("too_many_tokens", text, resp.status);
+      }
+      throw new OAuthError("generic", `Wahoo token exchange failed: ${resp.status} ${text}`, resp.status);
     }
     const data = await resp.json() as { access_token: string; refresh_token: string; expires_in: number };
 
@@ -215,6 +218,17 @@ export const wahooProvider: SyncProvider = {
     if (resp.status === 422) throw new PushError("validation", text || "Validation failed", 422);
     if (resp.status === 429) throw new PushError("rate_limit", text || "Rate limited", 429);
     throw new PushError("generic", `Wahoo route push failed: ${resp.status} ${text}`, resp.status);
+  },
+
+  async revoke(tokens: TokenSet): Promise<void> {
+    const resp = await fetch(`${WAHOO_API}/v1/permissions`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${tokens.accessToken}` },
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      throw new Error(`Wahoo revoke failed: ${resp.status} ${text}`);
+    }
   },
 
   parseWebhook(body: unknown): WebhookEvent | null {
