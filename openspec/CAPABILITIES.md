@@ -56,16 +56,18 @@ When adding a new spec, slot it into the most relevant group below and update th
 - [`osm-tile-overlays`](specs/osm-tile-overlays/spec.md) — OSM raster overlays.
 - [`osm-poi-overlays`](specs/osm-poi-overlays/spec.md) — POI overlay layer.
 
-## Imports
+## Imports & exports
 
 - [`gpx-import`](specs/gpx-import/spec.md) — GPX file parsing and route ingestion.
 - [`wahoo-import`](specs/wahoo-import/spec.md) — Wahoo activity sync rules.
+- [`wahoo-route-push`](specs/wahoo-route-push/spec.md) — pushing routes to Wahoo (POST on first push, PUT on re-push, stable `external_id`, push-status UI).
 
 ## Journal landing & content
 
 - [`journal-landing`](specs/journal-landing/spec.md) — anonymous landing + signed-in personal dashboard.
 - [`legal-disclaimers`](specs/legal-disclaimers/spec.md) — Terms / Privacy / Imprint pages.
 - [`transactional-emails`](specs/transactional-emails/spec.md) — magic-link, welcome, etc. email templates.
+- [`demo-activity-bot`](specs/demo-activity-bot/spec.md) — synthetic-content bot (Bruno by default) seeded for demo instances; configurable persona, retention, and seed region.
 
 ## Infrastructure & ops
 
@@ -73,6 +75,7 @@ When adding a new spec, slot it into the most relevant group below and update th
 - [`local-dev-environment`](specs/local-dev-environment/spec.md) — `pnpm dev` orchestration, Docker services.
 - [`secret-management`](specs/secret-management/spec.md) — SOPS-encrypted env files, key rotation.
 - [`observability`](specs/observability/spec.md) — Prometheus, Loki, Grafana dashboards.
+- [`background-jobs`](specs/background-jobs/spec.md) — pg-boss queue, cron scheduling, retry policy, handler timeouts shared across the apps.
 - [`shared-packages`](specs/shared-packages/spec.md) — workspace package boundaries (`@trails-cool/types`, `@trails-cool/map`, etc.).
 
 ## Conventions
