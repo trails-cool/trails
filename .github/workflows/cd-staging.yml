@@ -165,7 +165,7 @@ jobs:
             # via cd-infra) are live. Idempotent.
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
 
-            docker compose -f docker-compose.staging.yml -p trails-staging ps
+            docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent ps
 
   # ── PR preview deploy ────────────────────────────────────────────────
   deploy-preview:
@@ -303,7 +303,7 @@ jobs:
             # Reload Caddy to pick up the per-PR snippet (writes/replaces it from the SCP step)
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" ps
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env ps
 
       - name: Comment preview URL on PR
         uses: peter-evans/create-or-update-comment@v4
