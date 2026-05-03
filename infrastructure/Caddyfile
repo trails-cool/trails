@@ -85,7 +85,7 @@ staging.{$DOMAIN:trails.cool} {
 		output stdout
 		format json
 	}
-	reverse_proxy host.docker.internal:3100 {
+	reverse_proxy host.docker.internal:3110 {
 		lb_try_duration 30s
 		lb_try_interval 250ms
 	}
@@ -108,7 +108,7 @@ planner.staging.{$DOMAIN:trails.cool} {
 		output stdout
 		format json
 	}
-	reverse_proxy host.docker.internal:3101 {
+	reverse_proxy host.docker.internal:3111 {
 		lb_try_duration 30s
 		lb_try_interval 250ms
 	}
