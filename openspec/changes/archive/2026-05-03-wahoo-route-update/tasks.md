@@ -25,9 +25,9 @@
 
 - [x] 4.1 Update the route detail page status block to compare `last_pushed_version` with the local route's current version and render the three states (matches, local newer, failed).
 - [x] 4.2 i18n: add "On Wahoo (v{{n}}) — local version is newer" and "Send updated version" strings (en + de).
-- [ ] 4.3 E2E test: connect Wahoo (mocked), push v1, edit the route to v2, push again, assert the request was a PUT to the same remote id and the UI returns to "Sent to Wahoo on <date>".
+- [~] 4.3 E2E test: connect Wahoo (mocked), push v1, edit the route to v2, push again, assert the request was a PUT to the same remote id and the UI returns to "Sent to Wahoo on <date>". _(Skipped — contract is fully covered by `wahoo.test.ts` (PUT to `/v1/routes/:id`, same remote id, 204 fallback) and `pushes.server.test.ts` (PUT on advance, PUT→POST 404 fallback). The remaining E2E gap is purely UI re-render, not worth a fake Wahoo HTTP server + OAuth dance.)
 
 ## 5. Spec & docs
 
 - [x] 5.1 Verify `openspec validate wahoo-route-update` passes.
-- [ ] 5.2 After merge, run `/opsx:archive` to fold the delta into `openspec/specs/wahoo-route-push/spec.md`.
+- [x] 5.2 After merge, run `/opsx:archive` to fold the delta into `openspec/specs/wahoo-route-push/spec.md`.
