@@ -177,13 +177,15 @@ Admins can bypass the PR workflow when necessary (e.g., CI is broken and needs a
 
 ## Deployment
 
-Three separate CD workflows triggered by path:
+Five CD workflows triggered by path or event:
 
 | Workflow | Triggers on | Deploys | Target |
 |----------|-------------|---------|--------|
 | `cd-apps.yml` | `apps/`, `packages/`, `pnpm-lock.yaml` | journal, planner | flagship (`root@trails.cool`) |
 | `cd-infra.yml` | `infrastructure/` (except `brouter-host/**`) | caddy, postgres, prometheus, loki, grafana, exporters | flagship (`root@trails.cool`) |
 | `cd-brouter.yml` | `docker/brouter/`, `infrastructure/brouter-host/**` | brouter + caddy sidecar | dedicated (`trails@ullrich.is:2232`) |
+| `cd-staging.yml` | main push or PR open/sync/close on `apps/`, `packages/` | persistent staging + per-PR previews | flagship (alongside production) |
+| `staging-cleanup.yml` | weekly cron + manual | sweeps orphaned PR previews | flagship |
 
 ### Hosts
 
@@ -214,6 +216,38 @@ ssh -i ~/.ssh/trails-brouter-deploy -p 2232 trails@ullrich.is
 
 ### Grafana
 `https://grafana.internal.trails.cool` — GitHub OAuth (trails-cool org)
+
+### Staging & Previews
+
+A persistent staging stack and ephemeral PR previews share the flagship server with production.
+
+| Surface | URL | Database | Triggered by |
+|---------|-----|----------|--------------|
+| Persistent staging journal | `https://staging.trails.cool` | `trails_staging` | push to `main` |
+| Persistent staging planner | `https://planner.staging.trails.cool` | `trails_staging` | push to `main` |
+| PR preview journal | `https://pr-<N>.staging.trails.cool` | `trails_pr_<N>` | PR open/sync |
+
+PR previews are **journal-only** — their `PLANNER_URL` points at the persistent staging planner so we don't pay 256MB per preview for an extra planner. The persistent staging planner's CSP allows `connect-src wss://*.staging.trails.cool` so PR-preview journals can talk to it.
+
+**Port scheme** (host's loopback, reverse-proxied by Caddy via `host.docker.internal`):
+- Persistent staging: journal `3100`, planner `3101`
+- PR `<N>` preview: journal `3200 + 2N`, planner `3201 + 2N` (planner unused for previews)
+
+**Compose project namespacing** keeps each preview isolated:
+- Persistent staging: `-p trails-staging`
+- PR `<N>`: `-p trails-pr-<N>`
+
+The shared file `infrastructure/docker-compose.staging.yml` covers both — env vars (`DOMAIN`, `STAGING_DATABASE`, `JOURNAL_HOST_PORT`, `JOURNAL_IMAGE_TAG`, …) parametrize per target. Persistent staging uses `--profile persistent` to also start the planner; PR previews omit the profile.
+
+**Caddy routing.** Persistent staging has fixed site blocks in `infrastructure/Caddyfile`. Per-PR site blocks are written by `cd-staging.yml` to `/opt/trails-cool/sites/pr-<N>.caddyfile` (mounted into Caddy at `/etc/caddy/sites/`) and picked up via `import sites/*.caddyfile` on a Caddy reload. No on-demand TLS; standard automatic HTTPS issues a per-host cert.
+
+**Database isolation.** Each preview gets its own database on the production Postgres instance, schema applied via `drizzle-kit push --force`. Created on PR open, dropped on close. The persistent staging DB is never touched by previews.
+
+**Concurrent preview cap.** Max 3 concurrent PR previews. When a 4th opens, the deploy job evicts the oldest project before deploying.
+
+**Cleanup.** `cd-staging.yml`'s teardown job runs on PR close. `staging-cleanup.yml` runs weekly to catch orphans whose teardown never ran.
+
+**Debugging.** SSH to the flagship (`ssh -i ~/.ssh/trails-cool-deploy root@trails.cool`) and run `docker compose -f docker-compose.staging.yml -p trails-pr-<N> logs -f` to tail a preview. `docker compose ls --filter name=trails-pr-` shows everything currently up.
 
 ## OpenSpec Workflow
 
