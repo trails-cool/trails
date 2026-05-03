@@ -41,5 +41,5 @@
 ## 7. Rollout
 
 - [x] 7.1 Merge + deploy — nothing changes because default persona equals current behaviour
-- [ ] 7.2 Validate on prod: `/users/bruno` unchanged, synthetic content cadence unchanged, metrics unchanged
-- [ ] 7.3 (Optional demo) On a staging or second instance, ship a non-Bruno persona via `DEMO_BOT_PERSONA=file:...` and confirm the demo user renders with the new identity + voice
+- [x] 7.2 Validate on prod: `/users/bruno` unchanged, synthetic content cadence unchanged, metrics unchanged
+- [x] 7.3 (Optional demo) On a staging or second instance, ship a non-Bruno persona via `DEMO_BOT_PERSONA=file:...` and confirm the demo user renders with the new identity + voice
