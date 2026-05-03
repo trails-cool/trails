@@ -1,0 +1,402 @@
+name: CD Staging
+
+# Builds, deploys, and tears down the persistent staging stack and per-PR
+# preview environments. See `openspec/changes/staging-environments/` for the
+# design (decisions on shared Postgres, port allocation, per-PR Caddyfile
+# snippets) and CLAUDE.md "Staging & Previews" for the operator-facing view.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+  workflow_dispatch: {}
+
+# Per-target concurrency: persistent staging deploys serialize against
+# themselves, each PR's preview lifecycle serializes against itself.
+concurrency:
+  group: staging-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'main' }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Build ─────────────────────────────────────────────────────────────
+  # Tags:
+  #   main push          → :staging   + :<sha>
+  #   PR open/sync/reopen → :pr-<N>   + :pr-<N>-<sha>
+  # Skipped entirely on PR close (teardown doesn't need new images).
+  build-images:
+    name: Build & Push Docker Images
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [journal, planner]
+    outputs:
+      tag_primary: ${{ steps.tags.outputs.primary }}
+      tag_sha: ${{ steps.tags.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: tags
+        name: Compute image tags
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PRIMARY="pr-${{ github.event.number }}"
+            SHA="pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}"
+          else
+            PRIMARY="staging"
+            SHA="${{ github.sha }}"
+          fi
+          echo "primary=$PRIMARY" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decrypt Sentry auth token
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
+          grep SENTRY_AUTH_TOKEN /tmp/secrets.env | cut -d= -f2- | tr -d '\n' > /tmp/sentry_token
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/trails-cool/${{ matrix.app }}:${{ steps.tags.outputs.primary }}
+            ghcr.io/trails-cool/${{ matrix.app }}:${{ steps.tags.outputs.sha }}
+          build-args: |
+            SENTRY_RELEASE=${{ steps.tags.outputs.sha }}
+          secrets: |
+            SENTRY_AUTH_TOKEN=/tmp/sentry_token
+
+  # ── Deploy persistent staging (main push) ────────────────────────────
+  deploy-staging:
+    name: Deploy Staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Decrypt secrets
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging.env
+          {
+            echo "DOMAIN=staging.trails.cool"
+            echo "STAGING_DATABASE=trails_staging"
+            echo "JOURNAL_HOST_PORT=3100"
+            echo "PLANNER_HOST_PORT=3101"
+            echo "JOURNAL_IMAGE_TAG=staging"
+            echo "PLANNER_IMAGE_TAG=staging"
+            echo "SENTRY_RELEASE=${{ github.sha }}"
+          } >> infrastructure/staging.env
+
+      - name: Copy compose file + env to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging.env"
+          target: /opt/trails-cool
+          strip_components: 1
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/trails-cool
+
+            GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN staging.env | cut -d= -f2-)
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin
+
+            # Bootstrap the shared network so cd-staging works regardless of
+            # whether cd-infra has already run with the new docker-compose.yml.
+            # Once cd-infra runs, postgres is permanently joined via compose;
+            # until then, attach it imperatively.
+            docker network inspect trails-shared >/dev/null 2>&1 || docker network create trails-shared
+            PG_CONTAINER=$(docker ps --filter "name=trails-cool-postgres" --format '{{.Names}}' | head -1)
+            if [ -n "$PG_CONTAINER" ]; then
+              docker network connect trails-shared "$PG_CONTAINER" 2>/dev/null || true
+            fi
+
+            # Ensure trails_staging database exists with postgis. Production
+            # init scripts only run on first data-dir init, so a freshly
+            # created database has no extensions.
+            docker compose exec -T postgres psql -U trails -d postgres -tAc \
+              "SELECT 1 FROM pg_database WHERE datname='trails_staging'" \
+              | grep -q 1 \
+              || docker compose exec -T postgres createdb -U trails trails_staging
+            docker compose exec -T postgres psql -U trails -d trails_staging -c \
+              "CREATE EXTENSION IF NOT EXISTS postgis"
+
+            # Pull and deploy staging containers (journal + planner via "persistent" profile)
+            docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent pull
+            docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent up -d --remove-orphans
+
+            # Reload Caddy so new staging routes (or Caddyfile changes shipped
+            # via cd-infra) are live. Idempotent.
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
+
+            docker compose -f docker-compose.staging.yml -p trails-staging ps
+
+  # ── PR preview deploy ────────────────────────────────────────────────
+  deploy-preview:
+    name: Deploy PR Preview
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: ports
+        name: Compute preview ports + project name
+        run: |
+          PR=${{ github.event.number }}
+          # journal = 3200 + 2N, planner unused (PR previews are journal-only)
+          JOURNAL_PORT=$((3200 + 2 * PR))
+          PLANNER_PORT=$((3201 + 2 * PR))
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "journal_port=$JOURNAL_PORT" >> "$GITHUB_OUTPUT"
+          echo "planner_port=$PLANNER_PORT" >> "$GITHUB_OUTPUT"
+          echo "host=pr-$PR.staging.trails.cool" >> "$GITHUB_OUTPUT"
+          echo "project=trails-pr-$PR" >> "$GITHUB_OUTPUT"
+          echo "database=trails_pr_$PR" >> "$GITHUB_OUTPUT"
+
+      - name: Decrypt secrets + assemble env
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging.env
+          {
+            echo "DOMAIN=${{ steps.ports.outputs.host }}"
+            echo "STAGING_DATABASE=${{ steps.ports.outputs.database }}"
+            echo "JOURNAL_HOST_PORT=${{ steps.ports.outputs.journal_port }}"
+            echo "PLANNER_HOST_PORT=${{ steps.ports.outputs.planner_port }}"
+            echo "JOURNAL_IMAGE_TAG=pr-${{ steps.ports.outputs.pr }}"
+            echo "PLANNER_IMAGE_TAG=pr-${{ steps.ports.outputs.pr }}"
+            # PR-preview journals all share the persistent staging planner.
+            echo "PLANNER_URL=https://planner.staging.trails.cool"
+            echo "SENTRY_RELEASE=${{ github.event.pull_request.head.sha }}"
+          } >> infrastructure/staging.env
+
+      - name: Generate per-PR Caddyfile snippet
+        run: |
+          mkdir -p infrastructure/sites
+          cat > infrastructure/sites/pr-${{ steps.ports.outputs.pr }}.caddyfile <<EOF
+          # Auto-generated by cd-staging.yml for PR ${{ steps.ports.outputs.pr }}. Do not edit.
+          ${{ steps.ports.outputs.host }} {
+              import security_headers
+              import block_scanners
+              log {
+                  output stdout
+                  format json
+              }
+              reverse_proxy host.docker.internal:${{ steps.ports.outputs.journal_port }} {
+                  lb_try_duration 30s
+                  lb_try_interval 250ms
+              }
+          }
+          EOF
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging.env,infrastructure/sites/pr-${{ steps.ports.outputs.pr }}.caddyfile"
+          target: /opt/trails-cool
+          strip_components: 1
+
+      - name: Deploy preview via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          PR: ${{ steps.ports.outputs.pr }}
+          PROJECT: ${{ steps.ports.outputs.project }}
+          DB: ${{ steps.ports.outputs.database }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: PR,PROJECT,DB
+          script: |
+            set -euo pipefail
+            cd /opt/trails-cool
+
+            GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN staging.env | cut -d= -f2-)
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin
+
+            # Same network bootstrap as deploy-staging — see comment there.
+            docker network inspect trails-shared >/dev/null 2>&1 || docker network create trails-shared
+            PG_CONTAINER=$(docker ps --filter "name=trails-cool-postgres" --format '{{.Names}}' | head -1)
+            if [ -n "$PG_CONTAINER" ]; then
+              docker network connect trails-shared "$PG_CONTAINER" 2>/dev/null || true
+            fi
+
+            # Concurrent preview limit (max 3): if we're at the cap and this
+            # PR isn't already running, evict the oldest preview project.
+            ACTIVE=$(docker compose ls --format json --filter "name=trails-pr-" | python3 -c 'import json,sys; data=json.load(sys.stdin); print("\n".join(d["Name"] for d in data))' 2>/dev/null || true)
+            if [ -n "$ACTIVE" ] && ! echo "$ACTIVE" | grep -qx "$PROJECT"; then
+              COUNT=$(echo "$ACTIVE" | grep -c '^trails-pr-' || true)
+              if [ "$COUNT" -ge 3 ]; then
+                # Pick the oldest by container CreatedAt of any service in the project.
+                OLDEST=$(docker ps -a --filter "name=trails-pr-" --format '{{.Names}} {{.CreatedAt}}' \
+                  | awk '{ split($1,a,"-"); print "trails-pr-"a[3], $2" "$3" "$4 }' \
+                  | sort -k2 \
+                  | head -1 \
+                  | awk '{print $1}')
+                if [ -n "$OLDEST" ] && [ "$OLDEST" != "$PROJECT" ]; then
+                  echo "At cap; evicting oldest preview: $OLDEST"
+                  OLD_PR=${OLDEST#trails-pr-}
+                  docker compose -f docker-compose.staging.yml -p "$OLDEST" --env-file staging.env down --remove-orphans || true
+                  docker compose exec -T postgres dropdb -U trails --if-exists "trails_pr_$OLD_PR" || true
+                  rm -f "sites/pr-$OLD_PR.caddyfile"
+                fi
+              fi
+            fi
+
+            # Ensure per-PR database exists with postgis. (See deploy-staging
+            # for why we have to enable the extension explicitly.)
+            docker compose exec -T postgres psql -U trails -d postgres -tAc \
+              "SELECT 1 FROM pg_database WHERE datname='$DB'" \
+              | grep -q 1 \
+              || docker compose exec -T postgres createdb -U trails "$DB"
+            docker compose exec -T postgres psql -U trails -d "$DB" -c \
+              "CREATE EXTENSION IF NOT EXISTS postgis"
+
+            # Pull, migrate, deploy (journal-only — no --profile means planner skipped)
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env pull journal
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env up -d --remove-orphans journal
+
+            # Reload Caddy to pick up the per-PR snippet (writes/replaces it from the SCP step)
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" ps
+
+      - name: Comment preview URL on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.number }}
+          body: |
+            🚀 **PR preview deployed**
+
+            - **Journal:** https://${{ steps.ports.outputs.host }}
+            - **Planner (shared staging):** https://planner.staging.trails.cool
+            - **Database:** `${{ steps.ports.outputs.database }}` (separate from production / persistent staging)
+
+            Updates automatically on push. Tears down when this PR closes.
+
+  # ── PR preview teardown ──────────────────────────────────────────────
+  teardown-preview:
+    name: Tear Down PR Preview
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      pull-requests: write
+    steps:
+      - id: ports
+        name: Compute project + database name
+        run: |
+          PR=${{ github.event.number }}
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "project=trails-pr-$PR" >> "$GITHUB_OUTPUT"
+          echo "database=trails_pr_$PR" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+
+      - name: Decrypt secrets (needed to satisfy compose env vars during down)
+        run: |
+          curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging.env
+          {
+            echo "DOMAIN=pr-${{ steps.ports.outputs.pr }}.staging.trails.cool"
+            echo "STAGING_DATABASE=${{ steps.ports.outputs.database }}"
+            echo "JOURNAL_HOST_PORT=$((3200 + 2 * ${{ steps.ports.outputs.pr }}))"
+            echo "PLANNER_HOST_PORT=$((3201 + 2 * ${{ steps.ports.outputs.pr }}))"
+          } >> infrastructure/staging.env
+
+      - name: Copy compose + env (teardown still needs the file)
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging.env"
+          target: /opt/trails-cool
+          strip_components: 1
+
+      - name: Tear down via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          PR: ${{ steps.ports.outputs.pr }}
+          PROJECT: ${{ steps.ports.outputs.project }}
+          DB: ${{ steps.ports.outputs.database }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: PR,PROJECT,DB
+          script: |
+            set -euo pipefail
+            cd /opt/trails-cool
+
+            # Stop and remove containers + volumes for this PR
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env down --remove-orphans || true
+
+            # Drop the per-PR database (idempotent)
+            docker compose exec -T postgres dropdb -U trails --if-exists "$DB" || true
+
+            # Remove the per-PR Caddy snippet and reload
+            rm -f "sites/pr-$PR.caddyfile"
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
+
+      - name: Find existing preview comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "PR preview deployed"
+
+      - name: Update preview comment on close
+        if: steps.find-comment.outputs.comment-id
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            🧹 PR preview torn down (PR ${{ github.event.action == 'closed' && github.event.pull_request.merged && 'merged' || 'closed' }}).

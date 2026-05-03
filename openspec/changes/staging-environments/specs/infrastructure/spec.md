@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Caddy reverse proxy routing
-Caddy SHALL route requests to staging and PR preview containers via wildcard subdomain matching, in addition to the existing production routing.
+Caddy SHALL route requests to staging and PR preview containers via per-host site blocks, in addition to the existing production routing.
 
 #### Scenario: Staging subdomain routing
 - **WHEN** a request arrives for `staging.trails.cool`
@@ -13,12 +13,14 @@ Caddy SHALL route requests to staging and PR preview containers via wildcard sub
 
 #### Scenario: PR preview routing
 - **WHEN** a request arrives for `pr-123.staging.trails.cool`
-- **THEN** Caddy proxies it to the PR 123 journal container on the correct dynamically assigned port
+- **THEN** Caddy proxies it to the PR 123 journal container on its assigned port (`3200 + 2N`)
 
-#### Scenario: On-demand TLS for staging subdomains
-- **WHEN** a first request arrives for a new staging subdomain
-- **THEN** Caddy automatically provisions a TLS certificate via Let's Encrypt
-- **AND** a validation endpoint confirms the subdomain is an active staging/preview environment before certificate issuance
+#### Scenario: Per-PR Caddyfile snippet lifecycle
+- **WHEN** a PR preview is deployed
+- **THEN** the cd-staging workflow writes a Caddyfile snippet at `sites/pr-<N>.caddyfile` and reloads Caddy
+- **WHEN** a PR is closed
+- **THEN** the workflow removes the snippet and reloads Caddy
+- **AND** standard automatic HTTPS issues / retains the per-host certificate via Let's Encrypt
 
 ### Requirement: Docker Compose deployment
 The staging environment SHALL be deployed as a separate Docker Compose project alongside production on the same server.

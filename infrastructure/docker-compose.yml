@@ -6,10 +6,19 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    # host.docker.internal lets Caddy reverse-proxy to staging / PR-preview
+    # containers, which publish on the host's loopback (e.g. 127.0.0.1:3100).
+    # Linux requires `host-gateway` to make this name resolve.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DOMAIN: ${DOMAIN:-trails.cool}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Per-PR staging snippets dropped in by cd-staging.yml. Bind mount
+      # auto-creates the host directory if it doesn't exist, so a fresh
+      # server doesn't need pre-provisioning.
+      - ./sites:/etc/caddy/sites:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -90,6 +99,12 @@ services:
   postgres:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
+    # Joined to the shared network so the staging compose project can reach
+    # this instance by hostname `postgres`. Production services keep using
+    # the default network as before.
+    networks:
+      - default
+      - trails-shared
     environment:
       POSTGRES_USER: trails
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trails}
@@ -225,6 +240,16 @@ services:
   #   volumes:
   #     - garage_data:/var/lib/garage
   #     - ./garage.toml:/etc/garage.toml:ro
+
+networks:
+  # Default project network — kept implicit for production services.
+  default:
+  # Created by this compose project with a fixed (un-namespaced) name so the
+  # staging compose project can attach to it via `external: true`. Only
+  # postgres is joined here on the production side; staging containers join
+  # to reach postgres by hostname.
+  trails-shared:
+    name: trails-shared
 
 volumes:
   caddy_data:

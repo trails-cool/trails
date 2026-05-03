@@ -1,0 +1,112 @@
+name: Staging Cleanup
+
+# Sweeps the production server for orphaned PR-preview resources whose PRs
+# have closed without the cd-staging teardown job running (e.g., the
+# teardown failed, the workflow file was changed mid-flight, or the PR was
+# closed while runners were down). Runs weekly and can be triggered ad-hoc.
+
+on:
+  schedule:
+    # Every Monday at 04:00 UTC
+    - cron: "0 4 * * 1"
+  workflow_dispatch: {}
+
+concurrency:
+  group: staging-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Sweep orphaned previews
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: List active preview projects
+        id: list
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /opt/trails-cool
+            # Emit one project name per line, e.g. "trails-pr-123"
+            docker compose ls --format json --filter "name=trails-pr-" \
+              | python3 -c 'import json,sys
+            try:
+              data = json.load(sys.stdin)
+            except Exception:
+              data = []
+            for d in data:
+              n = d.get("Name","")
+              if n.startswith("trails-pr-"):
+                print(n)' \
+              || true
+
+      - name: Determine which PRs are still open
+        id: orphans
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECTS: ${{ steps.list.outputs.stdout }}
+        run: |
+          set -euo pipefail
+          ORPHANS=()
+          if [ -z "${PROJECTS:-}" ]; then
+            echo "No active preview projects."
+            echo "orphans=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          while IFS= read -r project; do
+            [ -z "$project" ] && continue
+            pr="${project#trails-pr-}"
+            # If gh can't find the PR (deleted) or it's not OPEN, treat as orphan.
+            state=$(gh pr view "$pr" --repo "${{ github.repository }}" --json state -q .state 2>/dev/null || echo "MISSING")
+            if [ "$state" != "OPEN" ]; then
+              echo "Orphan: PR #$pr (state=$state) → tear down $project"
+              ORPHANS+=("$pr")
+            fi
+          done <<< "${PROJECTS}"
+          IFS=,
+          echo "orphans=${ORPHANS[*]:-}" >> "$GITHUB_OUTPUT"
+
+      - name: Tear down orphans
+        if: steps.orphans.outputs.orphans != ''
+        env:
+          ORPHANS: ${{ steps.orphans.outputs.orphans }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: ORPHANS
+          script: |
+            set -euo pipefail
+            cd /opt/trails-cool
+            IFS=, read -ra PRS <<< "$ORPHANS"
+            for PR in "${PRS[@]}"; do
+              [ -z "$PR" ] && continue
+              PROJECT="trails-pr-$PR"
+              DB="trails_pr_$PR"
+              echo "→ tearing down $PROJECT"
+              # `down` needs the same env file the deploy used; staging.env on
+              # disk may belong to a different PR, so synthesize a minimal one.
+              cat > /tmp/cleanup.env <<EOF
+            DOMAIN=pr-$PR.staging.trails.cool
+            STAGING_DATABASE=$DB
+            JOURNAL_HOST_PORT=$((3200 + 2 * PR))
+            PLANNER_HOST_PORT=$((3201 + 2 * PR))
+            JWT_SECRET=cleanup
+            SESSION_SECRET=cleanup
+            BROUTER_URL=http://placeholder
+            BROUTER_AUTH_TOKEN=placeholder
+            EOF
+              docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file /tmp/cleanup.env down --remove-orphans || true
+              docker compose exec -T postgres dropdb -U trails --if-exists "$DB" || true
+              rm -f "sites/pr-$PR.caddyfile"
+            done
+            rm -f /tmp/cleanup.env
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true

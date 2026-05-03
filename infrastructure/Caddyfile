@@ -69,3 +69,52 @@ planner.{$DOMAIN:trails.cool} {
 		lb_try_interval 250ms
 	}
 }
+
+# ── Staging ──────────────────────────────────────────────────────────────
+# Persistent staging instance. CSP allow-lists hardcode `staging.trails.cool`
+# rather than `{$DOMAIN}` because the Caddy container runs with the
+# production DOMAIN env (`trails.cool`); staging blocks need their own domain
+# baked in. Upstreams are reached via `host.docker.internal` because the
+# staging compose project publishes its containers on the host's loopback
+# (127.0.0.1:3100/3101) rather than joining the production Caddy network.
+
+staging.{$DOMAIN:trails.cool} {
+	import security_headers
+	import block_scanners
+	log {
+		output stdout
+		format json
+	}
+	reverse_proxy host.docker.internal:3100 {
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
+}
+
+planner.staging.{$DOMAIN:trails.cool} {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# connect-src includes wss + https://*.staging so PR-preview journals
+		# (pr-N.staging.trails.cool) can use this shared planner. PR previews
+		# are journal-only; this is the planner they all talk to.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' wss://*.staging.{$DOMAIN:trails.cool} https://*.staging.{$DOMAIN:trails.cool} https://staging.{$DOMAIN:trails.cool} https://*.sentry.io https://*.ingest.de.sentry.io; font-src 'self';"
+	}
+	import block_scanners
+	log {
+		output stdout
+		format json
+	}
+	reverse_proxy host.docker.internal:3101 {
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
+}
+
+# Per-PR preview snippets are written by cd-staging.yml into
+# /etc/caddy/sites/pr-<N>.caddyfile and picked up here on Caddy reload. The
+# glob is allowed to match nothing — Caddy treats an empty match as a no-op.
+import /etc/caddy/sites/*.caddyfile

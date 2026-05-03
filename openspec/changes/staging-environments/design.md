@@ -27,10 +27,10 @@ The server has headroom for lightweight additional containers. Caddy handles aut
 **Rationale**: A separate Compose project gives clean namespace isolation (container names, volumes) without a second server. Sharing BRouter and monitoring avoids duplicating heavy services.
 **Alternative considered**: Docker Compose profiles — simpler but risks accidental cross-contamination between production and staging in the same project.
 
-### 2. Caddy on-demand TLS with wildcard routing
-**Choice**: Use Caddy's `on_demand_tls` with a wildcard site block for `*.staging.trails.cool`. A small validation endpoint confirms which subdomains are active before Caddy obtains a certificate.
-**Rationale**: Avoids pre-configuring Caddy for each PR. Caddy automatically provisions TLS certificates on first request. The validation endpoint prevents abuse (random subdomains triggering cert issuance).
-**Alternative considered**: Wildcard certificate via DNS challenge — requires DNS API credentials and more complex setup.
+### 2. Per-PR Caddyfile snippets with reload
+**Choice**: The main Caddyfile uses `import sites/*.caddyfile`. The cd-staging workflow writes a snippet per PR (e.g. `sites/pr-123.caddyfile`) on PR open and removes it on PR close, then reloads Caddy in-place. Standard automatic HTTPS issues a per-host cert.
+**Rationale**: Caddy can't compute upstream ports from a regex capture (the spec's `3200 + 2N` formula), so a wildcard block would need a sidecar router service. A graceful Caddy reload is fast and idempotent, and the existing cd-apps workflow already reloads Caddy on every deploy — extending that pattern is simpler than adding a new service.
+**Alternatives considered**: (a) Wildcard `*.staging.trails.cool` block with on-demand TLS plus a small Node router that handles Caddy's `ask` check and wildcard host→port proxying — more moving parts. (b) DNS-challenge wildcard certificate — requires DNS API credentials in Caddy and more complex setup.
 
 ### 3. Per-PR databases in shared PostgreSQL
 **Choice**: PR previews use per-PR databases (`trails_pr_123`) in the production PostgreSQL instance. Staging uses `trails_staging`. Created by the workflow, dropped on PR close.

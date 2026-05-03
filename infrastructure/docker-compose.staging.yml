@@ -1,0 +1,100 @@
+# Staging / PR-preview compose file.
+#
+# Used for both the persistent staging stack and ephemeral PR previews.
+# The cd-staging.yml workflow picks the project name and fills in the host
+# ports + DOMAIN + STAGING_DATABASE from the PR number (or "staging" for the
+# persistent stack):
+#
+#   # Persistent staging
+#   PROJECT=trails-staging
+#   JOURNAL_HOST_PORT=3100 PLANNER_HOST_PORT=3101 \
+#   DOMAIN=staging.trails.cool STAGING_DATABASE=trails_staging \
+#   docker compose -f docker-compose.staging.yml -p $PROJECT up -d
+#
+#   # PR 123 preview (port = 3200 + 2N for journal, 3201 + 2N for planner)
+#   PROJECT=trails-pr-123
+#   JOURNAL_HOST_PORT=3446 PLANNER_HOST_PORT=3447 \
+#   DOMAIN=pr-123.staging.trails.cool STAGING_DATABASE=trails_pr_123 \
+#   JOURNAL_IMAGE_TAG=pr-123 PLANNER_IMAGE_TAG=pr-123 \
+#   docker compose -f docker-compose.staging.yml -p $PROJECT up -d
+#
+# `trails-shared` is created by the production compose file (see
+# docker-compose.yml) so staging/preview containers can reach the production
+# `postgres` host. BRouter lives on a separate host and is reached over
+# vSwitch using the production-shared BROUTER_URL / BROUTER_AUTH_TOKEN.
+#
+# Container names are not pinned — Docker Compose generates them from the
+# project name (e.g. `trails-pr-123-journal-1`), which keeps each preview
+# isolated without manual naming.
+
+services:
+  journal:
+    image: ghcr.io/trails-cool/journal:${JOURNAL_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${JOURNAL_HOST_PORT:?JOURNAL_HOST_PORT must be set}:3000"
+    networks:
+      - trails-shared
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN must be set}
+      ORIGIN: https://${DOMAIN}
+      # PR previews override this to point at the persistent staging
+      # planner (planner.staging.trails.cool). Persistent staging defaults
+      # to its own planner subdomain.
+      PLANNER_URL: ${PLANNER_URL:-https://planner.${DOMAIN}}
+      IS_FLAGSHIP: ""
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/${STAGING_DATABASE:?STAGING_DATABASE must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}
+      NODE_ENV: production
+      PORT: 3000
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      SMTP_URL: ""
+      SMTP_FROM: trails.cool staging <noreply@staging.trails.cool>
+      WAHOO_CLIENT_ID: ""
+      WAHOO_CLIENT_SECRET: ""
+      WAHOO_WEBHOOK_TOKEN: ""
+      DEMO_BOT_ENABLED: ""
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  planner:
+    image: ghcr.io/trails-cool/planner:${PLANNER_IMAGE_TAG:-latest}
+    # Only the persistent staging stack runs a planner. PR previews are
+    # journal-only and point their PLANNER_URL at the persistent
+    # planner.staging.trails.cool. Saves ~256MB per active preview.
+    profiles: ["persistent"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PLANNER_HOST_PORT:-3101}:3001"
+    networks:
+      - trails-shared
+    environment:
+      BROUTER_URL: ${BROUTER_URL:?BROUTER_URL must be set}
+      BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set}
+      OVERPASS_URLS: ${OVERPASS_URLS:-https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter}
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/${STAGING_DATABASE}
+      NODE_ENV: production
+      PORT: 3001
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  trails-shared:
+    external: true
+    name: trails-shared
