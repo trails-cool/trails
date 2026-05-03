@@ -68,6 +68,6 @@
 ## 11. Rollout
 
 - [x] 11.1 Merge schema + code; deploy — the bot stays disabled everywhere because no env flag is set
-- [ ] 11.2 Flip `DEMO_BOT_ENABLED=true` on prod via the SOPS env file + redeploy
-- [ ] 11.3 On next worker start: verify `ensureDemoUser` created the `bruno` user, the backfill produced 3–5 items, and `/users/bruno` renders them publicly
-- [ ] 11.4 After 24 h: verify cadence looks right and the prune job ran without deleting anything yet
+- [x] 11.2 Flip `DEMO_BOT_ENABLED=true` on prod via the SOPS env file + redeploy
+- [x] 11.3 On next worker start: verify `ensureDemoUser` created the `bruno` user, the backfill produced 3–5 items, and `/users/bruno` renders them publicly
+- [x] 11.4 After 24 h: verify cadence looks right and the prune job ran without deleting anything yet
