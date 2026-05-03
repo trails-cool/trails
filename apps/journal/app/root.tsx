@@ -18,6 +18,7 @@ import stylesheet from "@trails-cool/ui/styles.css?url";
 
 // Paths that must stay reachable even when the user has a stale
 // terms_version, so they can read the Terms, accept them, or log out.
+// `/legal/` matches as a prefix (covers `/legal/terms`, `/legal/privacy`, etc.).
 const TERMS_GATE_ALLOWLIST = [
   "/auth/accept-terms",
   "/auth/logout",
