@@ -128,12 +128,20 @@ Grafana SHALL authenticate users via GitHub OAuth, restricted to the trails-cool
 - **WHEN** Grafana is deployed
 - **THEN** the login form is disabled and only GitHub OAuth is available
 
-### Requirement: Docker Compose deployment
-All services SHALL be deployed via Docker Compose, including Grafana, Prometheus, and Loki for the flagship instance.
+### Requirement: Grafana database access
+The `grafana_reader` PostgreSQL role SHALL have SELECT access to the `pgboss` schema for job queue observability.
 
-#### Scenario: Monitoring stack starts
-- **WHEN** `docker compose up -d` is run
-- **THEN** Grafana, Prometheus, Loki, Promtail, postgres-exporter, node-exporter, and cAdvisor containers start alongside the application containers
+#### Scenario: Grant access on deploy
+- **WHEN** the infrastructure deploy runs
+- **THEN** `grafana_reader` is granted `USAGE` on the `pgboss` schema and `SELECT` on all tables in it
+
+### Requirement: Monitoring stack
+The Grafana Service Health dashboard SHALL include a job queue health panel.
+
+#### Scenario: Job queue panel displays metrics
+- **WHEN** a user views the Service Health dashboard
+- **THEN** they see a panel showing job queue depth, completed jobs per hour, and failed jobs
+- **AND** failed jobs are highlighted for investigation
 
 ### Requirement: Metrics collection
 Prometheus SHALL scrape metrics from all application and infrastructure services.

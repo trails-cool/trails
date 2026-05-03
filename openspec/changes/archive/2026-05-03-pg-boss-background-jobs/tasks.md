@@ -16,7 +16,7 @@
 
 - [x] 3.1 Create `apps/planner/app/jobs/expire-sessions.ts` — job handler that calls `expireSessions(7)` and returns the count
 - [x] 3.2 Register the job in planner's `server.ts` with cron `0 * * * *` (hourly), retryLimit 2, expireInSeconds 60
-- [ ] 3.3 Verify job appears in `pgboss.schedule` table after planner starts (manual verification after dev stack is running)
+- [x] 3.3 Verify job appears in `pgboss.schedule` table after planner starts (manual verification after dev stack is running)
 - [x] 3.4 Write a test for the expire-sessions handler
 
 ## 4. Journal Worker Setup
@@ -34,4 +34,4 @@
 
 - [x] 6.1 Run `pnpm typecheck` — all packages pass
 - [x] 6.2 Run `pnpm test` — new and existing tests pass (63 planner tests, including 2 new expire-sessions tests)
-- [ ] 6.3 Start dev stack with `pnpm dev:full`, verify pg-boss tables are created and expire-sessions schedule is registered (manual verification)
+- [x] 6.3 Start dev stack with `pnpm dev:full`, verify pg-boss tables are created and expire-sessions schedule is registered (manual verification)
