@@ -106,8 +106,11 @@ jobs:
           {
             echo "DOMAIN=staging.trails.cool"
             echo "STAGING_DATABASE=trails_staging"
-            echo "JOURNAL_HOST_PORT=3100"
-            echo "PLANNER_HOST_PORT=3101"
+            # Loki binds 10.0.0.2:3100 on the vSwitch interface, so the
+            # staging stack can't share 3100 — see CLAUDE.md "Staging &
+            # Previews" port table.
+            echo "JOURNAL_HOST_PORT=3110"
+            echo "PLANNER_HOST_PORT=3111"
             echo "JOURNAL_IMAGE_TAG=staging"
             echo "PLANNER_IMAGE_TAG=staging"
             echo "SENTRY_RELEASE=${{ github.sha }}"
