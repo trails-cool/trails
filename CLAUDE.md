@@ -229,8 +229,8 @@ A persistent staging stack and ephemeral PR previews share the flagship server w
 
 PR previews are **journal-only** — their `PLANNER_URL` points at the persistent staging planner so we don't pay 256MB per preview for an extra planner. The persistent staging planner's CSP allows `connect-src wss://*.staging.trails.cool` so PR-preview journals can talk to it.
 
-**Port scheme** (host's loopback, reverse-proxied by Caddy via `host.docker.internal`):
-- Persistent staging: journal `3100`, planner `3101`
+**Port scheme** (host-published, reverse-proxied by Caddy via `host.docker.internal`):
+- Persistent staging: journal `3110`, planner `3111` (3100 collides with Loki on the vSwitch interface)
 - PR `<N>` preview: journal `3200 + 2N`, planner `3201 + 2N` (planner unused for previews)
 
 **Compose project namespacing** keeps each preview isolated:

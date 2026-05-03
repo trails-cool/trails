@@ -12,6 +12,10 @@ on:
       - "apps/**"
       - "packages/**"
       - "pnpm-lock.yaml"
+      # Also redeploy when the staging plumbing itself changes, so a port
+      # bump or compose edit doesn't sit unapplied until the next apps/ push.
+      - "infrastructure/docker-compose.staging.yml"
+      - ".github/workflows/cd-staging.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     paths:
@@ -88,10 +92,10 @@ jobs:
           secrets: |
             SENTRY_AUTH_TOKEN=/tmp/sentry_token
 
-  # ── Deploy persistent staging (main push) ────────────────────────────
+  # ── Deploy persistent staging (main push or manual dispatch) ─────────
   deploy-staging:
     name: Deploy Staging
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: [build-images]
     runs-on: ubuntu-latest
     environment: production
@@ -106,8 +110,11 @@ jobs:
           {
             echo "DOMAIN=staging.trails.cool"
             echo "STAGING_DATABASE=trails_staging"
-            echo "JOURNAL_HOST_PORT=3100"
-            echo "PLANNER_HOST_PORT=3101"
+            # Loki binds 10.0.0.2:3100 on the vSwitch interface, so the
+            # staging stack can't share 3100 — see CLAUDE.md "Staging &
+            # Previews" port table.
+            echo "JOURNAL_HOST_PORT=3110"
+            echo "PLANNER_HOST_PORT=3111"
             echo "JOURNAL_IMAGE_TAG=staging"
             echo "PLANNER_IMAGE_TAG=staging"
             echo "SENTRY_RELEASE=${{ github.sha }}"
