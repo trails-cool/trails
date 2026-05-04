@@ -312,18 +312,34 @@ jobs:
 
             docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env ps
 
-      - name: Comment preview URL on PR
-        uses: peter-evans/create-or-update-comment@v4
+      # Find any prior preview comment so we can update it in place rather
+      # than spamming a new one each push. The marker line at the bottom of
+      # the body is what `body-includes` matches on.
+      - name: Find existing preview comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
         with:
           issue-number: ${{ github.event.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "<!-- cd-staging:preview -->"
+
+      - name: Upsert preview comment on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.number }}
+          edit-mode: replace
           body: |
             🚀 **PR preview deployed**
 
             - **Journal:** https://${{ steps.ports.outputs.host }}
             - **Planner (shared staging):** https://planner.staging.trails.cool
             - **Database:** `${{ steps.ports.outputs.database }}` (separate from production / persistent staging)
+            - **Build:** [run ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) · commit `${{ github.event.pull_request.head.sha }}`
 
             Updates automatically on push. Tears down when this PR closes.
+            <!-- cd-staging:preview -->
+
 
   # ── PR preview teardown ──────────────────────────────────────────────
   teardown-preview:
@@ -397,7 +413,7 @@ jobs:
         with:
           issue-number: ${{ github.event.number }}
           comment-author: "github-actions[bot]"
-          body-includes: "PR preview deployed"
+          body-includes: "<!-- cd-staging:preview -->"
 
       - name: Update preview comment on close
         if: steps.find-comment.outputs.comment-id
@@ -406,4 +422,10 @@ jobs:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            🧹 PR preview torn down (PR ${{ github.event.action == 'closed' && github.event.pull_request.merged && 'merged' || 'closed' }}).
+            🧹 **PR preview torn down** (PR ${{ github.event.pull_request.merged && 'merged' || 'closed' }}).
+
+            Database `trails_pr_${{ steps.ports.outputs.pr }}` dropped, containers removed, Caddyfile snippet cleared.
+
+            [Teardown run ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            <!-- cd-staging:preview -->
+
