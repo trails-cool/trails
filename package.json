@@ -75,6 +75,7 @@
     "react-router": "catalog:",
     "tailwindcss": "catalog:",
     "turbo": "^2.9.8",
+    "typescript": "catalog:",
     "typescript-eslint": "^8.59.1",
     "vite": "catalog:",
     "vitest": "^4.1.5"
