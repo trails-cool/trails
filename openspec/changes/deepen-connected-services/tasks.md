@@ -39,8 +39,8 @@
 
 - [x] 6.1 Run `pnpm typecheck && pnpm lint && pnpm test` — all green.
 - [x] 6.2 Run `pnpm test:e2e` with the Wahoo flow specs — all green.
-- [ ] 6.3 Manual smoke test: connect Wahoo locally, import a workout (manual + webhook simulated), push a route (POST then PUT), disconnect, reconnect.
-- [ ] 6.4 Check that `connected_services` migration applies cleanly to a copy of staging data (or local seed reflecting prod).
+- [x] 6.3 Manual smoke test: connect Wahoo locally, import a workout (manual + webhook simulated), push a route (POST then PUT), disconnect, reconnect — all working.
+- [x] 6.4 Check that `connected_services` migration applies cleanly to a copy of staging data (or local seed reflecting prod).
 
 ## 7. Documentation + follow-up
 
