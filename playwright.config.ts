@@ -5,7 +5,11 @@ export default defineConfig({
   outputDir: "./e2e/results",
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Locally the journal/planner run under Vite dev — many parallel workers
+  // overwhelm cold-compile of /api/* routes and cause flaky timeouts on
+  // first hits. CI runs production builds and is unaffected. Keep at 1 in
+  // both environments for parity.
+  workers: 1,
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never" }], ["json", { outputFile: "playwright-results.json" }]]
     : "list",

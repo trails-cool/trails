@@ -1,4 +1,4 @@
-import { test, expect, type CDPSession, type Page } from "./fixtures/test";
+import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
 
 // Reuses the virtual-authenticator + register helpers from auth.test.ts.
 // Inlined rather than factored out to keep this file independently runnable.
@@ -19,6 +19,7 @@ async function setupVirtualAuthenticator(cdp: CDPSession) {
 async function registerUser(page: Page, email: string, username: string) {
   await page.goto("/auth/register");
   await expect(page.getByRole("heading", { name: "Register" })).toBeVisible();
+  await waitForHydration(page);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Username").fill(username);
   await page.getByRole("checkbox").check();

@@ -1,4 +1,4 @@
-import { test, expect, type CDPSession, type Page } from "./fixtures/test";
+import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
 
 async function setupVirtualAuthenticator(cdp: CDPSession) {
   await cdp.send("WebAuthn.enable");
@@ -17,6 +17,7 @@ async function setupVirtualAuthenticator(cdp: CDPSession) {
 async function registerUser(page: Page, email: string, username: string) {
   await page.goto("/auth/register");
   await expect(page.getByRole("heading", { name: "Register" })).toBeVisible();
+  await waitForHydration(page);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Username").fill(username);
   await page.getByRole("checkbox").check();
@@ -63,6 +64,7 @@ test.describe("Notifications", () => {
 
     // A follows B (auto-accept).
     await page.goto(`/users/${bUsername}`);
+    await waitForHydration(page);
     await page.getByRole("button", { name: "Follow" }).click();
     await expect(page.getByRole("button", { name: "Unfollow" })).toBeVisible({ timeout: 5000 });
 
