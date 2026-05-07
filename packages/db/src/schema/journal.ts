@@ -186,27 +186,42 @@ export const oauthTokens = journalSchema.table("oauth_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const syncConnections = journalSchema.table("sync_connections", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider").notNull(),
-  accessToken: text("access_token").notNull(),
-  refreshToken: text("refresh_token").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  providerUserId: text("provider_user_id"),
-  // Scopes the user actually granted at OAuth time. Wahoo doesn't return a
-  // scope field in token responses and grants scopes all-or-nothing, so we
-  // record the requested scope set on exchangeCode. Used to detect when an
-  // existing connection predates a scope upgrade (e.g. routes_write) and
-  // needs a re-auth before a new push call can succeed.
-  grantedScopes: text("granted_scopes")
-    .array()
-    .notNull()
-    .default(sql`ARRAY[]::text[]`),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+// External-service connections (OAuth, web-login, mobile-paired devices).
+// `credential_kind` discriminates the shape of `credentials` JSONB:
+//   - 'oauth':     { access_token, refresh_token, expires_at }
+//   - 'web-login': { email, encrypted_password, session_jar }   (Komoot, future)
+//   - 'device':    {}                                            (Apple Health, future)
+// See docs/adr/0001 and CONTEXT.md (Connected Services).
+export const connectedServices = journalSchema.table(
+  "connected_services",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    credentialKind: text("credential_kind").notNull(),
+    credentials: jsonb("credentials").notNull(),
+    // 'active' | 'needs_relink' | 'revoked'. Manager flips to 'needs_relink'
+    // when CredentialAdapter.refresh returns a permanent failure.
+    status: text("status").notNull().default("active"),
+    providerUserId: text("provider_user_id"),
+    // OAuth-only. Promoted out of the credentials JSONB because feature gates
+    // (e.g. routes_write check on push) read this on every call.
+    grantedScopes: text("granted_scopes")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userProviderUnique: uniqueIndex("connected_services_user_provider_unique").on(
+      t.userId,
+      t.provider,
+    ),
+  }),
+);
+
 
 export const syncImports = journalSchema.table("sync_imports", {
   id: text("id").primaryKey(),

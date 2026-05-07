@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings.connections";
 import { getSessionUser } from "~/lib/auth.server";
 import { getDb } from "~/lib/db";
-import { syncConnections } from "@trails-cool/db/schema/journal";
+import { connectedServices } from "@trails-cool/db/schema/journal";
 import { getAllProviders } from "~/lib/sync/registry";
 
 const KNOWN_ERRORS = ["too_many_tokens", "sync_failed", "generic"] as const;
@@ -24,11 +24,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const db = getDb();
   const connections = await db
     .select({
-      provider: syncConnections.provider,
-      providerUserId: syncConnections.providerUserId,
+      provider: connectedServices.provider,
+      providerUserId: connectedServices.providerUserId,
     })
-    .from(syncConnections)
-    .where(eq(syncConnections.userId, user.id));
+    .from(connectedServices)
+    .where(eq(connectedServices.userId, user.id));
 
   const providers = getAllProviders().map((p) => {
     const conn = connections.find((c) => c.provider === p.id);

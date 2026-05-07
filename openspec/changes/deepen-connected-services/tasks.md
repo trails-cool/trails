@@ -1,21 +1,21 @@
 ## 1. Database migration
 
-- [ ] 1.1 Update Drizzle schema in `packages/db/src/schema/journal.ts`: rename `syncConnections` table to `connectedServices`, add `credentialKind` (text, NOT NULL) and `credentials` (jsonb, NOT NULL) and `status` (text, NOT NULL DEFAULT `'active'` with CHECK constraint for `active | needs_relink | revoked`); drop `accessToken`, `refreshToken`, `expiresAt`.
-- [ ] 1.2 Generate migration via `pnpm db:generate`; hand-edit if needed so backfill runs in the same transaction as the column adds (`UPDATE connected_services SET credential_kind = 'oauth', credentials = jsonb_build_object('access_token', access_token, 'refresh_token', refresh_token, 'expires_at', expires_at)`), then drop the old columns.
+- [x] 1.1 Update Drizzle schema in `packages/db/src/schema/journal.ts`: rename `syncConnections` table to `connectedServices`, add `credentialKind` (text, NOT NULL) and `credentials` (jsonb, NOT NULL) and `status` (text, NOT NULL DEFAULT `'active'` with CHECK constraint for `active | needs_relink | revoked`); drop `accessToken`, `refreshToken`, `expiresAt`.
+- [x] 1.2 Generate migration via `pnpm db:generate`; hand-edit if needed so backfill runs in the same transaction as the column adds (`UPDATE connected_services SET credential_kind = 'oauth', credentials = jsonb_build_object('access_token', access_token, 'refresh_token', refresh_token, 'expires_at', expires_at)`), then drop the old columns.
 - [ ] 1.3 Verify the migration on a local database with seeded Wahoo connection rows; verify the inverse rollback restores the columns from JSONB.
-- [ ] 1.4 Update FK references in `sync_imports` and `sync_pushes` if any reference the table name (likely none — both reference `users` / `routes`, not connections).
+- [x] 1.4 Update FK references in `sync_imports` and `sync_pushes` if any reference the table name (likely none — both reference `users` / `routes`, not connections).
 
 ## 2. ConnectedServiceManager + OAuth CredentialAdapter
 
-- [ ] 2.1 Create `apps/journal/app/lib/connected-services/types.ts` with `ConnectedService` record type, `CredentialKind`, `Credentials` (discriminated union per kind), `NeedsRelink` error class, `Status` enum.
-- [ ] 2.2 Create `apps/journal/app/lib/connected-services/credential-adapters/oauth.ts` implementing `CredentialAdapter` with `refresh(creds, providerConfig) → Credentials | NeedsRelink` and optional `revoke`.
-- [ ] 2.3 Create `apps/journal/app/lib/connected-services/manager.ts` exposing `link / unlink / withFreshCredentials / markNeedsRelink`. Persistence via Drizzle on the `connectedServices` table.
-- [ ] 2.4 Write `manager.test.ts`: in-memory tests with stub `CredentialAdapter` covering refresh-on-expired, refresh-fails-→-needs_relink, link/unlink, markNeedsRelink, status short-circuit.
-- [ ] 2.5 Write `credential-adapters/oauth.test.ts`: contract tests against a mocked token endpoint (refresh success, refresh 4xx → NeedsRelink).
+- [x] 2.1 Create `apps/journal/app/lib/connected-services/types.ts` with `ConnectedService` record type, `CredentialKind`, `Credentials` (discriminated union per kind), `NeedsRelink` error class, `Status` enum.
+- [x] 2.2 Create `apps/journal/app/lib/connected-services/credential-adapters/oauth.ts` implementing `CredentialAdapter` with `refresh(creds, providerConfig) → Credentials | NeedsRelink` and optional `revoke`.
+- [x] 2.3 Create `apps/journal/app/lib/connected-services/manager.ts` exposing `link / unlink / withFreshCredentials / markNeedsRelink`. Persistence via Drizzle on the `connectedServices` table.
+- [x] 2.4 Write `manager.test.ts`: in-memory tests with stub `CredentialAdapter` covering refresh-on-expired, refresh-fails-→-needs_relink, link/unlink, markNeedsRelink, status short-circuit.
+- [x] 2.5 Write `credential-adapters/oauth.test.ts`: contract tests against a mocked token endpoint (refresh success, refresh 4xx → NeedsRelink).
 
 ## 3. Provider manifest + registry
 
-- [ ] 3.1 Create `apps/journal/app/lib/connected-services/registry.ts` and `types.ts` capability interfaces (`Importer`, `RoutePusher`, `WebhookReceiver`, `ProviderManifest`).
+- [x] 3.1 Create `apps/journal/app/lib/connected-services/registry.ts` and `types.ts` capability interfaces (`Importer`, `RoutePusher`, `WebhookReceiver`, `ProviderManifest`).
 - [ ] 3.2 Create `apps/journal/app/lib/connected-services/providers/wahoo/manifest.ts` declaring `credentialKind: 'oauth'`, OAuth config (auth URL, token URL, scopes), and references to capability adapters.
 - [ ] 3.3 Wire `providers/registry.ts` to import the Wahoo manifest. Expose `getManifest(providerId)` and `getAllManifests()`.
 
