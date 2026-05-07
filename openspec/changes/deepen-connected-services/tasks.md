@@ -38,12 +38,12 @@
 ## 6. Verification
 
 - [x] 6.1 Run `pnpm typecheck && pnpm lint && pnpm test` — all green.
-- [ ] 6.2 Run `pnpm test:e2e` with the Wahoo flow specs — all green.
+- [x] 6.2 Run `pnpm test:e2e` with the Wahoo flow specs — all green.
 - [ ] 6.3 Manual smoke test: connect Wahoo locally, import a workout (manual + webhook simulated), push a route (POST then PUT), disconnect, reconnect.
 - [ ] 6.4 Check that `connected_services` migration applies cleanly to a copy of staging data (or local seed reflecting prod).
 
 ## 7. Documentation + follow-up
 
-- [ ] 7.1 Update `CONTEXT.md` if any term was sharpened during implementation.
-- [ ] 7.2 File a follow-up issue/note to amend `openspec/changes/komoot-import/design.md` to use `connected_services` + `web-login` credential kind instead of the drafted `journal.integrations` table.
+- [x] 7.1 Update `CONTEXT.md` if any term was sharpened during implementation.
+- [x] 7.2 File a follow-up issue/note to amend `openspec/changes/komoot-import/design.md` to use `connected_services` + `web-login` credential kind instead of the drafted `journal.integrations` table.
 - [ ] 7.3 At archive time, apply the spec deltas in `specs/connected-services/`, `specs/wahoo-import/`, `specs/wahoo-route-push/` to `openspec/specs/`.
