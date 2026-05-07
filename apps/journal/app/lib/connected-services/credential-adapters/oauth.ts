@@ -12,7 +12,6 @@ import {
   NeedsRelinkError,
   type CredentialAdapter,
   type OAuthCredentials,
-  type ProviderOAuthConfig,
 } from "../types.ts";
 
 // Refresh credentials slightly before they actually expire so a token in
