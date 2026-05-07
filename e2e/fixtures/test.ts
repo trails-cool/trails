@@ -25,6 +25,18 @@ const EXTERNAL_ALLOWLIST: RegExp[] = [
   /tiles\.wmflabs\.org/,
 ];
 
+/**
+ * External requests we silently drop (no allowlist, no failure). The
+ * Sentry browser SDK emits an envelope on first navigation even when
+ * `enabled: false` (the BrowserTracing integration captures the page
+ * load transaction before `init`'s enabled flag fully propagates). We
+ * don't want to allow it through to the real ingest endpoint, but we
+ * also don't want every test to fail with "blocked unmocked request".
+ */
+const SILENT_DROP: RegExp[] = [
+  /ingest\.[a-z]+\.sentry\.io/,
+];
+
 export const test = base.extend({
   page: async ({ page }, use) => {
     const blocked: string[] = [];
@@ -37,6 +49,10 @@ export const test = base.extend({
       const url = route.request().url();
       if (EXTERNAL_ALLOWLIST.some((re) => re.test(url))) {
         await route.continue();
+        return;
+      }
+      if (SILENT_DROP.some((re) => re.test(url))) {
+        await route.abort("failed");
         return;
       }
       blocked.push(url);
