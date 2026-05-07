@@ -67,6 +67,7 @@ test.describe("Passkey Authentication", () => {
 
     // Sign in with passkey
     await page.goto("/auth/login");
+    await waitForHydration(page);
     await page.getByRole("button", { name: /Sign in with Passkey/ }).click();
     await expect(page).toHaveURL("/", { timeout: 10000 });
     await expect(page.getByRole("navigation").getByRole("button", { name: username })).toBeVisible({ timeout: 5000 });
@@ -79,6 +80,7 @@ test.describe("Passkey Authentication", () => {
     const authenticatorId = await setupVirtualAuthenticator(cdp);
 
     await page.goto("/auth/login");
+    await waitForHydration(page);
     await page.getByRole("button", { name: /Sign in with Passkey/ }).click();
     await expect(page.getByText(/No passkey found/i)).toBeVisible({ timeout: 10000 });
 
