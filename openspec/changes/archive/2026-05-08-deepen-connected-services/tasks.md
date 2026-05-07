@@ -46,4 +46,4 @@
 
 - [x] 7.1 Update `CONTEXT.md` if any term was sharpened during implementation.
 - [x] 7.2 File a follow-up issue/note to amend `openspec/changes/komoot-import/design.md` to use `connected_services` + `web-login` credential kind instead of the drafted `journal.integrations` table.
-- [ ] 7.3 At archive time, apply the spec deltas in `specs/connected-services/`, `specs/wahoo-import/`, `specs/wahoo-route-push/` to `openspec/specs/`.
+- [x] 7.3 At archive time, apply the spec deltas in `specs/connected-services/`, `specs/wahoo-import/`, `specs/wahoo-route-push/` to `openspec/specs/`.

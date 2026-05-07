@@ -5,13 +5,14 @@ Provider-agnostic activity sync framework with Wahoo as the first provider, supp
 ## Requirements
 
 ### Requirement: Provider-agnostic sync framework
-The system SHALL provide a common interface for external activity sync providers.
+The system SHALL provide capability-shaped seams for external activity sync providers. Each provider declares a manifest at `providers/<name>/manifest.ts` listing its `credential_kind` (`oauth | web-login | device`) and the capability adapters it implements (`Importer`, `RoutePusher`, `WebhookReceiver`). There SHALL NOT be a unified `SyncProvider` interface containing every capability with optional methods.
 
 #### Scenario: Add new provider
 - **WHEN** a developer wants to add a new sync provider (e.g., Garmin)
-- **THEN** they implement the `SyncProvider` interface in a single file
-- **AND** register it in the provider registry
-- **AND** all OAuth, webhook, import, and settings UI works automatically
+- **THEN** they create `providers/garmin/` containing a `manifest.ts` declaring `credential_kind` and the implemented capabilities
+- **AND** they implement only the capability interfaces that apply (e.g. `Importer` for an import-only provider)
+- **AND** they register the manifest in `providers/registry.ts`
+- **AND** OAuth flows, webhook routing, and settings UI work without further changes
 
 ### Requirement: Connect Wahoo account
 Users SHALL be able to connect their Wahoo account via OAuth2.
@@ -20,20 +21,21 @@ Users SHALL be able to connect their Wahoo account via OAuth2.
 - **WHEN** a user clicks "Connect Wahoo" in journal settings
 - **THEN** they are redirected to Wahoo's OAuth authorization page with scopes `workouts_read`, `user_read`, `offline_data`, `routes_write`
 - **AND** after granting permission, redirected back to the journal
-- **AND** access and refresh tokens are stored in `sync_connections`
-- **AND** the granted scopes are recorded in `sync_connections.granted_scopes` so feature gates can detect missing scopes without round-tripping to Wahoo
+- **AND** access and refresh tokens are stored in `connected_services` (in the `credentials` JSONB blob, with `credential_kind = 'oauth'`)
+- **AND** the granted scopes are recorded in `connected_services.granted_scopes` so feature gates can detect missing scopes without round-tripping to Wahoo
 
 #### Scenario: Disconnect Wahoo
 - **WHEN** a user clicks "Disconnect" next to their Wahoo connection
-- **THEN** the stored tokens are deleted from `sync_connections`
+- **THEN** the stored credentials are deleted from `connected_services`
 
 #### Scenario: Token refresh
 - **WHEN** a Wahoo API call fails with an expired token
-- **THEN** the refresh token is used to obtain a new access token automatically
+- **THEN** the OAuth `CredentialAdapter` is invoked via `ConnectedServiceManager.withFreshCredentials` to obtain a new access token automatically
+- **AND** the new tokens are written back to the `credentials` JSONB blob
 
 #### Scenario: Existing connection without routes_write
 - **WHEN** a user connected before the `routes_write` scope was added attempts an action that requires it (such as pushing a route)
-- **THEN** the system detects the missing scope from `sync_connections.granted_scopes` and routes the user through OAuth re-authorization to grant the new scope
+- **THEN** the system detects the missing scope from `connected_services.granted_scopes` and routes the user through OAuth re-authorization to grant the new scope
 - **AND** the existing tokens remain valid until re-auth completes; ongoing read flows (workout import, webhook ingestion) continue to work
 
 ### Requirement: Webhook-based automatic sync
