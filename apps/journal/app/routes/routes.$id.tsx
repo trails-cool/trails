@@ -7,7 +7,7 @@ import { canView, getSessionUser } from "~/lib/auth.server";
 import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
 import { getDb } from "~/lib/db";
 import { syncPushes } from "@trails-cool/db/schema/journal";
-import { getConnection } from "~/lib/sync/connections.server";
+import { getService } from "~/lib/connected-services";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 
@@ -62,7 +62,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       }
     | null = null;
   if (isOwner && user && !!route.gpx) {
-    const connection = await getConnection(user.id, "wahoo");
+    const connection = await getService(user.id, "wahoo");
     let latest:
       | {
           pushedAt: string | null;

@@ -1,20 +1,21 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/api.sync.push.$provider.$routeId";
 import { getSessionUser } from "~/lib/auth.server";
-import { getProvider } from "~/lib/sync/registry";
-import { pushRouteToProvider, encodeOAuthState } from "~/lib/sync/pushes.server";
+import { getManifest } from "~/lib/connected-services";
+import { pushRouteToProvider } from "~/lib/connected-services/push-action.server";
+import { encodeOAuthState } from "~/lib/connected-services/oauth-state.server";
 
 export async function action({ params, request }: Route.ActionArgs) {
   const user = await getSessionUser(request);
   if (!user) return redirect("/auth/login");
 
-  const provider = getProvider(params.provider);
-  if (!provider) return data({ error: "Unknown provider" }, { status: 404 });
+  const manifest = getManifest(params.provider);
+  if (!manifest) return data({ error: "Unknown provider" }, { status: 404 });
 
   const returnTo = `/routes/${params.routeId}`;
   const outcome = await pushRouteToProvider({
     userId: user.id,
-    providerId: provider.id,
+    providerId: manifest.id,
     routeId: params.routeId,
   });
 
@@ -22,14 +23,19 @@ export async function action({ params, request }: Route.ActionArgs) {
     case "success":
       return redirect(`${returnTo}?push=success`);
     case "scope_missing": {
+      if (!manifest.buildAuthUrl) {
+        return redirect(`${returnTo}?push=needs_permission`);
+      }
       const origin = process.env.ORIGIN ?? "http://localhost:3000";
-      const redirectUri = `${origin}/api/sync/callback/${provider.id}`;
+      const redirectUri = `${origin}/api/sync/callback/${manifest.id}`;
       const state = encodeOAuthState({
         pushAfter: { routeId: params.routeId },
         returnTo,
       });
-      return redirect(provider.getAuthUrl(redirectUri, state));
+      return redirect(manifest.buildAuthUrl(redirectUri, state));
     }
+    case "needs_relink":
+      return redirect(`${returnTo}?push=needs_permission`);
     case "no_connection":
       return redirect(`${returnTo}?push=no_connection`);
     case "no_geometry":

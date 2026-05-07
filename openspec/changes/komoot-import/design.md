@@ -5,6 +5,33 @@ from Komoot have hundreds of tours they'd lose by switching. The old trails
 project had a working Komoot integration using basic auth against Komoot's
 undocumented API (`api.komoot.de`).
 
+> **Note (added 2026-05-08, post `deepen-connected-services`)**:
+> Earlier drafts of this design proposed a separate `journal.integrations`
+> table for Komoot credentials. That has been **superseded** by the
+> connected-services architecture introduced in
+> `openspec/changes/deepen-connected-services/`. When this change is
+> revisited, Komoot must implement:
+>
+> - A row in `journal.connected_services` with `credential_kind = 'web-login'`
+>   and a `credentials` JSONB blob carrying `{ email, encrypted_password,
+>   session_jar }`.
+> - A `web-login` `CredentialAdapter` at
+>   `apps/journal/app/lib/connected-services/credential-adapters/web-login.ts`
+>   implementing `relogin(creds) → creds | InvalidCredentials`. Web-login
+>   breakage (form changes, captcha, password rotation) surfaces at the
+>   import layer, not the credential layer (see ADR-0001 / CONTEXT.md).
+> - A `KomootImporter` in
+>   `apps/journal/app/lib/connected-services/providers/komoot/importer.ts`
+>   that goes through `ctx.withFreshCredentials` like the Wahoo importer.
+>   Komoot does not have webhooks or push, so its manifest declares only
+>   the `Importer` capability — no `routePusher`, no `webhookReceiver`.
+> - A manifest at `providers/komoot/manifest.ts` registered via
+>   `providers/index.ts`.
+>
+> Don't add a `journal.integrations` table. The user-facing "Connected
+> Services" list at `/settings/connections` should show Komoot alongside
+> Wahoo, which only works if both share `connected_services`.
+
 ## Goals / Non-Goals
 
 **Goals:**

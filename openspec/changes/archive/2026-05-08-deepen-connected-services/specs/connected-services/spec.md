@@ -1,18 +1,4 @@
-# connected-services Specification
-
-## Purpose
-Third-party service connections (Wahoo today; future Strava, Garmin, Komoot, Apple Health, etc.) that the user opts into from the Journal's settings page. Covers connect / disconnect flows, the storage layout for credentials of any kind, and the capability seams (`Importer`, `RoutePusher`, `WebhookReceiver`) that providers implement. Per-provider mechanics live with each service's own change (e.g. `wahoo-import`).
-
-## Requirements
-
-### Requirement: Connections settings page at `/settings/connections`
-The Journal SHALL expose a Connected services page at `/settings/connections` (one of the four sub-pages of `/settings`). The page SHALL list each external integration the Journal supports, each row showing the connection state (Connect / Disconnect) and the link to start the OAuth flow when not connected.
-
-#### Scenario: Wahoo connection status renders both states
-- **WHEN** a user loads `/settings/connections`
-- **THEN** the page lists Wahoo as connected or disconnected
-- **AND** connected state shows a "Disconnect" button that POSTs to `/api/sync/disconnect/<provider>`
-- **AND** disconnected state shows a "Connect Wahoo" button that begins the OAuth handshake
+## MODIFIED Requirements
 
 ### Requirement: OAuth token storage in `connected_services`
 External-service credentials SHALL be stored in the `journal.connected_services` table (renamed from `sync_connections`) keyed by `(user_id, provider)`. Each row SHALL persist a `credential_kind` discriminator (`oauth | web-login | device`), a `credentials` JSONB blob whose schema is determined by the kind, the provider-side user id (`provider_user_id`, nullable for kinds without one), and OAuth-specific `granted_scopes` as a top-level column (populated only when `credential_kind = 'oauth'`). Disconnecting SHALL delete the row, severing the user's link to the external service without affecting any imported activities.
@@ -30,6 +16,8 @@ For `credential_kind = 'oauth'`, the `credentials` blob SHALL contain `access_to
 #### Scenario: Each user has at most one row per provider
 - **WHEN** a user reconnects an already-connected provider
 - **THEN** the existing `connected_services` row is updated in place with the fresh credentials; no duplicate row is created
+
+## ADDED Requirements
 
 ### Requirement: Capability seams for providers
 The system SHALL model each external provider as a manifest declaring its `credential_kind` and which capabilities it implements. Capabilities are modelled as separate interfaces — `Importer`, `RoutePusher`, `WebhookReceiver` — and a provider implements only the subset that applies to it. There SHALL NOT be a unified provider interface that lists every capability with optional methods.

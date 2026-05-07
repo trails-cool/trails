@@ -3,8 +3,11 @@ import { data, redirect, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/sync.import.$provider";
 import { getSessionUser } from "~/lib/auth.server";
-import { getProvider } from "~/lib/sync/registry";
-import { getConnection, updateTokens } from "~/lib/sync/connections.server";
+import {
+  getManifest,
+  getService,
+  capabilityContextFor,
+} from "~/lib/connected-services";
 import { getImportedIds, recordImport } from "~/lib/sync/imports.server";
 import { createActivity } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
@@ -13,35 +16,28 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   if (!user) return redirect("/auth/login");
 
-  const provider = getProvider(params.provider);
-  if (!provider) throw data({ error: "Unknown provider" }, { status: 404 });
+  const manifest = getManifest(params.provider);
+  if (!manifest || !manifest.importer) {
+    throw data({ error: "Unknown provider" }, { status: 404 });
+  }
 
-  const connection = await getConnection(user.id, provider.id);
-  if (!connection) return redirect("/settings");
+  const service = await getService(user.id, manifest.id);
+  if (!service) return redirect("/settings");
 
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
 
-  // Refresh token if needed
-  let tokens = {
-    accessToken: connection.accessToken,
-    refreshToken: connection.refreshToken,
-    expiresAt: connection.expiresAt,
-  };
-  if (new Date() >= tokens.expiresAt) {
-    tokens = await provider.refreshToken(tokens.refreshToken);
-    await updateTokens(connection.id, tokens);
-  }
+  const ctx = capabilityContextFor(service.id);
+  const workoutList = await manifest.importer.listImportable(ctx, page);
 
-  const workoutList = await provider.listWorkouts(tokens, page);
   const importedIds = await getImportedIds(
     user.id,
-    provider.id,
+    manifest.id,
     workoutList.workouts.map((w) => w.id),
   );
 
   return data({
-    provider: { id: provider.id, name: provider.name },
+    provider: { id: manifest.id, name: manifest.displayName },
     workouts: workoutList.workouts.map((w) => ({
       ...w,
       imported: importedIds.has(w.id),
@@ -55,11 +51,13 @@ export async function action({ params, request }: Route.ActionArgs) {
   const user = await getSessionUser(request);
   if (!user) return redirect("/auth/login");
 
-  const provider = getProvider(params.provider);
-  if (!provider) throw data({ error: "Unknown provider" }, { status: 404 });
+  const manifest = getManifest(params.provider);
+  if (!manifest || !manifest.importer) {
+    throw data({ error: "Unknown provider" }, { status: 404 });
+  }
 
-  const connection = await getConnection(user.id, provider.id);
-  if (!connection) return redirect("/settings");
+  const service = await getService(user.id, manifest.id);
+  if (!service) return redirect("/settings");
 
   const formData = await request.formData();
   const workoutId = formData.get("workoutId") as string;
@@ -69,33 +67,56 @@ export async function action({ params, request }: Route.ActionArgs) {
   const distance = formData.get("distance") as string;
   const duration = formData.get("duration") as string;
 
-  // Refresh token if needed
-  let tokens = {
-    accessToken: connection.accessToken,
-    refreshToken: connection.refreshToken,
-    expiresAt: connection.expiresAt,
-  };
-  if (new Date() >= tokens.expiresAt) {
-    tokens = await provider.refreshToken(tokens.refreshToken);
-    await updateTokens(connection.id, tokens);
-  }
-
+  // Inline import here (not via Importer.importOne) so we can pass through
+  // the form-supplied metadata (started_at, distance, duration) the
+  // capability seam doesn't carry. The seam-shape importer is reserved for
+  // automatic / webhook-driven imports.
   let gpx: string | null = null;
   if (fileUrl) {
-    const workout = { id: workoutId, name: workoutName, type: "", startedAt: "", duration: null, distance: null, fileUrl };
-    const fileBuffer = await provider.downloadFile(tokens, workout);
-    gpx = await provider.convertToGpx(fileBuffer);
+    const ctx = capabilityContextFor(service.id);
+    // Wahoo CDN URLs are pre-signed; we still go through withFreshCredentials
+    // so the manager handles refresh of any near-expired token.
+    const buffer = await ctx.withFreshCredentials(async () => {
+      const resp = await fetch(fileUrl);
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+      return Buffer.from(await resp.arrayBuffer());
+    });
+    // Lazy-load to avoid bundling fit-file-parser into all routes.
+    const { default: FitParser } = await import("fit-file-parser");
+    const { generateGpx } = await import("@trails-cool/gpx");
+    const parsed = await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const parser = new FitParser({ force: true });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      parser.parse(buffer as any, (err: unknown, d: any) => (err ? reject(err) : resolve(d ?? {})));
+    });
+    const records = (parsed.records ?? []) as Array<{
+      position_lat?: number;
+      position_long?: number;
+      altitude?: number;
+      timestamp?: string | Date;
+    }>;
+    const trackPoints = records
+      .filter((r) => r.position_lat != null && r.position_long != null)
+      .map((r) => ({
+        lat: r.position_lat!,
+        lon: r.position_long!,
+        ele: r.altitude,
+        time: r.timestamp instanceof Date ? r.timestamp.toISOString() : r.timestamp,
+      }));
+    if (trackPoints.length >= 2) {
+      gpx = generateGpx({ name: workoutName, tracks: [trackPoints] });
+    }
   }
 
   const activityId = await createActivity(user.id, {
-    name: workoutName || `${provider.name} workout`,
+    name: workoutName || `${manifest.displayName} workout`,
     gpx: gpx ?? undefined,
     distance: distance ? parseFloat(distance) : null,
     duration: duration ? parseInt(duration) : null,
     startedAt: startedAt ? new Date(startedAt) : null,
   });
 
-  await recordImport(user.id, provider.id, workoutId, activityId);
+  await recordImport(user.id, manifest.id, workoutId, activityId);
 
   return data({ imported: workoutId });
 }
