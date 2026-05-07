@@ -10,11 +10,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget unzip curl
     && mv "brouter-${BROUTER_VERSION}"/* . \
     && rmdir "brouter-${BROUTER_VERSION}" \
     && rm "brouter-${BROUTER_VERSION}.zip" \
-    && apt-get purge -y wget unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+    && apt-get purge -y unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user and directories for segments and profiles
 RUN addgroup --system app && adduser --system --ingroup app app \
-    && mkdir -p /data/segments /data/profiles
+    && mkdir -p /data/segments /data/profiles \
+    && chown -R app:app /data
+
+# Install entrypoint + segment downloader
+COPY download-segments.sh /brouter/download-segments.sh
+COPY entrypoint.sh /brouter/entrypoint.sh
+RUN chmod +x /brouter/download-segments.sh /brouter/entrypoint.sh
 
 # Copy default profiles from release and rename JAR for simpler CMD
 RUN cp -r profiles2/* /data/profiles/ 2>/dev/null || true \
@@ -45,9 +51,10 @@ ENV JAVA_OPTS="-Xmx1024M -Xms256M -Xmn64M"
 # sets it to 16; flagship/CI keep the default.
 ENV BROUTER_THREADS=4
 
+# Entrypoint downloads segments on first start if /data/segments is empty,
+# then execs the CMD. Shell form on CMD so $JAVA_OPTS / $BROUTER_THREADS
+# expand at container start.
+ENTRYPOINT ["/brouter/entrypoint.sh"]
+
 # BRouter server: <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
-# Shell form so $JAVA_OPTS and $BROUTER_THREADS expand at container start.
-CMD java $JAVA_OPTS -DmaxRunningTime=300 -cp brouter.jar \
-    btools.server.RouteServer \
-    /data/segments /data/profiles /data/profiles \
-    17777 $BROUTER_THREADS
+CMD ["sh", "-c", "java $JAVA_OPTS -DmaxRunningTime=300 -cp brouter.jar btools.server.RouteServer /data/segments /data/profiles /data/profiles 17777 $BROUTER_THREADS"]
