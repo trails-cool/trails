@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockUser = { id: "user-1", email: "test@test.com", username: "test", domain: "localhost", displayName: null, bio: null, createdAt: new Date() };
+import { TERMS_VERSION } from "~/lib/legal";
+
+const mockUser = { id: "user-1", email: "test@test.com", username: "test", domain: "localhost", displayName: null, bio: null, createdAt: new Date(), termsVersion: TERMS_VERSION };
 const mockGetAuthenticatedUser = vi.fn();
 const mockListRoutes = vi.fn();
 const mockCreateRoute = vi.fn();
