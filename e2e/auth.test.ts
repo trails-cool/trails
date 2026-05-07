@@ -1,4 +1,4 @@
-import { test, expect, type CDPSession, type Page } from "./fixtures/test";
+import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
 
 // Virtual authenticator helpers
 async function setupVirtualAuthenticator(cdp: CDPSession) {
@@ -23,6 +23,7 @@ async function removeVirtualAuthenticator(cdp: CDPSession, authenticatorId: stri
 async function registerUser(page: Page, email: string, username: string) {
   await page.goto("/auth/register");
   await expect(page.getByRole("heading", { name: "Register" })).toBeVisible();
+  await waitForHydration(page);
   await page.getByLabel("Email").click();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Username").click();
@@ -39,6 +40,7 @@ async function logout(page: Page, accountLabel: string) {
   // The account cluster lives inside an avatar dropdown now. Click the
   // avatar (its aria-label is displayName || username), then click the
   // Log Out menuitem inside the popup.
+  await waitForHydration(page);
   await page.getByRole("navigation").getByRole("button", { name: accountLabel }).click();
   await page.getByRole("menuitem", { name: "Log Out" }).click();
   await expect(page.getByRole("navigation").getByRole("link", { name: "Sign In" })).toBeVisible({ timeout: 5000 });
@@ -65,6 +67,7 @@ test.describe("Passkey Authentication", () => {
 
     // Sign in with passkey
     await page.goto("/auth/login");
+    await waitForHydration(page);
     await page.getByRole("button", { name: /Sign in with Passkey/ }).click();
     await expect(page).toHaveURL("/", { timeout: 10000 });
     await expect(page.getByRole("navigation").getByRole("button", { name: username })).toBeVisible({ timeout: 5000 });
@@ -77,6 +80,7 @@ test.describe("Passkey Authentication", () => {
     const authenticatorId = await setupVirtualAuthenticator(cdp);
 
     await page.goto("/auth/login");
+    await waitForHydration(page);
     await page.getByRole("button", { name: /Sign in with Passkey/ }).click();
     await expect(page.getByText(/No passkey found/i)).toBeVisible({ timeout: 10000 });
 

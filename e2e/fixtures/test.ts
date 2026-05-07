@@ -74,5 +74,29 @@ export const test = base.extend({
   },
 });
 
+/**
+ * Wait until React has hydrated the current page. Vite dev injects scripts
+ * asynchronously, so a button/form is visible (and clickable per Playwright's
+ * actionability check) before its React `onClick`/`onSubmit` is wired up.
+ * Without this, the first click after navigation is a coin flip on a cold
+ * dev server — controlled inputs ignore the keystrokes and submit handlers
+ * never run, so the form posts empty fields or natively GETs to itself.
+ *
+ * Detects hydration by checking for React's `__reactProps$<id>` property
+ * which is attached during commit. CI uses production builds where this
+ * isn't a problem, but the check is cheap and harmless there.
+ */
+export async function waitForHydration(page: import("@playwright/test").Page) {
+  await page.waitForFunction(
+    () => {
+      const el = document.body.querySelector("button, input, form, a");
+      if (!el) return false;
+      return Object.keys(el).some((k) => k.startsWith("__reactProps$"));
+    },
+    null,
+    { timeout: 10000 },
+  );
+}
+
 export { expect };
 export type { CDPSession, Page } from "@playwright/test";
