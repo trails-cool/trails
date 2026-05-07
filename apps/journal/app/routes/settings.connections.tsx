@@ -5,7 +5,7 @@ import type { Route } from "./+types/settings.connections";
 import { getSessionUser } from "~/lib/auth.server";
 import { getDb } from "~/lib/db";
 import { connectedServices } from "@trails-cool/db/schema/journal";
-import { getAllProviders } from "~/lib/sync/registry";
+import { getAllManifests } from "~/lib/connected-services";
 
 const KNOWN_ERRORS = ["too_many_tokens", "sync_failed", "generic"] as const;
 type KnownError = (typeof KNOWN_ERRORS)[number];
@@ -30,9 +30,14 @@ export async function loader({ request }: Route.LoaderArgs) {
     .from(connectedServices)
     .where(eq(connectedServices.userId, user.id));
 
-  const providers = getAllProviders().map((p) => {
-    const conn = connections.find((c) => c.provider === p.id);
-    return { id: p.id, name: p.name, connected: !!conn, providerUserId: conn?.providerUserId };
+  const providers = getAllManifests().map((m) => {
+    const conn = connections.find((c) => c.provider === m.id);
+    return {
+      id: m.id,
+      name: m.displayName,
+      connected: !!conn,
+      providerUserId: conn?.providerUserId,
+    };
   });
 
   return data({ providers });
