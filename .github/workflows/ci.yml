@@ -53,7 +53,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - run: npx -y openspec@1.2.0 validate --all --strict --no-interactive
+      - run: npx -y @fission-ai/openspec@1.2.0 validate --all --strict --no-interactive
 
   typecheck:
     name: Typecheck
