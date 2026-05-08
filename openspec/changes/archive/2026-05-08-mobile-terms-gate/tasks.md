@@ -10,4 +10,4 @@
 ## 3. Verification
 
 - [x] 3.1 Run `pnpm typecheck && pnpm lint && pnpm test` — all green.
-- [ ] 3.2 Open draft PR against `main`.
+- [x] 3.2 Open draft PR against `main` (#366).
