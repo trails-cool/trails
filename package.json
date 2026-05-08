@@ -23,7 +23,8 @@
     "dev:services": "docker compose -f docker-compose.dev.yml up -d",
     "dev:full": "./scripts/dev.sh",
     "dev:ios": "pnpm --filter @trails-cool/mobile ios",
-    "dev:android": "pnpm --filter @trails-cool/mobile android"
+    "dev:android": "pnpm --filter @trails-cool/mobile android",
+    "openspec": "openspec"
   },
   "pnpm": {
     "overrides": {
@@ -42,6 +43,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@expo/fingerprint": "^0.16.6",
+    "@fission-ai/openspec": "^1.3.1",
     "@playwright/test": "^1.59.1",
     "@react-router/dev": "catalog:",
     "@react-router/node": "catalog:",
