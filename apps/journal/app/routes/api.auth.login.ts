@@ -1,11 +1,12 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.auth.login";
-import { startAuthentication, finishAuthentication, createMagicToken, verifyLoginCode, createSession } from "~/lib/auth.server";
+import { startAuthentication, finishAuthentication, createMagicToken, verifyLoginCode } from "~/lib/auth.server";
+import { completeAuth } from "~/lib/auth/completion";
 import { sendMagicLink } from "~/lib/email.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
-  const { step, response, challenge, email, code } = body;
+  const { step, response, challenge, email, code, returnTo } = body;
 
   try {
     if (step === "start-passkey") {
@@ -15,8 +16,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (step === "finish-passkey") {
       const userId = await finishAuthentication(response, challenge);
-      const cookie = await createSession(userId, request);
-      return data({ step: "done" }, { headers: { "Set-Cookie": cookie } });
+      return completeAuth({ userId, request, returnTo, mode: "json" });
     }
 
     if (step === "magic-link") {
@@ -38,8 +38,7 @@ export async function action({ request }: Route.ActionArgs) {
         return data({ error: "Email and code are required" }, { status: 400 });
       }
       const userId = await verifyLoginCode(email, code);
-      const cookie = await createSession(userId, request);
-      return data({ step: "done" }, { headers: { "Set-Cookie": cookie } });
+      return completeAuth({ userId, request, returnTo, mode: "json" });
     }
 
     return data({ error: "Invalid step" }, { status: 400 });

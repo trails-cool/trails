@@ -40,8 +40,6 @@ ADRs already recorded:
 ```ts
 async function completeAuth(input: {
   userId: string;
-  isNewRegistration: boolean;
-  termsVersion?: string;     // required if isNewRegistration; ignored otherwise
   request: Request;
   returnTo?: string | null;
 }): Promise<Response>
@@ -49,7 +47,9 @@ async function completeAuth(input: {
 
 Returns a `Response` (a `redirect` from React Router with the session `Set-Cookie` attached). Callers do `return await completeAuth(...)` from their action / loader. No headers-vs-redirect split: the chokepoint owns both halves.
 
-`termsVersion` is optional at the type level but required-when-`isNewRegistration` at runtime. Asserting it inside the function (throw on `isNewRegistration && !termsVersion`) keeps the call sites tidy. Alternative: a discriminated union forcing the compiler to require `termsVersion` when `isNewRegistration: true`. Lean toward the runtime assertion — three call sites, two of which set `isNewRegistration: false` — the type ergonomics aren't worth the union complexity.
+**Terms recording is NOT in `completeAuth`.** Both registration paths already write `terms_version` + `terms_accepted_at` at user creation: `finishRegistration` writes them when the user row is inserted (passkey path); `registerWithMagicLink` writes them when the user row is inserted (magic-link path). Magic-link registration *must* write terms at user creation, before verification, because the user row exists between register and verify — if terms weren't already written, the Terms gate would bounce the user on first authenticated visit.
+
+So `completeAuth` is purely **session + redirect**. No `isNewRegistration` flag, no `termsVersion` parameter. The earlier framing of an `isNewRegistration` discriminator was a mis-read — there is no code path that needs to record terms at completion time.
 
 ### Decision 3: File layout
 New directory `apps/journal/app/lib/auth/` containing:

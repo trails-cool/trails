@@ -397,22 +397,19 @@ export async function verifyEmailChange(token: string, userId: string): Promise<
 }
 
 // --- Sessions ---
+//
+// Cookie session storage moved to `./auth/session.ts` so the post-verify
+// chokepoint (`./auth/completion.ts`, see ADR-0004) can compose it. The
+// re-exports below preserve the legacy `~/lib/auth.server` import path —
+// new code should import from `~/lib/auth/session` directly.
 
-import { createCookieSessionStorage } from "react-router";
-
-const sessionSecret = process.env.SESSION_SECRET ?? "dev-secret-change-in-production";
-
-export const sessionStorage = createCookieSessionStorage({
-  cookie: {
-    name: "__session",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-    secrets: [sessionSecret],
-  },
-});
+/** @deprecated Import from `~/lib/auth/session` instead. */
+export {
+  sessionStorage,
+  createSession,
+  getSessionUser,
+  destroySession,
+} from "./auth/session.ts";
 
 /**
  * A row that carries the minimum a visibility check needs.
@@ -466,23 +463,3 @@ export async function recordTermsAcceptance(userId: string, termsVersion: string
     .where(eq(users.id, userId));
 }
 
-export async function createSession(userId: string, request: Request) {
-  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  session.set("userId", userId);
-  return sessionStorage.commitSession(session);
-}
-
-export async function getSessionUser(request: Request) {
-  const db = getDb();
-  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  const userId = session.get("userId");
-  if (!userId) return null;
-
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  return user ?? null;
-}
-
-export async function destroySession(request: Request) {
-  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  return sessionStorage.destroySession(session);
-}

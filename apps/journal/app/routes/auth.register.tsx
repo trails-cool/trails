@@ -75,7 +75,7 @@ export default function RegisterPage() {
       if (finishData.error) {
         setError(finishData.error);
       } else if (finishData.step === "done") {
-        window.location.href = "/";
+        window.location.href = finishData.redirectTo ?? "/";
       }
     } catch (err) {
       setError((err as Error).message);
@@ -134,13 +134,21 @@ export default function RegisterPage() {
       const resp = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "verify-code", email, code: verifyCode }),
+        body: JSON.stringify({
+          step: "verify-code",
+          email,
+          code: verifyCode,
+          // Just-registered user: prompt to set up a passkey so next time
+          // they can use it directly. completeAuth's safeReturnTo accepts
+          // this as a same-origin path.
+          returnTo: "/?add-passkey=1",
+        }),
       });
       const result = await resp.json();
       if (result.error) {
         setError(result.error);
       } else if (result.step === "done") {
-        window.location.href = "/?add-passkey=1";
+        window.location.href = result.redirectTo ?? "/?add-passkey=1";
       }
     } catch (err) {
       setError((err as Error).message);
