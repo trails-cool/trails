@@ -50,10 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - run: npx -y @fission-ai/openspec@1.2.0 validate --all --strict --no-interactive
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm openspec validate --all --strict --no-interactive
 
   typecheck:
     name: Typecheck
