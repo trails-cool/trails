@@ -3,7 +3,7 @@ import { data, redirect, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings.security";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getDb } from "~/lib/db";
 import { credentials } from "@trails-cool/db/schema/journal";
 import { ClientDate } from "~/components/ClientDate";

@@ -1,7 +1,8 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/auth.verify";
-import { verifyMagicToken, verifyEmailChange, getSessionUser } from "~/lib/auth.server";
-import { completeAuth } from "~/lib/auth/completion";
+import { verifyMagicToken, verifyEmailChange } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
+import { completeAuth } from "~/lib/auth/completion.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);

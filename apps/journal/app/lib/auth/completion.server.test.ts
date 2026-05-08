@@ -2,7 +2,7 @@
 // docs/adr/0005-no-authmethod-polymorphism.md for why this exists.
 
 import { describe, it, expect } from "vitest";
-import { completeAuth } from "./completion.ts";
+import { completeAuth } from "./completion.server.ts";
 
 function reqWith(headers: Record<string, string> = {}) {
   return new Request("https://localhost/whatever", { headers });

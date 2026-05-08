@@ -5,7 +5,7 @@ import type { Route } from "./+types/root";
 import * as Sentry from "@sentry/react";
 import { useTranslation } from "react-i18next";
 import { detectLocale } from "@trails-cool/i18n";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { LocaleProvider } from "~/components/LocaleContext";
 import { AlphaBanner } from "~/components/AlphaBanner";
 import { useUnreadNotifications } from "~/hooks/useUnreadNotifications";

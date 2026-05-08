@@ -1,7 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.auth.login";
 import { startAuthentication, finishAuthentication, createMagicToken, verifyLoginCode } from "~/lib/auth.server";
-import { completeAuth } from "~/lib/auth/completion";
+import { completeAuth } from "~/lib/auth/completion.server";
 import { sendMagicLink } from "~/lib/email.server";
 
 export async function action({ request }: Route.ActionArgs) {

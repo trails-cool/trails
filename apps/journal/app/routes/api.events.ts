@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.events";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { register } from "~/lib/events.server";
 import { countUnread } from "~/lib/notifications.server";
 

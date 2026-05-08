@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.notifications.read-all";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { markAllRead } from "~/lib/notifications.server";
 
 export async function action({ request }: Route.ActionArgs) {

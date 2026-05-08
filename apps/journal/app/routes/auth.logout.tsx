@@ -1,6 +1,6 @@
 import { redirect } from "react-router";
 import type { Route } from "./+types/auth.logout";
-import { destroySession } from "~/lib/auth.server";
+import { destroySession } from "~/lib/auth/session.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const cookie = await destroySession(request);

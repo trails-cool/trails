@@ -396,20 +396,10 @@ export async function verifyEmailChange(token: string, userId: string): Promise<
   return newEmail;
 }
 
-// --- Sessions ---
-//
-// Cookie session storage moved to `./auth/session.ts` so the post-verify
-// chokepoint (`./auth/completion.ts`, see ADR-0004) can compose it. The
-// re-exports below preserve the legacy `~/lib/auth.server` import path —
-// new code should import from `~/lib/auth/session` directly.
-
-/** @deprecated Import from `~/lib/auth/session` instead. */
-export {
-  sessionStorage,
-  createSession,
-  getSessionUser,
-  destroySession,
-} from "./auth/session.ts";
+// Cookie session storage lives at `./auth/session.ts` (see ADR-0004 + the
+// `auth/completion.ts` chokepoint). Import session helpers directly from
+// there; this file owns only per-method identity verification (passkey
+// ceremony + magic-token lifecycle) and Terms recording.
 
 /**
  * A row that carries the minimum a visibility check needs.

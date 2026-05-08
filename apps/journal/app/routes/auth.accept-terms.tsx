@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Form, data, redirect, useLoaderData, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/auth.accept-terms";
-import { getSessionUser, recordTermsAcceptance } from "~/lib/auth.server";
+import { recordTermsAcceptance } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { TERMS_VERSION } from "~/lib/legal";
 
 export function meta() {

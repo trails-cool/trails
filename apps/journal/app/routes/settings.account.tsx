@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { data, redirect, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/settings.account";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 
 export function meta() {
   return [{ title: "Account — Settings — trails.cool" }];

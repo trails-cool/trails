@@ -19,7 +19,7 @@
 // user-creation time, before any path can reach completeAuth.
 
 import { redirect } from "react-router";
-import { createSession } from "./session.ts";
+import { createSession } from "./session.server.ts";
 
 export type CompleteAuthMode = "redirect" | "json";
 

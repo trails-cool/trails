@@ -1,6 +1,7 @@
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/api.settings.email";
-import { getSessionUser, initiateEmailChange } from "~/lib/auth.server";
+import { initiateEmailChange } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { sendMagicLink } from "~/lib/email.server";
 
 export async function action({ request }: Route.ActionArgs) {

@@ -27,4 +27,4 @@
 ## 5. Documentation + follow-up
 
 - [ ] 5.1 At archive time, apply the spec delta in `specs/authentication-methods/` to `openspec/specs/`.
-- [ ] 5.2 (Optional follow-up — not part of this change) update import paths app-wide from `auth.server.ts` to `./auth/session.ts` and drop the re-exports. Track separately.
+- [x] 5.2 Update import paths app-wide from `auth.server.ts` to `./auth/session.ts` and drop the re-exports. (Folded into this PR after the smoke test confirmed everything works.)

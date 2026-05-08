@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { data, redirect, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/sync.import.$provider";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import {
   getManifest,
   getService,

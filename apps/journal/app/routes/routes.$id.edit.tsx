@@ -1,7 +1,7 @@
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id.edit";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getRoute, updateRoute } from "~/lib/routes.server";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
 import { eq } from "drizzle-orm";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { listPublicRoutesForOwner } from "~/lib/routes.server";
 import { listPublicActivitiesForOwner } from "~/lib/activities.server";
 import { loadPersona } from "~/lib/demo-bot.server";

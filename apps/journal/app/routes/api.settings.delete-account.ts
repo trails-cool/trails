@@ -1,7 +1,7 @@
 import { redirect } from "react-router";
 import { eq } from "drizzle-orm";
 import type { Route } from "./+types/api.settings.delete-account";
-import { getSessionUser, destroySession } from "~/lib/auth.server";
+import { getSessionUser, destroySession } from "~/lib/auth/session.server";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
 

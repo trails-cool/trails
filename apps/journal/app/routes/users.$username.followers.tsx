@@ -4,7 +4,7 @@ import type { Route } from "./+types/users.$username.followers";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
 import { listFollowers, countFollowers, getFollowState } from "~/lib/follow.server";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { CollectionPage } from "~/components/CollectionPage";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
