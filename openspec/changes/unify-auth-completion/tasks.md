@@ -22,7 +22,7 @@
 
 - [x] 4.1 `pnpm typecheck && pnpm lint && pnpm test` green.
 - [x] 4.2 `pnpm test:e2e` (auth flows) green without modification — proves behaviour-preserving refactor.
-- [ ] 4.3 Manual sanity: register with passkey locally, login with passkey, log out, re-login via magic-link 6-digit code, click-through magic link from `auth.verify.tsx`. Confirm session cookie set + correct redirect each time.
+- [x] 4.3 Manual sanity: register with passkey locally, login with passkey, log out, re-login via magic-link 6-digit code, click-through magic link from `auth.verify.tsx`. Confirm session cookie set + correct redirect each time. Verified 2026-05-08 over plain HTTP (HTTPS dev hits a pre-existing HTTP/2 + missing-Host issue with React Router 7.14's CSRF check — separate follow-up).
 
 ## 5. Documentation + follow-up
 
