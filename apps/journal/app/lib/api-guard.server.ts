@@ -1,8 +1,13 @@
 import { getAuthenticatedUser } from "./oauth.server.ts";
+import { TERMS_VERSION } from "./legal.ts";
 import { ERROR_CODES } from "@trails-cool/api";
 
 /**
- * Require authentication for an API route. Returns the user or throws a 401 Response.
+ * Require authentication for an API route. Returns the user or throws a
+ * Response: 401 if unauthenticated, 403 with `TERMS_OUTDATED` if the user's
+ * stored `terms_version` is missing or stale relative to the current
+ * `TERMS_VERSION`. Mirrors the cookie-session terms gate enforced by the
+ * root loader, so bearer-token API traffic can't bypass it.
  */
 export async function requireApiUser(request: Request) {
   const user = await getAuthenticatedUser(request);
@@ -10,6 +15,16 @@ export async function requireApiUser(request: Request) {
     throw Response.json(
       { error: "Unauthorized", code: ERROR_CODES.UNAUTHORIZED },
       { status: 401 },
+    );
+  }
+  if (user.termsVersion !== TERMS_VERSION) {
+    throw Response.json(
+      {
+        error: "Terms of Service have been updated and must be re-accepted",
+        code: ERROR_CODES.TERMS_OUTDATED,
+        currentTermsVersion: TERMS_VERSION,
+      },
+      { status: 403 },
     );
   }
   return user;
