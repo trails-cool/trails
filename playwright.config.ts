@@ -5,7 +5,12 @@ export default defineConfig({
   outputDir: "./e2e/results",
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Experiment: drop the CI=1 worker pin to see if the suite is stable in
+  // parallel on real CI. PR #365 introduced a hydration helper that was
+  // supposed to make workers=1 unnecessary; this validates that. `undefined`
+  // lets Playwright default to logical CPU count (~2 on standard GitHub
+  // Actions runners). If CI stays green, keep; if flaky, revert.
+  workers: undefined,
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never" }], ["json", { outputFile: "playwright-results.json" }]]
     : "list",
