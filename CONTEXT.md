@@ -124,3 +124,57 @@ webhooks to the right user via `provider_user_id`. Unknown
   `(user_id, provider, workout_id)`.
 - `sync_pushes` — push state per `(user_id, route_id, provider)` →
   `remote_id`, `last_pushed_version`.
+
+---
+
+## Authentication
+
+User identity in the Journal. Two **authentication methods** are supported
+and are intentionally the entire surface (see ADR-0005): **passkey**
+(WebAuthn) as the preferred method and **magic-link + 6-digit code**
+(email) as a fallback for users without passkey support or for cross-device
+sign-in. There is no plan for social sign-in (Google/Apple/etc.) — passkeys
+already deliver the one-tap UX, and adding centralized identity providers
+would conflict with the privacy-first ethos and ActivityPub federation.
+
+OAuth2/PKCE (the `mobile-app` flow) is **not** a third authentication
+method. It is a **session transport** for native clients: users still
+authenticate via passkey or magic-link in a WebView, then the mobile app
+exchanges the resulting authorization code for long-lived bearer tokens.
+The peer of OAuth2 transport is the cookie session, not passkey or
+magic-link.
+
+### completeAuth
+The single chokepoint for the post-verify orchestration of every web
+auth flow. Lives at `apps/journal/app/lib/auth/completion.ts` (see
+ADR-0004). Called by every route handler that has just verified a
+user's identity (passkey login finish, magic-link code verify, magic
+link consumer). Does three things in order:
+
+1. If `isNewRegistration`, records the accepted Terms version
+   (`recordTermsAcceptance`).
+2. Creates the session cookie via `createSession`.
+3. Returns `redirect(returnTo ?? "/")` with the session `Set-Cookie`
+   header attached.
+
+Identity-method-specific work (WebAuthn ceremony verification, magic
+token consumption) stays in the per-method functions and runs *before*
+`completeAuth`. The chokepoint deliberately knows nothing about how
+identity was proved.
+
+### Terms gate
+Cross-cutting middleware enforcing that `users.terms_version` matches
+the current `TERMS_VERSION` constant before any non-allow-listed
+authenticated request succeeds. Two enforcement points:
+
+- **Web (cookie sessions)**: the root loader redirects stale-terms users
+  to `/auth/accept-terms`. Allow-list: `/auth/accept-terms`,
+  `/auth/logout`, `/legal/*`. `/oauth/authorize` is *not* on the
+  allow-list, so OAuth code issuance is gated by this same redirect
+  before mobile sees an authorization code.
+- **API (bearer tokens)**: `requireApiUser` returns
+  `403 { code: "TERMS_OUTDATED", currentTermsVersion }` for stale-terms
+  bearer-token traffic. (Added in `mobile-terms-gate`, 2026-05-08.)
+
+`completeAuth` only **records** terms on registration; it does not
+enforce them. Enforcement remains middleware's job.
