@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
-import { page } from "@vitest/browser/context";
+import { describe, it, expect, afterEach } from "vitest";
+import { render, cleanup } from "@testing-library/react";
+import { page } from "vitest/browser";
 import { drawElevationChart } from "./elevation-chart-draw";
 import type { DrawChartParams } from "./elevation-chart-draw";
 
@@ -46,6 +46,7 @@ function ChartFixture({ params }: { params: DrawChartParams }) {
 }
 
 describe("drawElevationChart visual regression", () => {
+  afterEach(() => cleanup());
   it("renders plain color mode", async () => {
     render(<ChartFixture params={BASE_PARAMS} />);
     await expect(page.getByTestId("chart")).toMatchScreenshot("plain.png");

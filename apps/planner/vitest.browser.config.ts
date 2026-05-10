@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
+import { playwright } from "@vitest/browser-playwright";
 
 // Separate config for Vitest browser visual regression tests.
 // Run with: pnpm --filter @trails-cool/planner test:visual
@@ -10,9 +11,6 @@ import { resolve } from "node:path";
 // (.github/workflows/update-visual-snapshots.yml), triggered manually or
 // by adding the `update-snapshots` label to a PR.
 export default defineConfig({
-  esbuild: {
-    jsx: "automatic",
-  },
   resolve: {
     alias: {
       "~": resolve(import.meta.dirname, "app"),
@@ -23,10 +21,7 @@ export default defineConfig({
     include: ["app/**/*.browser.test.{ts,tsx}"],
     browser: {
       enabled: true,
-      // Provider is resolved from whichever @vitest/browser peer is installed.
-      // playwright is the default when @playwright/test is available.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      provider: "playwright" as any,
+      provider: playwright(),
       instances: [{ browser: "chromium" }],
     },
   },
