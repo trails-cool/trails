@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:visual": "vitest run --config vitest.browser.config.ts",
-    "test:visual:update": "vitest run --config vitest.browser.config.ts --update-snapshots"
+    "test:visual:update": "vitest run --config vitest.browser.config.ts -u"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",
