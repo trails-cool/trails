@@ -159,13 +159,16 @@ jobs:
 
           for diff in $diffs; do
             name=$(basename "$diff" | sed 's/-diff-chromium-[a-z]*\.png//' | sed 's/-/ /g')
-            response=$(curl -sf -X POST \
+            response=$(curl -s -w "\n%{http_code}" -X POST \
               -H "Authorization: Bearer $VISUAL_DIFF_TOKEN" \
               -H "Content-Type: image/png" \
               -H "Accept: application/json" \
               --data-binary @"$diff" \
               "https://uploads.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assets?name=$(basename $diff)")
-            url=$(echo "$response" | jq -r '.url // empty')
+            http_code=$(echo "$response" | tail -1)
+            body_resp=$(echo "$response" | head -1)
+            echo "Upload HTTP $http_code: $body_resp"
+            url=$(echo "$body_resp" | jq -r '.url // empty')
             if [ -n "$url" ]; then
               body+="| \`$name\` | ![$name]($url) |"$'\n'
             else
