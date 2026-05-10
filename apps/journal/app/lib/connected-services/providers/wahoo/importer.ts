@@ -4,10 +4,8 @@
 // Credentials always flow through ctx.withFreshCredentials — this module
 // never reads the connected_services credentials JSONB directly.
 
-import FitParser from "fit-file-parser";
-import { generateGpx } from "@trails-cool/gpx";
-import { createActivity } from "../../../activities.server.ts";
-import { recordImport, isAlreadyImported } from "../../../sync/imports.server.ts";
+import { fitToGpx } from "../../fit.ts";
+import { importActivity, isAlreadyImported } from "../../../sync/imports.server.ts";
 import type {
   CapabilityContext,
   ImportableList,
@@ -67,37 +65,6 @@ function toImportable(w: WahooWorkout) {
       : null,
     fileUrl: w.workout_summary?.file?.url,
   };
-}
-
-async function fitToGpx(buffer: Buffer, name: string): Promise<string | null> {
-  const parsed = await new Promise<Record<string, unknown>>((resolve, reject) => {
-    const parser = new FitParser({ force: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parser.parse(buffer as any, (error: unknown, data: any) => {
-      if (error) reject(error);
-      else resolve(data ?? {});
-    });
-  });
-
-  const records = (parsed.records ?? []) as Array<{
-    position_lat?: number;
-    position_long?: number;
-    altitude?: number;
-    timestamp?: string | Date;
-  }>;
-
-  const trackPoints = records
-    .filter((r) => r.position_lat != null && r.position_long != null)
-    .map((r) => ({
-      lat: r.position_lat!,
-      lon: r.position_long!,
-      ele: r.altitude,
-      time: r.timestamp instanceof Date ? r.timestamp.toISOString() : r.timestamp,
-    }));
-
-  if (trackPoints.length < 2) return null;
-
-  return generateGpx({ name, tracks: [trackPoints] });
 }
 
 async function downloadFit(fileUrl: string): Promise<Buffer> {
@@ -163,11 +130,10 @@ export const wahooImporter: Importer = {
       gpx = await fitToGpx(buffer, workout.name || "Wahoo workout");
     }
 
-    const activityId = await createActivity(userId, {
+    const { activityId } = await importActivity(userId, "wahoo", workoutId, {
       name: workout.name || `Wahoo workout ${workoutId}`,
       gpx: gpx ?? undefined,
     });
-    await recordImport(userId, "wahoo", workoutId, activityId);
 
     return { activityId, hadGeometry: gpx !== null };
   },

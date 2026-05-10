@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq, and, inArray } from "drizzle-orm";
 import { getDb } from "../db.ts";
 import { syncImports } from "@trails-cool/db/schema/journal";
+import { createActivity } from "../activities.server.ts";
 
 export async function recordImport(
   userId: string,
@@ -41,6 +42,20 @@ export async function isAlreadyImported(
 export async function deleteImportByActivity(activityId: string) {
   const db = getDb();
   await db.delete(syncImports).where(eq(syncImports.activityId, activityId));
+}
+
+// Single callsite for "create an activity from an imported workout and record
+// the dedup entry". Providers call this instead of calling createActivity +
+// recordImport separately, so the pair stays atomic from the provider's view.
+export async function importActivity(
+  userId: string,
+  provider: string,
+  externalWorkoutId: string,
+  input: { name: string; gpx?: string },
+): Promise<{ activityId: string }> {
+  const activityId = await createActivity(userId, { name: input.name, gpx: input.gpx });
+  await recordImport(userId, provider, externalWorkoutId, activityId);
+  return { activityId };
 }
 
 export async function getImportedIds(

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import type { YjsState } from "./use-yjs.ts";
-import { electHost } from "./host-election.ts";
+import { useHostElection } from "./use-host-election.ts";
 import {
   hashNoGoAreas,
   mergeGeoJsonSegments,
@@ -51,7 +51,7 @@ function restoreWaypoints(yjs: YjsState, snapshot: WaypointData[], restoringRef:
 export type RouteError = "no_route" | "failed" | "rate_limit" | null;
 
 export function useRouting(yjs: YjsState | null, sessionId: string) {
-  const [isHost, setIsHost] = useState(false);
+  const isHost = useHostElection(yjs);
   const [computing, setComputing] = useState(false);
   const [routeError, setRouteError] = useState<RouteError>(null);
   const [routeStats, setRouteStats] = useState<RouteStats>({});
@@ -66,26 +66,6 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
   // the two adjacent pair keys, so we fetch 2 segments from the server
   // instead of N-1 on every recompute.
   const segmentCacheRef = useRef<SegmentCache>(new SegmentCache());
-
-  // Host election via Yjs awareness
-  useEffect(() => {
-    if (!yjs) return;
-
-    const checkHost = () => {
-      const states = yjs.awareness.getStates() as Map<number, Record<string, unknown>>;
-      const localId = yjs.awareness.clientID;
-      const { isHost: amHost, role } = electHost(states, localId);
-      setIsHost(amHost);
-      yjs.awareness.setLocalStateField("role", role);
-    };
-
-    yjs.awareness.on("change", checkHost);
-    checkHost();
-
-    return () => {
-      yjs.awareness.off("change", checkHost);
-    };
-  }, [yjs]);
 
   const computeRoute = useCallback(
     async (waypoints: WaypointData[]) => {
