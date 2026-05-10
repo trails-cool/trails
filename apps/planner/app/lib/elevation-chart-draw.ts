@@ -179,7 +179,7 @@ export function drawElevationChart(
     }
     ctx.lineTo(PADDING.left + chartW, PADDING.top + chartH);
     ctx.closePath();
-    ctx.fillStyle = "rgba(37, 99, 235, 0.15)";
+    ctx.fillStyle = "rgba(220, 38, 38, 0.15)"; // demo: red fill to trigger visual regression
     ctx.fill();
 
     ctx.beginPath();
