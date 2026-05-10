@@ -3,8 +3,8 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes, syncImports, users, follows } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
-import { parseGpxAsync } from "@trails-cool/gpx";
-import { setGeomFromGpx } from "./routes.server.ts";
+import { validateGpx, writeGeom } from "./gpx-save.server.ts";
+import type { GpxData } from "./gpx-save.server.ts";
 
 export interface ActivityInput {
   name: string;
@@ -15,6 +15,7 @@ export interface ActivityInput {
   duration?: number | null;
   startedAt?: Date | null;
   visibility?: Visibility;
+  synthetic?: boolean;
 }
 
 export async function updateActivityVisibility(
@@ -46,44 +47,45 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   const db = getDb();
   const id = randomUUID();
 
+  let parsed: GpxData | null = null;
   let distance: number | null = input.distance ?? null;
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
   let startedAt: Date | null = input.startedAt ?? null;
   const duration: number | null = input.duration ?? null;
-  if (input.gpx) {
-    try {
-      const gpxData = await parseGpxAsync(input.gpx);
-      distance = gpxData.distance || distance;
-      elevationGain = gpxData.elevation.gain;
-      elevationLoss = gpxData.elevation.loss;
 
-      if (!startedAt && gpxData.tracks[0]?.[0]?.time) {
-        startedAt = new Date(gpxData.tracks[0][0].time);
-      }
-    } catch {
-      // Continue without stats if GPX parsing fails
+  if (input.gpx) {
+    parsed = await validateGpx(input.gpx);
+    distance = parsed.distance || distance;
+    elevationGain = parsed.elevation.gain;
+    elevationLoss = parsed.elevation.loss;
+    if (!startedAt && parsed.tracks[0]?.[0]?.time) {
+      startedAt = new Date(parsed.tracks[0][0].time);
     }
   }
 
-  await db.insert(activities).values({
-    id,
-    ownerId,
-    routeId: input.routeId ?? null,
-    name: input.name,
-    description: input.description ?? "",
-    gpx: input.gpx,
-    distance,
-    duration,
-    elevationGain,
-    elevationLoss,
-    startedAt,
-    ...(input.visibility ? { visibility: input.visibility } : {}),
-  });
+  await db.transaction(async (tx) => {
+    await tx.insert(activities).values({
+      id,
+      ownerId,
+      routeId: input.routeId ?? null,
+      name: input.name,
+      description: input.description ?? "",
+      gpx: input.gpx,
+      distance,
+      duration,
+      elevationGain,
+      elevationLoss,
+      startedAt,
+      ...(input.visibility ? { visibility: input.visibility } : {}),
+      ...(input.synthetic ? { synthetic: true } : {}),
+    });
 
-  if (input.gpx) {
-    await setGeomFromGpx(id, "activities", input.gpx);
-  }
+    if (input.gpx && parsed) {
+      const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
+      await writeGeom(tx, id, "activities", coords);
+    }
+  });
 
   // Public activities at creation also fan out (matches the
   // updateActivityVisibility path for the case where visibility is set
@@ -236,25 +238,26 @@ export async function createRouteFromActivity(activityId: string, ownerId: strin
   const [activity] = await db.select().from(activities).where(eq(activities.id, activityId));
   if (!activity?.gpx) return null;
 
+  const parsed = await validateGpx(activity.gpx);
+  const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
   const routeId = randomUUID();
-  await db.insert(routes).values({
-    id: routeId,
-    ownerId,
-    name: `Route from: ${activity.name}`,
-    description: `Created from activity "${activity.name}"`,
-    gpx: activity.gpx,
-    distance: activity.distance,
-    elevationGain: activity.elevationGain,
-    elevationLoss: activity.elevationLoss,
+
+  await db.transaction(async (tx) => {
+    await tx.insert(routes).values({
+      id: routeId,
+      ownerId,
+      name: `Route from: ${activity.name}`,
+      description: `Created from activity "${activity.name}"`,
+      gpx: activity.gpx,
+      distance: activity.distance,
+      elevationGain: activity.elevationGain,
+      elevationLoss: activity.elevationLoss,
+    });
+
+    await writeGeom(tx, routeId, "routes", coords);
+
+    await tx.update(activities).set({ routeId }).where(eq(activities.id, activityId));
   });
-
-  await setGeomFromGpx(routeId, "routes", activity.gpx);
-
-  // Link the activity to the new route
-  await db
-    .update(activities)
-    .set({ routeId })
-    .where(eq(activities.id, activityId));
 
   return routeId;
 }

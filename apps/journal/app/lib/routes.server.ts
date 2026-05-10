@@ -3,8 +3,9 @@ import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { routes, routeVersions } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
-import { parseGpxAsync } from "@trails-cool/gpx";
 import { sql } from "drizzle-orm";
+import { validateGpx, writeGeom } from "./gpx-save.server.ts";
+import type { GpxData } from "./gpx-save.server.ts";
 
 export interface RouteInput {
   name: string;
@@ -12,52 +13,65 @@ export interface RouteInput {
   gpx?: string;
   routingProfile?: string;
   visibility?: Visibility;
+  // Pre-computed stats — when provided, skip re-parsing (used by demo-bot)
+  distance?: number | null;
+  elevationGain?: number | null;
+  elevationLoss?: number | null;
+  dayBreaks?: number[];
+  synthetic?: boolean;
 }
 
 export async function createRoute(ownerId: string, input: RouteInput) {
   const db = getDb();
   const id = randomUUID();
 
-  let distance: number | null = null;
-  let elevationGain: number | null = null;
-  let elevationLoss: number | null = null;
-  let dayBreaks: number[] = [];
+  let parsed: GpxData | null = null;
+  let distance: number | null = input.distance ?? null;
+  let elevationGain: number | null = input.elevationGain ?? null;
+  let elevationLoss: number | null = input.elevationLoss ?? null;
+  let dayBreaks: number[] = input.dayBreaks ?? [];
+
   if (input.gpx) {
-    const stats = await computeRouteStats(input.gpx);
-    distance = stats.distance;
-    elevationGain = stats.elevationGain;
-    elevationLoss = stats.elevationLoss;
-    dayBreaks = stats.dayBreaks;
+    parsed = await validateGpx(input.gpx);
+    // Only compute stats from GPX if not pre-supplied by caller
+    if (input.distance === undefined) {
+      const stats = computeRouteStats(parsed);
+      distance = stats.distance;
+      elevationGain = stats.elevationGain;
+      elevationLoss = stats.elevationLoss;
+      dayBreaks = stats.dayBreaks;
+    }
   }
 
-  await db.insert(routes).values({
-    id,
-    ownerId,
-    name: input.name,
-    description: input.description ?? "",
-    gpx: input.gpx,
-    routingProfile: input.routingProfile,
-    distance,
-    elevationGain,
-    elevationLoss,
-    dayBreaks,
-  });
-
-  if (input.gpx) {
-    await setGeomFromGpx(id, "routes", input.gpx);
-  }
-
-  // Create initial version if GPX provided
-  if (input.gpx) {
-    await db.insert(routeVersions).values({
-      id: randomUUID(),
-      routeId: id,
-      version: 1,
+  await db.transaction(async (tx) => {
+    await tx.insert(routes).values({
+      id,
+      ownerId,
+      name: input.name,
+      description: input.description ?? "",
       gpx: input.gpx,
-      createdBy: ownerId,
-      changeDescription: "Initial version",
+      routingProfile: input.routingProfile,
+      distance,
+      elevationGain,
+      elevationLoss,
+      dayBreaks,
+      ...(input.synthetic ? { synthetic: true } : {}),
     });
-  }
+
+    if (input.gpx && parsed) {
+      const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
+      await writeGeom(tx, id, "routes", coords);
+
+      await tx.insert(routeVersions).values({
+        id: randomUUID(),
+        routeId: id,
+        version: 1,
+        gpx: input.gpx,
+        createdBy: ownerId,
+        changeDescription: "Initial version",
+      });
+    }
+  });
 
   return id;
 }
@@ -92,7 +106,6 @@ export async function listRoutes(ownerId: string) {
     .where(eq(routes.ownerId, ownerId))
     .orderBy(desc(routes.updatedAt));
 
-  // Batch-fetch simplified GeoJSON for list thumbnails
   const ids = rows.map((r) => r.id);
   const geojsonMap = ids.length > 0 ? await getSimplifiedGeojsonBatch(ids) : new Map();
   return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
@@ -122,14 +135,19 @@ export async function updateRoute(
 ) {
   const db = getDb();
 
+  let parsed: GpxData | null = null;
+  if (input.gpx) {
+    parsed = await validateGpx(input.gpx);
+  }
+
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
   if (input.visibility !== undefined) updateData.visibility = input.visibility;
 
-  if (input.gpx) {
+  if (input.gpx && parsed) {
+    const stats = computeRouteStats(parsed);
     updateData.gpx = input.gpx;
-    const stats = await computeRouteStats(input.gpx);
     updateData.distance = stats.distance;
     updateData.elevationGain = stats.elevationGain;
     updateData.elevationLoss = stats.elevationLoss;
@@ -137,33 +155,35 @@ export async function updateRoute(
     if (stats.description && input.description === undefined) {
       updateData.description = stats.description;
     }
-
-    // Get next version number
-    const existingVersions = await db
-      .select()
-      .from(routeVersions)
-      .where(eq(routeVersions.routeId, id))
-      .orderBy(desc(routeVersions.version));
-
-    const nextVersion = (existingVersions[0]?.version ?? 0) + 1;
-
-    await db.insert(routeVersions).values({
-      id: randomUUID(),
-      routeId: id,
-      version: nextVersion,
-      gpx: input.gpx,
-      createdBy: ownerId,
-    });
   }
 
-  await db
-    .update(routes)
-    .set(updateData)
-    .where(and(eq(routes.id, id), eq(routes.ownerId, ownerId)));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(routes)
+      .set(updateData)
+      .where(and(eq(routes.id, id), eq(routes.ownerId, ownerId)));
 
-  if (input.gpx) {
-    await setGeomFromGpx(id, "routes", input.gpx);
-  }
+    if (input.gpx && parsed) {
+      const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
+      await writeGeom(tx, id, "routes", coords);
+
+      const existingVersions = await tx
+        .select()
+        .from(routeVersions)
+        .where(eq(routeVersions.routeId, id))
+        .orderBy(desc(routeVersions.version));
+
+      const nextVersion = (existingVersions[0]?.version ?? 0) + 1;
+
+      await tx.insert(routeVersions).values({
+        id: randomUUID(),
+        routeId: id,
+        version: nextVersion,
+        gpx: input.gpx,
+        createdBy: ownerId,
+      });
+    }
+  });
 }
 
 export async function deleteRoute(id: string, ownerId: string) {
@@ -175,40 +195,18 @@ export async function deleteRoute(id: string, ownerId: string) {
   return result.length > 0;
 }
 
-async function computeRouteStats(gpxString: string) {
-  try {
-    const gpxData = await parseGpxAsync(gpxString);
-    const dayBreaks = gpxData.waypoints
-      .map((w, i) => (w.isDayBreak ? i : -1))
-      .filter((i) => i >= 0);
-    return {
-      distance: gpxData.distance,
-      elevationGain: gpxData.elevation.gain,
-      elevationLoss: gpxData.elevation.loss,
-      dayBreaks,
-      description: gpxData.description,
-    };
-  } catch {
-    return { distance: null, elevationGain: null, elevationLoss: null, dayBreaks: [] as number[], description: undefined };
-  }
+function computeRouteStats(gpxData: GpxData) {
+  const dayBreaks = gpxData.waypoints
+    .map((w, i) => (w.isDayBreak ? i : -1))
+    .filter((i) => i >= 0);
+  return {
+    distance: gpxData.distance,
+    elevationGain: gpxData.elevation.gain,
+    elevationLoss: gpxData.elevation.loss,
+    dayBreaks,
+    description: gpxData.description,
+  };
 }
-
-async function setGeomFromGpx(id: string, table: "routes" | "activities", gpxString: string) {
-  try {
-    const gpxData = await parseGpxAsync(gpxString);
-    const coords = gpxData.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
-    if (coords.length < 2) return;
-    const geojson = JSON.stringify({ type: "LineString", coordinates: coords });
-    const db = getDb();
-    await db.execute(
-      sql`UPDATE ${sql.identifier("journal")}.${sql.identifier(table)} SET geom = ST_GeomFromGeoJSON(${geojson}) WHERE id = ${id}`,
-    );
-  } catch (e) {
-    console.error(`Failed to set geom for ${table}/${id}:`, e);
-  }
-}
-
-export { setGeomFromGpx };
 
 async function getGeojson(table: "routes" | "activities", id: string): Promise<string | null> {
   try {
