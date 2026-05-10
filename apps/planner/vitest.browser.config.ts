@@ -11,9 +11,6 @@ import { playwright } from "@vitest/browser-playwright";
 // (.github/workflows/update-visual-snapshots.yml), triggered manually or
 // by adding the `update-snapshots` label to a PR.
 export default defineConfig({
-  oxc: {
-    transform: { react: {} },
-  },
   resolve: {
     alias: {
       "~": resolve(import.meta.dirname, "app"),
