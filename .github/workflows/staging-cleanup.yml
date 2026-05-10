@@ -106,7 +106,7 @@ jobs:
             EOF
               docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file /tmp/cleanup.env down --remove-orphans || true
               docker compose exec -T postgres dropdb -U trails --if-exists "$DB" || true
-              rm -f "sites/pr-$PR.caddyfile"
+              rm -f "sites/pr-$PR.caddyfile" "staging-pr-${PR}.env"
             done
             rm -f /tmp/cleanup.env
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true

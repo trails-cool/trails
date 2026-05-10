@@ -177,7 +177,11 @@ jobs:
   # ── PR preview deploy ────────────────────────────────────────────────
   deploy-preview:
     name: Deploy PR Preview
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    # Skip GH-Actions-only Dependabot PRs — there is no app image to preview.
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      !startsWith(github.head_ref, 'dependabot/github_actions/')
     needs: [build-images]
     runs-on: ubuntu-latest
     environment: production
@@ -204,7 +208,8 @@ jobs:
         run: |
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
-          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging.env
+          # Use a per-PR filename so concurrent SCP transfers don't overwrite each other.
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env
           {
             echo "DOMAIN=${{ steps.ports.outputs.host }}"
             echo "STAGING_DATABASE=${{ steps.ports.outputs.database }}"
@@ -215,7 +220,7 @@ jobs:
             # PR-preview journals all share the persistent staging planner.
             echo "PLANNER_URL=https://planner.staging.trails.cool"
             echo "SENTRY_RELEASE=${{ github.event.pull_request.head.sha }}"
-          } >> infrastructure/staging.env
+          } >> infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env
 
       - name: Generate per-PR Caddyfile snippet
         run: |
@@ -242,7 +247,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging.env,infrastructure/sites/pr-${{ steps.ports.outputs.pr }}.caddyfile"
+          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env,infrastructure/sites/pr-${{ steps.ports.outputs.pr }}.caddyfile"
           target: /opt/trails-cool
           strip_components: 1
 
@@ -252,17 +257,24 @@ jobs:
           PR: ${{ steps.ports.outputs.pr }}
           PROJECT: ${{ steps.ports.outputs.project }}
           DB: ${{ steps.ports.outputs.database }}
+          JOURNAL_PORT: ${{ steps.ports.outputs.journal_port }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: PR,PROJECT,DB
+          envs: PR,PROJECT,DB,JOURNAL_PORT
           script: |
             set -euo pipefail
             cd /opt/trails-cool
+            ENV_FILE="staging-pr-${PR}.env"
 
-            GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN staging.env | cut -d= -f2-)
+            GHCR_TOKEN=$(grep DEPLOY_GHCR_TOKEN "$ENV_FILE" | cut -d= -f2-)
             echo "$GHCR_TOKEN" | docker login ghcr.io -u stigi --password-stdin
+
+            # Serialize all preview deploys with a server-side lock so concurrent
+            # CI jobs (e.g. a Dependabot batch) can't race on eviction or compose state.
+            exec 9>/tmp/trails-preview-deploy.lock
+            flock --timeout 300 9 || { echo "Timed out waiting for deploy lock after 300s"; exit 1; }
 
             # Same network bootstrap as deploy-staging — see comment there.
             docker network inspect trails-shared >/dev/null 2>&1 || docker network create trails-shared
@@ -286,9 +298,12 @@ jobs:
                 if [ -n "$OLDEST" ] && [ "$OLDEST" != "$PROJECT" ]; then
                   echo "At cap; evicting oldest preview: $OLDEST"
                   OLD_PR=${OLDEST#trails-pr-}
-                  docker compose -f docker-compose.staging.yml -p "$OLDEST" --env-file staging.env down --remove-orphans || true
+                  OLD_ENV="staging-pr-${OLD_PR}.env"
+                  # Fall back to base secrets if the per-PR env was already cleaned up.
+                  EVICT_ENV=$( [ -f "$OLD_ENV" ] && echo "$OLD_ENV" || echo "staging.env" )
+                  docker compose -f docker-compose.staging.yml -p "$OLDEST" --env-file "$EVICT_ENV" down --remove-orphans || true
                   docker compose exec -T postgres dropdb -U trails --if-exists "trails_pr_$OLD_PR" || true
-                  rm -f "sites/pr-$OLD_PR.caddyfile"
+                  rm -f "sites/pr-$OLD_PR.caddyfile" "$OLD_ENV"
                 fi
               fi
             fi
@@ -303,20 +318,20 @@ jobs:
               "CREATE EXTENSION IF NOT EXISTS postgis"
 
             # Pull, migrate, deploy (journal-only — no --profile means planner skipped)
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env pull journal
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env up -d --remove-orphans journal
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" pull journal
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" up -d --remove-orphans journal
 
             # Reload Caddy to pick up the per-PR snippet (writes/replaces it from the SCP step)
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env ps
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" ps
 
       # Find any prior preview comment so we can update it in place rather
       # than spamming a new one each push. The marker line at the bottom of
       # the body is what `body-includes` matches on.
       - name: Find existing preview comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: find-comment
         with:
           issue-number: ${{ github.event.number }}
@@ -324,7 +339,7 @@ jobs:
           body-includes: "<!-- cd-staging:preview -->"
 
       - name: Upsert preview comment on PR
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.number }}
@@ -364,13 +379,13 @@ jobs:
         run: |
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
-          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging.env
+          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env
           {
             echo "DOMAIN=pr-${{ steps.ports.outputs.pr }}.staging.trails.cool"
             echo "STAGING_DATABASE=${{ steps.ports.outputs.database }}"
             echo "JOURNAL_HOST_PORT=$((3200 + 2 * ${{ steps.ports.outputs.pr }}))"
             echo "PLANNER_HOST_PORT=$((3201 + 2 * ${{ steps.ports.outputs.pr }}))"
-          } >> infrastructure/staging.env
+          } >> infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env
 
       - name: Copy compose + env (teardown still needs the file)
         uses: appleboy/scp-action@v1
@@ -378,7 +393,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging.env"
+          source: "infrastructure/docker-compose.staging.yml,infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env"
           target: /opt/trails-cool
           strip_components: 1
 
@@ -396,19 +411,20 @@ jobs:
           script: |
             set -euo pipefail
             cd /opt/trails-cool
+            ENV_FILE="staging-pr-${PR}.env"
 
             # Stop and remove containers + volumes for this PR
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file staging.env down --remove-orphans || true
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" down --remove-orphans || true
 
             # Drop the per-PR database (idempotent)
             docker compose exec -T postgres dropdb -U trails --if-exists "$DB" || true
 
-            # Remove the per-PR Caddy snippet and reload
-            rm -f "sites/pr-$PR.caddyfile"
+            # Remove the per-PR Caddy snippet, env file, and reload
+            rm -f "sites/pr-$PR.caddyfile" "$ENV_FILE"
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
 
       - name: Find existing preview comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: find-comment
         with:
           issue-number: ${{ github.event.number }}
@@ -417,7 +433,7 @@ jobs:
 
       - name: Update preview comment on close
         if: steps.find-comment.outputs.comment-id
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           edit-mode: replace
