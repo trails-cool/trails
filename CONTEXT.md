@@ -9,6 +9,24 @@ first. If the term you need isn't here, propose it (don't invent a synonym).
 
 ---
 
+## GPX Save
+
+The atomic unit of persisting spatial data in the Journal. Any write of a GPX track — whether a new route, an updated route, a new activity, or a route derived from an activity — goes through a single path that validates, writes the row, and writes the PostGIS geometry in one transaction.
+
+### gpx-save module
+`apps/journal/app/lib/gpx-save.server.ts`. The sole owner of GPX validation and geometry persistence. Imported by `routes.server.ts`, `activities.server.ts`, and `demo-bot.server.ts`. Nothing else calls `setGeomFromGpx` directly.
+
+### GpxValidationError
+Typed error thrown by `validateGpx` when the GPX string cannot produce a valid LineString. Conditions: fewer than 2 track points, or coordinates outside valid ranges (lat −90..90, lon −180..180). Callers catch this to return a user-facing 400.
+
+### validateGpx
+`(gpx: string) → Promise<ParsedGpx>`. Entry point of the gpx-save module. Parses the GPX string once and validates the result. Returns the `ParsedGpx` so callers can extract stats without re-parsing. Throws `GpxValidationError` on invalid input. Called at the start of `createRoute`, `updateRoute`, `createActivity`, and `createRouteFromActivity` — before any DB write.
+
+### atomic GPX save
+The invariant: a route or activity row with a `gpx` column set **always** has a corresponding `geom` column set. Enforced by wrapping the row insert/update, the PostGIS geometry write, and the version snapshot in a single `db.transaction()`. A PostGIS failure rolls back the row write; partial state (row exists, geom NULL) is not possible through the normal save path.
+
+---
+
 ## Connected Services
 
 The user-facing surface for linking external accounts and devices to a Journal

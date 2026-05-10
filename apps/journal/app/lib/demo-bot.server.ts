@@ -4,9 +4,10 @@ import { z } from "zod";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { activities, routes, users } from "@trails-cool/db/schema/journal";
-import { setGeomFromGpx } from "./routes.server.ts";
+import { createRoute } from "./routes.server.ts";
+import { createActivity } from "./activities.server.ts";
+import { validateGpx } from "./gpx-save.server.ts";
 import { TERMS_VERSION } from "./legal.ts";
-import { parseGpxAsync } from "@trails-cool/gpx";
 import { logger } from "./logger.server.ts";
 import {
   demoBotSyntheticActivitiesTotal,
@@ -648,59 +649,40 @@ export async function generateOneWalk(
   const name = templateName(now, locale, persona);
   const description = templateDescription(now, locale, persona);
 
-  let distance: number;
-  let elevationGain: number;
-  let elevationLoss: number;
-  try {
-    const parsed = await parseGpxAsync(result.gpx);
-    distance = parsed.distance;
-    elevationGain = parsed.elevation.gain;
-    elevationLoss = parsed.elevation.loss;
-  } catch {
-    return null;
-  }
+  const parsed = await validateGpx(result.gpx);
+  const distance = parsed.distance;
+  const elevationGain = parsed.elevation.gain;
+  const elevationLoss = parsed.elevation.loss;
 
   if (!distance || distance < 500) return null;
-
-  const db = getDb();
-  const routeId = randomUUID();
-  const activityId = randomUUID();
-
-  await db.insert(routes).values({
-    id: routeId,
-    ownerId,
-    name,
-    description,
-    gpx: result.gpx,
-    routingProfile: "trekking",
-    distance,
-    elevationGain,
-    elevationLoss,
-    visibility: "public",
-    synthetic: true,
-  });
-  await setGeomFromGpx(routeId, "routes", result.gpx);
 
   const walkingMetersPerSecond = 4.5 * 1000 / 3600; // ~4.5 km/h
   const jitter = 0.85 + Math.random() * 0.3; // ±15 %
   const durationSeconds = Math.round((distance / walkingMetersPerSecond) * jitter);
 
-  await db.insert(activities).values({
-    id: activityId,
-    ownerId,
-    routeId,
+  const routeId = await createRoute(ownerId, {
     name,
     description,
     gpx: result.gpx,
-    startedAt: now,
-    duration: durationSeconds,
+    routingProfile: "trekking",
+    visibility: "public",
+    synthetic: true,
     distance,
     elevationGain,
     elevationLoss,
+  });
+
+  await createActivity(ownerId, {
+    name,
+    description,
+    gpx: result.gpx,
+    routeId,
+    startedAt: now,
+    duration: durationSeconds,
+    distance,
     visibility: "public",
     synthetic: true,
   });
-  await setGeomFromGpx(activityId, "activities", result.gpx);
 
   return routeId;
 }

@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.routes.$id.callback";
 import { verifyRouteToken } from "~/lib/jwt.server";
 import { updateRoute, getRoute } from "~/lib/routes.server";
+import { GpxValidationError } from "~/lib/gpx-save.server";
 
 const PLANNER_ORIGIN = process.env.PLANNER_URL ?? "http://localhost:3001";
 
@@ -65,6 +66,9 @@ export async function action({ params, request }: Route.ActionArgs) {
 
     return data({ success: true, routeId: params.id }, { headers: corsHeaders() });
   } catch (e) {
+    if (e instanceof GpxValidationError) {
+      return data({ error: e.message }, { status: 400, headers: corsHeaders() });
+    }
     return data({ error: (e as Error).message }, { status: 401, headers: corsHeaders() });
   }
 }
