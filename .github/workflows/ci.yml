@@ -148,18 +148,32 @@ jobs:
         if: failure() && steps.visual-tests.outcome == 'failure' && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VISUAL_DIFF_TOKEN: ${{ secrets.VISUAL_DIFF_TOKEN }}
         run: |
           diffs=$(find apps/planner/.vitest-attachments -name "*-diff-*.png" 2>/dev/null | sort)
           if [ -z "$diffs" ]; then exit 0; fi
 
           body="## Visual regression failures"$'\n\n'
-          body+="The following tests produced screenshot diffs:"$'\n\n'
+          body+="| Test | Diff (reference → actual) |"$'\n'
+          body+="|------|--------------------------|"$'\n'
+
           for diff in $diffs; do
             name=$(basename "$diff" | sed 's/-diff-chromium-[a-z]*\.png//' | sed 's/-/ /g')
-            body+="- \`$name\`"$'\n'
+            response=$(curl -sf -X POST \
+              -H "Authorization: Bearer $VISUAL_DIFF_TOKEN" \
+              -H "Content-Type: image/png" \
+              -H "Accept: application/json" \
+              --data-binary @"$diff" \
+              "https://uploads.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assets?name=$(basename $diff)")
+            url=$(echo "$response" | jq -r '.url // empty')
+            if [ -n "$url" ]; then
+              body+="| \`$name\` | ![$name]($url) |"$'\n'
+            else
+              body+="| \`$name\` | *(upload failed)* |"$'\n'
+            fi
           done
-          body+=$'\n'"**[Download diff screenshots artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})** (expand the Visual Tests job → Artifacts)"$'\n\n'
-          body+="To update snapshots if the change is intentional:"$'\n'
+
+          body+=$'\n'"To update snapshots if the change is intentional:"$'\n'
           body+="\`\`\`"$'\n'
           body+="pnpm --filter @trails-cool/planner test:visual:update"$'\n'
           body+="\`\`\`"
