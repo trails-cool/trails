@@ -6,18 +6,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const fetchSpy = vi.fn();
-const mockCreateActivity = vi.fn();
+const mockImportActivity = vi.fn();
 const mockIsAlreadyImported = vi.fn();
-const mockRecordImport = vi.fn();
 const mockGetServiceByProviderUser = vi.fn();
 const mockWithFreshCredentials = vi.fn();
 
-vi.mock("../../../activities.server.ts", () => ({
-  createActivity: mockCreateActivity,
-}));
 vi.mock("../../../sync/imports.server.ts", () => ({
   isAlreadyImported: mockIsAlreadyImported,
-  recordImport: mockRecordImport,
+  importActivity: mockImportActivity,
 }));
 vi.mock("../../manager.ts", () => ({
   getServiceByProviderUser: mockGetServiceByProviderUser,
@@ -27,9 +23,8 @@ vi.mock("../../manager.ts", () => ({
 beforeEach(() => {
   fetchSpy.mockReset();
   globalThis.fetch = fetchSpy as unknown as typeof fetch;
-  mockCreateActivity.mockReset();
+  mockImportActivity.mockReset();
   mockIsAlreadyImported.mockReset();
-  mockRecordImport.mockReset();
   mockGetServiceByProviderUser.mockReset();
   mockWithFreshCredentials.mockReset();
 });
@@ -73,18 +68,7 @@ describe("wahooWebhook.handle", () => {
       provider: "wahoo",
     });
     mockIsAlreadyImported.mockResolvedValue(false);
-    mockCreateActivity.mockResolvedValue("act-1");
-    // withFreshCredentials passes the credentials to fn — we don't need to
-    // download a file to assert the basic flow; pass a no-op file URL test
-    // via parseWebhook output containing fileUrl undefined to skip download.
-    mockWithFreshCredentials.mockImplementation(
-      async (_id: string, fn: (creds: unknown) => Promise<unknown>) =>
-        fn({
-          access_token: "a",
-          refresh_token: "r",
-          expires_at: new Date(Date.now() + 3600_000).toISOString(),
-        }),
-    );
+    mockImportActivity.mockResolvedValue({ activityId: "act-1" });
 
     await wahooWebhook.handle({
       eventType: "workout_summary",
@@ -93,11 +77,12 @@ describe("wahooWebhook.handle", () => {
       // no fileUrl — the activity is created without GPX
     });
 
-    expect(mockCreateActivity).toHaveBeenCalledWith(
+    expect(mockImportActivity).toHaveBeenCalledWith(
       "u1",
+      "wahoo",
+      "42",
       expect.objectContaining({ name: expect.stringContaining("Wahoo") }),
     );
-    expect(mockRecordImport).toHaveBeenCalledWith("u1", "wahoo", "42", "act-1");
   });
 
   it("silently skips when the providerUserId is unknown (no leak)", async () => {
@@ -109,8 +94,7 @@ describe("wahooWebhook.handle", () => {
       workoutId: "42",
     });
 
-    expect(mockCreateActivity).not.toHaveBeenCalled();
-    expect(mockRecordImport).not.toHaveBeenCalled();
+    expect(mockImportActivity).not.toHaveBeenCalled();
   });
 
   it("silently skips when the workout was already imported (idempotency)", async () => {
@@ -127,7 +111,6 @@ describe("wahooWebhook.handle", () => {
       workoutId: "42",
     });
 
-    expect(mockCreateActivity).not.toHaveBeenCalled();
-    expect(mockRecordImport).not.toHaveBeenCalled();
+    expect(mockImportActivity).not.toHaveBeenCalled();
   });
 });

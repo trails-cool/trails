@@ -8,3 +8,7 @@ export function getDb(): Database {
   }
   return _db;
 }
+
+export function setDb(db: Database | null): void {
+  _db = db;
+}
