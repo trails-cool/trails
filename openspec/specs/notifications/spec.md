@@ -45,7 +45,7 @@ Each notification row SHALL include a `payload` (JSONB) capturing the denormaliz
 
 #### Scenario: follow notifications snapshot the follower / target
 - **WHEN** a `follow_request_received`, `follow_received`, or `follow_request_approved` notification is created
-- **THEN** the row's `payload` records the relevant party's `username` and `displayName`, and `payload_version = 1`
+- **THEN** the row's `payload` records `followerUsername`, `followerDisplayName`, `targetUsername`, and `targetDisplayName`, and `payload_version = 1`
 
 #### Scenario: activity_published snapshots the activity + owner
 - **WHEN** an `activity_published` notification is created

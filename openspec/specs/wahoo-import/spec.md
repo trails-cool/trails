@@ -95,7 +95,7 @@ Imported activities SHALL show their origin in the UI.
 - **AND** the workout appears as importable again on the import page
 
 ### Requirement: FIT to GPX conversion
-The system SHALL convert Wahoo's FIT binary files to GPX format.
+The system SHALL convert FIT binary files to GPX format. The conversion logic lives at `apps/journal/app/lib/connected-services/fit.ts` — a provider-agnostic location shared across any future provider that produces FIT files (Garmin, Coros, etc.). Wahoo's importer and webhook both import from this shared module; they do not contain their own copy.
 
 #### Scenario: Convert FIT with GPS data
 - **WHEN** a FIT file contains GPS track records

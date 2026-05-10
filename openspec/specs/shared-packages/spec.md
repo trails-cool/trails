@@ -48,6 +48,13 @@ The `@trails-cool/ui` package SHALL provide shared React components (buttons, la
 - **WHEN** an app renders the Button component from `@trails-cool/ui`
 - **THEN** a styled button is displayed consistent with the trails.cool design
 
+### Requirement: FIT encoding package
+The `@trails-cool/fit` package SHALL provide a `gpxToFitCourse` function that converts a GPX string to a FIT Course binary (`Uint8Array`) suitable for upload to Wahoo and other head units. It is the sole owner of FIT file generation; apps do not bundle their own FIT encoder. See `wahoo-route-push` spec for the full round-trip contract.
+
+#### Scenario: Import gpxToFitCourse in Journal
+- **WHEN** the Journal app imports `@trails-cool/fit`
+- **THEN** it has access to `gpxToFitCourse({ gpx, name })` returning a `Uint8Array`
+
 ### Requirement: i18n package
 The `@trails-cool/i18n` package SHALL provide react-i18next configuration and translation strings starting with English and German.
 

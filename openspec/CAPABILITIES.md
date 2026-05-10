@@ -76,7 +76,7 @@ When adding a new spec, slot it into the most relevant group below and update th
 - [`secret-management`](specs/secret-management/spec.md) — SOPS-encrypted env files, key rotation.
 - [`observability`](specs/observability/spec.md) — Prometheus, Loki, Grafana dashboards.
 - [`background-jobs`](specs/background-jobs/spec.md) — pg-boss queue, cron scheduling, retry policy, handler timeouts shared across the apps.
-- [`shared-packages`](specs/shared-packages/spec.md) — workspace package boundaries (`@trails-cool/types`, `@trails-cool/map`, etc.).
+- [`shared-packages`](specs/shared-packages/spec.md) — workspace package boundaries (`@trails-cool/types`, `@trails-cool/map`, `@trails-cool/fit`, etc.).
 
 ## Conventions
 
