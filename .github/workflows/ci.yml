@@ -153,27 +153,16 @@ jobs:
           if [ -z "$diffs" ]; then exit 0; fi
 
           body="## Visual regression failures"$'\n\n'
-          body+="| Test | Diff (reference → actual) |"$'\n'
-          body+="|------|--------------------------|"$'\n'
-
+          body+="The following tests produced screenshot diffs:"$'\n\n'
           for diff in $diffs; do
-            # Upload image to GitHub's CDN via the issue assets endpoint
-            response=$(curl -sf -X POST \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Content-Type: image/png" \
-              -H "Accept: application/json" \
-              --data-binary @"$diff" \
-              "https://uploads.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assets?name=$(basename $diff)")
-            url=$(echo "$response" | jq -r '.url // empty')
             name=$(basename "$diff" | sed 's/-diff-chromium-linux\.png//' | sed 's/-/ /g')
-            if [ -n "$url" ]; then
-              body+="| \`$name\` | ![$name]($url) |"$'\n'
-            else
-              body+="| \`$name\` | *(upload failed)* |"$'\n'
-            fi
+            body+="- \`$name\`"$'\n'
           done
-
-          body+=$'\n'"Run \`pnpm --filter @trails-cool/planner test:visual:update\` to regenerate snapshots if the change is intentional."
+          body+=$'\n'"**[Download diff screenshots artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})** (expand the Visual Tests job → Artifacts)"$'\n\n'
+          body+="To update snapshots if the change is intentional:"$'\n'
+          body+="\`\`\`"$'\n'
+          body+="pnpm --filter @trails-cool/planner test:visual:update"$'\n'
+          body+="\`\`\`"
 
           gh pr comment ${{ github.event.pull_request.number }} --body "$body"
 
