@@ -50,6 +50,7 @@ export default function LoginPage() {
           step: "finish-passkey",
           response: webAuthnResp,
           challenge: startData.options.challenge,
+          returnTo,
         }),
       });
 
@@ -57,7 +58,8 @@ export default function LoginPage() {
       if (finishData.error) {
         setError(finishData.error);
       } else if (finishData.step === "done") {
-        window.location.href = returnTo ?? "/";
+        // Server-sanitized destination (see completeAuth in auth/completion.ts).
+        window.location.href = finishData.redirectTo ?? "/";
       }
     } catch (err) {
       const message = (err as Error).message;
@@ -80,14 +82,14 @@ export default function LoginPage() {
       const resp = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "verify-code", email, code: loginCode }),
+        body: JSON.stringify({ step: "verify-code", email, code: loginCode, returnTo }),
       });
       const result = await resp.json();
 
       if (result.error) {
         setError(result.error);
       } else if (result.step === "done") {
-        window.location.href = returnTo ?? "/";
+        window.location.href = result.redirectTo ?? "/";
       }
     } catch (err) {
       setError((err as Error).message);

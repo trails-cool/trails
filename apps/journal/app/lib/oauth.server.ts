@@ -7,7 +7,7 @@ import {
   oauthCodes,
   oauthTokens,
 } from "@trails-cool/db/schema/journal";
-import { getSessionUser } from "./auth.server.ts";
+import { getSessionUser } from "./auth/session.server.ts";
 
 const CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour

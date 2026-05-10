@@ -2,7 +2,7 @@ import { data } from "react-router";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/explore";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import {
   EXPLORE_DEFAULT_PAGE_SIZE,
   countFollowersBatch,

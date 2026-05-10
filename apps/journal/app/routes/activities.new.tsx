@@ -1,6 +1,6 @@
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/activities.new";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { createActivity } from "~/lib/activities.server";
 import { listRoutes } from "~/lib/routes.server";
 
