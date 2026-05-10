@@ -61,7 +61,7 @@
     "drizzle-postgis": "catalog:",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
-    "fit-file-parser": "^2.3.3",
+    "fit-file-parser": "^3.0.0",
     "i18next": "^26.0.10",
     "i18next-browser-languagedetector": "^8.2.1",
     "jsdom": "^29.1.1",
