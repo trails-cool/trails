@@ -172,6 +172,7 @@ jobs:
         with:
           name: visual-snapshots-diff
           path: apps/planner/.vitest-attachments/
+          include-hidden-files: true
           retention-days: 7
 
   e2e:
