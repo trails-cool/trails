@@ -1,5 +1,4 @@
 import { data } from "react-router";
-import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { getDb } from "~/lib/db";
 
