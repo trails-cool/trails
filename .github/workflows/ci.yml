@@ -155,7 +155,7 @@ jobs:
           body="## Visual regression failures"$'\n\n'
           body+="The following tests produced screenshot diffs:"$'\n\n'
           for diff in $diffs; do
-            name=$(basename "$diff" | sed 's/-diff-chromium-linux\.png//' | sed 's/-/ /g')
+            name=$(basename "$diff" | sed 's/-diff-chromium-[a-z]*\.png//' | sed 's/-/ /g')
             body+="- \`$name\`"$'\n'
           done
           body+=$'\n'"**[Download diff screenshots artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})** (expand the Visual Tests job → Artifacts)"$'\n\n'
