@@ -12,5 +12,9 @@ export default mergeConfig(
         "~": resolve(import.meta.dirname, "app"),
       },
     },
+    test: {
+      // Exclude browser visual regression tests — they run via vitest.browser.config.ts
+      exclude: ["**/*.browser.test.{ts,tsx}"],
+    },
   }),
 );

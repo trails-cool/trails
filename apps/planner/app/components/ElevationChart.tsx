@@ -3,74 +3,17 @@ import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
 import {
-  elevationColor, maxspeedColor,
-  SURFACE_COLORS, DEFAULT_SURFACE_COLOR,
-  HIGHWAY_COLORS, DEFAULT_HIGHWAY_COLOR,
-  SMOOTHNESS_COLORS, DEFAULT_SMOOTHNESS_COLOR,
-  TRACKTYPE_COLORS, DEFAULT_TRACKTYPE_COLOR,
-  CYCLEWAY_COLORS, DEFAULT_CYCLEWAY_COLOR,
-  BIKEROUTE_COLORS, DEFAULT_BIKEROUTE_COLOR,
+  SURFACE_COLORS,
+  DEFAULT_SURFACE_COLOR,
+  HIGHWAY_COLORS,
+  DEFAULT_HIGHWAY_COLOR,
+  SMOOTHNESS_COLORS,
+  DEFAULT_SMOOTHNESS_COLOR,
+  CYCLEWAY_COLORS,
+  DEFAULT_CYCLEWAY_COLOR,
 } from "@trails-cool/map-core";
-import type { ColorMode } from "~/components/ColoredRoute";
-
-function gradeColor(grade: number): string {
-  const absGrade = Math.abs(grade);
-  if (absGrade < 3) return "#22c55e";     // green: flat/gentle
-  if (absGrade < 6) return "#eab308";     // yellow: moderate
-  if (absGrade < 10) return "#f97316";    // orange: steep
-  if (absGrade < 15) return "#ef4444";    // red: very steep
-  return "#991b1b";                        // dark red: extreme
-}
-
-interface ElevationPoint {
-  distance: number;
-  elevation: number;
-  lat: number;
-  lon: number;
-}
-
-function extractElevation(geojsonStr: string): ElevationPoint[] {
-  try {
-    const geojson = JSON.parse(geojsonStr);
-    const coords: number[][] = geojson.features?.[0]?.geometry?.coordinates ?? [];
-    if (coords.length === 0) return [];
-
-    const points: ElevationPoint[] = [];
-    let totalDist = 0;
-
-    for (let i = 0; i < coords.length; i++) {
-      if (i > 0) {
-        const prev = coords[i - 1]!;
-        const curr = coords[i]!;
-        totalDist += haversine(prev[1]!, prev[0]!, curr[1]!, curr[0]!);
-      }
-      if (coords[i]![2] !== undefined) {
-        points.push({
-          distance: totalDist,
-          elevation: coords[i]![2]!,
-          lat: coords[i]![1]!,
-          lon: coords[i]![0]!,
-        });
-      }
-    }
-    return points;
-  } catch {
-    return [];
-  }
-}
-
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-const PADDING = { top: 10, right: 10, bottom: 25, left: 40 };
+import { drawElevationChart, PADDING } from "~/lib/elevation-chart-draw";
+import { useElevationData } from "~/lib/use-elevation-data";
 
 interface ElevationChartProps {
   yjs: YjsState;
@@ -83,19 +26,9 @@ interface ElevationChartProps {
 
 export function ElevationChart({ yjs, onHover, highlightDistance, onClickPosition, onDragSelect, days }: ElevationChartProps) {
   const { t } = useTranslation("planner");
-  const [points, setPoints] = useState<ElevationPoint[]>([]);
+  const { points, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes } = useElevationData(yjs.routeData);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const [colorMode, setColorMode] = useState<ColorMode>("plain");
-  const [surfaces, setSurfaces] = useState<string[]>([]);
-  const [highways, setHighways] = useState<string[]>([]);
-  const [maxspeeds, setMaxspeeds] = useState<string[]>([]);
-  const [smoothnesses, setSmoothnesses] = useState<string[]>([]);
-  const [tracktypes, setTracktypes] = useState<string[]>([]);
-  const [cycleways, setCycleways] = useState<string[]>([]);
-  const [bikeroutes, setBikeroutes] = useState<string[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointsRef = useRef<ElevationPoint[]>([]);
-  pointsRef.current = points;
   const isExternalHover = useRef(false);
   const dragStartX = useRef<number | null>(null);
   const dragStartClientX = useRef<number | null>(null);
@@ -124,68 +57,9 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
     }
     isExternalHover.current = true;
     setHoverIdx(closest);
-    // Do NOT call onHover here to avoid feedback loop
   }, [highlightDistance, points]);
 
-  useEffect(() => {
-    const update = () => {
-      const geojson = yjs.routeData.get("geojson") as string | undefined;
-      if (geojson) {
-        setPoints(extractElevation(geojson));
-      } else {
-        setPoints([]);
-      }
-      const mode = yjs.routeData.get("colorMode") as ColorMode | undefined;
-      setColorMode(mode ?? "plain");
-      const surfacesJson = yjs.routeData.get("surfaces") as string | undefined;
-      if (surfacesJson) {
-        try { setSurfaces(JSON.parse(surfacesJson)); } catch { setSurfaces([]); }
-      } else {
-        setSurfaces([]);
-      }
-      const highwaysJson = yjs.routeData.get("highways") as string | undefined;
-      if (highwaysJson) {
-        try { setHighways(JSON.parse(highwaysJson)); } catch { setHighways([]); }
-      } else {
-        setHighways([]);
-      }
-      const maxspeedsJson = yjs.routeData.get("maxspeeds") as string | undefined;
-      if (maxspeedsJson) {
-        try { setMaxspeeds(JSON.parse(maxspeedsJson)); } catch { setMaxspeeds([]); }
-      } else {
-        setMaxspeeds([]);
-      }
-      const smoothnessesJson = yjs.routeData.get("smoothnesses") as string | undefined;
-      if (smoothnessesJson) {
-        try { setSmoothnesses(JSON.parse(smoothnessesJson)); } catch { setSmoothnesses([]); }
-      } else {
-        setSmoothnesses([]);
-      }
-      const tracktypesJson = yjs.routeData.get("tracktypes") as string | undefined;
-      if (tracktypesJson) {
-        try { setTracktypes(JSON.parse(tracktypesJson)); } catch { setTracktypes([]); }
-      } else {
-        setTracktypes([]);
-      }
-      const cyclewaysJson = yjs.routeData.get("cycleways") as string | undefined;
-      if (cyclewaysJson) {
-        try { setCycleways(JSON.parse(cyclewaysJson)); } catch { setCycleways([]); }
-      } else {
-        setCycleways([]);
-      }
-      const bikeroutesJson = yjs.routeData.get("bikeroutes") as string | undefined;
-      if (bikeroutesJson) {
-        try { setBikeroutes(JSON.parse(bikeroutesJson)); } catch { setBikeroutes([]); }
-      } else {
-        setBikeroutes([]);
-      }
-    };
-    yjs.routeData.observe(update);
-    update();
-    return () => yjs.routeData.unobserve(update);
-  }, [yjs.routeData]);
-
-  const drawChart = useCallback(
+  const draw = useCallback(
     (highlightIdx: number | null) => {
       const canvas = canvasRef.current;
       if (!canvas || points.length < 2) return;
@@ -199,384 +73,29 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       canvas.height = rect.height * dpr;
       ctx.scale(dpr, dpr);
 
-      const w = rect.width;
-      const h = rect.height;
-      const chartW = w - PADDING.left - PADDING.right;
-      const chartH = h - PADDING.top - PADDING.bottom;
-
-      const maxDist = points[points.length - 1]!.distance;
-      const elevations = points.map((p) => p.elevation);
-      const minEle = Math.min(...elevations);
-      const maxEle = Math.max(...elevations);
-      const eleRange = maxEle - minEle || 1;
-
-      const toX = (d: number) => PADDING.left + (d / maxDist) * chartW;
-      const toY = (e: number) => PADDING.top + chartH - ((e - minEle) / eleRange) * chartH;
-
-      ctx.clearRect(0, 0, w, h);
-
-      if (colorMode === "grade") {
-        // Grade-colored segments: color by steepness
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const dDist = p1.distance - p0.distance;
-          const grade = dDist > 0 ? ((p1.elevation - p0.elevation) / dDist) * 100 : 0;
-          const color = gradeColor(grade);
-
-          // Fill segment
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color.replace(")", ", 0.25)").replace("rgb", "rgba").replace("#", "");
-          // hex to rgba fill
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          // Line segment
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "elevation") {
-        // Elevation-colored fill and line segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const t = (p0.elevation - minEle) / eleRange;
-          const color = elevationColor(t);
-
-          // Fill segment
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color.replace("rgb", "rgba").replace(")", ", 0.2)");
-          ctx.fill();
-
-          // Line segment
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "surface" && surfaces.length >= points.length) {
-        // Surface-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const surface = surfaces[i] ?? "unknown";
-          const color = SURFACE_COLORS[surface] ?? DEFAULT_SURFACE_COLOR;
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "highway" && highways.length >= points.length) {
-        // Highway-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const highway = highways[i] ?? "unknown";
-          const color = HIGHWAY_COLORS[highway] ?? DEFAULT_HIGHWAY_COLOR;
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "maxspeed" && maxspeeds.length >= points.length) {
-        // Maxspeed-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const speed = maxspeeds[i] ?? "unknown";
-          const color = maxspeedColor(speed);
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "smoothness" && smoothnesses.length >= points.length) {
-        // Smoothness-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const smoothness = smoothnesses[i] ?? "unknown";
-          const color = SMOOTHNESS_COLORS[smoothness] ?? DEFAULT_SMOOTHNESS_COLOR;
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "tracktype" && tracktypes.length >= points.length) {
-        // Track type-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const tracktype = tracktypes[i] ?? "unknown";
-          const color = TRACKTYPE_COLORS[tracktype] ?? DEFAULT_TRACKTYPE_COLOR;
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "cycleway" && cycleways.length >= points.length) {
-        // Cycleway-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const cycleway = cycleways[i] ?? "unknown";
-          const color = CYCLEWAY_COLORS[cycleway] ?? DEFAULT_CYCLEWAY_COLOR;
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else if (colorMode === "bikeroute" && bikeroutes.length >= points.length) {
-        // Bike route-colored segments
-        for (let i = 0; i < points.length - 1; i++) {
-          const p0 = points[i]!;
-          const p1 = points[i + 1]!;
-          const bikeroute = bikeroutes[i] ?? "none";
-          const color = BIKEROUTE_COLORS[bikeroute] ?? DEFAULT_BIKEROUTE_COLOR;
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), PADDING.top + chartH);
-          ctx.lineTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.lineTo(toX(p1.distance), PADDING.top + chartH);
-          ctx.closePath();
-          ctx.fillStyle = color + "40";
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(toX(p0.distance), toY(p0.elevation));
-          ctx.lineTo(toX(p1.distance), toY(p1.elevation));
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      } else {
-        // Plain fill and line
-        ctx.beginPath();
-        ctx.moveTo(PADDING.left, PADDING.top + chartH);
-        for (const p of points) {
-          ctx.lineTo(toX(p.distance), toY(p.elevation));
-        }
-        ctx.lineTo(PADDING.left + chartW, PADDING.top + chartH);
-        ctx.closePath();
-        ctx.fillStyle = "rgba(37, 99, 235, 0.15)";
-        ctx.fill();
-
-        ctx.beginPath();
-        for (let i = 0; i < points.length; i++) {
-          const p = points[i]!;
-          if (i === 0) ctx.moveTo(toX(p.distance), toY(p.elevation));
-          else ctx.lineTo(toX(p.distance), toY(p.elevation));
-        }
-        ctx.strokeStyle = "#2563eb";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-
-      // Axis labels
-      ctx.fillStyle = "#6b7280";
-      ctx.font = "10px sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(`${Math.round(maxEle)}m`, PADDING.left - 4, PADDING.top + 10);
-      ctx.fillText(`${Math.round(minEle)}m`, PADDING.left - 4, PADDING.top + chartH);
-      ctx.textAlign = "center";
-      ctx.fillText("0 km", PADDING.left, h - 4);
-      ctx.fillText(`${(maxDist / 1000).toFixed(1)} km`, PADDING.left + chartW, h - 4);
-
-      // Day dividers
-      if (days && days.length > 1) {
-        for (let d = 0; d < days.length - 1; d++) {
-          // Find the point closest to the day boundary distance
-          const boundaryDist = days.slice(0, d + 1).reduce((sum, s) => sum + s.distance, 0);
-          const bx = toX(boundaryDist);
-
-          // Dashed vertical line
-          ctx.beginPath();
-          ctx.setLineDash([4, 3]);
-          ctx.moveTo(bx, PADDING.top);
-          ctx.lineTo(bx, PADDING.top + chartH);
-          ctx.strokeStyle = "#9A9484";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          // Day label at top
-          ctx.fillStyle = "#9A9484";
-          ctx.font = "9px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(`${(boundaryDist / 1000).toFixed(0)} km`, bx, h - 4);
-        }
-      }
-
-      // Hover crosshair + info
-      if (highlightIdx !== null && highlightIdx >= 0 && highlightIdx < points.length) {
-        const p = points[highlightIdx]!;
-        const hx = toX(p.distance);
-        const hy = toY(p.elevation);
-
-        // Vertical line
-        ctx.beginPath();
-        ctx.moveTo(hx, PADDING.top);
-        ctx.lineTo(hx, PADDING.top + chartH);
-        ctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Dot
-        ctx.beginPath();
-        ctx.arc(hx, hy, 4, 0, Math.PI * 2);
-        ctx.fillStyle = "#ef4444";
-        ctx.fill();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Info label
-        ctx.fillStyle = "#1f2937";
-        ctx.font = "bold 10px sans-serif";
-        ctx.textAlign = "left";
-        let label = `${Math.round(p.elevation)}m · ${(p.distance / 1000).toFixed(1)}km`;
-        if (colorMode === "grade" && highlightIdx > 0) {
-          const prev = points[highlightIdx - 1]!;
-          const dDist = p.distance - prev.distance;
-          const grade = dDist > 0 ? ((p.elevation - prev.elevation) / dDist) * 100 : 0;
-          label += ` · ${grade > 0 ? "+" : ""}${grade.toFixed(1)}%`;
-        }
-        if (colorMode === "surface" && surfaces[highlightIdx]) {
-          label += ` · ${surfaces[highlightIdx]}`;
-        }
-        if (colorMode === "highway" && highways[highlightIdx]) {
-          label += ` · ${highways[highlightIdx]}`;
-        }
-        if (colorMode === "maxspeed" && maxspeeds[highlightIdx]) {
-          const s = maxspeeds[highlightIdx]!;
-          label += ` · ${s === "unknown" ? s : `${s} km/h`}`;
-        }
-        if (colorMode === "smoothness" && smoothnesses[highlightIdx]) {
-          label += ` · ${smoothnesses[highlightIdx]}`;
-        }
-        if (colorMode === "tracktype" && tracktypes[highlightIdx]) {
-          label += ` · ${tracktypes[highlightIdx]}`;
-        }
-        if (colorMode === "cycleway" && cycleways[highlightIdx]) {
-          label += ` · ${cycleways[highlightIdx]}`;
-        }
-        if (colorMode === "bikeroute" && bikeroutes[highlightIdx]) {
-          const names: Record<string, string> = { icn: "International", ncn: "National", rcn: "Regional", lcn: "Local", none: "None" };
-          label += ` · ${names[bikeroutes[highlightIdx]!] ?? bikeroutes[highlightIdx]}`;
-        }
-        const labelX = hx + 8 > w - 80 ? hx - 8 : hx + 8;
-        ctx.textAlign = hx + 8 > w - 80 ? "right" : "left";
-        ctx.fillText(label, labelX, PADDING.top + 10);
-      }
-
-      // Drag selection overlay
-      if (isDragging.current && dragStartX.current != null && dragCurrentX.current != null) {
-        const x1 = Math.max(PADDING.left, Math.min(dragStartX.current, PADDING.left + chartW));
-        const x2 = Math.max(PADDING.left, Math.min(dragCurrentX.current, PADDING.left + chartW));
-        const selLeft = Math.min(x1, x2);
-        const selRight = Math.max(x1, x2);
-        ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
-        ctx.fillRect(selLeft, PADDING.top, selRight - selLeft, chartH);
-        ctx.strokeStyle = "rgba(59, 130, 246, 0.5)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(selLeft, PADDING.top, selRight - selLeft, chartH);
-      }
+      drawElevationChart(ctx, rect.width, rect.height, {
+        points,
+        colorMode,
+        surfaces,
+        highways,
+        maxspeeds,
+        smoothnesses,
+        tracktypes,
+        cycleways,
+        bikeroutes,
+        hoverIdx: highlightIdx,
+        isDragging: isDragging.current,
+        dragStartX: dragStartX.current,
+        dragCurrentX: dragCurrentX.current,
+        days,
+      });
     },
-    [points, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes, days, t],
+    [points, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes, days],
   );
 
   useEffect(() => {
-    drawChart(hoverIdx);
-  }, [points, hoverIdx, colorMode, drawChart]);
+    draw(hoverIdx);
+  }, [points, hoverIdx, colorMode, draw]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -588,13 +107,12 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const chartW = rect.width - PADDING.left - PADDING.right;
       const ratio = (mouseX - PADDING.left) / chartW;
 
-      // Handle drag selection
       if (dragStartClientX.current != null) {
         const dx = Math.abs(e.clientX - dragStartClientX.current);
         if (dx > 5) {
           isDragging.current = true;
           dragCurrentX.current = mouseX;
-          drawChart(hoverIdx);
+          draw(hoverIdx);
           return;
         }
       }
@@ -608,7 +126,6 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const maxDist = points[points.length - 1]!.distance;
       const targetDist = ratio * maxDist;
 
-      // Find closest point
       let closest = 0;
       let minDiff = Infinity;
       for (let i = 0; i < points.length; i++) {
@@ -624,7 +141,7 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const p = points[closest]!;
       onHover?.([p.lat, p.lon]);
     },
-    [points, onHover, hoverIdx, drawChart],
+    [points, onHover, hoverIdx, draw],
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -636,18 +153,15 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
     dragCurrentX.current = null;
   }, [onHover]);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      dragStartX.current = e.clientX - rect.left;
-      dragStartClientX.current = e.clientX;
-      isDragging.current = false;
-      dragCurrentX.current = null;
-    },
-    [],
-  );
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    dragStartX.current = e.clientX - rect.left;
+    dragStartClientX.current = e.clientX;
+    isDragging.current = false;
+    dragCurrentX.current = null;
+  }, []);
 
   const handleMouseUp = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -665,14 +179,12 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const maxDist = points[points.length - 1]!.distance;
 
       if (isDragging.current && dragStartX.current != null) {
-        // Drag-select: compute bounding box of selected range
         const endX = e.clientX - rect.left;
         const startRatio = Math.max(0, Math.min(1, (dragStartX.current - PADDING.left) / chartW));
         const endRatio = Math.max(0, Math.min(1, (endX - PADDING.left) / chartW));
         const startDist = Math.min(startRatio, endRatio) * maxDist;
         const endDist = Math.max(startRatio, endRatio) * maxDist;
 
-        // Find all points in the selected distance range
         let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
         let found = false;
         for (const p of points) {
@@ -684,12 +196,10 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
             found = true;
           }
         }
-
         if (found && onDragSelect) {
           onDragSelect([[minLat, minLon], [maxLat, maxLon]]);
         }
       } else if (dragStartClientX.current != null) {
-        // Click (not drag): pan map to clicked point
         const dx = Math.abs(e.clientX - dragStartClientX.current);
         if (dx <= 5 && onClickPosition) {
           const mouseX = e.clientX - rect.left;
@@ -705,8 +215,7 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
                 closest = i;
               }
             }
-            const p = points[closest]!;
-            onClickPosition([p.lat, p.lon]);
+            onClickPosition([points[closest]!.lat, points[closest]!.lon]);
           }
         }
       }
@@ -715,12 +224,11 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       dragStartClientX.current = null;
       isDragging.current = false;
       dragCurrentX.current = null;
-      drawChart(hoverIdx);
+      draw(hoverIdx);
     },
-    [points, onClickPosition, onDragSelect, hoverIdx, drawChart],
+    [points, onClickPosition, onDragSelect, hoverIdx, draw],
   );
 
-  // Touch handlers for mobile
   const handleTouchStart = useCallback(
     (e: React.TouchEvent<HTMLCanvasElement>) => {
       e.preventDefault();
@@ -729,13 +237,11 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const rect = canvas.getBoundingClientRect();
 
       if (e.touches.length === 1) {
-        // Single touch: start scrub + potential drag
         const x = e.touches[0]!.clientX - rect.left;
         dragStartX.current = x;
         dragStartClientX.current = e.touches[0]!.clientX;
         isDragging.current = false;
         dragCurrentX.current = null;
-        // Immediately show highlight at touch position
         const chartW = rect.width - PADDING.left - PADDING.right;
         const ratio = (x - PADDING.left) / chartW;
         if (ratio >= 0 && ratio <= 1 && points.length >= 2) {
@@ -753,16 +259,15 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
           onHover?.([p.lat, p.lon]);
         }
       } else if (e.touches.length === 2) {
-        // Two fingers: range select
         const x1 = e.touches[0]!.clientX - rect.left;
         const x2 = e.touches[1]!.clientX - rect.left;
         dragStartX.current = Math.min(x1, x2);
         dragCurrentX.current = Math.max(x1, x2);
         isDragging.current = true;
-        drawChart(hoverIdx);
+        draw(hoverIdx);
       }
     },
-    [points, onHover, hoverIdx, drawChart],
+    [points, onHover, hoverIdx, draw],
   );
 
   const handleTouchMove = useCallback(
@@ -773,7 +278,6 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const rect = canvas.getBoundingClientRect();
 
       if (e.touches.length === 1 && !isDragging.current) {
-        // Single touch scrub: update highlight
         const x = e.touches[0]!.clientX - rect.left;
         const chartW = rect.width - PADDING.left - PADDING.right;
         const ratio = (x - PADDING.left) / chartW;
@@ -792,22 +296,20 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
           onHover?.([p.lat, p.lon]);
         }
       } else if (e.touches.length === 2) {
-        // Two finger range select: update selection
         const x1 = e.touches[0]!.clientX - rect.left;
         const x2 = e.touches[1]!.clientX - rect.left;
         dragStartX.current = Math.min(x1, x2);
         dragCurrentX.current = Math.max(x1, x2);
         isDragging.current = true;
-        drawChart(hoverIdx);
+        draw(hoverIdx);
       }
     },
-    [points, onHover, hoverIdx, drawChart],
+    [points, onHover, hoverIdx, draw],
   );
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent<HTMLCanvasElement>) => {
       if (isDragging.current && dragStartX.current != null && dragCurrentX.current != null && points.length >= 2) {
-        // Two finger range complete: zoom map
         const canvas = canvasRef.current;
         if (canvas) {
           const rect = canvas.getBoundingClientRect();
@@ -834,10 +336,8 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
           }
         }
       } else if (e.changedTouches.length === 1 && onClickPosition && dragStartClientX.current != null) {
-        // Single tap (no significant movement): pan map
         const dx = Math.abs(e.changedTouches[0]!.clientX - dragStartClientX.current);
         if (dx <= 10) {
-          // Treat as tap → pan
           const canvas = canvasRef.current;
           if (canvas && points.length >= 2) {
             const rect = canvas.getBoundingClientRect();
@@ -859,16 +359,15 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
         }
       }
 
-      // Clear highlight on touch end
       setHoverIdx(null);
       onHover?.(null);
       dragStartX.current = null;
       dragStartClientX.current = null;
       isDragging.current = false;
       dragCurrentX.current = null;
-      drawChart(null);
+      draw(null);
     },
-    [points, onHover, onClickPosition, onDragSelect, drawChart],
+    [points, onHover, onClickPosition, onDragSelect, draw],
   );
 
   const setMode = useCallback((mode: string) => {
