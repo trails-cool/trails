@@ -10,6 +10,6 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "zod": "^4.4.2"
+    "zod": "^4.4.3"
   }
 }
