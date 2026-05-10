@@ -113,6 +113,9 @@ jobs:
   visual-tests:
     name: Visual Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -141,6 +144,26 @@ jobs:
         id: visual-tests
         run: pnpm --filter @trails-cool/planner test:visual
 
+      - name: Write diff images to job summary
+        if: failure() && steps.visual-tests.outcome == 'failure'
+        run: |
+          diffs=$(find apps/planner/.vitest-attachments -name "*-diff-*.png" 2>/dev/null | sort)
+          if [ -z "$diffs" ]; then exit 0; fi
+
+          echo "## Visual regression failures" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          for diff in $diffs; do
+            name=$(basename "$diff" | sed 's/-diff-chromium-[a-z]*\.png//' | sed 's/-/ /g')
+            b64=$(base64 -w 0 "$diff")
+            echo "### \`$name\`" >> $GITHUB_STEP_SUMMARY
+            echo "<img src=\"data:image/png;base64,$b64\" alt=\"$name diff\" style=\"max-width:100%\">" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "To update snapshots if the change is intentional:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "pnpm --filter @trails-cool/planner test:visual:update" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Post diff comment on PR
         if: failure() && steps.visual-tests.outcome == 'failure' && github.event_name == 'pull_request'
         env:
@@ -149,28 +172,18 @@ jobs:
           diffs=$(find apps/planner/.vitest-attachments -name "*-diff-*.png" 2>/dev/null | sort)
           if [ -z "$diffs" ]; then exit 0; fi
 
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           body="## Visual regression failures"$'\n\n'
-          body+="| Test | Diff (reference → actual) |"$'\n'
-          body+="|------|--------------------------|"$'\n'
-
+          body+="The following tests produced screenshot diffs:"$'\n\n'
           for diff in $diffs; do
-            # Upload image to GitHub's CDN via the issue assets endpoint
-            response=$(curl -sf -X POST \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Content-Type: image/png" \
-              -H "Accept: application/json" \
-              --data-binary @"$diff" \
-              "https://uploads.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/assets?name=$(basename $diff)")
-            url=$(echo "$response" | jq -r '.url // empty')
-            name=$(basename "$diff" | sed 's/-diff-chromium-linux\.png//' | sed 's/-/ /g')
-            if [ -n "$url" ]; then
-              body+="| \`$name\` | ![$name]($url) |"$'\n'
-            else
-              body+="| \`$name\` | *(upload failed)* |"$'\n'
-            fi
+            name=$(basename "$diff" | sed 's/-diff-chromium-[a-z]*\.png//' | sed 's/-/ /g')
+            body+="- \`$name\`"$'\n'
           done
-
-          body+=$'\n'"Run \`pnpm --filter @trails-cool/planner test:visual:update\` to regenerate snapshots if the change is intentional."
+          body+=$'\n'"**[View diff images in the job summary]($run_url)**"$'\n\n'
+          body+="To update snapshots if the change is intentional:"$'\n'
+          body+="\`\`\`"$'\n'
+          body+="pnpm --filter @trails-cool/planner test:visual:update"$'\n'
+          body+="\`\`\`"
 
           gh pr comment ${{ github.event.pull_request.number }} --body "$body"
 
@@ -180,6 +193,7 @@ jobs:
         with:
           name: visual-snapshots-diff
           path: apps/planner/.vitest-attachments/
+          include-hidden-files: true
           retention-days: 7
 
   e2e:
