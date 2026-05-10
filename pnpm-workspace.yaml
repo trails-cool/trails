@@ -5,22 +5,22 @@ packages:
 
 catalog:
   react: ^19.2.5
-  react-dom: ^19.2.5
-  react-router: ^7.14.2
-  "@react-router/dev": ^7.14.2
-  "@react-router/node": ^7.14.2
-  "@react-router/serve": ^7.14.2
+  react-dom: ^19.2.6
+  react-router: ^7.15.0
+  "@react-router/dev": ^7.15.0
+  "@react-router/node": ^7.15.0
+  "@react-router/serve": ^7.15.0
   "@types/react": ^19.2.14
   "@types/react-dom": ^19.2.3
-  tailwindcss: ^4.2.4
-  "@tailwindcss/vite": ^4.2.4
+  tailwindcss: ^4.3.0
+  "@tailwindcss/vite": ^4.3.0
   typescript: ^5.8.3
   vite: ^8.0.10
   drizzle-orm: ^0.45.2
   drizzle-kit: ^0.31.10
   drizzle-postgis: ^1.1.1
-  "@sentry/node": ^10.51.0
-  "@sentry/react": ^10.51.0
+  "@sentry/node": ^10.52.0
+  "@sentry/react": ^10.52.0
   postgres: ^3.4.9
-  "@types/node": ^22.0.0
+  "@types/node": ^22.19.18
 
