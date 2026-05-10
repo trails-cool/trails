@@ -1,6 +1,6 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/api.sync.disconnect.$provider";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getManifest, unlinkByUserProvider } from "~/lib/connected-services";
 
 export async function action({ params, request }: Route.ActionArgs) {

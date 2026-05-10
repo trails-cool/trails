@@ -1,6 +1,6 @@
 import type { Route } from "./+types/oauth.authorize";
 import { redirect } from "react-router";
-import { getSessionUser } from "../lib/auth.server.ts";
+import { getSessionUser } from "../lib/auth/session.server.ts";
 import {
   getOAuthClient,
   validateRedirectUri,

@@ -2,7 +2,7 @@ import { data, redirect } from "react-router";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/feed";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { listSocialFeed, listRecentPublicActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";

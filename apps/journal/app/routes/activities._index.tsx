@@ -1,7 +1,7 @@
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities._index";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { listActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";

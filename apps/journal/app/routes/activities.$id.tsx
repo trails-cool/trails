@@ -1,7 +1,8 @@
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities.$id";
-import { canView, getSessionUser } from "~/lib/auth.server";
+import { canView } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getActivity, deleteActivity, linkActivityToRoute, createRouteFromActivity, updateActivityVisibility } from "~/lib/activities.server";
 import { deleteImportByActivity } from "~/lib/sync/imports.server";
 import { listRoutes } from "~/lib/routes.server";

@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.routes.$id.edit-in-planner";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getRouteWithVersions } from "~/lib/routes.server";
 import { createRouteToken } from "~/lib/jwt.server";
 

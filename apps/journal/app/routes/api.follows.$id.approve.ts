@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.follows.$id.approve";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { approveFollowRequest } from "~/lib/follow.server";
 
 export async function action({ request, params }: Route.ActionArgs) {

@@ -1,7 +1,7 @@
 import { data, redirect } from "react-router";
 import { eq } from "drizzle-orm";
 import type { Route } from "./+types/api.settings.profile";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
 

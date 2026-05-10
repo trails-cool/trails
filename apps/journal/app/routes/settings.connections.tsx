@@ -2,7 +2,7 @@ import { data, redirect, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings.connections";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getDb } from "~/lib/db";
 import { connectedServices } from "@trails-cool/db/schema/journal";
 import { getAllManifests } from "~/lib/connected-services";

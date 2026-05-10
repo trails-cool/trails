@@ -1,12 +1,13 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.auth.register";
-import { startRegistration, finishRegistration, createSession, addPasskeyStart, addPasskeyFinish, registerWithMagicLink } from "~/lib/auth.server";
+import { startRegistration, finishRegistration, addPasskeyStart, addPasskeyFinish, registerWithMagicLink } from "~/lib/auth.server";
+import { completeAuth } from "~/lib/auth/completion.server";
 import { sendWelcome, sendMagicLink } from "~/lib/email.server";
 import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const body = await request.json();
-  const { step, email, username, response, challenge, userId, termsAccepted, termsVersion } = body;
+  const { step, email, username, response, challenge, userId, termsAccepted, termsVersion, returnTo } = body;
   const origin = process.env.ORIGIN ?? `http://localhost:3000`;
 
   // Registration steps require terms acceptance + the version the client
@@ -27,11 +28,10 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (step === "finish") {
       const newUserId = await finishRegistration(userId, email, username, response, challenge, termsVersion);
-      const cookie = await createSession(newUserId, request);
       sendWelcome(email, username).catch((err) =>
         logger.error({ err }, "Failed to send welcome email"),
       );
-      return data({ step: "done" }, { headers: { "Set-Cookie": cookie } });
+      return completeAuth({ userId: newUserId, request, returnTo, mode: "json" });
     }
 
     if (step === "register-magic-link") {

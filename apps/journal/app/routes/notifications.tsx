@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { inArray, eq, and } from "drizzle-orm";
 import type { Route } from "./+types/notifications";
 import { getDb } from "~/lib/db";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { listForUser } from "~/lib/notifications.server";
 import { linkFor } from "~/lib/notifications/link-for";
 import { readPayload } from "~/lib/notifications/payload";

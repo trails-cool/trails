@@ -1,6 +1,6 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/api.sync.connect.$provider";
-import { getSessionUser } from "~/lib/auth.server";
+import { getSessionUser } from "~/lib/auth/session.server";
 import { getManifest } from "~/lib/connected-services";
 import { encodeOAuthState } from "~/lib/connected-services/oauth-state.server";
 
