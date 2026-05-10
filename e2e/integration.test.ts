@@ -6,10 +6,72 @@ import { test, expect } from "./fixtures/test";
  * - BRouter (for route computation)
  *
  * In CI, these services are started by the workflow.
- * Locally, run `pnpm dev:full` first.
+ * Locally, run `pnpm dev:full` first (with E2E=true for the callback tests).
  */
 
+const JOURNAL = "http://localhost:3000";
 const PLANNER = "http://localhost:3001";
+
+const VALID_GPX = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="52.51" lon="13.38"><ele>40</ele></trkpt>
+    <trkpt lat="52.50" lon="13.35"><ele>35</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+const ONE_POINT_GPX = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+test.describe("Integration: Planner callback → geometry stored", () => {
+  test("valid GPX stores geometry atomically", async ({ request }) => {
+    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
+    expect(seedResp.ok()).toBeTruthy();
+    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+
+    const callbackResp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { gpx: VALID_GPX },
+    });
+    expect(callbackResp.status()).toBe(200);
+
+    const geomResp = await request.get(`${JOURNAL}/api/e2e/route/${routeId}`);
+    const { hasGeom } = await geomResp.json() as { hasGeom: boolean };
+    expect(hasGeom).toBe(true);
+  });
+
+  test("invalid GPX returns 400 and does not store geometry", async ({ request }) => {
+    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
+    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+
+    const callbackResp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { gpx: ONE_POINT_GPX },
+    });
+    expect(callbackResp.status()).toBe(400);
+    const body = await callbackResp.json() as { error: string };
+    expect(body.error).toMatch(/at least 2 track points/);
+
+    const geomResp = await request.get(`${JOURNAL}/api/e2e/route/${routeId}`);
+    const { hasGeom } = await geomResp.json() as { hasGeom: boolean };
+    expect(hasGeom).toBe(false);
+  });
+
+  test("missing token returns 401", async ({ request }) => {
+    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
+    const { routeId } = await seedResp.json() as { routeId: string };
+
+    const resp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      data: { gpx: VALID_GPX },
+    });
+    expect(resp.status()).toBe(401);
+  });
+});
 
 test.describe("Integration: Journal ↔ Planner handoff", () => {
   test("GPX import → view route → export GPX", async ({ request }) => {
