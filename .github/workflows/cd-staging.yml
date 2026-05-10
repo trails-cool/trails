@@ -331,7 +331,7 @@ jobs:
       # than spamming a new one each push. The marker line at the bottom of
       # the body is what `body-includes` matches on.
       - name: Find existing preview comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: find-comment
         with:
           issue-number: ${{ github.event.number }}
@@ -424,7 +424,7 @@ jobs:
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
 
       - name: Find existing preview comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: find-comment
         with:
           issue-number: ${{ github.event.number }}
