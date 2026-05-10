@@ -231,6 +231,7 @@ jobs:
         run: pnpm test:e2e
         env:
           BROUTER_URL: http://localhost:17777
+          E2E: "true"
 
       - name: Playwright job summary
         if: ${{ !cancelled() }}
