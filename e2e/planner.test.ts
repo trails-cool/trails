@@ -504,9 +504,8 @@ test.describe("Planner", () => {
     // Give Yjs a moment to flush the transaction
     await page.waitForTimeout(300);
 
-    // Export GPX plan (which includes waypoints) and verify <desc> appears inside a <wpt>
-    await page.getByRole("button", { name: "Export GPX" }).click();
-    // Wait for the dropdown to open, then click Export Plan
+    // Open the export dropdown (▾ chevron next to Export GPX), then click Export Plan
+    await page.getByRole("button", { name: "▾" }).click();
     await expect(page.getByText("Export Plan")).toBeVisible({ timeout: 3000 });
     const downloadPromise = page.waitForEvent("download");
     await page.getByText("Export Plan").first().click();
