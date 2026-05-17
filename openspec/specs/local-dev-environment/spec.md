@@ -2,6 +2,18 @@
 
 One-command local development setup with PostgreSQL, BRouter, automatic schema migration, and segment downloading.
 
+## When to Use Local vs. Staging
+
+| Scenario | Use |
+|----------|-----|
+| Everyday development, unit tests, E2E tests | Local (`pnpm dev:full`) |
+| Sharing a work-in-progress with reviewers | PR preview (`pr-<N>.staging.trails.cool`) |
+| Testing against production-like infra (Caddy TLS, Docker networking) | Staging (`staging.trails.cool`) |
+| Wahoo OAuth callback testing | Local with `HTTPS=1` (see CLAUDE.md) |
+| ActivityPub federation testing | Staging (requires real HTTPS + public domain) |
+
+The Planner, Journal, PostgreSQL, and BRouter all run locally. The local stack is the default for all development work. Staging is not a replacement for local dev — it is a pre-merge verification surface and a way to share work without merging first.
+
 ## Requirements
 
 ### Requirement: One-command dev startup

@@ -1,12 +1,12 @@
 ## Why
 
-There is no staging environment — production is the only deployed instance. Infra
-changes (Prometheus alerts, Caddy config, Grafana dashboards) go straight to prod
-with no way to validate them locally first. Meanwhile, CI E2E tests skip ~15 of
-20 tests because there is no PostgreSQL service in the workflow, and BRouter was
-only recently added to CI with manual setup instead of reusing the dev compose
-file. The existing `docker-compose.dev.yml` covers PostgreSQL and BRouter but
-nothing else from the production stack.
+Infra changes (Prometheus alerts, Caddy config, Grafana dashboards) can only be
+validated against staging or production — there is no way to test them locally
+first. Meanwhile, CI E2E tests skip ~15 of 20 tests because there is no
+PostgreSQL service in the workflow, and BRouter was only recently added to CI
+with manual setup instead of reusing the dev compose file. The existing
+`docker-compose.dev.yml` covers PostgreSQL and BRouter but nothing else from the
+production stack.
 
 ## What Changes
 
