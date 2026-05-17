@@ -220,7 +220,9 @@ jobs:
       - name: Wait for BRouter routing
         run: |
           for i in $(seq 1 60); do
-            curl -sf 'http://localhost:17777/brouter?lonlats=13.4,52.5|13.5,52.5&profile=trekking&format=geojson' > /dev/null 2>&1 && echo "BRouter ready" && break
+            RESP=$(curl -s 'http://localhost:17777/brouter?lonlats=13.4,52.5|13.5,52.5&profile=trekking&format=geojson' 2>/dev/null)
+            echo "attempt $i: $(echo "$RESP" | head -c 80)"
+            echo "$RESP" | grep -q "FeatureCollection" && echo "BRouter ready" && break
             [ "$i" = "60" ] && echo "BRouter not ready after 120s" && exit 1
             sleep 2
           done
