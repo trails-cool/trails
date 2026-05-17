@@ -204,8 +204,16 @@ jobs:
           mkdir -p /tmp/brouter-segments
           wget -q "https://brouter.de/brouter/segments4/E10_N50.rd5" -O /tmp/brouter-segments/E10_N50.rd5
 
+      - name: Pre-seed BRouter segment volume
+        run: |
+          docker volume create trails_brouter_segments
+          docker run --rm \
+            -v /tmp/brouter-segments:/src:ro \
+            -v trails_brouter_segments:/dst \
+            alpine sh -c "cp /src/*.rd5 /dst/ && chmod a+r /dst/*.rd5"
+
       - name: Start services
-        run: docker compose -f docker-compose.dev.yml -f docker-compose.ci.yml up -d --wait --build
+        run: docker compose -f docker-compose.dev.yml up -d --wait --build
         env:
           BROUTER_URL: http://localhost:17777
 
