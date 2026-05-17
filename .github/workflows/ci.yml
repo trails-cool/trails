@@ -191,64 +191,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Cache PostGIS Docker image
-        id: postgis-cache
-        uses: actions/cache@v5
-        with:
-          path: /tmp/postgis-image.tar
-          key: postgis-16-3.4
-
-      - name: Load or pull PostGIS image
-        run: |
-          if [ -f /tmp/postgis-image.tar ]; then
-            docker load < /tmp/postgis-image.tar
-          else
-            docker pull postgis/postgis:16-3.4
-            docker save postgis/postgis:16-3.4 > /tmp/postgis-image.tar
-          fi
-
-      - name: Start PostgreSQL
-        run: |
-          docker run -d --name postgres \
-            -e POSTGRES_USER=trails \
-            -e POSTGRES_PASSWORD=trails \
-            -e POSTGRES_DB=trails \
-            -p 5432:5432 \
-            postgis/postgis:16-3.4
-          # Wait for pg_isready
-          for i in $(seq 1 30); do
-            docker exec postgres pg_isready -U trails > /dev/null 2>&1 && break
-            sleep 1
-          done
-          # Wait for PostGIS extension to be ready
-          for i in $(seq 1 10); do
-            docker exec postgres psql -U trails -c "SELECT PostGIS_Version();" > /dev/null 2>&1 && break
-            sleep 1
-          done
-
-      - name: Push database schema
-        run: pnpm db:push
-
-      - name: Build and cache BRouter
-        id: brouter-cache
-        uses: actions/cache@v5
-        with:
-          path: /tmp/brouter
-          key: brouter-1.7.8
-
-      - name: Download BRouter
-        if: steps.brouter-cache.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /tmp/brouter
-          wget -q "https://github.com/abrensch/brouter/releases/download/v1.7.8/brouter-1.7.8.zip" -O /tmp/brouter/brouter.zip
-          cd /tmp/brouter && unzip -o brouter.zip && mv brouter-1.7.8/* . && rmdir brouter-1.7.8 && rm brouter.zip
-
       - name: Cache BRouter segment
         id: segment-cache
         uses: actions/cache@v5
         with:
           path: /tmp/brouter-segments
-          key: brouter-segment-E10_N50
+          key: brouter-segment-E10_N50-v1.7.9
 
       - name: Download Berlin segment
         if: steps.segment-cache.outputs.cache-hit != 'true'
@@ -256,22 +204,32 @@ jobs:
           mkdir -p /tmp/brouter-segments
           wget -q "https://brouter.de/brouter/segments4/E10_N50.rd5" -O /tmp/brouter-segments/E10_N50.rd5
 
-      - name: Start BRouter
+      - name: Pre-seed BRouter segment volume
         run: |
-          cd /tmp/brouter
-          java -Xmx256M -Xms64M \
-            -DmaxRunningTime=300 \
-            -cp brouter-1.7.8-all.jar \
-            btools.server.RouteServer \
-            /tmp/brouter-segments profiles2 profiles2 \
-            17777 2 &
-          # Wait for BRouter to start
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:17777/brouter?lonlats=13.4,52.5\|13.5,52.5\&profile=trekking\&format=geojson > /dev/null 2>&1 && break
-            sleep 2
-          done
+          docker volume create trails_brouter_segments
+          docker run --rm \
+            -v /tmp/brouter-segments:/src:ro \
+            -v trails_brouter_segments:/dst \
+            alpine sh -c "cp /src/*.rd5 /dst/ && chmod a+r /dst/*.rd5"
+
+      - name: Start services
+        run: docker compose -f docker-compose.dev.yml up -d --wait --build
         env:
           BROUTER_URL: http://localhost:17777
+
+      - name: Wait for BRouter routing
+        run: |
+          for i in $(seq 1 60); do
+            curl -s 'http://localhost:17777/brouter?lonlats=13.4,52.5|13.5,52.5&profile=trekking&format=geojson' 2>/dev/null | grep -q "FeatureCollection" && echo "BRouter ready" && break
+            [ "$i" = "60" ] && echo "BRouter not ready after 120s" && exit 1
+            sleep 2
+          done
+
+      - name: Push database schema
+        run: pnpm db:push
+
+      - name: Seed database
+        run: pnpm db:seed
 
       - name: Cache Playwright browsers
         id: playwright-cache

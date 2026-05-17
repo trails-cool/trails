@@ -10,6 +10,7 @@ dist/
 .crit.json
 e2e/results/
 test-results/
+.env.development
 playwright-report/
 playwright-results.json
 .claude/worktrees/
