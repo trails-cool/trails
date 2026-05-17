@@ -88,6 +88,18 @@ export default {
       viewpoints: "Viewpoints",
       toilets: "Toilets",
     },
+    waypoint: {
+      notePlaceholder: "Add a note...",
+      noteCounter: "{{count}} / {{max}}",
+    },
+    nearbyPoi: {
+      heading: "Nearby",
+      loading: "Looking up nearby points of interest…",
+      empty: "No nearby points of interest found",
+      rateLimited: "POI lookup unavailable",
+      snap: "Snap here",
+      showMore: "Show more",
+    },
     noGoAreas: {
       draw: "Draw no-go area",
       cancel: "Cancel no-go area",

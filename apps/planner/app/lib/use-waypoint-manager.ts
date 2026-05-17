@@ -11,6 +11,7 @@ export interface WaypointData {
   lat: number;
   lon: number;
   name?: string;
+  note?: string;
   overnight: boolean;
 }
 
@@ -19,6 +20,7 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
     lat: yMap.get("lat") as number,
     lon: yMap.get("lon") as number,
     name: yMap.get("name") as string | undefined,
+    note: yMap.get("note") as string | undefined,
     overnight: isOvernight(yMap),
   }));
 }

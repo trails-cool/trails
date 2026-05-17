@@ -40,6 +40,9 @@ export function generateGpx(options: {
       if (wpt.name) {
         lines.push(`    <name>${escapeXml(wpt.name)}</name>`);
       }
+      if (wpt.note) {
+        lines.push(`    <desc>${escapeXml(wpt.note)}</desc>`);
+      }
       if (wpt.isDayBreak) {
         lines.push("    <type>overnight</type>");
       }

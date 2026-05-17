@@ -183,3 +183,29 @@ export class OverpassRateLimitError extends Error {
     this.name = "OverpassRateLimitError";
   }
 }
+
+// Degrees of latitude per meter (approximate, valid globally).
+const DEG_PER_METER_LAT = 1 / 111320;
+
+/**
+ * Fetch POIs within `radiusMeters` of a coordinate.
+ * Builds a bbox around the point and reuses queryPois + the existing proxy.
+ */
+export async function fetchNearbyPois(
+  lat: number,
+  lon: number,
+  radiusMeters: number,
+  categories: import("@trails-cool/map-core").PoiCategory[],
+  signal?: AbortSignal,
+  sessionId = "nearby",
+): Promise<Poi[]> {
+  const dLat = radiusMeters * DEG_PER_METER_LAT;
+  const dLon = dLat / Math.cos((lat * Math.PI) / 180);
+  const bbox: BBox = {
+    south: lat - dLat,
+    north: lat + dLat,
+    west: lon - dLon,
+    east: lon + dLon,
+  };
+  return queryPois(bbox, categories, sessionId, signal);
+}

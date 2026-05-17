@@ -113,7 +113,7 @@ function useAwarenessToasts(yjs: YjsState | null, t: TFunction, addToast: (messa
 }
 
 
-function SidebarTabs({ yjs, routeStats, days, onWaypointHover }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (index: number | null) => void }) {
+function SidebarTabs({ yjs, routeStats, days, onWaypointHover, onWaypointSelect }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (index: number | null) => void; onWaypointSelect: (index: number | null) => void }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
 
@@ -136,7 +136,7 @@ function SidebarTabs({ yjs, routeStats, days, onWaypointHover }: { yjs: YjsState
       <div className="flex-1 overflow-hidden">
         {tab === "waypoints" ? (
           <Suspense fallback={null}>
-            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={onWaypointHover} />
+            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={onWaypointHover} onWaypointSelect={onWaypointSelect} />
           </Suspense>
         ) : (
           <NotesPanel yjs={yjs} />
@@ -166,6 +166,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
   const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const [highlightedWaypoint, setHighlightedWaypoint] = useState<number | null>(null);
+  const [selectedWaypointIndex, setSelectedWaypointIndex] = useState<number | null>(null);
   const [highlightChartDistance, setHighlightChartDistance] = useState<number | null>(null);
   const [isZoomedByChart, setIsZoomedByChart] = useState(false);
   const { toasts, addToast } = useToasts();
@@ -286,7 +287,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
                 </div>
               }
             >
-              <PlannerMap yjs={yjs} sessionId={sessionId} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} onRouteHover={setHighlightChartDistance} onImportError={(msg) => addToast(msg, "error")} days={days} />
+              <PlannerMap yjs={yjs} sessionId={sessionId} onRouteRequest={requestRoute} highlightPosition={highlightPosition} highlightedWaypoint={highlightedWaypoint} selectedWaypointIndex={selectedWaypointIndex} onRouteHover={setHighlightChartDistance} onImportError={(msg) => addToast(msg, "error")} days={days} />
             </Suspense>
           </div>
           <Suspense fallback={null}>
@@ -303,7 +304,7 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
             </div>
           </Suspense>
         </main>
-        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} />
+        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} onWaypointSelect={setSelectedWaypointIndex} />
       </div>
       <YjsDebugPanel yjs={yjs} sessionId={sessionId} />
       {toasts.length > 0 && (

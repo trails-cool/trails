@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, LayersControl, Marker, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
@@ -26,22 +26,30 @@ import {
 } from "./MapHelpers";
 import { useWaypointManager } from "~/lib/use-waypoint-manager";
 import { useGpxDrop } from "~/lib/use-gpx-drop";
+import { useNearbyPois } from "~/lib/use-nearby-pois";
+import { NearbyPoiMarkers } from "./NearbyPoiMarkers";
+import { poiCategories } from "@trails-cool/map-core";
+import type { Poi } from "~/lib/overpass";
 import "leaflet/dist/leaflet.css";
 
-function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean): L.DivIcon {
+function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean, hasNote?: boolean): L.DivIcon {
   const bg = overnight ? "#8B6D3A" : "#2563eb";
   const scale = highlighted ? "scale(1.17)" : "scale(1)";
+  const noteIndicator = hasNote
+    ? `<span style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:1.5px solid white;font-size:7px;display:flex;align-items:center;justify-content:center;line-height:1;">✎</span>`
+    : "";
   return L.divIcon({
     className: "",
-    html: `<div style="
-      width:24px;height:24px;border-radius:50%;
-      background:${bg};color:white;
-      display:flex;align-items:center;justify-content:center;
-      font-size:12px;font-weight:600;
-      border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
-      transform:translate(-12px,-12px) ${scale};
-      transition:transform 0.2s ease;
-    ">${overnight ? "☾" : index + 1}</div>`,
+    html: `<div style="position:relative;width:24px;height:24px;transform:translate(-12px,-12px) ${scale};transition:transform 0.2s ease;">
+      <div style="
+        width:24px;height:24px;border-radius:50%;
+        background:${bg};color:white;
+        display:flex;align-items:center;justify-content:center;
+        font-size:12px;font-weight:600;
+        border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      ">${overnight ? "☾" : index + 1}</div>
+      ${noteIndicator}
+    </div>`,
     iconSize: [0, 0],
   });
 }
@@ -68,11 +76,12 @@ interface PlannerMapProps {
   onImportError?: (message: string) => void;
   highlightPosition?: [number, number] | null;
   highlightedWaypoint?: number | null;
+  selectedWaypointIndex?: number | null;
   onRouteHover?: (distance: number | null) => void;
   days?: DayStage[];
 }
 
-export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, highlightedWaypoint, onRouteHover, onImportError, days }: PlannerMapProps) {
+export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, highlightedWaypoint, selectedWaypointIndex, onRouteHover, onImportError, days }: PlannerMapProps) {
   const { t } = useTranslation("planner");
   const poiState = usePois(sessionId);
   useProfileDefaults(yjs, poiState);
@@ -106,6 +115,25 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
   } = useWaypointManager(yjs, poiState, suppressMapClickRef, onRouteRequest);
 
   const { draggingOver, handleDragEnter, handleDragLeave, handleDragOver, handleDrop } = useGpxDrop(yjs, onImportError);
+
+  const selectedWp = selectedWaypointIndex != null ? waypoints[selectedWaypointIndex] : undefined;
+  const nearbyPoisState = useNearbyPois(selectedWp?.lat, selectedWp?.lon);
+
+  const handleSnapToPoi = useCallback((poi: Poi) => {
+    if (selectedWaypointIndex == null) return;
+    const yMap = yjs.waypoints.get(selectedWaypointIndex);
+    if (!yMap) return;
+    const cat = poiCategories.find((c) => c.id === poi.category);
+    const notePrefix = cat ? `${cat.icon} ${poi.name ?? cat.id}` : (poi.name ?? "");
+    yjs.doc.transact(() => {
+      yMap.set("lat", poi.lat);
+      yMap.set("lon", poi.lon);
+      if (poi.name && !yMap.get("name")) yMap.set("name", poi.name);
+      const existing = yMap.get("note") as string | undefined;
+      yMap.set("note", existing ? `${notePrefix}\n${existing}` : notePrefix);
+      if (poi.id) yMap.set("osmId", poi.id);
+    }, "local");
+  }, [selectedWaypointIndex, yjs, poiCategories]);
 
   const handleRoutePolylineOut = useCallback(() => {
     onRouteHover?.(null);
@@ -150,6 +178,13 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
         <PoiRefresher poiState={poiState} />
         <PoiMarkers poiState={poiState} onAddWaypoint={addWaypoint} />
         <PoiPanel poiState={poiState} />
+        {selectedWaypointIndex != null && nearbyPoisState.pois.length > 0 && (
+          <NearbyPoiMarkers
+            pois={nearbyPoisState.pois}
+            categories={poiCategories}
+            onSnap={handleSnapToPoi}
+          />
+        )}
 
         {waypoints.map((wp, i) => (
           <Marker
@@ -157,7 +192,7 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
             position={[wp.lat, wp.lon]}
             draggable
             zIndexOffset={highlightedWaypoint === i ? Z_WAYPOINT_HIGHLIGHTED : Z_WAYPOINT}
-            icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i)}
+            icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i, !!wp.note)}
             eventHandlers={{
               mouseover: () => { routeInteractionSuspendedRef.current = true; },
               mouseout: () => {
@@ -180,7 +215,15 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
                 setContextMenu({ x: orig.clientX, y: orig.clientY, index: i });
               },
             }}
-          />
+          >
+            {wp.note && (
+              <Tooltip direction="top" offset={[0, -14]} opacity={0.95}>
+                <span style={{ maxWidth: 220, display: "block", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {wp.note.length > 120 ? wp.note.slice(0, 120) + "…" : wp.note}
+                </span>
+              </Tooltip>
+            )}
+          </Marker>
         ))}
 
         {days && days.length > 1 && days.map((day) => {
