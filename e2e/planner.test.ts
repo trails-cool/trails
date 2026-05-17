@@ -506,8 +506,10 @@ test.describe("Planner", () => {
 
     // Export GPX plan (which includes waypoints) and verify <desc> appears inside a <wpt>
     await page.getByRole("button", { name: "Export GPX" }).click();
+    // Wait for the dropdown to open, then click Export Plan
+    await expect(page.getByText("Export Plan")).toBeVisible({ timeout: 3000 });
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: /Export Plan/i }).click();
+    await page.getByText("Export Plan").first().click();
     const download = await downloadPromise;
     const gpxStream = await download.createReadStream();
     const chunks: Buffer[] = [];
