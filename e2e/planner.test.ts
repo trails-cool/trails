@@ -504,9 +504,10 @@ test.describe("Planner", () => {
     // Give Yjs a moment to flush the transaction
     await page.waitForTimeout(300);
 
-    // Export GPX and verify <desc> appears inside a <wpt>
-    const downloadPromise = page.waitForEvent("download");
+    // Export GPX plan (which includes waypoints) and verify <desc> appears inside a <wpt>
     await page.getByRole("button", { name: "Export GPX" }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: /Export Plan/i }).click();
     const download = await downloadPromise;
     const gpxStream = await download.createReadStream();
     const chunks: Buffer[] = [];
