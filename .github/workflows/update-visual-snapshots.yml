@@ -87,7 +87,7 @@ jobs:
         run: pnpm --filter @trails-cool/planner test:visual:update
 
       - name: Commit updated snapshots
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore: update visual snapshots [skip ci]"
           file_pattern: "apps/planner/app/**/__screenshots__/**"
