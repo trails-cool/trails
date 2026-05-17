@@ -1,15 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
 import type { YjsState } from "~/lib/use-yjs";
 import type { DayStage } from "@trails-cool/gpx";
 import { setOvernight, isOvernight } from "~/lib/overnight";
 import { DayBreakdown } from "./DayBreakdown";
+import { useNearbyPois } from "~/lib/use-nearby-pois";
+import { poiCategories } from "@trails-cool/map-core";
+import type { Poi } from "~/lib/overpass";
+
+const NOTE_MAX = 500;
 
 interface WaypointData {
   lat: number;
   lon: number;
   name?: string;
+  note?: string;
   overnight: boolean;
 }
 
@@ -18,6 +24,7 @@ function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[]
     lat: yMap.get("lat") as number,
     lon: yMap.get("lon") as number,
     name: yMap.get("name") as string | undefined,
+    note: yMap.get("note") as string | undefined,
     overnight: isOvernight(yMap),
   }));
 }
@@ -31,11 +38,16 @@ interface WaypointSidebarProps {
   };
   days: DayStage[];
   onWaypointHover?: (index: number | null) => void;
+  onWaypointSelect?: (index: number | null) => void;
 }
 
-export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: WaypointSidebarProps) {
+export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWaypointSelect }: WaypointSidebarProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
+  const [noteEditValue, setNoteEditValue] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const update = () => setWaypoints(getWaypointsFromYjs(yjs.waypoints));
@@ -60,7 +72,10 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: Wayp
         lat: item.get("lat") as number,
         lon: item.get("lon") as number,
         name: item.get("name") as string | undefined,
+        note: item.get("note") as string | undefined,
         overnight: isOvernight(item),
+        osmId: item.get("osmId") as number | undefined,
+        poiTags: item.get("poiTags") as Record<string, string> | undefined,
       };
       yjs.doc.transact(() => {
         yjs.waypoints.delete(from, 1);
@@ -68,7 +83,10 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: Wayp
         yMap.set("lat", data.lat);
         yMap.set("lon", data.lon);
         if (data.name) yMap.set("name", data.name);
+        if (data.note) yMap.set("note", data.note);
         if (data.overnight) yMap.set("overnight", true);
+        if (data.osmId !== undefined) yMap.set("osmId", data.osmId);
+        if (data.poiTags) yMap.set("poiTags", data.poiTags);
         yjs.waypoints.insert(to, [yMap]);
       }, "local");
     },
@@ -84,22 +102,125 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: Wayp
     [yjs, waypoints],
   );
 
+  const setNote = useCallback(
+    (index: number, note: string) => {
+      const yMap = yjs.waypoints.get(index);
+      if (!yMap) return;
+      yjs.doc.transact(() => {
+        if (note.trim()) {
+          yMap.set("note", note.trim());
+        } else {
+          yMap.delete("note");
+        }
+      }, "local");
+    },
+    [yjs],
+  );
+
+  const selectWaypoint = useCallback(
+    (index: number | null) => {
+      setSelectedIndex(index);
+      onWaypointSelect?.(index);
+    },
+    [onWaypointSelect],
+  );
+
+  const openNoteEditor = useCallback(
+    (index: number) => {
+      setNoteEditValue(waypoints[index]?.note ?? "");
+      setEditingNoteIndex(index);
+      setTimeout(() => {
+        textareaRef.current?.focus();
+        // auto-resize
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+        }
+      }, 0);
+    },
+    [waypoints],
+  );
+
+  const snapToPoi = useCallback(
+    (poi: Poi) => {
+      if (selectedIndex === null) return;
+      const yMap = yjs.waypoints.get(selectedIndex);
+      if (!yMap) return;
+      const cat = poiCategories.find((c) => c.id === poi.category);
+      const notePrefix = cat ? `${cat.icon} ${poi.name ?? cat.id}` : (poi.name ?? "");
+      yjs.doc.transact(() => {
+        yMap.set("lat", poi.lat);
+        yMap.set("lon", poi.lon);
+        if (poi.name && !yMap.get("name")) yMap.set("name", poi.name);
+        const existing = yMap.get("note") as string | undefined;
+        yMap.set("note", existing ? `${notePrefix}\n${existing}` : notePrefix);
+        if (poi.id) yMap.set("osmId", poi.id);
+      }, "local");
+    },
+    [selectedIndex, yjs, poiCategories],
+  );
+
+  const selectedWp = selectedIndex !== null ? waypoints[selectedIndex] : undefined;
+  const nearbyPoisState = useNearbyPois(selectedWp?.lat, selectedWp?.lon);
+  const [showAllNearby, setShowAllNearby] = useState(false);
+
   const hasMultipleDays = days.length > 1;
 
   const renderWaypointRow = (wp: WaypointData, i: number) => (
     <li
       key={i}
-      className="group flex items-center gap-2 px-4 py-2 hover:bg-gray-50"
+      className={`group flex items-start gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer ${selectedIndex === i ? "bg-blue-50" : ""}`}
+      onClick={() => selectWaypoint(selectedIndex === i ? null : i)}
       onMouseEnter={() => onWaypointHover?.(i)}
       onMouseLeave={() => onWaypointHover?.(null)}
     >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">
         {i + 1}
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm text-gray-700">
           {wp.name ?? `${wp.lat.toFixed(4)}, ${wp.lon.toFixed(4)}`}
         </p>
+        {/* Note display / editor */}
+        {editingNoteIndex === i ? (
+          <div onClick={(e) => e.stopPropagation()}>
+            <textarea
+              ref={textareaRef}
+              value={noteEditValue}
+              maxLength={NOTE_MAX}
+              className="mt-1 w-full resize-none rounded border border-blue-300 bg-white px-2 py-1 text-xs italic text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              rows={2}
+              onChange={(e) => {
+                setNoteEditValue(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+              }}
+              onBlur={() => {
+                setNote(i, noteEditValue);
+                setEditingNoteIndex(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setEditingNoteIndex(null);
+                  setNoteEditValue("");
+                }
+              }}
+            />
+            <p className="mt-0.5 text-right text-[10px] text-gray-400">
+              {noteEditValue.length} / {NOTE_MAX}
+            </p>
+          </div>
+        ) : (
+          <p
+            className="mt-0.5 line-clamp-2 cursor-text text-xs italic text-gray-400 hover:text-gray-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              openNoteEditor(i);
+            }}
+          >
+            {wp.note ?? t("waypoint.notePlaceholder")}
+          </p>
+        )}
       </div>
       {wp.overnight && (
         <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200">
@@ -182,6 +303,53 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover }: Wayp
           </ul>
         )}
       </div>
+
+      {/* Nearby POIs for selected waypoint */}
+      {selectedIndex !== null && (
+        <div className="border-t border-gray-200 px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-gray-700">{t("nearbyPoi.heading")}</p>
+          {nearbyPoisState.status === "loading" && (
+            <p className="text-xs text-gray-400">{t("nearbyPoi.loading")}</p>
+          )}
+          {nearbyPoisState.status === "rate_limited" && (
+            <p className="text-xs text-gray-400">{t("nearbyPoi.rateLimited")}</p>
+          )}
+          {(nearbyPoisState.status === "done" || nearbyPoisState.status === "error") && nearbyPoisState.pois.length === 0 && (
+            <p className="text-xs text-gray-400">{t("nearbyPoi.empty")}</p>
+          )}
+          {nearbyPoisState.pois.length > 0 && (
+            <>
+              <ul className="space-y-1">
+                {(showAllNearby ? nearbyPoisState.pois : nearbyPoisState.pois.slice(0, 5)).map((poi) => {
+                  const cat = poiCategories.find((c) => c.id === poi.category);
+                  return (
+                    <li key={poi.id} className="flex items-center gap-2">
+                      <span className="shrink-0 text-sm">{cat?.icon ?? "📍"}</span>
+                      <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
+                        {poi.name ?? cat?.id ?? poi.category}
+                      </span>
+                      <button
+                        onClick={() => snapToPoi(poi)}
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50"
+                      >
+                        {t("nearbyPoi.snap")}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {nearbyPoisState.pois.length > 5 && !showAllNearby && (
+                <button
+                  onClick={() => setShowAllNearby(true)}
+                  className="mt-1 text-[11px] text-blue-500 hover:underline"
+                >
+                  {t("nearbyPoi.showMore")}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Stats footer — only shown for single-day view (multi-day shows per-day stats inline) */}
       {!hasMultipleDays && routeStats && routeStats.distance !== undefined && (

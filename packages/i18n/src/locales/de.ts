@@ -88,6 +88,18 @@ export default {
       viewpoints: "Aussichtspunkte",
       toilets: "Toiletten",
     },
+    waypoint: {
+      notePlaceholder: "Notiz hinzufügen…",
+      noteCounter: "{{count}} / {{max}}",
+    },
+    nearbyPoi: {
+      heading: "In der Nähe",
+      loading: "Suche nach nahegelegenen Orten…",
+      empty: "Keine nahegelegenen Orte gefunden",
+      rateLimited: "POI-Abfrage vorübergehend nicht verfügbar",
+      snap: "Hier einrasten",
+      showMore: "Mehr anzeigen",
+    },
     noGoAreas: {
       draw: "Sperrgebiet zeichnen",
       cancel: "Sperrgebiet abbrechen",

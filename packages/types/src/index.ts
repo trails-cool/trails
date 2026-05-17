@@ -21,6 +21,7 @@ export interface Waypoint {
   lat: number;
   lon: number;
   name?: string;
+  note?: string;
   isDayBreak?: boolean;
   osmId?: number;
   poiTags?: WaypointPoiTags;

@@ -147,6 +147,41 @@ describe("generateGpx", () => {
     expect(plain.poiTags).toBeUndefined();
   });
 
+  it("emits <desc> inside <wpt> when waypoint has a note", () => {
+    const gpx = generateGpx({
+      waypoints: [{ lat: 52.52, lon: 13.405, name: "Berlin", note: "Water refill here" }],
+    });
+    // Should be inside <wpt>, not <metadata>
+    expect(gpx).toContain("<wpt");
+    expect(gpx).toContain("<desc>Water refill here</desc>");
+    // Confirm it's inside the wpt block, not metadata
+    const wptBlock = gpx.slice(gpx.indexOf("<wpt"), gpx.indexOf("</wpt>") + 6);
+    expect(wptBlock).toContain("<desc>Water refill here</desc>");
+  });
+
+  it("roundtrips waypoint note through generate + parse", async () => {
+    const gpx = generateGpx({
+      name: "Test route",
+      description: "Route-level desc",
+      waypoints: [
+        { lat: 52.52, lon: 13.405, name: "Berlin", note: "Bike shop – open weekdays" },
+        { lat: 48.0, lon: 11.0, name: "Munich" },
+      ],
+    });
+    const parsed = await parseGpxAsync(gpx);
+    expect(parsed.waypoints[0]!.note).toBe("Bike shop – open weekdays");
+    expect(parsed.waypoints[1]!.note).toBeUndefined();
+    // Route-level description must not bleed into waypoint notes
+    expect(parsed.description).toBe("Route-level desc");
+  });
+
+  it("escapes XML special chars in notes", () => {
+    const gpx = generateGpx({
+      waypoints: [{ lat: 0, lon: 0, note: 'Water & food <here> "maybe"' }],
+    });
+    expect(gpx).toContain("Water &amp; food &lt;here&gt; &quot;maybe&quot;");
+  });
+
   it("omits extensions element when waypoint has no POI data", () => {
     const gpx = generateGpx({
       waypoints: [{ lat: 52.0, lon: 13.0, name: "Plain" }],

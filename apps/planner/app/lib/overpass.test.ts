@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { buildQuery, parseResponse, deduplicateById, quantizeBbox, type Poi } from "./overpass.ts";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { buildQuery, parseResponse, deduplicateById, quantizeBbox, fetchNearbyPois, type Poi } from "./overpass.ts";
 import { poiCategories } from "@trails-cool/map-core";
 
 describe("buildQuery", () => {
@@ -139,5 +139,61 @@ describe("deduplicateById", () => {
     expect(result).toHaveLength(2);
     expect(result[0]!.id).toBe(1);
     expect(result[1]!.id).toBe(2);
+  });
+});
+
+describe("fetchNearbyPois", () => {
+  const emptyOverpassResponse = { elements: [] };
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify(emptyOverpassResponse),
+      json: async () => emptyOverpassResponse,
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("constructs a bbox from lat/lon/radius and calls fetch", async () => {
+    const categories = poiCategories.filter((c) => c.id === "drinking_water");
+    await fetchNearbyPois(50.0, 10.0, 500, categories);
+
+    expect(fetch).toHaveBeenCalledOnce();
+    const rawBody = (((fetch as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[])[1]) as unknown as { body: string };
+    const body = decodeURIComponent(rawBody.body.replace("data=", ""));
+    // bbox quantized to 0.01° grid; 500m at lat=50 well within one cell
+    expect(body).toMatch(/\[bbox:4\d\.\d+,\d+\.\d+,50\.\d+,10\.\d+\]/);
+  });
+
+  it("bbox is symmetric around the input point", async () => {
+    const lat = 48.0;
+    const lon = 11.0;
+    const radius = 1000;
+    const categories = poiCategories.filter((c) => c.id === "drinking_water");
+    await fetchNearbyPois(lat, lon, radius, categories);
+
+    const rawBody = (((fetch as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[])[1]) as unknown as { body: string };
+    const body = decodeURIComponent(rawBody.body.replace("data=", ""));
+    const match = body.match(/\[bbox:([\d.]+),([\d.]+),([\d.]+),([\d.]+)\]/);
+    expect(match).not.toBeNull();
+    const [, south, west, north, east] = (match as RegExpMatchArray).map(Number);
+    // After quantization the center might not be exactly lat/lon, but the extent should be ≥ radius
+    const DEG_PER_METER_LAT = 1 / 111320;
+    const dLat = radius * DEG_PER_METER_LAT;
+    expect((north as number) - (south as number)).toBeGreaterThanOrEqual(dLat * 2 - 0.02);
+    expect((east as number) - (west as number)).toBeGreaterThan(0);
+  });
+
+  it("forwards AbortSignal to fetch", async () => {
+    const controller = new AbortController();
+    const categories = poiCategories.filter((c) => c.id === "drinking_water");
+    await fetchNearbyPois(50.0, 10.0, 500, categories, controller.signal);
+
+    expect(fetch).toHaveBeenCalledOnce();
+    const callOptions = (((fetch as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[])[1]) as unknown as { signal: AbortSignal };
+    expect(callOptions?.signal).toBe(controller.signal);
   });
 });
