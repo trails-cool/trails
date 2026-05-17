@@ -196,7 +196,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/brouter-segments
-          key: brouter-segment-E10_N50
+          key: brouter-segment-E10_N50-v1.7.9
 
       - name: Download Berlin segment
         if: steps.segment-cache.outputs.cache-hit != 'true'
@@ -220,9 +220,7 @@ jobs:
       - name: Wait for BRouter routing
         run: |
           for i in $(seq 1 60); do
-            RESP=$(curl -s 'http://localhost:17777/brouter?lonlats=13.4,52.5|13.5,52.5&profile=trekking&format=geojson' 2>/dev/null)
-            echo "attempt $i: $(echo "$RESP" | head -c 80)"
-            echo "$RESP" | grep -q "FeatureCollection" && echo "BRouter ready" && break
+            curl -s 'http://localhost:17777/brouter?lonlats=13.4,52.5|13.5,52.5&profile=trekking&format=geojson' 2>/dev/null | grep -q "FeatureCollection" && echo "BRouter ready" && break
             [ "$i" = "60" ] && echo "BRouter not ready after 120s" && exit 1
             sleep 2
           done
