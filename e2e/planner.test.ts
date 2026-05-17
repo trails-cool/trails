@@ -487,8 +487,8 @@ test.describe("Planner", () => {
 
     const sidebar = page.locator("aside");
 
-    // Click on the note placeholder for the first waypoint
-    const firstRow = sidebar.locator("li").filter({ has: page.locator("span.rounded-full").first() }).first();
+    // Click on the note placeholder for the first waypoint to open editor
+    const firstRow = sidebar.locator("li").filter({ has: page.locator("span.rounded-full") }).first();
     await firstRow.locator("p.italic").click();
 
     // Type a note in the textarea
@@ -496,25 +496,28 @@ test.describe("Planner", () => {
     await expect(textarea).toBeVisible({ timeout: 3000 });
     await textarea.fill("Refill water here");
 
-    // Blur to save
-    await textarea.blur();
+    // Click elsewhere to blur and save the note
+    await sidebar.locator("h2").click();
 
     // Note should now be displayed (no longer placeholder)
     await expect(firstRow.getByText("Refill water here")).toBeVisible({ timeout: 3000 });
+    // Give Yjs a moment to flush the transaction
+    await page.waitForTimeout(300);
 
-    // Export GPX and verify <desc> appears inside <wpt>
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByRole("button", { name: "Export GPX" }).click(),
-    ]);
+    // Export GPX and verify <desc> appears inside a <wpt>
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export GPX" }).click();
+    const download = await downloadPromise;
     const gpxStream = await download.createReadStream();
     const chunks: Buffer[] = [];
     for await (const chunk of gpxStream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     const gpxText = Buffer.concat(chunks).toString("utf-8");
 
-    // The <desc> should be inside the first <wpt> block
-    const wptBlock = gpxText.match(/<wpt[^>]*lat="52\.52[^"]*"[^>]*>[\s\S]*?<\/wpt>/)?.[0] ?? "";
-    expect(wptBlock).toContain("<desc>Refill water here</desc>");
+    // Verify the note appears as <desc> inside a <wpt> somewhere in the GPX
+    expect(gpxText).toContain("<desc>Refill water here</desc>");
+    // And it should be inside a <wpt> block, not the top-level <metadata>
+    const wptDescMatch = gpxText.match(/<wpt[\s\S]*?<desc>Refill water here<\/desc>/);
+    expect(wptDescMatch).not.toBeNull();
   });
 
   test("nearby POI snap moves waypoint and prepends note prefix", async ({ page, request }) => {

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Per-waypoint plain-text notes in the Planner, with nearby POI discovery and snap-to-POI functionality.
+
+## Requirements
 
 ### Requirement: Per-waypoint text notes
 Each waypoint SHALL support an optional plain-text note synced via Yjs.
