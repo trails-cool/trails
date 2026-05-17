@@ -28,7 +28,7 @@
 
 ## 6. Verify
 
-- [ ] 6.1 Test full local dev flow: `pnpm dev:full` starts services, pushes schema, seeds data, launches apps — create session, compute route, verify seeded data visible
-- [ ] 6.2 Test monitoring profile: `pnpm dev:full -- --monitoring` starts Prometheus + Grafana + Loki, verify Grafana dashboards load at localhost:3002
-- [ ] 6.3 Test CI flow: push branch, verify e2e job uses compose, all ~20 E2E tests run (none skipped)
-- [ ] 6.4 Test reset: `pnpm dev:reset` wipes volumes and restarts cleanly
+- [x] 6.1 Test full local dev flow: `pnpm dev:full` starts services, pushes schema, seeds data, launches apps — create session, compute route, verify seeded data visible
+- [x] 6.2 Test monitoring profile: `pnpm dev:full -- --monitoring` starts Prometheus + Grafana + Loki, verify Grafana dashboards load at localhost:3002
+- [x] 6.3 Test CI flow: push branch, verify e2e job uses compose, all ~20 E2E tests run (none skipped)
+- [x] 6.4 Test reset: `pnpm dev:reset` wipes volumes and restarts cleanly
