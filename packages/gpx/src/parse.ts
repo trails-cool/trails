@@ -61,7 +61,25 @@ function parseWaypoints(doc: Document): Waypoint[] {
     const name = wpt.querySelector("name")?.textContent ?? undefined;
     const type = wpt.querySelector("type")?.textContent ?? undefined;
     const isDayBreak = type === "overnight" ? true : undefined;
-    return { lat, lon, name, isDayBreak };
+
+    const poiEl = wpt.querySelector("poi, trails\\:poi");
+    let osmId: number | undefined;
+    let poiTags: Waypoint["poiTags"] | undefined;
+    if (poiEl) {
+      const rawOsmId = poiEl.getAttribute("osmId");
+      if (rawOsmId) osmId = parseInt(rawOsmId, 10);
+      const tagEls = poiEl.querySelectorAll("tag, trails\\:tag");
+      if (tagEls.length > 0) {
+        poiTags = {};
+        for (const tagEl of Array.from(tagEls)) {
+          const k = tagEl.getAttribute("k");
+          const v = tagEl.getAttribute("v");
+          if (k && v) (poiTags as Record<string, string>)[k] = v;
+        }
+      }
+    }
+
+    return { lat, lon, name, isDayBreak, osmId, poiTags };
   });
 }
 

@@ -103,4 +103,55 @@ describe("generateGpx", () => {
     expect(gpx).toContain("<name>Day 1: A - B</name>");
     expect(gpx).toContain("<name>Day 2: B - C</name>");
   });
+
+  it("encodes POI metadata as trails:poi extensions", () => {
+    const gpx = generateGpx({
+      waypoints: [
+        {
+          lat: 52.52,
+          lon: 13.405,
+          name: "Bike Shop",
+          osmId: 123456,
+          poiTags: { phone: "+49 30 123", website: "https://example.com", opening_hours: "Mo-Fr 09:00-18:00" },
+        },
+      ],
+    });
+    expect(gpx).toContain('xmlns:trails="https://trails.cool/gpx/1"');
+    expect(gpx).toContain('<trails:poi osmId="123456">');
+    expect(gpx).toContain('<trails:tag k="phone" v="+49 30 123"/>');
+    expect(gpx).toContain('<trails:tag k="website" v="https://example.com"/>');
+    expect(gpx).toContain('<trails:tag k="opening_hours" v="Mo-Fr 09:00-18:00"/>');
+  });
+
+  it("roundtrips POI metadata through generate + parse", async () => {
+    const gpx = generateGpx({
+      waypoints: [
+        {
+          lat: 52.52,
+          lon: 13.405,
+          name: "Campsite",
+          osmId: 987,
+          poiTags: { phone: "+49 30 999", website: "https://camp.example" },
+        },
+        { lat: 48.0, lon: 11.0, name: "Plain waypoint" },
+      ],
+    });
+    const parsed = await parseGpxAsync(gpx);
+    expect(parsed.waypoints).toHaveLength(2);
+    const poi = parsed.waypoints[0]!;
+    expect(poi.osmId).toBe(987);
+    expect(poi.poiTags?.phone).toBe("+49 30 999");
+    expect(poi.poiTags?.website).toBe("https://camp.example");
+    const plain = parsed.waypoints[1]!;
+    expect(plain.osmId).toBeUndefined();
+    expect(plain.poiTags).toBeUndefined();
+  });
+
+  it("omits extensions element when waypoint has no POI data", () => {
+    const gpx = generateGpx({
+      waypoints: [{ lat: 52.0, lon: 13.0, name: "Plain" }],
+    });
+    expect(gpx).not.toContain("<extensions>");
+    expect(gpx).not.toContain("trails:poi");
+  });
 });

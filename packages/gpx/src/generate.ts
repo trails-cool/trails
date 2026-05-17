@@ -17,7 +17,8 @@ export function generateGpx(options: {
   /** When true, splits tracks at overnight waypoints into separate <trk> elements per day */
   splitByDay?: boolean;
 }): string {
-  const hasExtensions = options.noGoAreas && options.noGoAreas.length > 0;
+  const hasPoiWaypoints = options.waypoints?.some((w) => w.osmId || w.poiTags) ?? false;
+  const hasExtensions = (options.noGoAreas && options.noGoAreas.length > 0) || hasPoiWaypoints;
   const lines: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<gpx version="1.1" creator="trails.cool"',
@@ -41,6 +42,20 @@ export function generateGpx(options: {
       }
       if (wpt.isDayBreak) {
         lines.push("    <type>overnight</type>");
+      }
+      if (wpt.osmId !== undefined || (wpt.poiTags && Object.keys(wpt.poiTags).length > 0)) {
+        lines.push("    <extensions>");
+        const osmIdAttr = wpt.osmId !== undefined ? ` osmId="${wpt.osmId}"` : "";
+        lines.push(`      <trails:poi${osmIdAttr}>`);
+        if (wpt.poiTags) {
+          for (const [k, v] of Object.entries(wpt.poiTags)) {
+            if (v !== undefined) {
+              lines.push(`        <trails:tag k="${escapeXml(k)}" v="${escapeXml(v)}"/>`);
+            }
+          }
+        }
+        lines.push("      </trails:poi>");
+        lines.push("    </extensions>");
       }
       lines.push("  </wpt>");
     }

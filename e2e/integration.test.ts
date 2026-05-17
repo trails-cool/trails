@@ -120,6 +120,57 @@ test.describe("Integration: Journal ↔ Planner handoff", () => {
   });
 });
 
+test.describe("Integration: POI metadata roundtrip", () => {
+  test("GPX with POI extensions round-trips through Journal and renders on detail page", async ({ page, request }) => {
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1" xmlns:trails="https://trails.cool/gpx/1">
+  <wpt lat="52.52" lon="13.405">
+    <name>Bike Shop Berlin</name>
+    <extensions>
+      <trails:poi osmId="123456">
+        <trails:tag k="phone" v="+49 30 12345"/>
+        <trails:tag k="website" v="https://bikeshop.example"/>
+        <trails:tag k="opening_hours" v="Mo-Fr 09:00-18:00"/>
+      </trails:poi>
+    </extensions>
+  </wpt>
+  <trk><trkseg>
+    <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="52.51" lon="13.38"><ele>40</ele></trkpt>
+    <trkpt lat="52.50" lon="13.35"><ele>35</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
+    expect(seedResp.ok()).toBeTruthy();
+    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+
+    const callbackResp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { gpx },
+    });
+    expect(callbackResp.status()).toBe(200);
+
+    // Navigate to route detail page and check POI details are rendered
+    await page.goto(`${JOURNAL}/routes/${routeId}`);
+    await expect(page.getByText("Bike Shop Berlin")).toBeVisible();
+    await expect(page.getByText("+49 30 12345")).toBeVisible();
+    await expect(page.getByText("Mo-Fr 09:00-18:00")).toBeVisible();
+    await expect(page.getByRole("link", { name: "https://bikeshop.example" })).toBeVisible();
+  });
+
+  test("GPX without POI extensions shows no waypoints section", async ({ page, request }) => {
+    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
+    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+    await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { gpx: VALID_GPX },
+    });
+    await page.goto(`${JOURNAL}/routes/${routeId}`);
+    await expect(page.getByText("Waypoints")).not.toBeVisible();
+  });
+});
+
 test.describe("Integration: BRouter routing", () => {
   // Helper: mint a planner session so our /api/route calls satisfy
   // the session-bound gate introduced alongside this test file.

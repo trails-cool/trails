@@ -4,11 +4,26 @@
  * These types are used by both the Planner and Journal apps.
  */
 
+export interface WaypointPoiTags {
+  phone?: string;
+  website?: string;
+  opening_hours?: string;
+  "addr:street"?: string;
+  "addr:housenumber"?: string;
+  "addr:postcode"?: string;
+  "addr:city"?: string;
+  amenity?: string;
+  tourism?: string;
+  shop?: string;
+}
+
 export interface Waypoint {
   lat: number;
   lon: number;
   name?: string;
   isDayBreak?: boolean;
+  osmId?: number;
+  poiTags?: WaypointPoiTags;
 }
 
 export interface RouteMetadata {

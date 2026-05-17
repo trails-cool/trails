@@ -30,16 +30,26 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data({ error: "Route not found" }, { status: 404 });
   }
 
-  // Compute per-day stats if route has day breaks and GPX
+  // Parse GPX once for day stats and waypoint POI data
   let dayStats: Array<{ dayNumber: number; startName?: string; endName?: string; distance: number; ascent: number; descent: number }> = [];
-  if (route.dayBreaks && route.dayBreaks.length > 0 && route.gpx) {
+  let waypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; osmId?: number; poiTags?: Record<string, string> }> = [];
+  if (route.gpx) {
     try {
-      const { computeDays } = await import("@trails-cool/gpx");
-      const { parseGpxAsync } = await import("@trails-cool/gpx");
+      const { computeDays, parseGpxAsync } = await import("@trails-cool/gpx");
       const gpxData = await parseGpxAsync(route.gpx);
-      dayStats = computeDays(gpxData.waypoints, gpxData.tracks);
+      waypoints = gpxData.waypoints.map((w) => ({
+        lat: w.lat,
+        lon: w.lon,
+        name: w.name,
+        isDayBreak: w.isDayBreak,
+        osmId: w.osmId,
+        poiTags: w.poiTags as Record<string, string> | undefined,
+      }));
+      if (route.dayBreaks && route.dayBreaks.length > 0) {
+        dayStats = computeDays(gpxData.waypoints, gpxData.tracks);
+      }
     } catch {
-      // Fall back to no day stats
+      // Fall back to empty
     }
   }
 
@@ -119,6 +129,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       updatedAt: route.updatedAt.toISOString(),
     },
     dayStats,
+    waypoints,
     versions: route.versions.map((v) => ({
       version: v.version,
       changeDescription: v.changeDescription,
@@ -187,7 +198,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
-  const { route, dayStats, versions, isOwner, wahooPush } = loaderData;
+  const { route, dayStats, waypoints, versions, isOwner, wahooPush } = loaderData;
   const { t, i18n } = useTranslation("journal");
   const [editLoading, setEditLoading] = useState(false);
   const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
@@ -384,6 +395,56 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {waypoints.some((w) => w.osmId || w.poiTags) && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">{t("routes.waypoints")}</h2>
+          <ul className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200">
+            {waypoints.filter((w) => w.osmId || w.poiTags || w.name).map((w, i) => (
+              <li key={i} className="px-4 py-3">
+                <p className="font-medium text-gray-900">
+                  {w.name ?? `${w.lat.toFixed(5)}, ${w.lon.toFixed(5)}`}
+                </p>
+                {w.poiTags && (
+                  <dl className="mt-1 space-y-0.5 text-sm text-gray-600">
+                    {w.poiTags.phone && (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-400">{t("routes.poi.phone")}</dt>
+                        <dd><a href={`tel:${w.poiTags.phone}`} className="hover:underline">{w.poiTags.phone}</a></dd>
+                      </div>
+                    )}
+                    {w.poiTags.website && (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-400">{t("routes.poi.website")}</dt>
+                        <dd><a href={w.poiTags.website} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">{w.poiTags.website}</a></dd>
+                      </div>
+                    )}
+                    {w.poiTags.opening_hours && (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-400">{t("routes.poi.openingHours")}</dt>
+                        <dd>{w.poiTags.opening_hours}</dd>
+                      </div>
+                    )}
+                    {(w.poiTags["addr:street"] || w.poiTags["addr:city"]) && (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 text-gray-400">{t("routes.poi.address")}</dt>
+                        <dd>
+                          {[
+                            w.poiTags["addr:street"] && `${w.poiTags["addr:street"]}${w.poiTags["addr:housenumber"] ? " " + w.poiTags["addr:housenumber"] : ""}`,
+                            w.poiTags["addr:postcode"] && w.poiTags["addr:city"]
+                              ? `${w.poiTags["addr:postcode"]} ${w.poiTags["addr:city"]}`
+                              : w.poiTags["addr:city"],
+                          ].filter(Boolean).join(", ")}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
