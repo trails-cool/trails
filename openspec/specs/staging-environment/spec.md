@@ -1,3 +1,7 @@
+## Purpose
+
+Production-like staging and ephemeral PR preview environments running alongside production on the flagship server, enabling integration testing before merge and live URL sharing with reviewers.
+
 ## Requirements
 
 ### Requirement: Persistent staging instance
