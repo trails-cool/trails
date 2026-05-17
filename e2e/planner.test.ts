@@ -469,4 +469,105 @@ test.describe("Planner", () => {
     const panelText = await page.getByText("Drinking water").textContent();
     expect(panelText).toBeTruthy();
   });
+
+  test("waypoint note persists and appears in GPX export", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    await mockBRouter(page);
+
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405, name: "Berlin" },
+      { lat: 52.515, lon: 13.351, name: "Spandau" },
+    ]))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Waypoints (2)")).toBeVisible({ timeout: 5000 });
+
+    const sidebar = page.locator("aside");
+
+    // Click on the note placeholder for the first waypoint
+    const firstRow = sidebar.locator("li").filter({ has: page.locator("span.rounded-full").first() }).first();
+    await firstRow.locator("p.italic").click();
+
+    // Type a note in the textarea
+    const textarea = firstRow.locator("textarea");
+    await expect(textarea).toBeVisible({ timeout: 3000 });
+    await textarea.fill("Refill water here");
+
+    // Blur to save
+    await textarea.blur();
+
+    // Note should now be displayed (no longer placeholder)
+    await expect(firstRow.getByText("Refill water here")).toBeVisible({ timeout: 3000 });
+
+    // Export GPX and verify <desc> appears inside <wpt>
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Export GPX" }).click(),
+    ]);
+    const gpxStream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of gpxStream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const gpxText = Buffer.concat(chunks).toString("utf-8");
+
+    // The <desc> should be inside the first <wpt> block
+    const wptBlock = gpxText.match(/<wpt[^>]*lat="52\.52[^"]*"[^>]*>[\s\S]*?<\/wpt>/)?.[0] ?? "";
+    expect(wptBlock).toContain("<desc>Refill water here</desc>");
+  });
+
+  test("nearby POI snap moves waypoint and prepends note prefix", async ({ page, request }) => {
+    const sessionResp = await request.post("/api/sessions", { data: {} });
+    const { url } = await sessionResp.json();
+
+    await mockBRouter(page);
+
+    // Mock the Overpass proxy to return a nearby POI
+    await page.route("**/api/overpass", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          elements: [
+            {
+              type: "node",
+              id: 99001,
+              lat: 52.521,
+              lon: 13.406,
+              tags: { amenity: "drinking_water", name: "Stadtbrunnen" },
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
+      { lat: 52.520, lon: 13.405, name: "Start" },
+      { lat: 52.515, lon: 13.351, name: "End" },
+    ]))}`);
+
+    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Waypoints (2)")).toBeVisible({ timeout: 5000 });
+
+    const sidebar = page.locator("aside");
+
+    // Click the first waypoint row to select it (triggers nearby POI fetch)
+    const firstRow = sidebar.locator("li").filter({ has: page.locator("span.rounded-full").first() }).first();
+    await firstRow.click();
+
+    // Wait for the Nearby section to appear with the mock POI
+    await expect(sidebar.getByText("Nearby")).toBeVisible({ timeout: 5000 });
+    await expect(sidebar.getByText("Stadtbrunnen")).toBeVisible({ timeout: 5000 });
+
+    // Click the snap button for that POI
+    const snapButton = sidebar.locator("li").filter({ hasText: "Stadtbrunnen" }).getByRole("button", { name: /snap/i });
+    await snapButton.click();
+
+    // The waypoint note should now contain the POI prefix (water emoji + name)
+    await expect(firstRow.locator("p.italic")).not.toHaveText(/Add a note/);
+    const noteText = await firstRow.locator("p.italic").textContent();
+    expect(noteText).toContain("Stadtbrunnen");
+  });
 });
