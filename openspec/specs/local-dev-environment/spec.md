@@ -51,3 +51,31 @@ The Planner SHALL be able to compute routes locally in the dev environment.
 #### Scenario: Compute a route in Berlin
 - **WHEN** a developer sends a route request with two Berlin waypoints to the local Planner
 - **THEN** the Planner proxies to local BRouter and returns a valid GeoJSON route
+
+### Requirement: Optional local monitoring stack
+The dev environment SHALL support an optional monitoring profile matching the production stack.
+
+#### Scenario: Start with monitoring
+- **WHEN** a developer runs `pnpm dev:full` with `--monitoring`
+- **THEN** Prometheus, Grafana, and Loki start alongside the app services
+
+### Requirement: Production-aligned PostgreSQL config
+The dev PostgreSQL SHALL match production configuration including pg_stat_statements.
+
+#### Scenario: pg_stat_statements available
+- **WHEN** the dev PostgreSQL container starts
+- **THEN** pg_stat_statements is enabled via initialization scripts
+
+### Requirement: Database seed script
+The dev environment SHALL provide a seed script for consistent test data.
+
+#### Scenario: Seed database
+- **WHEN** a developer runs `pnpm db:seed`
+- **THEN** test users, routes, and activities are created idempotently in the local database
+
+### Requirement: Dev environment reset
+The dev environment SHALL provide a command to tear down and recreate the local stack.
+
+#### Scenario: Reset dev environment
+- **WHEN** a developer runs `pnpm dev:reset`
+- **THEN** all Docker volumes are removed and containers are recreated
