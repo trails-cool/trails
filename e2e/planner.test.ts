@@ -496,13 +496,16 @@ test.describe("Planner", () => {
     await expect(textarea).toBeVisible({ timeout: 3000 });
     await textarea.fill("Refill water here");
 
-    // Click elsewhere to blur and save the note
-    await sidebar.locator("h2").click();
+    // Blur the textarea directly to trigger the onBlur save handler
+    await textarea.evaluate((el) => el.blur());
 
-    // Note should now be displayed (no longer placeholder)
+    // Wait for the textarea to disappear (confirms onBlur fired and editingNoteIndex reset)
+    await expect(textarea).not.toBeVisible({ timeout: 3000 });
+
+    // Note should now be displayed as static text
     await expect(firstRow.getByText("Refill water here")).toBeVisible({ timeout: 3000 });
-    // Give Yjs a moment to flush the transaction
-    await page.waitForTimeout(300);
+    // Allow Yjs transaction to flush
+    await page.waitForTimeout(500);
 
     // Open the export dropdown (▾ chevron next to Export GPX), then click Export Plan
     await page.getByRole("button", { name: "▾" }).click();
