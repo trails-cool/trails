@@ -24,11 +24,11 @@ services:
     volumes:
       - brouter_segments:/data/segments
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf 'http://localhost:17777/brouter?lonlats=13.4,52.5|13.5,52.5&profile=trekking&format=geojson' > /dev/null"]
-      interval: 10s
-      timeout: 10s
-      retries: 18
-      start_period: 30s
+      test: ["CMD-SHELL", "curl -s http://localhost:17777/ > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   prometheus:
     image: prom/prometheus:latest
