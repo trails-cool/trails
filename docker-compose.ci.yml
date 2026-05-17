@@ -1,0 +1,4 @@
+services:
+  brouter:
+    volumes:
+      - /tmp/brouter-segments:/data/segments

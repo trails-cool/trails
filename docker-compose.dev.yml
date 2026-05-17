@@ -7,8 +7,10 @@ services:
       POSTGRES_USER: trails
       POSTGRES_PASSWORD: trails
       POSTGRES_DB: trails
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init-grafana-user.sql:/docker-entrypoint-initdb.d/init-grafana-user.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trails"]
       interval: 5s
@@ -22,6 +24,42 @@ services:
     volumes:
       - brouter_segments:/data/segments
 
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: [monitoring]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: [monitoring]
+    ports:
+      - "3002:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+
+  loki:
+    image: grafana/loki:latest
+    profiles: [monitoring]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infrastructure/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+
 volumes:
   pgdata:
   brouter_segments:
+  prometheus_data:
+  grafana_data:
+  loki_data:
