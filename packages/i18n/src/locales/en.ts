@@ -225,6 +225,13 @@ export default {
       elevationGain: "Elevation Gain",
       dayBreakdown: "Day Breakdown",
       dayLabel: "Day {{n}}",
+      waypoints: "Waypoints",
+      poi: {
+        phone: "Phone",
+        website: "Website",
+        openingHours: "Hours",
+        address: "Address",
+      },
       noRoutesYet: "No routes yet. Create your first route!",
       noMapPreview: "No map preview",
       saveChanges: "Save Changes",

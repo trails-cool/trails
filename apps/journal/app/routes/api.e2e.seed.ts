@@ -60,6 +60,7 @@ export async function action({ request }: { request: Request }) {
     ? await request.json().catch(() => ({}))
     : {};
   const routeName = (body as { routeName?: string }).routeName ?? "E2E callback test route";
+  const visibility = (body as { visibility?: string }).visibility ?? "public";
 
   const routeId = randomUUID();
   await db.insert(routes).values({
@@ -67,6 +68,7 @@ export async function action({ request }: { request: Request }) {
     ownerId: user.id,
     name: routeName,
     description: "",
+    visibility: visibility as "public" | "unlisted" | "private",
   });
 
   const token = await createRouteToken(routeId);
