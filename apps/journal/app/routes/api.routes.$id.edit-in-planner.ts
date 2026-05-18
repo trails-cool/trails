@@ -35,7 +35,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   const session = (await sessionResp.json()) as {
     url: string;
-    initialWaypoints?: Array<{ lat: number; lon: number; name?: string }>;
+    initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; note?: string; osmId?: number; poiTags?: Record<string, string> }>;
     initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
     initialNotes?: string;
   };

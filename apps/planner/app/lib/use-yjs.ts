@@ -42,7 +42,7 @@ export interface YjsState {
 
 export function useYjs(
   sessionId: string,
-  initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>,
+  initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; note?: string; osmId?: number; poiTags?: Record<string, string> }>,
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>,
   initialNotes?: string,
 ): YjsState | null {
@@ -108,6 +108,9 @@ export function useYjs(
               yMap.set("lon", wp.lon);
               if (wp.name) yMap.set("name", wp.name);
               if (wp.isDayBreak) yMap.set("overnight", true);
+              if (wp.note) yMap.set("note", wp.note);
+              if (wp.osmId !== undefined) yMap.set("osmId", wp.osmId);
+              if (wp.poiTags) yMap.set("poiTags", wp.poiTags);
               waypoints.push([yMap]);
             }
             if (initialNoGoAreas?.length && noGoAreas.length === 0) {
