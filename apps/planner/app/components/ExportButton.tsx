@@ -25,6 +25,7 @@ function getWaypoints(yjs: YjsState) {
     lon: yMap.get("lon") as number,
     name: yMap.get("name") as string | undefined,
     isDayBreak: yMap.get("overnight") === true ? true : undefined,
+    note: yMap.get("note") as string | undefined,
     osmId: yMap.get("osmId") as number | undefined,
     poiTags: yMap.get("poiTags") as WaypointPoiTags | undefined,
   }));
