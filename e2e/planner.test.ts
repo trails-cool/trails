@@ -470,44 +470,47 @@ test.describe("Planner", () => {
     expect(panelText).toBeTruthy();
   });
 
-  test("waypoint note persists and appears in GPX export", async ({ page, request }) => {
+  test("waypoint note roundtrips through GPX import and export", async ({ page, request }) => {
     const sessionResp = await request.post("/api/sessions", { data: {} });
     const { url } = await sessionResp.json();
 
     await mockBRouter(page);
 
-    await page.goto(`${url}?waypoints=${encodeURIComponent(JSON.stringify([
-      { lat: 52.520, lon: 13.405, name: "Berlin" },
-      { lat: 52.515, lon: 13.351, name: "Spandau" },
-    ]))}`);
+    // Drop a GPX with a <desc> on a <wpt> onto the map
+    const gpxWithNote = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="52.52" lon="13.405"><name>Berlin</name><desc>Refill water here</desc></wpt>
+  <wpt lat="52.515" lon="13.351"><name>Spandau</name></wpt>
+  <trk><trkseg>
+    <trkpt lat="52.520" lon="13.405"><ele>34</ele></trkpt>
+    <trkpt lat="52.515" lon="13.351"><ele>40</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
 
+    await page.goto(url);
     await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Connected")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("Waypoints (2)")).toBeVisible({ timeout: 5000 });
 
+    const dataTransfer = await page.evaluateHandle((content) => {
+      const dt = new DataTransfer();
+      const file = new File([content], "noted.gpx", { type: "application/gpx+xml" });
+      dt.items.add(file);
+      return dt;
+    }, gpxWithNote);
+
+    const map = page.locator(".leaflet-container");
+    await map.dispatchEvent("dragenter", { dataTransfer });
+    await page.getByText("Drop GPX file here").waitFor({ timeout: 3000 });
+    page.on("dialog", (dialog) => dialog.accept());
+    await map.dispatchEvent("drop", { dataTransfer });
+
+    await expect(page.getByText("Waypoints (2)")).toBeVisible({ timeout: 10000 });
+
+    // The note should be visible in the sidebar
     const sidebar = page.locator("aside");
+    await expect(sidebar.getByText("Refill water here")).toBeVisible({ timeout: 5000 });
 
-    // Click on the note placeholder for the first waypoint to open editor
-    const firstRow = sidebar.locator("li").filter({ has: page.locator("span.rounded-full") }).first();
-    await firstRow.locator("p.italic").click();
-
-    // Type a note in the textarea
-    const textarea = firstRow.locator("textarea");
-    await expect(textarea).toBeVisible({ timeout: 3000 });
-    await textarea.fill("Refill water here");
-
-    // Blur the textarea directly to trigger the onBlur save handler
-    await textarea.evaluate((el) => el.blur());
-
-    // Wait for the textarea to disappear (confirms onBlur fired and editingNoteIndex reset)
-    await expect(textarea).not.toBeVisible({ timeout: 3000 });
-
-    // Note should now be displayed as static text
-    await expect(firstRow.getByText("Refill water here")).toBeVisible({ timeout: 3000 });
-    // Allow Yjs transaction to flush
-    await page.waitForTimeout(500);
-
-    // Open the export dropdown (▾ chevron next to Export GPX), then click Export Plan
+    // Export as plan and verify the note is preserved
     await page.getByRole("button", { name: "▾" }).click();
     await expect(page.getByText("Export Plan")).toBeVisible({ timeout: 3000 });
     const downloadPromise = page.waitForEvent("download");
@@ -518,11 +521,8 @@ test.describe("Planner", () => {
     for await (const chunk of gpxStream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     const gpxText = Buffer.concat(chunks).toString("utf-8");
 
-    // Verify the note appears as <desc> inside a <wpt> somewhere in the GPX
     expect(gpxText).toContain("<desc>Refill water here</desc>");
-    // And it should be inside a <wpt> block, not the top-level <metadata>
-    const wptDescMatch = gpxText.match(/<wpt[\s\S]*?<desc>Refill water here<\/desc>/);
-    expect(wptDescMatch).not.toBeNull();
+    expect(gpxText.indexOf("<wpt")).toBeLessThan(gpxText.indexOf("<desc>Refill water here</desc>"));
   });
 
   test("nearby POI snap moves waypoint and prepends note prefix", async ({ page, request }) => {
