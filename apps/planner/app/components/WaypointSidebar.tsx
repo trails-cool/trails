@@ -8,6 +8,7 @@ import { DayBreakdown } from "./DayBreakdown";
 import { useNearbyPois } from "~/lib/use-nearby-pois";
 import { poiCategories } from "@trails-cool/map-core";
 import type { Poi } from "~/lib/overpass";
+import { waypointFromYMap } from "~/lib/waypoint-ymap";
 
 const NOTE_MAX = 500;
 
@@ -20,13 +21,10 @@ interface WaypointData {
 }
 
 function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
-  return waypoints.toArray().map((yMap) => ({
-    lat: yMap.get("lat") as number,
-    lon: yMap.get("lon") as number,
-    name: yMap.get("name") as string | undefined,
-    note: yMap.get("note") as string | undefined,
-    overnight: isOvernight(yMap),
-  }));
+  return waypoints.toArray().map((yMap) => {
+    const wp = waypointFromYMap(yMap);
+    return { lat: wp.lat, lon: wp.lon, name: wp.name, note: wp.note, overnight: isOvernight(yMap) };
+  });
 }
 
 interface WaypointSidebarProps {

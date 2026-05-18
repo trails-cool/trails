@@ -32,7 +32,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   // Parse GPX once for day stats and waypoint POI data
   let dayStats: Array<{ dayNumber: number; startName?: string; endName?: string; distance: number; ascent: number; descent: number }> = [];
-  let waypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; osmId?: number; poiTags?: Record<string, string> }> = [];
+  let waypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; note?: string; osmId?: number; poiTags?: Record<string, string> }> = [];
   if (route.gpx) {
     try {
       const { computeDays, parseGpxAsync } = await import("@trails-cool/gpx");
@@ -42,6 +42,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         lon: w.lon,
         name: w.name,
         isDayBreak: w.isDayBreak,
+        note: w.note,
         osmId: w.osmId,
         poiTags: w.poiTags as Record<string, string> | undefined,
       }));
@@ -398,15 +399,18 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      {waypoints.some((w) => w.osmId || w.poiTags) && (
+      {waypoints.some((w) => w.osmId || w.poiTags || w.note) && (
         <div className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">{t("routes.waypoints")}</h2>
           <ul className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200">
-            {waypoints.filter((w) => w.osmId || w.poiTags || w.name).map((w, i) => (
+            {waypoints.filter((w) => w.osmId || w.poiTags || w.note || w.name).map((w, i) => (
               <li key={i} className="px-4 py-3">
                 <p className="font-medium text-gray-900">
                   {w.name ?? `${w.lat.toFixed(5)}, ${w.lon.toFixed(5)}`}
                 </p>
+                {w.note && (
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">{w.note}</p>
+                )}
                 {w.poiTags && (
                   <dl className="mt-1 space-y-0.5 text-sm text-gray-600">
                     {w.poiTags.phone && (

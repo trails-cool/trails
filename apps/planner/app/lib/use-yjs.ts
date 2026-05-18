@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
+import type { Waypoint } from "@trails-cool/types";
+import { waypointToYMap } from "~/lib/waypoint-ymap";
 
 const COLORS = [
   "#ef4444", "#f97316", "#eab308", "#22c55e",
@@ -42,7 +44,7 @@ export interface YjsState {
 
 export function useYjs(
   sessionId: string,
-  initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>,
+  initialWaypoints?: Waypoint[],
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>,
   initialNotes?: string,
 ): YjsState | null {
@@ -103,12 +105,7 @@ export function useYjs(
           initializedWaypoints.current = true;
           doc.transact(() => {
             for (const wp of initialWaypoints) {
-              const yMap = new Y.Map();
-              yMap.set("lat", wp.lat);
-              yMap.set("lon", wp.lon);
-              if (wp.name) yMap.set("name", wp.name);
-              if (wp.isDayBreak) yMap.set("overnight", true);
-              waypoints.push([yMap]);
+              waypoints.push([waypointToYMap(wp)]);
             }
             if (initialNoGoAreas?.length && noGoAreas.length === 0) {
               for (const area of initialNoGoAreas) {

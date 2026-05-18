@@ -6,6 +6,7 @@ import { usePois } from "~/lib/use-pois";
 import { snapToPoi } from "~/lib/poi-snap";
 import { isOvernight } from "~/lib/overnight";
 import { findSegmentForPoint } from "~/components/ColoredRoute";
+import { waypointFromYMap } from "~/lib/waypoint-ymap";
 
 export interface WaypointData {
   lat: number;
@@ -16,13 +17,10 @@ export interface WaypointData {
 }
 
 function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
-  return waypoints.toArray().map((yMap) => ({
-    lat: yMap.get("lat") as number,
-    lon: yMap.get("lon") as number,
-    name: yMap.get("name") as string | undefined,
-    note: yMap.get("note") as string | undefined,
-    overnight: isOvernight(yMap),
-  }));
+  return waypoints.toArray().map((yMap) => {
+    const wp = waypointFromYMap(yMap);
+    return { lat: wp.lat, lon: wp.lon, name: wp.name, note: wp.note, overnight: isOvernight(yMap) };
+  });
 }
 
 function pointToSegmentDist(

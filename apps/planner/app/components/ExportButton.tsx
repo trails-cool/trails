@@ -4,7 +4,7 @@ import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { generateGpx, computeDays } from "@trails-cool/gpx";
 import type { TrackPoint, NoGoArea } from "@trails-cool/gpx";
-import type { WaypointPoiTags } from "@trails-cool/types";
+import { waypointFromYMap } from "~/lib/waypoint-ymap";
 
 function getTracks(yjs: YjsState): TrackPoint[][] {
   const geojsonStr = yjs.routeData.get("geojson") as string | undefined;
@@ -20,15 +20,7 @@ function getTracks(yjs: YjsState): TrackPoint[][] {
 }
 
 function getWaypoints(yjs: YjsState) {
-  return yjs.waypoints.toArray().map((yMap: Y.Map<unknown>) => ({
-    lat: yMap.get("lat") as number,
-    lon: yMap.get("lon") as number,
-    name: yMap.get("name") as string | undefined,
-    isDayBreak: yMap.get("overnight") === true ? true : undefined,
-    note: yMap.get("note") as string | undefined,
-    osmId: yMap.get("osmId") as number | undefined,
-    poiTags: yMap.get("poiTags") as WaypointPoiTags | undefined,
-  }));
+  return yjs.waypoints.toArray().map(waypointFromYMap);
 }
 
 function getNoGoAreas(yjs: YjsState): NoGoArea[] {

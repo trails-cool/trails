@@ -3,6 +3,7 @@ import type { Route } from "./+types/api.sessions";
 import { createSession, listSessions } from "~/lib/sessions";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { withDb } from "@trails-cool/db";
+import type { Waypoint } from "@trails-cool/types";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -19,7 +20,7 @@ export async function action({ request }: Route.ActionArgs) {
   return withDb(async () => {
     const session = await createSession({ callbackUrl, callbackToken });
 
-    let initialWaypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }> | undefined;
+    let initialWaypoints: Waypoint[] | undefined;
     let initialNoGoAreas: Array<{ points: Array<{ lat: number; lon: number }> }> | undefined;
     let initialNotes: string | undefined;
     if (gpx) {
