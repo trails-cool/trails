@@ -53,6 +53,7 @@ export function useGpxDrop(yjs: YjsState, onImportError?: (message: string) => v
           yMap.set("lon", wp.lon);
           if (wp.name) yMap.set("name", wp.name);
           if (wp.isDayBreak) yMap.set("overnight", true);
+          if (wp.note) yMap.set("note", wp.note);
           yjs.waypoints.push([yMap]);
         }
 

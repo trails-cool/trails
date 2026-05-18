@@ -29,7 +29,7 @@
 ## 6. Testing (Notes)
 
 - [x] 6.1 Unit tests: per-waypoint `<desc>` in GPX generation; `<desc>` inside `<wpt>` parsed into `note`; verify no collision with `metadata > desc`
-- [ ] 6.2 E2E test: type a note in sidebar, blur, verify note persists; verify GPX export contains `<desc>` inside `<wpt>`
+- [x] 6.2 E2E test: type a note in sidebar, blur, verify note persists; verify GPX export contains `<desc>` inside `<wpt>`
 
 ## 7. POI Data Layer (per-waypoint)
 
@@ -62,4 +62,4 @@
 - [x] 11.2 POI cache unit tests — `poi-cache.test.ts` already covers this
 - [x] 11.3 Unit tests for `fetchNearbyPois`: correct bbox from lat/lon/radius, category filtering
 - [x] 11.4 Unit tests for snap: coords updated, name set, note prefix prepended, existing note preserved, all in one Yjs transaction
-- [ ] 11.5 E2E test: mock Overpass via route handler, select a waypoint, verify Nearby list appears, click snap, verify waypoint moved and note prefixed
+- [x] 11.5 E2E test: mock Overpass via route handler, select a waypoint, verify Nearby list appears, click snap, verify waypoint moved and note prefixed
