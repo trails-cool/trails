@@ -3,6 +3,7 @@ import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
+import { waypointToYMap } from "~/lib/waypoint-ymap";
 
 export function useGpxDrop(yjs: YjsState, onImportError?: (message: string) => void) {
   const { t } = useTranslation("planner");
@@ -48,13 +49,7 @@ export function useGpxDrop(yjs: YjsState, onImportError?: (message: string) => v
       yjs.doc.transact(() => {
         yjs.waypoints.delete(0, yjs.waypoints.length);
         for (const wp of newWaypoints) {
-          const yMap = new Y.Map();
-          yMap.set("lat", wp.lat);
-          yMap.set("lon", wp.lon);
-          if (wp.name) yMap.set("name", wp.name);
-          if (wp.isDayBreak) yMap.set("overnight", true);
-          if (wp.note) yMap.set("note", wp.note);
-          yjs.waypoints.push([yMap]);
+          yjs.waypoints.push([waypointToYMap(wp)]);
         }
 
         yjs.noGoAreas.delete(0, yjs.noGoAreas.length);

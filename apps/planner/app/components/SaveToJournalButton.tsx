@@ -4,7 +4,7 @@ import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
 import { generateGpx } from "@trails-cool/gpx";
 import type { TrackPoint, NoGoArea } from "@trails-cool/gpx";
-import type { WaypointPoiTags } from "@trails-cool/types";
+import { waypointFromYMap } from "~/lib/waypoint-ymap";
 
 interface SaveToJournalButtonProps {
   yjs: YjsState;
@@ -42,15 +42,7 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
         points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
       })).filter((a) => a.points.length >= 3);
 
-      const waypoints = yjs.waypoints.toArray().map((yMap: Y.Map<unknown>) => ({
-        lat: yMap.get("lat") as number,
-        lon: yMap.get("lon") as number,
-        name: yMap.get("name") as string | undefined,
-        isDayBreak: yMap.get("overnight") === true ? true : undefined,
-        note: yMap.get("note") as string | undefined,
-        osmId: yMap.get("osmId") as number | undefined,
-        poiTags: yMap.get("poiTags") as WaypointPoiTags | undefined,
-      }));
+      const waypoints = yjs.waypoints.toArray().map(waypointFromYMap);
 
       const notes = yjs.notes.toString() || undefined;
       const gpx = generateGpx({ name: "trails.cool route", description: notes, waypoints, tracks, noGoAreas });
