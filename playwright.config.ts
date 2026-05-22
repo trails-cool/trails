@@ -25,7 +25,7 @@ export default defineConfig({
     },
     {
       name: "planner",
-      testMatch: "planner.test.ts",
+      testMatch: "planner-*.test.ts",
       use: {
         ...devices["Desktop Chrome"],
         baseURL: "http://localhost:3001",
