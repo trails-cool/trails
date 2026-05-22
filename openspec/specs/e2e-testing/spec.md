@@ -1,3 +1,7 @@
+## Purpose
+
+Define the structure and conventions for the E2E test suite so tests are maintainable, deterministic, and easy to extend.
+
 ## Requirements
 
 ### Requirement: Planner E2E test infrastructure
