@@ -14,5 +14,12 @@ export async function action({ params, request }: Route.ActionArgs) {
   // the local row regardless of revoke outcome. Imported activities are
   // retained (FK is set null on imports.activityId, not cascaded).
   await unlinkByUserProvider(user.id, manifest.id);
-  return redirect("/settings");
+
+  const referer = request.headers.get("referer");
+  const url = referer ? new URL(referer) : null;
+  let back = "/settings/connections";
+  if (url?.pathname.startsWith("/settings") && !url.pathname.startsWith("/settings/connections/")) {
+    back = url.pathname;
+  }
+  return redirect(back);
 }
