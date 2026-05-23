@@ -37,6 +37,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       name: m.displayName,
       connected: !!conn,
       providerUserId: conn?.providerUserId,
+      connectUrl: m.connectUrl ?? null,
     };
   });
 
@@ -94,7 +95,7 @@ export default function ConnectionsSettings({ loaderData }: Route.ComponentProps
               </div>
             ) : (
               <a
-                href={`/api/sync/connect/${p.id}`}
+                href={p.connectUrl ?? `/api/sync/connect/${p.id}`}
                 className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
               >
                 {t("settings.services.connect")}

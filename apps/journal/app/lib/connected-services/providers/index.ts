@@ -4,8 +4,10 @@
 
 import { registerManifest } from "../registry.ts";
 import { wahooManifest } from "./wahoo/manifest.ts";
+import { komootManifest } from "./komoot/manifest.ts";
 
 registerManifest(wahooManifest);
+registerManifest(komootManifest);
 
 // Re-export so callers (mostly tests) can grab a manifest directly.
-export { wahooManifest };
+export { wahooManifest, komootManifest };

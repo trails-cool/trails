@@ -96,6 +96,9 @@ export interface ProviderManifest {
   oauthConfig?: ProviderOAuthConfig;
   // OAuth scopes requested at connect time. Wahoo grants all-or-nothing.
   scopes?: string[];
+  // Custom connect page URL. When set, the connections settings page links
+  // here instead of the default OAuth connect endpoint.
+  connectUrl?: string;
   // OAuth authorization URL builder (for the connect flow).
   buildAuthUrl?: (redirectUri: string, state: string) => string;
   // OAuth code exchange (for the callback). Returns the credential blob to

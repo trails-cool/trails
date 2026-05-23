@@ -285,6 +285,15 @@ export default function PrivacyPage() {
             die Wahoo-Verbindung jederzeit in den Einstellungen trennen.
           </li>
           <li>
+            <strong>Komoot</strong> (Komoot GmbH) – Optionaler Import von
+            Touren aus Komoot. Im öffentlichen Modus wird ausschließlich
+            die Komoot-Nutzer-ID gespeichert; es werden keine Zugangsdaten
+            erfasst. Im authentifizierten Modus werden E-Mail-Adresse und
+            Passwort verschlüsselt gespeichert, um auch private Touren zu
+            importieren. Die Verbindung kann jederzeit in den Einstellungen
+            getrennt werden.
+          </li>
+          <li>
             <strong>Hosting</strong> – Die Dienste werden in Rechenzentren
             innerhalb der EU betrieben. Ein Auftragsverarbeitungsvertrag mit
             dem Hoster besteht.
@@ -300,7 +309,9 @@ export default function PrivacyPage() {
           Wahoo (only when you opt in: OAuth tokens for sync, plus route
           geometry/name/description when you click &ldquo;Send to
           Wahoo&rdquo; on a route — sent so the route appears on your
-          ELEMNT/BOLT/ROAM); hosting provider in the EU under a DPA.
+          ELEMNT/BOLT/ROAM); Komoot (only when you opt in: public mode
+          stores your Komoot user ID only; authenticated mode stores your
+          encrypted Komoot password); hosting provider in the EU under a DPA.
         </p>
       </section>
 
