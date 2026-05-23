@@ -1,51 +1,42 @@
-## 1. Database Schema
+## 1. Komoot API Client
 
-- [ ] 1.1 Add `journal.integrations` table (id, userId, provider enum, encryptedCredentials, apiUsername, status, lastSyncedAt, createdAt)
-- [ ] 1.2 Add `journal.import_batches` table (id, userId, integrationId, status enum, totalFound, importedCount, duplicateCount, errorMessage, startedAt, completedAt)
-- [ ] 1.3 Add `dedupeKey` column to `journal.activities` table with unique constraint on (ownerId, dedupeKey)
-- [ ] 1.4 Add `source` column to `journal.routes` table (nullable, e.g. "komoot", "manual", "gpx-upload")
-- [ ] 1.5 Run `pnpm db:push` and verify schema locally
+- [ ] 1.1 Add `fetchPublicProfile(komootUserId)` to `komoot.server.ts` — unauthenticated GET of `api.komoot.de/v007/users/{id}/`, returns `{ displayName, contentText, contentLink }`
+- [ ] 1.2 Add `fetchPublicTours(komootUserId, page)` to `komoot.server.ts` — unauthenticated GET with `?status=public&limit=50`
+- [ ] 1.3 Add `fetchPublicTourGpx(tourId)` — unauthenticated GPX fetch for public tours
+- [ ] 1.4 Update `KomootCredentials` type to be a discriminated union: `{ mode: 'public'; username: string } | { mode: 'authenticated'; email: string; password: string; username: string; token: string }`
+- [ ] 1.5 Update `fetchTours` / `fetchTourGpx` to branch on credential mode (use auth header only in authenticated mode)
+- [ ] 1.6 Add unit tests for `fetchPublicProfile` response parsing and bio verification logic
 
-## 2. Credential Encryption
+## 2. Verification Logic
 
-- [ ] 2.1 Create `apps/journal/app/lib/crypto.server.ts` with AES-256-GCM encrypt/decrypt using `INTEGRATION_SECRET` env var
-- [ ] 2.2 Write unit tests for encrypt/decrypt roundtrip
+- [ ] 2.1 Add `verifyKomootOwnership(komootUserId, trailsProfileUrl)` in `komoot.server.ts` — fetches public profile, checks `content_text` contains the trails.cool URL (case-insensitive, trimmed)
+- [ ] 2.2 Write unit tests for verification: match, no match, null bio, trailing slash variations
 
-## 3. Komoot API Client
+## 3. Database Schema
 
-- [ ] 3.1 Create `apps/journal/app/lib/komoot.server.ts` with login function (email + password → username + token)
-- [ ] 3.2 Add fetchTours function (paginated, fetches all pages)
-- [ ] 3.3 Add fetchTourGpx function (fetch GPX geometry for a single tour)
-- [ ] 3.4 Write unit tests for API response parsing (mock fetch)
+- [ ] 3.1 Add `mode` column (`'public' | 'authenticated'`) to `journal.sync_connections` (or connected_services table per the connected-services architecture)
+- [ ] 3.2 Make `encryptedCredentials` nullable (public mode has none)
+- [ ] 3.3 Run `pnpm db:push` and verify schema locally
 
-## 4. Import Logic
+## 4. API Routes
 
-- [ ] 4.1 Create `apps/journal/app/lib/import.server.ts` with importKomootTours function that: creates batch, pages through tours, fetches GPX, creates activities + routes, deduplicates, updates batch
-- [ ] 4.2 Write integration test for import with mock Komoot responses
+- [ ] 4.1 Create `POST /api/integrations/komoot/verify` — accepts `{ komootProfileUrl }`, calls `verifyKomootOwnership`, on success stores public connection (no credentials)
+- [ ] 4.2 Update `POST /api/integrations/komoot/connect` — now handles authenticated mode only; accepts `{ email, password }`
+- [ ] 4.3 Update `POST /api/integrations/komoot/import` — branches on connection mode to use public or authenticated fetch path
+- [ ] 4.4 Register new verify route in `apps/journal/app/routes.ts`
 
-## 5. API Routes
+## 5. Import Logic
 
-- [ ] 5.1 Create `POST /api/integrations/komoot/connect` — validate credentials, store encrypted
-- [ ] 5.2 Create `POST /api/integrations/komoot/disconnect` — delete credentials
-- [ ] 5.3 Create `POST /api/integrations/komoot/import` — trigger import, return batch ID
-- [ ] 5.4 Create `GET /api/integrations/komoot/import-status` — return current batch progress
+- [ ] 5.1 Update `importKomootTours` in `komoot-import.server.ts` to accept the discriminated union credential type and route to public or authenticated fetch functions accordingly
+- [ ] 5.2 Update `komootImportJob` background job handler to reconstruct credentials as `{ mode: 'public', username }` when `encryptedCredentials` is null
 
 ## 6. UI
 
-- [ ] 6.1 Create `/integrations` route with Komoot connection form (email + password)
-- [ ] 6.2 Show connected status, last sync time, and import button when connected
-- [ ] 6.3 Import progress UI — poll import-status, show counts (found, imported, duplicated)
-- [ ] 6.4 Add link to integrations page from Journal navigation
-- [ ] 6.5 Add i18n keys for all integration strings (en + de)
+- [ ] 6.1 Add public import section to `/integrations` page above the authenticated form: input for Komoot profile URL, instructions showing the user's trails.cool profile URL to copy, Verify button
+- [ ] 6.2 Show verification state: pending instructions → verifying spinner → success (connected, public) or error with retry
+- [ ] 6.3 Show mode badge ("Public tours only" vs "All tours") on the connected state UI
+- [ ] 6.4 Add i18n keys for all new public-mode strings (en + de)
 
-## 7. Privacy & Config
+## 7. Privacy
 
-- [ ] 7.1 Update /privacy page to document Komoot integration (credentials stored encrypted, what data is imported)
-- [ ] 7.2 Add `INTEGRATION_SECRET` env var to docker-compose.yml and CI
-- [ ] 7.3 Add `INTEGRATION_SECRET` to deploy secrets documentation
-
-## 8. Verify
-
-- [ ] 8.1 Test full flow locally: connect Komoot → import tours → verify activities + routes created
-- [ ] 8.2 Verify deduplication: re-import and confirm no duplicates
-- [ ] 8.3 Verify disconnect removes credentials
+- [ ] 7.1 Update `/privacy` page to document both modes: public (stores Komoot username only) and authenticated (stores encrypted password)
