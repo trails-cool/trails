@@ -1,11 +1,11 @@
 import type { JobDefinition } from "@trails-cool/jobs";
-import { and, lt, inArray } from "drizzle-orm";
+import { and, lt, inArray, count } from "drizzle-orm";
 import { getDb } from "../lib/db.ts";
-import { importBatches } from "@trails-cool/db/schema/journal";
+import { importBatches, type ImportBatchStatus } from "@trails-cool/db/schema/journal";
 import { logger } from "../lib/logger.server.ts";
 
-// Batches stuck longer than this without completing are considered stale.
 const STALE_MS = 10 * 60 * 1000;
+const STALE_STATUSES: ImportBatchStatus[] = ["pending", "running"];
 
 export const importBatchesSweepJob: JobDefinition = {
   name: "import-batches-sweep",
@@ -15,24 +15,28 @@ export const importBatchesSweepJob: JobDefinition = {
   async handler() {
     const db = getDb();
     const cutoff = new Date(Date.now() - STALE_MS);
+    const staleFilter = and(
+      inArray(importBatches.status, STALE_STATUSES),
+      lt(importBatches.startedAt, cutoff),
+    );
+
+    // Skip the write when nothing is stale to avoid an unconditional UPDATE every minute.
+    const rows = await db
+      .select({ staleCount: count() })
+      .from(importBatches)
+      .where(staleFilter);
+    if ((rows[0]?.staleCount ?? 0) === 0) return;
 
     const result = await db
       .update(importBatches)
       .set({
-        status: "failed",
+        status: "failed" satisfies ImportBatchStatus,
         errorMessage: "Import timed out — the server may have restarted mid-import. Click 'Run again' to retry.",
         completedAt: new Date(),
       })
-      .where(
-        and(
-          inArray(importBatches.status, ["pending", "running"]),
-          lt(importBatches.startedAt, cutoff),
-        ),
-      )
+      .where(staleFilter)
       .returning({ id: importBatches.id });
 
-    if (result.length > 0) {
-      logger.info({ count: result.length }, "import-batches-sweep: marked stale batches as failed");
-    }
+    logger.info({ count: result.length }, "import-batches-sweep: marked stale batches as failed");
   },
 };
