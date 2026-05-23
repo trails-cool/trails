@@ -1,7 +1,7 @@
 // Types for the Connected Services architecture. See docs/adr/0001-0003 and
 // CONTEXT.md (Connected Services section).
 
-export type CredentialKind = "oauth" | "web-login" | "device";
+export type CredentialKind = "oauth" | "web-login" | "device" | "public";
 
 export type ConnectionStatus = "active" | "needs_relink" | "revoked";
 

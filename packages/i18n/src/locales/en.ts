@@ -418,6 +418,32 @@ export default {
         },
       },
     },
+    komoot: {
+      title: "Komoot",
+      publicMode: "Public tours only",
+      authenticatedMode: "All tours",
+      publicSection: "Connect with Komoot bio verification",
+      publicInstructions:
+        'Add your trails.cool profile link to your Komoot bio ("Über dich"), then click Verify.',
+      profileUrlLabel: "Komoot profile URL or user ID",
+      profileUrlPlaceholder: "https://www.komoot.com/user/...",
+      verifyButton: "Verify",
+      verifying: "Verifying…",
+      verifyPending:
+        "Allow a few minutes for changes to your Komoot bio to propagate before verifying.",
+      verifySuccess: "Komoot account connected in public mode.",
+      verificationError:
+        "Could not verify ownership. Make sure your trails.cool profile link is in your Komoot bio and try again in a few minutes.",
+      invalidUrl: "Please enter a valid Komoot profile URL or user ID.",
+      authenticatedSection: "Connect with email & password",
+      emailLabel: "Komoot email",
+      passwordLabel: "Komoot password",
+      connectButton: "Connect",
+      connecting: "Connecting…",
+      connectSuccess: "Komoot account connected.",
+      authError: "Invalid Komoot credentials. Please check your email and password.",
+      modeBadge: "Mode: {{mode}}",
+    },
     sync: {
       import: "Import",
       importFrom: "Import from {{provider}}",

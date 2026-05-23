@@ -418,6 +418,32 @@ export default {
         },
       },
     },
+    komoot: {
+      title: "Komoot",
+      publicMode: "Nur öffentliche Touren",
+      authenticatedMode: "Alle Touren",
+      publicSection: "Verbinden mit Komoot-Bio-Verifizierung",
+      publicInstructions:
+        'Füge deinen trails.cool-Profillink in dein Komoot-Profil ("Über dich") ein und klicke auf Bestätigen.',
+      profileUrlLabel: "Komoot-Profil-URL oder Nutzer-ID",
+      profileUrlPlaceholder: "https://www.komoot.com/user/...",
+      verifyButton: "Bestätigen",
+      verifying: "Wird überprüft…",
+      verifyPending:
+        "Es kann einige Minuten dauern, bis Änderungen an deinem Komoot-Profil sichtbar sind.",
+      verifySuccess: "Komoot-Konto im öffentlichen Modus verbunden.",
+      verificationError:
+        "Eigentümerschaft konnte nicht bestätigt werden. Stelle sicher, dass dein trails.cool-Profillink in deinem Komoot-Profil steht, und versuche es in ein paar Minuten erneut.",
+      invalidUrl: "Bitte gib eine gültige Komoot-Profil-URL oder Nutzer-ID ein.",
+      authenticatedSection: "Mit E-Mail & Passwort verbinden",
+      emailLabel: "Komoot-E-Mail",
+      passwordLabel: "Komoot-Passwort",
+      connectButton: "Verbinden",
+      connecting: "Verbinde…",
+      connectSuccess: "Komoot-Konto verbunden.",
+      authError: "Ungültige Komoot-Zugangsdaten. Bitte E-Mail und Passwort prüfen.",
+      modeBadge: "Modus: {{mode}}",
+    },
     sync: {
       import: "Importieren",
       importFrom: "Import von {{provider}}",
