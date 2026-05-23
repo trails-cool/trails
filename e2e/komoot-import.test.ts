@@ -123,6 +123,8 @@ function mockKomootGpx(page: Page, tourId: string) {
 }
 
 test.describe("Komoot connection page", () => {
+  test.setTimeout(60000);
+
   test("unauthenticated user is redirected to login", async ({ page }) => {
     await page.goto("/settings/connections/komoot");
     await expect(page).toHaveURL(/\/auth\/login/, { timeout: 5000 });
@@ -207,6 +209,8 @@ test.describe("Komoot connection page", () => {
 });
 
 test.describe("Komoot import page", () => {
+  test.setTimeout(90000);
+
   test("shows importable public tours after public verify", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);

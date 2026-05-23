@@ -119,10 +119,11 @@ export default function KomootConnectPage({ loaderData }: Route.ComponentProps) 
         </div>
         <form onSubmit={handleVerify} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="komoot-profile-url" className="block text-sm font-medium text-gray-700">
               {t("komoot.profileUrlLabel")}
             </label>
             <input
+              id="komoot-profile-url"
               type="text"
               value={komootProfileUrl}
               onChange={(e) => setKomootProfileUrl(e.target.value)}
@@ -158,10 +159,11 @@ export default function KomootConnectPage({ loaderData }: Route.ComponentProps) 
         <h3 className="font-medium text-gray-900">{t("komoot.authenticatedSection")}</h3>
         <form onSubmit={handleConnect} className="mt-4 flex flex-col gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="komoot-email" className="block text-sm font-medium text-gray-700">
               {t("komoot.emailLabel")}
             </label>
             <input
+              id="komoot-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -171,10 +173,11 @@ export default function KomootConnectPage({ loaderData }: Route.ComponentProps) 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="komoot-password" className="block text-sm font-medium text-gray-700">
               {t("komoot.passwordLabel")}
             </label>
             <input
+              id="komoot-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
