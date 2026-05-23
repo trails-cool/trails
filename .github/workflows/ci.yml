@@ -256,6 +256,7 @@ jobs:
         env:
           BROUTER_URL: http://localhost:17777
           E2E: "true"
+          INTEGRATION_SECRET: ${{ secrets.INTEGRATION_SECRET }}
 
       - name: Playwright job summary
         if: ${{ !cancelled() }}

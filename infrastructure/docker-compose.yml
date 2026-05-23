@@ -48,6 +48,7 @@ services:
       WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
+      INTEGRATION_SECRET: ${INTEGRATION_SECRET:?INTEGRATION_SECRET must be set in SOPS secrets.app.env}
       # Demo-activity-bot. Disabled by default everywhere; flip to "true"
       # only in prod. When unset, DEMO_BOT_PERSONA uses the built-in
       # Bruno/Berlin persona. See docs/demo-persona.md for the schema.
