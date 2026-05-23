@@ -163,10 +163,6 @@ export default function KomootImportPage({ loaderData }: Route.ComponentProps) {
   const importAllRef = useRef({ index: 0, workouts: importableWorkouts });
 
   useEffect(() => {
-    importAllRef.current.workouts = importableWorkouts;
-  }, [importableWorkouts]);
-
-  useEffect(() => {
     if (!importAllActive) return;
     if (importAllFetcher.state !== "idle") return;
 
