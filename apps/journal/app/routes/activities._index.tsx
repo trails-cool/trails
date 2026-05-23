@@ -10,8 +10,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getSessionUser(request);
   if (!user) return redirect("/auth/login");
 
-  const userActivities = await listActivities(user.id);
+  const url = new URL(request.url);
+  const sortParam = url.searchParams.get("sort");
+  const activitySort = sortParam === "addedAt" ? "addedAt" : ("startedAt" as const);
+
+  const userActivities = await listActivities(user.id, activitySort);
   return data({
+    activitySort,
     activities: userActivities.map((a) => ({
       id: a.id,
       name: a.name,
@@ -30,19 +35,37 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function ActivitiesListPage({ loaderData }: Route.ComponentProps) {
-  const { activities } = loaderData;
+  const { activities, activitySort } = loaderData;
   const { t } = useTranslation("journal");
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Activities</h1>
-        <a
-          href="/activities/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-        >
-          New Activity
-        </a>
+        <h1 className="text-2xl font-bold text-gray-900">{t("activities.title")}</h1>
+        <div className="flex items-center gap-2">
+          {activities.length > 0 && (
+            <div className="flex items-center gap-1 rounded-md border border-gray-200 p-0.5 text-sm">
+              <a
+                href="?sort=startedAt"
+                className={`rounded px-2.5 py-1 ${activitySort === "startedAt" ? "bg-gray-100 font-medium text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {t("activities.sortByDate")}
+              </a>
+              <a
+                href="?sort=addedAt"
+                className={`rounded px-2.5 py-1 ${activitySort === "addedAt" ? "bg-gray-100 font-medium text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {t("activities.sortByAdded")}
+              </a>
+            </div>
+          )}
+          <a
+            href="/activities/new"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          >
+            New Activity
+          </a>
+        </div>
       </div>
 
       {activities.length === 0 ? (
