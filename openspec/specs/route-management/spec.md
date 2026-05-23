@@ -130,6 +130,17 @@ Any listing that exposes routes beyond the owner's own dashboard SHALL only incl
 - **WHEN** a logged-in user views their own routes list at `/routes`
 - **THEN** the list includes all of their own routes regardless of visibility
 
+### Requirement: Route creation via import
+The system SHALL support creating routes via import from external services, in addition to manual creation and GPX upload.
+
+#### Scenario: Route created from import
+- **WHEN** a Komoot tour is imported
+- **THEN** a route is created with name, distance, elevation, GPX geometry, and a source field indicating "komoot"
+
+#### Scenario: Route links to activity
+- **WHEN** a tour is imported as an activity
+- **THEN** the activity is linked to the created route
+
 ### Requirement: Synthetic route flag
 The Journal SHALL persist a `synthetic` boolean on every route so automated / demo content can be distinguished from user-created content.
 
