@@ -60,6 +60,7 @@ async function registerAndLogin(page: Page, cdp: CDPSession) {
   await page.goto("/auth/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Username").fill(username);
+  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: /Register with Passkey/ }).click();
   await expect(page).toHaveURL("/", { timeout: 10000 });
 
