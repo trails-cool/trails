@@ -351,6 +351,8 @@ export default {
       delete: "Delete Activity",
       deleteConfirm: "Are you sure you want to delete this activity?",
       importedFrom: "Imported from {{provider}}",
+      sortByDate: "Activity date",
+      sortByAdded: "Date added",
       visibility: {
         label: "Visibility",
         private: "Private",

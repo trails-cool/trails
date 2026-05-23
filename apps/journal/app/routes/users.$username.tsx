@@ -43,10 +43,14 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     countFollowers(user.id),
     countFollowing(user.id),
   ]);
+  const url = new URL(request.url);
+  const sortParam = url.searchParams.get("sort");
+  const activitySort = sortParam === "addedAt" ? "addedAt" : "startedAt";
+
   const [publicRoutes, publicActivities] = canSeeContent
     ? await Promise.all([
         listPublicRoutesForOwner(user.id),
-        listPublicActivitiesForOwner(user.id),
+        listPublicActivitiesForOwner(user.id, activitySort),
       ])
     : [[], []];
 
@@ -80,6 +84,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       startedAt: a.startedAt?.toISOString() ?? null,
       createdAt: a.createdAt.toISOString(),
     })),
+    activitySort,
     isOwn,
     isDemoUser,
     followers,
@@ -113,7 +118,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, routes, activities, isOwn, isDemoUser, followers, following, followState, isLoggedIn, canSeeContent } = loaderData;
+  const { user, routes, activities, activitySort, isOwn, isDemoUser, followers, following, followState, isLoggedIn, canSeeContent } = loaderData;
   const { t } = useTranslation("journal");
 
   return (
@@ -259,9 +264,27 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {t("activities.title")} ({activities.length})
-        </h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t("activities.title")} ({activities.length})
+          </h2>
+          {activities.length > 0 && (
+            <div className="flex items-center gap-1 rounded-md border border-gray-200 p-0.5 text-sm">
+              <a
+                href={`?sort=startedAt`}
+                className={`rounded px-2.5 py-1 ${activitySort === "startedAt" ? "bg-gray-100 font-medium text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {t("activities.sortByDate")}
+              </a>
+              <a
+                href={`?sort=addedAt`}
+                className={`rounded px-2.5 py-1 ${activitySort === "addedAt" ? "bg-gray-100 font-medium text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {t("activities.sortByAdded")}
+              </a>
+            </div>
+          )}
+        </div>
         {activities.length === 0 ? (
           <p className="mt-2 text-sm text-gray-500">{t("profile.noPublicActivities")}</p>
         ) : (
