@@ -143,13 +143,17 @@ export async function listActivities(ownerId: string) {
  * listings (the public profile page); never includes `unlisted` or
  * `private` content.
  */
-export async function listPublicActivitiesForOwner(ownerId: string) {
+export async function listPublicActivitiesForOwner(
+  ownerId: string,
+  sort: "startedAt" | "addedAt" = "startedAt",
+) {
   const db = getDb();
+  const order = sort === "addedAt" ? desc(activities.createdAt) : desc(activities.startedAt);
   const rows = await db
     .select()
     .from(activities)
     .where(and(eq(activities.ownerId, ownerId), eq(activities.visibility, "public")))
-    .orderBy(desc(activities.createdAt));
+    .orderBy(order);
 
   const ids = rows.map((r) => r.id);
   const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();

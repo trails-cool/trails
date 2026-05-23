@@ -351,6 +351,8 @@ export default {
       delete: "Aktivität löschen",
       deleteConfirm: "Möchtest du diese Aktivität wirklich löschen?",
       importedFrom: "Importiert von {{provider}}",
+      sortByDate: "Aktivitätsdatum",
+      sortByAdded: "Hinzugefügt am",
       visibility: {
         label: "Sichtbarkeit",
         private: "Privat",
