@@ -17,6 +17,11 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   const referer = request.headers.get("referer");
   const url = referer ? new URL(referer) : null;
-  const back = url?.pathname.startsWith("/settings") ? url.pathname : "/settings/connections";
+  // If coming from a provider-specific settings page, go up to /settings/connections.
+  // Otherwise return to wherever the user was within /settings.
+  let back = "/settings/connections";
+  if (url?.pathname.startsWith("/settings") && !url.pathname.startsWith("/settings/connections/")) {
+    back = url.pathname;
+  }
   return redirect(back);
 }
