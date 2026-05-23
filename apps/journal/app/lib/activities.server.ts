@@ -125,13 +125,17 @@ async function getImportSource(activityId: string): Promise<{ provider: string; 
   return row ?? null;
 }
 
-export async function listActivities(ownerId: string) {
+export async function listActivities(
+  ownerId: string,
+  sort: "startedAt" | "addedAt" = "startedAt",
+) {
   const db = getDb();
+  const order = sort === "addedAt" ? desc(activities.createdAt) : desc(activities.startedAt);
   const rows = await db
     .select()
     .from(activities)
     .where(eq(activities.ownerId, ownerId))
-    .orderBy(desc(activities.createdAt));
+    .orderBy(order);
 
   const ids = rows.map((r) => r.id);
   const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();
