@@ -445,6 +445,23 @@ export default {
       connectSuccess: "Komoot account connected.",
       authError: "Invalid Komoot credentials. Please check your email and password.",
       modeBadge: "Mode: {{mode}}",
+      import: {
+        noImportYet: "No import has been run yet. Click the button below to import all your Komoot tours.",
+        startImport: "Import all tours",
+        starting: "Starting…",
+        runAgain: "Run again",
+        found: "Found",
+        imported: "Imported",
+        skipped: "Already imported",
+        completedIn: "Completed in {{duration}}",
+        viewActivities: "View your activities",
+        status: {
+          pending: "Queued",
+          running: "Importing…",
+          completed: "Completed",
+          failed: "Failed",
+        },
+      },
     },
     sync: {
       import: "Import",

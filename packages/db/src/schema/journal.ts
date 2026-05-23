@@ -276,6 +276,26 @@ export const syncPushes = journalSchema.table(
 // row in this change. `acceptedAt` is always set today (auto-accept for
 // public local profiles); the column stays nullable so federation's Pending
 // state lands cleanly.
+export type ImportBatchStatus = "pending" | "running" | "completed" | "failed";
+
+export const importBatches = journalSchema.table("import_batches", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  connectionId: text("connection_id")
+    .notNull()
+    .references(() => connectedServices.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  status: text("status").$type<ImportBatchStatus>().notNull().default("pending"),
+  totalFound: integer("total_found").notNull().default(0),
+  importedCount: integer("imported_count").notNull().default(0),
+  duplicateCount: integer("duplicate_count").notNull().default(0),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
+
 export const follows = journalSchema.table("follows", {
   id: text("id").primaryKey(),
   followerId: text("follower_id")

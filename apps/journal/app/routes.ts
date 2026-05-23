@@ -55,6 +55,8 @@ export default [
   route("sync/import/:provider", "routes/sync.import.$provider.tsx"),
   route("api/sync/komoot/verify", "routes/api.sync.komoot.verify.ts"),
   route("api/sync/komoot/connect", "routes/api.sync.komoot.connect.ts"),
+  route("api/sync/komoot/import", "routes/api.sync.komoot.import.ts"),
+  route("api/sync/komoot/import-status", "routes/api.sync.komoot.import-status.ts"),
   route("api/sync/connect/:provider", "routes/api.sync.connect.$provider.ts"),
   route("api/sync/callback/:provider", "routes/api.sync.callback.$provider.ts"),
   route("api/sync/disconnect/:provider", "routes/api.sync.disconnect.$provider.ts"),

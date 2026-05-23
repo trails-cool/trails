@@ -143,7 +143,9 @@ server.listen(port, async () => {
   // notifications wired up would silently drop fan-out enqueues.
   const { notificationsFanoutJob } = await import("./app/jobs/notifications-fanout.ts");
   const { notificationsPurgeJob } = await import("./app/jobs/notifications-purge.ts");
-  jobs.push(notificationsFanoutJob, notificationsPurgeJob);
+  const { komootBulkImportJob } = await import("./app/jobs/komoot-bulk-import.ts");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob as any);
 
   const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
   await startWorker(boss, jobs);

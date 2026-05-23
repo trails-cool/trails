@@ -445,6 +445,23 @@ export default {
       connectSuccess: "Komoot-Konto verbunden.",
       authError: "Ungültige Komoot-Zugangsdaten. Bitte E-Mail und Passwort prüfen.",
       modeBadge: "Modus: {{mode}}",
+      import: {
+        noImportYet: "Es wurde noch kein Import durchgeführt. Klicke unten, um alle deine Komoot-Touren zu importieren.",
+        startImport: "Alle Touren importieren",
+        starting: "Wird gestartet…",
+        runAgain: "Erneut ausführen",
+        found: "Gefunden",
+        imported: "Importiert",
+        skipped: "Bereits importiert",
+        completedIn: "Abgeschlossen in {{duration}}",
+        viewActivities: "Aktivitäten ansehen",
+        status: {
+          pending: "In Warteschlange",
+          running: "Wird importiert…",
+          completed: "Abgeschlossen",
+          failed: "Fehlgeschlagen",
+        },
+      },
     },
     sync: {
       import: "Importieren",
