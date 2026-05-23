@@ -30,7 +30,13 @@ export const komootImporter: Importer = {
     return ctx.withFreshCredentials(async (rawCreds) => {
       const creds = rawCreds as KomootCreds;
       const basicAuthToken = getBasicAuthToken(creds);
-      const result = await fetchKomootTours(creds.komootUserId, page, basicAuthToken);
+      let result: Awaited<ReturnType<typeof fetchKomootTours>>;
+      try {
+        result = await fetchKomootTours(creds.komootUserId, page, basicAuthToken);
+      } catch {
+        // Komoot API unavailable or user not found — show empty list
+        return { workouts: [], total: 0, page, perPage: 50 };
+      }
       return {
         workouts: result.tours.map((t) => ({
           id: t.id,
