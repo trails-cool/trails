@@ -18,6 +18,7 @@ export default [
   route("routes/:id/edit", "routes/routes.$id.edit.tsx"),
   route("api/e2e/seed", "routes/api.e2e.seed.ts"),
   route("api/e2e/route/:id", "routes/api.e2e.route.$id.ts"),
+  route("api/e2e/komoot", "routes/api.e2e.komoot.ts"),
   route("api/routes/:id/callback", "routes/api.routes.$id.callback.ts"),
   route("api/routes/:id/edit-in-planner", "routes/api.routes.$id.edit-in-planner.ts"),
   route("api/routes/:id/gpx", "routes/api.routes.$id.gpx.ts"),
