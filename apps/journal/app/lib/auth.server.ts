@@ -279,9 +279,13 @@ export async function createMagicToken(email: string): Promise<{ token: string; 
 export async function verifyLoginCode(email: string, code: string): Promise<string> {
   const db = getDb();
 
+  // Consume atomically: a single UPDATE…RETURNING ensures only one
+  // concurrent request wins. The old select-then-update sequence was a
+  // TOCTOU window where two clients could both see `used_at IS NULL`
+  // and both succeed.
   const [record] = await db
-    .select()
-    .from(magicTokens)
+    .update(magicTokens)
+    .set({ usedAt: new Date() })
     .where(
       and(
         eq(magicTokens.email, email),
@@ -290,14 +294,10 @@ export async function verifyLoginCode(email: string, code: string): Promise<stri
         gt(magicTokens.expiresAt, new Date()),
         isNull(magicTokens.usedAt),
       ),
-    );
+    )
+    .returning();
 
   if (!record) throw new Error("Invalid or expired code");
-
-  await db
-    .update(magicTokens)
-    .set({ usedAt: new Date() })
-    .where(eq(magicTokens.id, record.id));
 
   const [user] = await db.select().from(users).where(eq(users.email, record.email));
   if (!user) throw new Error("User not found");
@@ -332,9 +332,10 @@ export async function initiateEmailChange(userId: string, newEmail: string): Pro
 export async function verifyMagicToken(token: string): Promise<string> {
   const db = getDb();
 
+  // Atomic consume — see verifyLoginCode for rationale.
   const [record] = await db
-    .select()
-    .from(magicTokens)
+    .update(magicTokens)
+    .set({ usedAt: new Date() })
     .where(
       and(
         eq(magicTokens.token, token),
@@ -342,14 +343,10 @@ export async function verifyMagicToken(token: string): Promise<string> {
         gt(magicTokens.expiresAt, new Date()),
         isNull(magicTokens.usedAt),
       ),
-    );
+    )
+    .returning();
 
   if (!record) throw new Error("Invalid or expired magic link");
-
-  await db
-    .update(magicTokens)
-    .set({ usedAt: new Date() })
-    .where(eq(magicTokens.id, record.id));
 
   const [user] = await db.select().from(users).where(eq(users.email, record.email));
   if (!user) throw new Error("User not found");
@@ -360,9 +357,14 @@ export async function verifyMagicToken(token: string): Promise<string> {
 export async function verifyEmailChange(token: string, userId: string): Promise<string> {
   const db = getDb();
 
+  // Atomic consume — see verifyLoginCode for rationale. The token is
+  // marked used regardless of whether the email is still available;
+  // re-checking availability after the consume keeps the token
+  // single-use even if the new email was claimed in between (the
+  // original implementation also marked it used in that case).
   const [record] = await db
-    .select()
-    .from(magicTokens)
+    .update(magicTokens)
+    .set({ usedAt: new Date() })
     .where(
       and(
         eq(magicTokens.token, token),
@@ -370,24 +372,19 @@ export async function verifyEmailChange(token: string, userId: string): Promise<
         gt(magicTokens.expiresAt, new Date()),
         isNull(magicTokens.usedAt),
       ),
-    );
+    )
+    .returning();
 
   if (!record) throw new Error("Invalid or expired verification link");
 
   const newEmail = record.email;
 
   // Re-check email availability at verification time — someone may have
-  // registered with this email between initiation and verification
+  // registered with this email between initiation and verification.
   const [existing] = await db.select().from(users).where(eq(users.email, newEmail));
   if (existing) {
-    await db.update(magicTokens).set({ usedAt: new Date() }).where(eq(magicTokens.id, record.id));
     throw new Error("This email is now in use by another account");
   }
-
-  await db
-    .update(magicTokens)
-    .set({ usedAt: new Date() })
-    .where(eq(magicTokens.id, record.id));
 
   await db
     .update(users)
