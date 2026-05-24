@@ -6,6 +6,7 @@ import { startRegistration, finishRegistration, addPasskeyStart, addPasskeyFinis
 import { completeAuth } from "~/lib/auth/completion.server";
 import { sendMagicLink } from "~/lib/email.server";
 import { enqueueOptional } from "~/lib/boss.server";
+import { consumeRateLimit, clientIp } from "~/lib/rate-limit.server";
 
 // Permissive schema: the discriminator (`step`) and primitive fields are
 // validated strictly; nested WebAuthn payloads stay as unknown because their
@@ -41,6 +42,23 @@ export async function action({ request }: Route.ActionArgs) {
   }
   const { step, email, username, response, challenge, userId, termsAccepted, termsVersion, returnTo } = parsed.data;
   const origin = getOrigin();
+
+  // Per-IP cap on all registration steps. Tighter than login because
+  // legitimate registration flows complete in a few requests; a flood
+  // from one address is account-creation spam.
+  const ip = clientIp(request);
+  const ipLimit = consumeRateLimit({
+    scope: "register-ip",
+    key: ip,
+    limit: 10,
+    windowMs: 60 * 60_000, // 10 attempts per hour per IP
+  });
+  if (!ipLimit.allowed) {
+    return data(
+      { error: `Too many attempts. Try again in ${Math.ceil(ipLimit.resetMs / 1000)}s.` },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(ipLimit.resetMs / 1000)) } },
+    );
+  }
 
   // Registration steps require terms acceptance + the version the client
   // agreed to (stored for audit so we can tell which text the user saw).

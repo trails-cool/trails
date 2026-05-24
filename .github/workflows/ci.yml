@@ -255,6 +255,10 @@ jobs:
         run: pnpm test:e2e
         env:
           BROUTER_URL: http://localhost:17777
+          # E2E=true is the explicit opt-out from the fail-loud
+          # requireSecret() / getDatabaseUrl() guards — playwright boots
+          # the server via `react-router serve` (NODE_ENV=production) but
+          # against the local dev Postgres + local cookie secrets.
           E2E: "true"
           INTEGRATION_SECRET: ${{ secrets.INTEGRATION_SECRET }}
 
