@@ -73,7 +73,7 @@ The BRouter service SHALL be reachable only from the flagship host over a privat
 
 #### Scenario: Token storage
 - **WHEN** `BROUTER_AUTH_TOKEN` is added or rotated
-- **THEN** the token is written only to `infrastructure/secrets.infra.env` (SOPS-encrypted) and to the GitHub Actions secret store, and is never committed in cleartext to the repository
+- **THEN** the token is written only to `infrastructure/secrets.app.env` (SOPS-encrypted, shared app secrets) and to the GitHub Actions secret store, and is never committed in cleartext to the repository
 
 #### Scenario: Token rotation
 - **WHEN** the token is rotated

@@ -53,7 +53,7 @@ The Planner SHALL load POIs only within the current map viewport, refreshing whe
 - **THEN** POIs are fetched for the new viewport after a 500ms debounce
 
 #### Scenario: Zoom threshold
-- **WHEN** the map zoom level is below 12
+- **WHEN** the map zoom level is below 10 (`MIN_ZOOM` constant in `use-pois.ts`)
 - **THEN** POI queries are not sent and a message indicates the user should zoom in to see POIs
 
 #### Scenario: Cached results
@@ -82,6 +82,8 @@ The Planner SHALL auto-enable relevant POI categories when the routing profile c
 - **WHEN** the routing profile is changed to a hiking variant
 - **THEN** "Shelter" and "Viewpoints" POI categories are automatically enabled
 
-#### Scenario: User override persists
+#### Scenario: User override persists (not yet implemented)
 - **WHEN** a user manually disables an auto-enabled POI category
 - **THEN** it remains disabled until the next profile change
+
+Note: the current implementation (`use-profile-defaults.ts`) always merges the profile defaults on every profile change without checking for prior manual overrides. The override-persistence behaviour is not yet implemented.

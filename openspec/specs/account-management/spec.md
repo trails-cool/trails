@@ -18,7 +18,7 @@ The Account settings page (`/settings/account`) SHALL include an "Email" section
 
 #### Scenario: Verification link applies the change
 - **WHEN** the user follows the verification link (`/auth/verify?email-change=1&token=...`)
-- **THEN** the server validates the token (matching purpose, not expired, not used), updates `users.email`, marks the token used, signs the user back in if necessary, and redirects to `/settings/account`
+- **THEN** the server validates the token (matching purpose, not expired, not used), updates `users.email`, marks the token used, and redirects to `/settings/account`. The existing session remains valid; no re-authentication is performed.
 
 #### Scenario: Expired verification link
 - **WHEN** the verification link is more than 15 minutes old or has already been used

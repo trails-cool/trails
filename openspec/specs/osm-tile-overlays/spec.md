@@ -56,8 +56,9 @@ Each tile overlay SHALL display proper attribution when enabled.
 - **WHEN** the overlay is toggled off
 - **THEN** its attribution text is removed
 
-### Requirement: Profile-aware overlay suggestions
-The Planner SHALL auto-enable relevant tile overlays when the routing profile changes.
+### Requirement: Profile-aware overlay suggestions (not yet implemented)
+
+`profileOverlayDefaults` is exported from `@trails-cool/map-core` but is not currently wired in the Planner app. The scenarios below describe the intended behaviour once wired.
 
 #### Scenario: Switch to cycling profile
 - **WHEN** the routing profile is changed to a cycling variant
