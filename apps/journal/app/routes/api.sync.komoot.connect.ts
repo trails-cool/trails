@@ -1,16 +1,15 @@
 // POST /api/sync/komoot/connect
 // Validates Komoot email/password credentials and stores them encrypted.
 
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import type { Route } from "./+types/api.sync.komoot.connect";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { loginKomoot } from "~/lib/komoot.server";
 import { encrypt } from "~/lib/crypto.server";
 import { link } from "~/lib/connected-services/manager";
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const body = (await request.json()) as { email?: string; password?: string };
   const email = body.email?.trim() ?? "";

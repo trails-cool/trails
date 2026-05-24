@@ -1,15 +1,14 @@
 import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id.edit";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { getRoute, updateRoute } from "~/lib/routes.server";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
 const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const route = await getRoute(params.id);
   if (!route) throw data({ error: "Route not found" }, { status: 404 });
@@ -26,8 +25,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const formData = await request.formData();
   const name = formData.get("name") as string;

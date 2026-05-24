@@ -1,11 +1,7 @@
-import { data, redirect, useSearchParams } from "react-router";
+import { data, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings.connections";
-import { getSessionUser } from "~/lib/auth/session.server";
-import { getDb } from "~/lib/db";
-import { connectedServices } from "@trails-cool/db/schema/journal";
-import { getAllManifests } from "~/lib/connected-services";
+import { loadConnectionsSettings } from "./settings.connections.server";
 
 const KNOWN_ERRORS = ["too_many_tokens", "sync_failed", "generic"] as const;
 type KnownError = (typeof KNOWN_ERRORS)[number];
@@ -18,30 +14,7 @@ export function meta() {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) throw redirect("/auth/login");
-
-  const db = getDb();
-  const connections = await db
-    .select({
-      provider: connectedServices.provider,
-      providerUserId: connectedServices.providerUserId,
-    })
-    .from(connectedServices)
-    .where(eq(connectedServices.userId, user.id));
-
-  const providers = getAllManifests().map((m) => {
-    const conn = connections.find((c) => c.provider === m.id);
-    return {
-      id: m.id,
-      name: m.displayName,
-      connected: !!conn,
-      providerUserId: conn?.providerUserId,
-      connectUrl: m.connectUrl ?? null,
-    };
-  });
-
-  return data({ providers });
+  return data(await loadConnectionsSettings(request));
 }
 
 export default function ConnectionsSettings({ loaderData }: Route.ComponentProps) {

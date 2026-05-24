@@ -2,7 +2,7 @@ import { data, redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities.$id";
 import { canView } from "~/lib/auth.server";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { getSessionUser, requireSessionUser } from "~/lib/auth/session.server";
 import { getActivity, deleteActivity, linkActivityToRoute, createRouteFromActivity, updateActivityVisibility } from "~/lib/activities.server";
 import { deleteImportByActivity } from "~/lib/sync/imports.server";
 import { listRoutes } from "~/lib/routes.server";
@@ -50,8 +50,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");

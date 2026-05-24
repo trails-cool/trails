@@ -1,14 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { data } from "react-router";
 import { useTranslation } from "react-i18next";
-import { eq, count } from "drizzle-orm";
 import type { Route } from "./+types/home";
-import { getSessionUser } from "~/lib/auth/session.server";
-import { getDb } from "~/lib/db";
-import { credentials } from "@trails-cool/db/schema/journal";
-import { listActivities, listRecentPublicActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { loadHomeData } from "./home.server";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -17,82 +13,8 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-interface ActivityCard {
-  id: string;
-  name: string;
-  distance: number | null;
-  elevationGain: number | null;
-  duration: number | null;
-  startedAt: string | null;
-  createdAt: string;
-  geojson: string | null;
-  // Populated only for the public (logged-out) feed, where the card
-  // needs to attribute the activity to an owner. Personal feed skips
-  // these because it's always "you".
-  ownerUsername: string | null;
-  ownerDisplayName: string | null;
-}
-
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  const url = new URL(request.url);
-  const addPasskeyParam = url.searchParams.get("add-passkey") === "1" && user !== null;
-
-  // Only show the add-passkey prompt if the user has no passkeys yet
-  let showAddPasskey = false;
-  if (addPasskeyParam && user) {
-    const db = getDb();
-    const [row] = await db
-      .select({ count: count() })
-      .from(credentials)
-      .where(eq(credentials.userId, user.id));
-    showAddPasskey = (row?.count ?? 0) === 0;
-  }
-
-  const plannerUrl = process.env.PLANNER_URL ?? "https://planner.trails.cool";
-  const isFlagship = process.env.IS_FLAGSHIP === "true";
-
-  // Logged-in users get their own recent activities as the home feed —
-  // "home" should mean your stuff, not the instance's public stream.
-  // Logged-out visitors get the instance-wide public feed instead.
-  let activities: ActivityCard[];
-  if (user) {
-    const rows = await listActivities(user.id);
-    activities = rows.slice(0, 20).map((a) => ({
-      id: a.id,
-      name: a.name,
-      distance: a.distance,
-      elevationGain: a.elevationGain,
-      duration: a.duration,
-      startedAt: a.startedAt?.toISOString() ?? null,
-      createdAt: a.createdAt.toISOString(),
-      geojson: a.geojson ?? null,
-      ownerUsername: null,
-      ownerDisplayName: null,
-    }));
-  } else {
-    const rows = await listRecentPublicActivities(20);
-    activities = rows.map((a) => ({
-      id: a.id,
-      name: a.name,
-      distance: a.distance,
-      elevationGain: a.elevationGain,
-      duration: a.duration,
-      startedAt: a.startedAt?.toISOString() ?? null,
-      createdAt: a.createdAt.toISOString(),
-      geojson: a.geojson ?? null,
-      ownerUsername: a.ownerUsername,
-      ownerDisplayName: a.ownerDisplayName,
-    }));
-  }
-
-  return data({
-    user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null,
-    showAddPasskey,
-    plannerUrl,
-    isFlagship,
-    activities,
-  });
+  return data(await loadHomeData(request));
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {

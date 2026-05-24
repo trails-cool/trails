@@ -3,17 +3,16 @@
 // Returns { batchId } immediately; poll /api/sync/komoot/import-status for progress.
 
 import { randomUUID } from "node:crypto";
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import type { Route } from "./+types/api.sync.komoot.import";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { getService } from "~/lib/connected-services/manager";
 import { getBoss } from "~/lib/boss.server";
 import { getDb } from "~/lib/db";
 import { importBatches } from "@trails-cool/db/schema/journal";
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const service = await getService(user.id, "komoot");
   if (!service) return data({ error: "not_connected" }, { status: 400 });
