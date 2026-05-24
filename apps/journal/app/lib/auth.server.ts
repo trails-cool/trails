@@ -12,12 +12,13 @@ import type {
   AuthenticatorTransportFuture,
 } from "@simplewebauthn/types";
 import { getDb } from "./db.ts";
+import { getOrigin } from "./config.server.ts";
 import { users, credentials, magicTokens } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
 const RP_NAME = "trails.cool";
 const RP_ID = process.env.DOMAIN ?? "localhost";
-const ORIGIN = process.env.ORIGIN ?? `http://localhost:3000`;
+const ORIGIN = getOrigin();
 
 // --- Registration ---
 

@@ -1,4 +1,5 @@
 import { data } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.auth.login";
 import { startAuthentication, finishAuthentication, createMagicToken, verifyLoginCode } from "~/lib/auth.server";
 import { completeAuth } from "~/lib/auth/completion.server";
@@ -21,7 +22,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (step === "magic-link") {
       const { token, code: loginCode } = await createMagicToken(email);
-      const origin = process.env.ORIGIN ?? "http://localhost:3000";
+      const origin = getOrigin();
       const link = `${origin}/auth/verify?token=${token}`;
       // In dev, return the link and code directly
       if (process.env.NODE_ENV !== "production") {

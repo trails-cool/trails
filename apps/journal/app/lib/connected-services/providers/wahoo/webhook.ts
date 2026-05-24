@@ -6,6 +6,7 @@
 // the FIT file (if present) and create an activity.
 
 import { fitToGpx } from "../../fit.ts";
+import { fetchWithTimeout } from "../../../http.server.ts";
 import { isAlreadyImported, importActivity } from "../../../sync/imports.server.ts";
 import { getServiceByProviderUser, withFreshCredentials } from "../../manager.ts";
 import type { OAuthCredentials } from "../../types.ts";
@@ -53,7 +54,7 @@ export const wahooWebhook: WebhookReceiver = {
       // handler might make.
       const buffer = await withFreshCredentials(service.id, async (_creds) => {
         void (_creds as unknown as OAuthCredentials);
-        const resp = await fetch(event.fileUrl!);
+        const resp = await fetchWithTimeout(event.fileUrl!);
         if (!resp.ok) throw new Error(`Wahoo file download failed: ${resp.status}`);
         return Buffer.from(await resp.arrayBuffer());
       });

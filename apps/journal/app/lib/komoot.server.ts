@@ -3,6 +3,8 @@
 //
 // All network calls use plain fetch; no auth state is cached here.
 
+import { fetchWithTimeout } from "./http.server.ts";
+
 const API_BASE = "https://api.komoot.de/v007";
 const AUTH_BASE = "https://api.komoot.de/v006";
 
@@ -50,7 +52,7 @@ export async function fetchPublicProfile(komootUserId: string): Promise<{
   contentText: string | null;
   contentLink: string | null;
 }> {
-  const resp = await fetch(`${API_BASE}/users/${komootUserId}/`);
+  const resp = await fetchWithTimeout(`${API_BASE}/users/${komootUserId}/`);
   if (!resp.ok) {
     throw new Error(`Komoot profile fetch failed: ${resp.status}`);
   }
@@ -94,7 +96,7 @@ export async function loginKomoot(
   password: string,
 ): Promise<{ username: string; basicAuthToken: string }> {
   const basicAuthToken = Buffer.from(`${email}:${password}`).toString("base64");
-  const resp = await fetch(`${AUTH_BASE}/account/email/${encodeURIComponent(email)}/`, {
+  const resp = await fetchWithTimeout(`${AUTH_BASE}/account/email/${encodeURIComponent(email)}/`, {
     headers: { Authorization: `Basic ${basicAuthToken}` },
   });
   if (!resp.ok) {
@@ -158,7 +160,7 @@ export async function fetchKomootTours(
   if (basicAuthToken) {
     headers["Authorization"] = `Basic ${basicAuthToken}`;
   }
-  const resp = await fetch(`${API_BASE}/users/${komootUserId}/tours/?${params}`, { headers });
+  const resp = await fetchWithTimeout(`${API_BASE}/users/${komootUserId}/tours/?${params}`, { headers });
   if (!resp.ok) {
     throw new Error(`Komoot tours fetch failed: ${resp.status}`);
   }
@@ -180,7 +182,7 @@ export async function fetchKomootTourGpx(
   if (basicAuthToken) {
     headers["Authorization"] = `Basic ${basicAuthToken}`;
   }
-  const resp = await fetch(`${API_BASE}/tours/${tourId}.gpx`, { headers });
+  const resp = await fetchWithTimeout(`${API_BASE}/tours/${tourId}.gpx`, { headers });
   if (!resp.ok) {
     throw new Error(`Komoot GPX fetch failed: ${resp.status}`);
   }

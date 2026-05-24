@@ -1,4 +1,5 @@
 import { redirect, data } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.sync.push.$provider.$routeId";
 import { getSessionUser } from "~/lib/auth/session.server";
 import { getManifest } from "~/lib/connected-services";
@@ -26,7 +27,7 @@ export async function action({ params, request }: Route.ActionArgs) {
       if (!manifest.buildAuthUrl) {
         return redirect(`${returnTo}?push=needs_permission`);
       }
-      const origin = process.env.ORIGIN ?? "http://localhost:3000";
+      const origin = getOrigin();
       const redirectUri = `${origin}/api/sync/callback/${manifest.id}`;
       const state = encodeOAuthState({
         pushAfter: { routeId: params.routeId },

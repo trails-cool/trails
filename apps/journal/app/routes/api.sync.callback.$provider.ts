@@ -1,4 +1,5 @@
 import { redirect, data } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.sync.callback.$provider";
 import { getSessionUser } from "~/lib/auth/session.server";
 import { getManifest, link } from "~/lib/connected-services";
@@ -29,7 +30,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const code = url.searchParams.get("code");
   if (!code) return data({ error: "Missing authorization code" }, { status: 400 });
 
-  const origin = process.env.ORIGIN ?? "http://localhost:3000";
+  const origin = getOrigin();
   const redirectUri = `${origin}/api/sync/callback/${params.provider}`;
 
   try {

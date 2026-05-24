@@ -4,6 +4,7 @@
 // On success, creates or replaces the connected service row in public mode.
 
 import { data, redirect } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.sync.komoot.verify";
 import { getSessionUser } from "~/lib/auth/session.server";
 import { parseKomootUserId, verifyKomootOwnership } from "~/lib/komoot.server";
@@ -20,7 +21,7 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: "invalid_url" }, { status: 400 });
   }
 
-  const origin = process.env.ORIGIN ?? "http://localhost:3000";
+  const origin = getOrigin();
   const trailsProfileUrl = `${origin}/users/${user.username}`;
 
   const verified = await verifyKomootOwnership(komootUserId, trailsProfileUrl);

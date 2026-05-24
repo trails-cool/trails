@@ -1,4 +1,5 @@
 import { data, redirect } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.settings.email";
 import { initiateEmailChange } from "~/lib/auth.server";
 import { getSessionUser } from "~/lib/auth/session.server";
@@ -12,7 +13,7 @@ export async function action({ request }: Route.ActionArgs) {
   const newEmail = (formData.get("newEmail") as string)?.trim();
   if (!newEmail) return data({ error: "Email is required" }, { status: 400 });
 
-  const origin = process.env.ORIGIN ?? "http://localhost:3000";
+  const origin = getOrigin();
 
   try {
     const token = await initiateEmailChange(user.id, newEmail);

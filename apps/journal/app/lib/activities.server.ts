@@ -150,6 +150,7 @@ export async function listActivities(
 export async function listPublicActivitiesForOwner(
   ownerId: string,
   sort: "startedAt" | "addedAt" = "startedAt",
+  limit: number = 100,
 ) {
   const db = getDb();
   const order = sort === "addedAt" ? desc(activities.createdAt) : desc(activities.startedAt);
@@ -157,7 +158,8 @@ export async function listPublicActivitiesForOwner(
     .select()
     .from(activities)
     .where(and(eq(activities.ownerId, ownerId), eq(activities.visibility, "public")))
-    .orderBy(order);
+    .orderBy(order)
+    .limit(limit);
 
   const ids = rows.map((r) => r.id);
   const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();
@@ -288,13 +290,14 @@ async function getSimplifiedActivityGeojsonBatch(ids: string[]): Promise<Map<str
   if (ids.length === 0) return map;
   try {
     const db = getDb();
-    await Promise.all(ids.map(async (id) => {
-      const result = await db.execute(
-        sql`SELECT ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson FROM journal.activities WHERE id = ${id} AND geom IS NOT NULL`,
-      );
-      const row = (result as unknown as Array<{ geojson: string }>)[0];
-      if (row?.geojson) map.set(id, row.geojson);
-    }));
+    const result = await db.execute(
+      sql`SELECT id, ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson
+          FROM journal.activities
+          WHERE id = ANY(${ids}::text[]) AND geom IS NOT NULL`,
+    );
+    for (const row of result as unknown as Array<{ id: string; geojson: string }>) {
+      if (row.geojson) map.set(row.id, row.geojson);
+    }
   } catch {
     // Fallback: no geojson
   }

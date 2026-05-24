@@ -1,4 +1,5 @@
 import { data } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.routes.$id.edit-in-planner";
 import { getSessionUser } from "~/lib/auth/session.server";
 import { getRouteWithVersions } from "~/lib/routes.server";
@@ -13,7 +14,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   if (route.ownerId !== user.id) return data({ error: "Not authorized" }, { status: 403 });
 
   const token = await createRouteToken(params.id);
-  const origin = process.env.ORIGIN ?? "http://localhost:3000";
+  const origin = getOrigin();
   const callbackUrl = `${origin}/api/routes/${params.id}/callback`;
   const plannerUrl = process.env.PLANNER_URL ?? "http://localhost:3001";
   const returnUrl = `${origin}/routes/${params.id}`;
