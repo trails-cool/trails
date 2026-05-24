@@ -7,6 +7,7 @@ import { join, extname, resolve } from "node:path";
 import { logger } from "./app/lib/logger.server.ts";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
+import { getDatabaseUrl } from "@trails-cool/db";
 import postgres from "postgres";
 
 Sentry.init({
@@ -66,7 +67,7 @@ async function handleMetrics(_req: IncomingMessage, res: ServerResponse): Promis
 const version = process.env.SENTRY_RELEASE ?? "dev";
 
 async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const client = postgres(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails", { max: 1 });
+  const client = postgres(getDatabaseUrl(), { max: 1 });
   try {
     await client`SELECT 1`;
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -149,7 +150,7 @@ server.listen(port, async () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob as any, importBatchesSweepJob, sendWelcomeEmailJob);
 
-  const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
+  const boss = createBoss(getDatabaseUrl());
   await startWorker(boss, jobs);
   // Register the started boss so feature code can enqueue jobs against
   // the same instance via getBoss() / enqueueOptional().

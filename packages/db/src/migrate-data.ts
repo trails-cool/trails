@@ -10,13 +10,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
+import { getDatabaseUrl } from "./index.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.resolve(__dirname, "..", "migrations");
 
 async function main() {
-  const url = process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails";
-  const sql = postgres(url);
+  const sql = postgres(getDatabaseUrl());
   try {
     const files = readdirSync(migrationsDir)
       .filter((f) => f.endsWith(".sql"))
