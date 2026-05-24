@@ -39,8 +39,10 @@ Revisit once **any** of these is true:
   different hardware (AX52 ≈ €54/mo for a dedicated 64 GB NVMe box that
   handles planet at low user counts; see design.md).
 - **Switch path**: no client changes needed to cut over — the Planner
-  proxy already reads `OVERPASS_URL` from env and defaults to
-  private.coffee. Flipping the env var points at our own instance.
+  proxy reads `OVERPASS_URLS` (comma-separated list with round-robin
+  fallback) or the single-entry alias `OVERPASS_URL`, defaulting to
+  `lz4.overpass-api.de` then `overpass-api.de`. Flipping the env var
+  points at our own instance.
 
 ## What's in the folder
 
