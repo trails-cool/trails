@@ -1,32 +1,12 @@
 import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities._index";
-import { requireSessionUser } from "~/lib/auth/session.server";
-import { listActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { loadActivitiesIndex } from "./activities._index.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await requireSessionUser(request);
-
-  const url = new URL(request.url);
-  const sortParam = url.searchParams.get("sort");
-  const activitySort = sortParam === "addedAt" ? "addedAt" : ("startedAt" as const);
-
-  const userActivities = await listActivities(user.id, activitySort);
-  return data({
-    activitySort,
-    activities: userActivities.map((a) => ({
-      id: a.id,
-      name: a.name,
-      distance: a.distance,
-      elevationGain: a.elevationGain,
-      duration: a.duration,
-      startedAt: a.startedAt?.toISOString() ?? null,
-      createdAt: a.createdAt.toISOString(),
-      geojson: a.geojson ?? null,
-    })),
-  });
+  return data(await loadActivitiesIndex(request));
 }
 
 export function meta(_args: Route.MetaArgs) {

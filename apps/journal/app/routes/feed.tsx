@@ -1,41 +1,13 @@
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/feed";
-import { getSessionUser } from "~/lib/auth/session.server";
-import { listSocialFeed, listRecentPublicActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
-
-type View = "followed" | "public";
+import { loadFeed } from "./feed.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) throw redirect("/auth/login");
-
-  const url = new URL(request.url);
-  const view: View = url.searchParams.get("view") === "public" ? "public" : "followed";
-
-  const rows =
-    view === "public"
-      ? await listRecentPublicActivities(50)
-      : await listSocialFeed(user.id, 50);
-
-  return data({
-    view,
-    activities: rows.map((a) => ({
-      id: a.id,
-      name: a.name,
-      distance: a.distance,
-      elevationGain: a.elevationGain,
-      duration: a.duration,
-      startedAt: a.startedAt?.toISOString() ?? null,
-      createdAt: a.createdAt.toISOString(),
-      geojson: a.geojson ?? null,
-      ownerUsername: a.ownerUsername,
-      ownerDisplayName: a.ownerDisplayName,
-    })),
-  });
+  return data(await loadFeed(request));
 }
 
 export function meta({ data: loaderData }: Route.MetaArgs) {

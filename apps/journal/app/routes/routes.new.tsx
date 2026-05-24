@@ -1,31 +1,14 @@
 
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import type { Route } from "./+types/routes.new";
-import { requireSessionUser } from "~/lib/auth/session.server";
-import { createRoute } from "~/lib/routes.server";
+import { loadRoutesNew, routesNewAction } from "./routes.new.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireSessionUser(request);
-  return data({});
+  return data(await loadRoutesNew(request));
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await requireSessionUser(request);
-
-  const formData = await request.formData();
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const gpxFile = formData.get("gpx") as File | null;
-
-  if (!name) return data({ error: "Name is required" }, { status: 400 });
-
-  let gpx: string | undefined;
-  if (gpxFile && gpxFile.size > 0) {
-    gpx = await gpxFile.text();
-  }
-
-  const routeId = await createRoute(user.id, { name, description, gpx });
-  return redirect(`/routes/${routeId}`);
+  return await routesNewAction(request);
 }
 
 export function meta(_args: Route.MetaArgs) {
