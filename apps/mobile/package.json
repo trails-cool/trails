@@ -72,7 +72,7 @@
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.15",
-    "jest-expo": "^55.0.17",
+    "jest-expo": "^56.0.4",
     "react-test-renderer": "^19.2.6",
     "typescript": "~5.9.2"
   }
