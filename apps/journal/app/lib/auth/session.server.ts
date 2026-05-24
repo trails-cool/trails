@@ -9,8 +9,9 @@ import { createCookieSessionStorage, redirect } from "react-router";
 import { eq } from "drizzle-orm";
 import { users } from "@trails-cool/db/schema/journal";
 import { getDb } from "../db.ts";
+import { requireSecret } from "../config.server.ts";
 
-const sessionSecret = process.env.SESSION_SECRET ?? "dev-secret-change-in-production";
+const sessionSecret = requireSecret("SESSION_SECRET", "dev-secret-change-in-production");
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {

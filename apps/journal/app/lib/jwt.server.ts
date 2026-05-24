@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
-import { getOrigin } from "./config.server.ts";
+import { getOrigin, requireSecret } from "./config.server.ts";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? "dev-jwt-secret-change-in-production",
+  requireSecret("JWT_SECRET", "dev-jwt-secret-change-in-production"),
 );
 
 const ISSUER = getOrigin();
