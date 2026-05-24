@@ -81,7 +81,7 @@ The dev environment SHALL provide a command to tear down and recreate the local 
 - **THEN** all Docker volumes are removed and containers are recreated
 
 ### Requirement: Mobile app dev (Expo)
-The `apps/mobile` React Native app (Expo) requires its own dev commands separate from the web stack.
+The project SHALL provide dedicated dev commands for the `apps/mobile` React Native app (Expo), separate from the web stack.
 
 #### Scenario: iOS development
 - **WHEN** a developer runs `pnpm dev:ios` from `apps/mobile`

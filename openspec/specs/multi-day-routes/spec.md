@@ -60,6 +60,4 @@ Day structure SHALL be preserved in GPX exports via waypoint type elements.
 
 Note: the single-track export (without `splitByDays`) is the default. The per-day split is available as an option on the GPX generator and is the recommended format for multi-day exports to head units.
 
-### Note on overnight vs isDayBreak naming
-
-The Yjs wire format stores the flag as `overnight: true` on the waypoint Y.Map entry. The TypeScript interface exposes it as `isDayBreak` (a comment in `waypoint-ymap.ts` documents `overnight` as the legacy wire name). Spec scenarios use `overnight` to refer to the wire-level concept; TypeScript code uses `isDayBreak`.
+Note on overnight vs isDayBreak naming: The Yjs wire format stores the flag as `overnight: true` on the waypoint Y.Map entry. The TypeScript interface exposes it as `isDayBreak` (a comment in `waypoint-ymap.ts` documents `overnight` as the legacy wire name). Spec scenarios use `overnight` to refer to the wire-level concept; TypeScript code uses `isDayBreak`.
