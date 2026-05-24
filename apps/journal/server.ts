@@ -10,11 +10,20 @@ import { createBoss, startWorker } from "@trails-cool/jobs";
 import { getDatabaseUrl } from "@trails-cool/db";
 import postgres from "postgres";
 
-Sentry.init({
-  dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
-  ...nodeSentryConfig("journal server"),
-  beforeSend: drop404s,
-});
+// Sentry DSN is read from env so self-hosted instances don't ship their
+// errors to the trails.cool flagship Sentry by default. The flagship
+// keeps its DSN as the fallback; setting SENTRY_DSN="" (or any other
+// truthy value) overrides. SENTRY_DISABLED=true skips init entirely.
+const FLAGSHIP_JOURNAL_SENTRY_DSN =
+  "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728";
+const sentryDsn = process.env.SENTRY_DSN ?? FLAGSHIP_JOURNAL_SENTRY_DSN;
+if (process.env.SENTRY_DISABLED !== "true" && sentryDsn !== "") {
+  Sentry.init({
+    dsn: sentryDsn,
+    ...nodeSentryConfig("journal server"),
+    beforeSend: drop404s,
+  });
+}
 
 const port = Number(process.env.PORT ?? 3000);
 const CLIENT_DIR = resolve(import.meta.dirname, "build", "client");
