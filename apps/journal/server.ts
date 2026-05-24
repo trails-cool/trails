@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
 import { getDatabaseUrl } from "@trails-cool/db";
-import postgres from "postgres";
+import postgres, { type Sql } from "postgres";
 
 // Sentry DSN is read from env so self-hosted instances don't ship their
 // errors to the trails.cool flagship Sentry by default. The flagship
@@ -76,17 +76,27 @@ async function handleMetrics(_req: IncomingMessage, res: ServerResponse): Promis
 
 const version = process.env.SENTRY_RELEASE ?? "dev";
 
+// Module-level singleton postgres client dedicated to /api/health. The
+// previous handler opened a fresh client + connection on every call,
+// which OOM'd the process under monitoring load (probes hit /api/health
+// every few seconds). `max: 2` is plenty for liveness checks; the main
+// app DB pool is separate (via @trails-cool/db's createDb).
+let healthClient: Sql | null = null;
+function getHealthClient(): Sql {
+  if (!healthClient) {
+    healthClient = postgres(getDatabaseUrl(), { max: 2, idle_timeout: 30 });
+  }
+  return healthClient;
+}
+
 async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const client = postgres(getDatabaseUrl(), { max: 1 });
   try {
-    await client`SELECT 1`;
+    await getHealthClient()`SELECT 1`;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version, db: "connected" }));
   } catch {
     res.writeHead(503, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "degraded", version, db: "unreachable" }));
-  } finally {
-    await client.end();
   }
 }
 
