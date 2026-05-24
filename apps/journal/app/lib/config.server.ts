@@ -18,7 +18,10 @@ export function getOrigin(): string {
  */
 export function requireSecret(name: string, devFallback: string): string {
   const value = process.env[name];
-  const isProd = process.env.NODE_ENV === "production";
+  // Playwright runs `react-router serve` (NODE_ENV=production) against a
+  // local stack. E2E=true is the explicit opt-out so the guard still
+  // bites in real prod deploys.
+  const isProd = process.env.NODE_ENV === "production" && process.env.E2E !== "true";
   if (isProd) {
     if (!value || value === devFallback) {
       throw new Error(

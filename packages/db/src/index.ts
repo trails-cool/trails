@@ -15,7 +15,11 @@ const DEV_DB_URL = "postgres://trails:trails@localhost:5432/trails";
 export function getDatabaseUrl(override?: string): string {
   if (override) return override;
   const url = process.env.DATABASE_URL;
-  if (process.env.NODE_ENV === "production") {
+  // Playwright runs `react-router serve` which boots with
+  // NODE_ENV=production, but the CI E2E suite legitimately points at a
+  // local Postgres using the dev URL. E2E=true is the explicit opt-out.
+  const isProd = process.env.NODE_ENV === "production" && process.env.E2E !== "true";
+  if (isProd) {
     if (!url || url === DEV_DB_URL) {
       throw new Error(
         "Refusing to start: DATABASE_URL is unset or matches the dev default. " +
