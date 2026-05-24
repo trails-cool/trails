@@ -1,25 +1,12 @@
 import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes._index";
-import { requireSessionUser } from "~/lib/auth/session.server";
-import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { loadRoutesIndex } from "./routes._index.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await requireSessionUser(request);
-
-  const userRoutes = await listRoutes(user.id);
-  return data({
-    routes: userRoutes.map((r) => ({
-      id: r.id,
-      name: r.name,
-      distance: r.distance,
-      elevationGain: r.elevationGain,
-      updatedAt: r.updatedAt.toISOString(),
-      geojson: r.geojson ?? null,
-    })),
-  });
+  return data(await loadRoutesIndex(request));
 }
 
 export function meta(_args: Route.MetaArgs) {

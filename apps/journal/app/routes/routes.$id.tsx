@@ -1,174 +1,17 @@
 import { useState, useCallback } from "react";
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
-import { and, eq } from "drizzle-orm";
-import { canView } from "~/lib/auth.server";
-import { getSessionUser, requireSessionUser } from "~/lib/auth/session.server";
-import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
-import { getDb } from "~/lib/db";
-import { syncPushes } from "@trails-cool/db/schema/journal";
-import { getService } from "~/lib/connected-services";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
-
+import { loadRouteDetail, routeDetailAction } from "./routes.$id.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const [routeWithVersions, routeWithGeojson] = await Promise.all([
-    getRouteWithVersions(params.id),
-    getRoute(params.id),
-  ]);
-  if (!routeWithVersions) throw data({ error: "Route not found" }, { status: 404 });
-  const route = routeWithVersions;
-
-  const user = await getSessionUser(request);
-  const isOwner = user?.id === route.ownerId;
-
-  // Visibility gate: public always renders, unlisted renders on direct link,
-  // private requires ownership. Return 404 (not 403) to avoid leaking existence.
-  if (!canView(route, user, { asDirectLink: true })) {
-    throw data({ error: "Route not found" }, { status: 404 });
-  }
-
-  // Parse GPX once for day stats and waypoint POI data
-  let dayStats: Array<{ dayNumber: number; startName?: string; endName?: string; distance: number; ascent: number; descent: number }> = [];
-  let waypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; note?: string; osmId?: number; poiTags?: Record<string, string> }> = [];
-  if (route.gpx) {
-    try {
-      const { computeDays, parseGpxAsync } = await import("@trails-cool/gpx");
-      const gpxData = await parseGpxAsync(route.gpx);
-      waypoints = gpxData.waypoints.map((w) => ({
-        lat: w.lat,
-        lon: w.lon,
-        name: w.name,
-        isDayBreak: w.isDayBreak,
-        note: w.note,
-        osmId: w.osmId,
-        poiTags: w.poiTags as Record<string, string> | undefined,
-      }));
-      if (route.dayBreaks && route.dayBreaks.length > 0) {
-        dayStats = computeDays(gpxData.waypoints, gpxData.tracks);
-      }
-    } catch {
-      // Fall back to empty
-    }
-  }
-
-  const currentVersion = route.versions[0]?.version ?? 1;
-
-  // Wahoo push state — only meaningful for the owner. The single
-  // sync_pushes row per (user, route, wahoo) carries `lastPushedVersion`,
-  // which we compare against the current local version to render one of
-  // three states: matches, local newer, or last attempt failed.
-  let wahooPush:
-    | {
-        canPush: boolean;
-        needsReauth: boolean;
-        currentVersion: number;
-        latest: {
-          pushedAt: string | null;
-          remoteId: string | null;
-          lastPushedVersion: number | null;
-          error: string | null;
-        } | null;
-      }
-    | null = null;
-  if (isOwner && user && !!route.gpx) {
-    const connection = await getService(user.id, "wahoo");
-    let latest:
-      | {
-          pushedAt: string | null;
-          remoteId: string | null;
-          lastPushedVersion: number | null;
-          error: string | null;
-        }
-      | null = null;
-    if (connection) {
-      const db = getDb();
-      const [row] = await db
-        .select()
-        .from(syncPushes)
-        .where(
-          and(
-            eq(syncPushes.userId, user.id),
-            eq(syncPushes.routeId, route.id),
-            eq(syncPushes.provider, "wahoo"),
-          ),
-        )
-        .limit(1);
-      latest = row
-        ? {
-            pushedAt: row.pushedAt ? row.pushedAt.toISOString() : null,
-            remoteId: row.remoteId,
-            lastPushedVersion: row.lastPushedVersion,
-            error: row.error,
-          }
-        : null;
-    }
-    wahooPush = {
-      canPush: !!connection,
-      needsReauth: !!connection && !connection.grantedScopes.includes("routes_write"),
-      currentVersion,
-      latest,
-    };
-  }
-
-  return data({
-    route: {
-      id: route.id,
-      name: route.name,
-      description: route.description,
-      distance: route.distance,
-      elevationGain: route.elevationGain,
-      elevationLoss: route.elevationLoss,
-      routingProfile: route.routingProfile,
-      hasGpx: !!route.gpx,
-      dayBreaks: route.dayBreaks ?? [],
-      geojson: routeWithGeojson?.geojson ?? null,
-      visibility: route.visibility,
-      createdAt: route.createdAt.toISOString(),
-      updatedAt: route.updatedAt.toISOString(),
-    },
-    dayStats,
-    waypoints,
-    versions: route.versions.map((v) => ({
-      version: v.version,
-      changeDescription: v.changeDescription,
-      createdAt: v.createdAt.toISOString(),
-    })),
-    isOwner,
-    wahooPush,
-  });
+  return data(await loadRouteDetail(request, params.id));
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await requireSessionUser(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "delete") {
-    await deleteRoute(params.id, user.id);
-    return redirect("/routes");
-  }
-
-  if (intent === "update") {
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const gpxFile = formData.get("gpx") as File | null;
-
-    const input: Record<string, unknown> = {};
-    if (name) input.name = name;
-    if (description !== null) input.description = description;
-    if (gpxFile && gpxFile.size > 0) {
-      input.gpx = await gpxFile.text();
-    }
-
-    await updateRoute(params.id, user.id, input as { name?: string; description?: string; gpx?: string });
-    return redirect(`/routes/${params.id}`);
-  }
-
-  return data({ error: "Unknown action" }, { status: 400 });
+  return routeDetailAction(request, params.id);
 }
 
 export function meta({ data: loaderData }: Route.MetaArgs) {

@@ -1,42 +1,13 @@
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import type { Route } from "./+types/activities.new";
-import { requireSessionUser } from "~/lib/auth/session.server";
-import { createActivity } from "~/lib/activities.server";
-import { listRoutes } from "~/lib/routes.server";
+import { loadActivitiesNew, activitiesNewAction } from "./activities.new.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await requireSessionUser(request);
-
-  const userRoutes = await listRoutes(user.id);
-  return data({
-    routes: userRoutes.map((r) => ({ id: r.id, name: r.name })),
-  });
+  return data(await loadActivitiesNew(request));
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await requireSessionUser(request);
-
-  const formData = await request.formData();
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const routeId = formData.get("routeId") as string | null;
-  const gpxFile = formData.get("gpx") as File | null;
-
-  if (!name) return data({ error: "Name is required" }, { status: 400 });
-
-  let gpx: string | undefined;
-  if (gpxFile && gpxFile.size > 0) {
-    gpx = await gpxFile.text();
-  }
-
-  const activityId = await createActivity(user.id, {
-    name,
-    description,
-    gpx,
-    routeId: routeId || undefined,
-  });
-
-  return redirect(`/activities/${activityId}`);
+  return await activitiesNewAction(request);
 }
 
 export function meta(_args: Route.MetaArgs) {

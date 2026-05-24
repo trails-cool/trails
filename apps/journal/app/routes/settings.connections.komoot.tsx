@@ -3,32 +3,17 @@
 //   Authenticated — email + password (password encrypted at rest)
 
 import { useState } from "react";
-import { data, redirect, useFetcher } from "react-router";
-import { getOrigin } from "~/lib/config.server";
+import { data, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/settings.connections.komoot";
-import { getSessionUser } from "~/lib/auth/session.server";
-import { getService } from "~/lib/connected-services/manager";
+import { loadKomootConnection } from "./settings.connections.komoot.server";
 
 export function meta() {
   return [{ title: "Connect Komoot — Settings — trails.cool" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) throw redirect("/auth/login");
-
-  const service = await getService(user.id, "komoot");
-  const origin = getOrigin();
-  const trailsProfileUrl = `${origin}/users/${user.username}`;
-
-  return data({
-    connected: !!service,
-    mode: service ? (service.credentials as { mode?: string }).mode ?? null : null,
-    providerUserId: service?.providerUserId ?? null,
-    serviceId: service?.id ?? null,
-    trailsProfileUrl,
-  });
+  return data(await loadKomootConnection(request));
 }
 
 type VerifyResponse = { success?: boolean; error?: string };

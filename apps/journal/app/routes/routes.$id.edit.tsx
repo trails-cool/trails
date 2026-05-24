@@ -1,50 +1,14 @@
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id.edit";
-import { requireSessionUser } from "~/lib/auth/session.server";
-import { getRoute, updateRoute } from "~/lib/routes.server";
-import type { Visibility } from "@trails-cool/db/schema/journal";
-
-const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
+import { loadRouteEdit, routeEditAction } from "./routes.$id.edit.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const user = await requireSessionUser(request);
-
-  const route = await getRoute(params.id);
-  if (!route) throw data({ error: "Route not found" }, { status: 404 });
-  if (route.ownerId !== user.id) throw data({ error: "Not authorized" }, { status: 403 });
-
-  return data({
-    route: {
-      id: route.id,
-      name: route.name,
-      description: route.description,
-      visibility: route.visibility,
-    },
-  });
+  return data(await loadRouteEdit(request, params.id));
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await requireSessionUser(request);
-
-  const formData = await request.formData();
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const gpxFile = formData.get("gpx") as File | null;
-  const visibilityRaw = formData.get("visibility") as string | null;
-
-  const input: { name?: string; description?: string; gpx?: string; visibility?: Visibility } = {};
-  if (name) input.name = name;
-  if (description !== null) input.description = description;
-  if (gpxFile && gpxFile.size > 0) {
-    input.gpx = await gpxFile.text();
-  }
-  if (visibilityRaw && VISIBILITY_VALUES.has(visibilityRaw as Visibility)) {
-    input.visibility = visibilityRaw as Visibility;
-  }
-
-  await updateRoute(params.id, user.id, input);
-  return redirect(`/routes/${params.id}`);
+  return await routeEditAction(request, params.id);
 }
 
 export function meta(_args: Route.MetaArgs) {
