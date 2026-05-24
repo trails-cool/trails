@@ -364,8 +364,8 @@ importers:
         specifier: ^55.0.29
         version: 55.0.29(expo@55.0.26)
       expo-device:
-        specifier: ~55.0.17
-        version: 55.0.17(expo@55.0.26)
+        specifier: ~56.0.4
+        version: 56.0.4(expo@55.0.26)
       expo-file-system:
         specifier: ~55.0.20
         version: 55.0.22(expo@55.0.26)(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.15)(react@19.2.6))
@@ -5058,8 +5058,8 @@ packages:
     peerDependencies:
       expo: '*'
 
-  expo-device@55.0.17:
-    resolution: {integrity: sha512-ZcMrSeD0zWooosm5Bet5qluxUrhw+NPgcMmN6ySVF7cm4K8Bvh4KPogJePbI1qfhFAiJWcWeV9e/2uewb9ktfw==}
+  expo-device@56.0.4:
+    resolution: {integrity: sha512-ucVcGPkvBrl2QHuy7XcYex2Y6BETvJ6TREutZrwLGUDnlvbpKS8KfQoNZOpvkyo5Nmm9RrasYQ0CrXmBHho2mg==}
     peerDependencies:
       expo: '*'
 
@@ -12949,7 +12949,7 @@ snapshots:
       expo: 55.0.26(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.11)(expo-router@55.0.14)(react-dom@19.2.6(react@19.2.6))(react-native-worklets@0.8.1(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.15)(react@19.2.6))(react@19.2.6))(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.15)(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
       expo-dev-menu-interface: 55.0.2(expo@55.0.26)
 
-  expo-device@55.0.17(expo@55.0.26):
+  expo-device@56.0.4(expo@55.0.26):
     dependencies:
       expo: 55.0.26(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.11)(expo-router@55.0.14)(react-dom@19.2.6(react@19.2.6))(react-native-worklets@0.8.1(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.15)(react@19.2.6))(react@19.2.6))(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.15)(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
       ua-parser-js: 0.7.41
