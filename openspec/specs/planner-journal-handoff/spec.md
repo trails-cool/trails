@@ -49,6 +49,14 @@ When a Journal user triggers "Edit in Planner", the Journal action (`POST /api/r
 
 The Journal MUST return 502 if the Planner session creation request fails.
 
+#### Scenario: Successful handoff initiation
+- **WHEN** an authenticated route owner clicks "Edit in Planner"
+- **THEN** the Journal POSTs to the Planner's `/api/sessions`, receives a session URL, and returns a redirect URL to the browser
+
+#### Scenario: Unauthenticated user
+- **WHEN** an unauthenticated user triggers the edit-in-planner action
+- **THEN** the Journal returns 401
+
 ---
 
 ### Requirement: Planner creates a session
@@ -73,6 +81,14 @@ The Journal MUST return 502 if the Planner session creation request fails.
    }
    ```
    Omit `initialWaypoints`, `initialNoGoAreas`, and `initialNotes` when absent.
+
+#### Scenario: Session created with GPX
+- **WHEN** the Journal POSTs a valid GPX string to `/api/sessions`
+- **THEN** the Planner parses waypoints, no-go areas, and notes and returns them in the 201 response
+
+#### Scenario: Invalid GPX silently ignored
+- **WHEN** the Journal POSTs a malformed GPX string
+- **THEN** the Planner creates an empty session and returns HTTP 201 with no initial planning data
 
 ---
 
@@ -101,6 +117,14 @@ Population is gated on `waypoints.length === 0` to avoid duplicating data on rec
 
 The `callbackUrl`, `callbackToken`, and `returnUrl` are passed as props to `SessionView` → `SaveToJournalButton`. They are **not** stored in the Yjs document.
 
+#### Scenario: Session page loads with route data
+- **WHEN** a browser navigates to `/session/:id?waypoints=…&notes=…&returnUrl=…`
+- **THEN** on first Yjs sync the document is populated with the provided waypoints and notes
+
+#### Scenario: Reconnect does not duplicate data
+- **WHEN** the Yjs WebSocket reconnects and fires `synced` again
+- **THEN** the initialization guard prevents re-inserting the initial data
+
 ---
 
 ### Requirement: Planner saves the route back to the Journal
@@ -127,6 +151,10 @@ The `callbackUrl`, `callbackToken`, and `returnUrl` are passed as props to `Sess
 5. On success, show a "saved" confirmation and a "Return to Journal" link targeting `returnUrl`.
 6. On failure, surface the error message from the response body.
 
+#### Scenario: Save to Journal
+- **WHEN** a user clicks "Save to Journal"
+- **THEN** the Planner generates GPX from the current Yjs state and POSTs it to the callback URL with the Bearer token
+
 ---
 
 ### Requirement: Journal callback endpoint writes a new version
@@ -148,11 +176,19 @@ The `callbackUrl`, `callbackToken`, and `returnUrl` are passed as props to `Sess
 
 All responses include CORS headers so the browser can read them.
 
+#### Scenario: Valid callback saves new version
+- **WHEN** the Planner POSTs a valid GPX with a valid Bearer token to the callback endpoint
+- **THEN** the Journal writes a new route version and returns `{ success: true }`
+
+#### Scenario: Expired or tampered token
+- **WHEN** the JWT is expired or the signature is invalid
+- **THEN** the Journal returns HTTP 401
+
 ---
 
 ### Requirement: JWT callback token
 
-Tokens are HS256 JWTs signed with `JWT_SECRET` (env var; defaults to `"dev-jwt-secret-change-in-production"` in development).
+The Journal SHALL issue HS256 JWTs signed with `JWT_SECRET` (env var; defaults to `"dev-jwt-secret-change-in-production"` in development).
 
 | Claim | Value |
 |---|---|
@@ -163,6 +199,10 @@ Tokens are HS256 JWTs signed with `JWT_SECRET` (env var; defaults to `"dev-jwt-s
 | `permissions` | `["read", "write"]` |
 
 The Planner stores the token opaquely in the `planner.sessions` table and presents it verbatim in the `Authorization: Bearer` header on callback. The Planner never inspects the token contents.
+
+#### Scenario: Token claims verified on callback
+- **WHEN** the callback endpoint receives a request
+- **THEN** it verifies the HS256 signature, checks `route_id` matches the URL param, and confirms `permissions` includes `"write"`
 
 ---
 

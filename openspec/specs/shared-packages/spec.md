@@ -74,6 +74,10 @@ The `@trails-cool/map-core` package SHALL provide framework-free map constants a
 ### Requirement: UI component package
 The `@trails-cool/ui` package SHALL provide shared React components (buttons, layout primitives, form elements) styled with Tailwind CSS, used by both apps.
 
+#### Scenario: Import shared component
+- **WHEN** either app imports a button or layout component from `@trails-cool/ui`
+- **THEN** it renders with Tailwind CSS styling consistent across both apps
+
 ### Requirement: i18n package
 The `@trails-cool/i18n` package SHALL provide react-i18next configuration and translation strings for English (primary) and German.
 
@@ -88,11 +92,27 @@ The `@trails-cool/i18n` package SHALL provide react-i18next configuration and tr
 ### Requirement: API contracts package
 The `@trails-cool/api` package SHALL define shared API contracts: endpoint URL constants, request/response types, pagination shapes, error codes, and API version. Both apps import from this package; neither defines its own duplicate API types.
 
+#### Scenario: Import API types in Planner
+- **WHEN** the Planner imports from `@trails-cool/api`
+- **THEN** it has access to shared request/response types for the Journal API
+
 ### Requirement: Database package
 The `@trails-cool/db` package SHALL provide the Drizzle ORM schema (all tables across `planner.*` and `journal.*` schemas), the database client factory, and migration helpers. The Journal app is the sole runtime consumer; the Planner references only `planner.*` tables. All schema changes flow through this package.
+
+#### Scenario: Apply schema changes
+- **WHEN** a developer runs `pnpm db:push`
+- **THEN** Drizzle applies the schema from `@trails-cool/db` to the local PostgreSQL instance
 
 ### Requirement: Background jobs package
 The `@trails-cool/jobs` package SHALL provide the pg-boss client factory (`createBoss`), the worker registration helper, and the `JobDefinition` type that each job exports. Apps construct boss instances from this package rather than importing pg-boss directly.
 
+#### Scenario: Register a job worker
+- **WHEN** the Journal app imports `@trails-cool/jobs` and calls `createBoss`
+- **THEN** it obtains a configured pg-boss instance without importing pg-boss directly
+
 ### Requirement: Sentry configuration package
 The `@trails-cool/sentry-config` package SHALL provide shared Sentry initialisation helpers used by both apps. It sets user context, attaches session IDs as tags, and configures source map upload. Apps call the shared helper from their Sentry entry points rather than configuring Sentry inline.
+
+#### Scenario: Initialise Sentry in Journal
+- **WHEN** the Journal app's Sentry entry point calls the shared helper from `@trails-cool/sentry-config`
+- **THEN** Sentry is configured with user context and source map upload without inline configuration
