@@ -9,6 +9,7 @@ import { getSessionUser } from "~/lib/auth/session.server";
 import { LocaleProvider } from "~/components/LocaleContext";
 import { AlphaBanner } from "~/components/AlphaBanner";
 import { useUnreadNotifications } from "~/hooks/useUnreadNotifications";
+import { countUnread } from "~/lib/notifications.server";
 import { Footer } from "~/components/Footer";
 import { AccountDropdown } from "~/components/AccountDropdown";
 import { MobileNavMenu } from "~/components/MobileNavMenu";
@@ -69,12 +70,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Unread-notification count for the navbar bell badge. Pending follow
   // requests are not separately counted here — each pending request
   // creates an unread `follow_request_received` notification, so the
-  // unread count already covers them. Hidden behind a dynamic import so
-  // the root layout doesn't pull in the notifications module on
-  // anonymous renders.
+  // unread count already covers them.
   let unreadNotifications = 0;
   if (user) {
-    const { countUnread } = await import("./lib/notifications.server.ts");
     unreadNotifications = await countUnread(user.id);
   }
 

@@ -7,6 +7,7 @@
 import { fitToGpx } from "../../fit.ts";
 import { fetchWithTimeout } from "../../../http.server.ts";
 import { importActivity, isAlreadyImported } from "../../../sync/imports.server.ts";
+import { getServiceById } from "../../manager.ts";
 import type {
   CapabilityContext,
   ImportableList,
@@ -103,20 +104,34 @@ export const wahooImporter: Importer = {
     ctx: CapabilityContext,
     workoutId: string,
   ): Promise<ImportResult> {
-    // Look up the workout to get the file URL (Wahoo doesn't expose a
-    // direct /v1/workouts/<id> with file; we re-fetch the page).
-    // For simplicity we ask Wahoo for the workout directly; if that fails
-    // we fall back to scanning page 1.
-    const list = await ctx.withFreshCredentials((creds) =>
-      fetchWahooWorkoutPage(creds as OAuthCredentials, 1),
-    );
-    const workout = list.workouts.find((w) => String(w.id) === workoutId);
-    if (!workout) throw new Error(`Wahoo workout ${workoutId} not found on page 1`);
+    // Wahoo doesn't expose a direct /v1/workouts/<id> endpoint with file
+    // URL, so we paginate /v1/workouts looking for the target. Bound by
+    // the total / per_page Wahoo returns on page 1, with a hard ceiling
+    // so a misbehaving API can't loop us forever.
+    const MAX_PAGES = 100;
+    let workout: WahooWorkout | undefined;
+    let totalPages = 1;
+    for (let page = 1; page <= Math.min(totalPages, MAX_PAGES); page++) {
+      const list = await ctx.withFreshCredentials((creds) =>
+        fetchWahooWorkoutPage(creds as OAuthCredentials, page),
+      );
+      // perPage may not divide total cleanly; ceil so we don't stop one
+      // page short.
+      if (page === 1 && list.per_page > 0) {
+        totalPages = Math.ceil(list.total / list.per_page);
+      }
+      const found = list.workouts.find((w) => String(w.id) === workoutId);
+      if (found) {
+        workout = found;
+        break;
+      }
+      if (list.workouts.length === 0) break;
+    }
+    if (!workout) throw new Error(`Wahoo workout ${workoutId} not found`);
 
     // Resolve the connected service's user id via the capability context.
     // The caller (route handler) supplies userId out-of-band — for now the
     // route handler bridges the gap. We use the manager's getServiceById.
-    const { getServiceById } = await import("../../manager.ts");
     const service = await getServiceById(ctx.serviceId);
     if (!service) throw new Error(`Connected service ${ctx.serviceId} not found`);
 

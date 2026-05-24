@@ -8,6 +8,7 @@
 import { decrypt } from "../../../crypto.server.ts";
 import { fetchKomootTours, fetchKomootTourGpx } from "../../../komoot.server.ts";
 import { isAlreadyImported, importActivity } from "../../../sync/imports.server.ts";
+import { getServiceById } from "../../manager.ts";
 import type {
   CapabilityContext,
   ImportableList,
@@ -58,7 +59,6 @@ export const komootImporter: Importer = {
     return ctx.withFreshCredentials(async (rawCreds) => {
       const creds = rawCreds as KomootCreds;
 
-      const { getServiceById } = await import("../../manager.ts");
       const service = await getServiceById(ctx.serviceId);
       if (!service) throw new Error(`Connected service ${ctx.serviceId} not found`);
 

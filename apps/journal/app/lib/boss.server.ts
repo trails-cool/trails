@@ -4,6 +4,8 @@
 // is bound to the Node process — startWorker calls boss.start(); the
 // SIGTERM handler stops it.
 
+import { logger } from "./logger.server.ts";
+
 // Structurally typed (we only need `send`) so we don't have to pull
 // pg-boss into the journal app's dep graph just for the typedef.
 interface BossLike {
@@ -43,9 +45,6 @@ export async function enqueueOptional(
     const boss = getBoss();
     await boss.send(queue, data);
   } catch (err) {
-    // Lazy import to avoid cycles in test environments where logger.server
-    // pulls in env-dependent setup.
-    const { logger } = await import("./logger.server.ts");
     logger.warn({ err, queue, ...ctx }, "boss.send failed; continuing");
   }
 }

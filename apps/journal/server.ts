@@ -4,17 +4,27 @@ import { createRequestListener } from "@react-router/node";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
-import { logger } from "./app/lib/logger.server.ts";
+import { logger, requestContext } from "./app/lib/logger.server.ts";
+import { randomUUID } from "node:crypto";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
 import { getDatabaseUrl } from "@trails-cool/db";
-import postgres from "postgres";
+import postgres, { type Sql } from "postgres";
 
-Sentry.init({
-  dsn: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728",
-  ...nodeSentryConfig("journal server"),
-  beforeSend: drop404s,
-});
+// Sentry DSN is read from env so self-hosted instances don't ship their
+// errors to the trails.cool flagship Sentry by default. The flagship
+// keeps its DSN as the fallback; setting SENTRY_DSN="" (or any other
+// truthy value) overrides. SENTRY_DISABLED=true skips init entirely.
+const FLAGSHIP_JOURNAL_SENTRY_DSN =
+  "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728";
+const sentryDsn = process.env.SENTRY_DSN ?? FLAGSHIP_JOURNAL_SENTRY_DSN;
+if (process.env.SENTRY_DISABLED !== "true" && sentryDsn !== "") {
+  Sentry.init({
+    dsn: sentryDsn,
+    ...nodeSentryConfig("journal server"),
+    beforeSend: drop404s,
+  });
+}
 
 const port = Number(process.env.PORT ?? 3000);
 const CLIENT_DIR = resolve(import.meta.dirname, "build", "client");
@@ -66,17 +76,27 @@ async function handleMetrics(_req: IncomingMessage, res: ServerResponse): Promis
 
 const version = process.env.SENTRY_RELEASE ?? "dev";
 
+// Module-level singleton postgres client dedicated to /api/health. The
+// previous handler opened a fresh client + connection on every call,
+// which OOM'd the process under monitoring load (probes hit /api/health
+// every few seconds). `max: 2` is plenty for liveness checks; the main
+// app DB pool is separate (via @trails-cool/db's createDb).
+let healthClient: Sql | null = null;
+function getHealthClient(): Sql {
+  if (!healthClient) {
+    healthClient = postgres(getDatabaseUrl(), { max: 2, idle_timeout: 30 });
+  }
+  return healthClient;
+}
+
 async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const client = postgres(getDatabaseUrl(), { max: 1 });
   try {
-    await client`SELECT 1`;
+    await getHealthClient()`SELECT 1`;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version, db: "connected" }));
   } catch {
     res.writeHead(503, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "degraded", version, db: "unreachable" }));
-  } finally {
-    await client.end();
   }
 }
 
@@ -84,22 +104,32 @@ const server = createServer((req, res) => {
   const url = req.url ?? "/";
   const start = Date.now();
 
-  if (!url.startsWith("/assets/") && url !== "/api/health" && url !== "/api/metrics") {
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      logger.info({ method: req.method, path: url, status: res.statusCode, duration }, "request");
-      httpRequestDuration.observe(
-        { method: req.method ?? "GET", route: url.split("?")[0]!, status: String(res.statusCode) },
-        duration / 1000,
-      );
-    });
-  }
+  // Honor an inbound X-Request-Id header (e.g. from Caddy or a probe)
+  // so request IDs propagate across the proxy hop. Mint a fresh one if
+  // absent. Echo on the response so clients can correlate.
+  const inbound = req.headers["x-request-id"];
+  const requestId =
+    (Array.isArray(inbound) ? inbound[0] : inbound) || randomUUID();
+  res.setHeader("X-Request-Id", requestId);
 
-  if (url === "/api/health") { handleHealth(req, res); return; }
-  if (url === "/api/metrics") { handleMetrics(req, res); return; }
-  if (!serveStatic(req, res)) {
-    listener(req, res);
-  }
+  requestContext.run({ requestId }, () => {
+    if (!url.startsWith("/assets/") && url !== "/api/health" && url !== "/api/metrics") {
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        logger.info({ method: req.method, path: url, status: res.statusCode, duration }, "request");
+        httpRequestDuration.observe(
+          { method: req.method ?? "GET", route: url.split("?")[0]!, status: String(res.statusCode) },
+          duration / 1000,
+        );
+      });
+    }
+
+    if (url === "/api/health") { handleHealth(req, res); return; }
+    if (url === "/api/metrics") { handleMetrics(req, res); return; }
+    if (!serveStatic(req, res)) {
+      listener(req, res);
+    }
+  });
 });
 
 server.listen(port, async () => {

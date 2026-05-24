@@ -5,6 +5,7 @@ import { activities, routes, syncImports, users, follows } from "@trails-cool/db
 import type { Visibility } from "@trails-cool/db/schema/journal";
 import { validateGpx, writeGeom } from "./gpx-save.server.ts";
 import type { GpxData } from "./gpx-save.server.ts";
+import { enqueueOptional } from "./boss.server.ts";
 
 export interface ActivityInput {
   name: string;
@@ -36,7 +37,6 @@ export async function updateActivityVisibility(
   // idempotent, so toggling private→public→private→public won't spam
   // followers (only the first transition per activity emits).
   if (visibility === "public") {
-    const { enqueueOptional } = await import("./boss.server.ts");
     await enqueueOptional("notifications-fanout", { activityId: id }, { source: "updateActivityVisibility" });
   }
 
@@ -91,7 +91,6 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   // updateActivityVisibility path for the case where visibility is set
   // up-front rather than flipped later).
   if (input.visibility === "public") {
-    const { enqueueOptional } = await import("./boss.server.ts");
     await enqueueOptional("notifications-fanout", { activityId: id }, { source: "createActivity" });
   }
 
