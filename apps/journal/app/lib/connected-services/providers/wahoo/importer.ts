@@ -7,6 +7,7 @@
 import { fitToGpx } from "../../fit.ts";
 import { fetchWithTimeout } from "../../../http.server.ts";
 import { importActivity, isAlreadyImported } from "../../../sync/imports.server.ts";
+import { getServiceById } from "../../manager.ts";
 import type {
   CapabilityContext,
   ImportableList,
@@ -116,7 +117,6 @@ export const wahooImporter: Importer = {
     // Resolve the connected service's user id via the capability context.
     // The caller (route handler) supplies userId out-of-band — for now the
     // route handler bridges the gap. We use the manager's getServiceById.
-    const { getServiceById } = await import("../../manager.ts");
     const service = await getServiceById(ctx.serviceId);
     if (!service) throw new Error(`Connected service ${ctx.serviceId} not found`);
 
