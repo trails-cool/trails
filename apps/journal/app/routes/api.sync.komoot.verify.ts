@@ -3,15 +3,14 @@
 // trails.cool profile URL appears in their Komoot bio.
 // On success, creates or replaces the connected service row in public mode.
 
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.sync.komoot.verify";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { parseKomootUserId, verifyKomootOwnership } from "~/lib/komoot.server";
 import { link } from "~/lib/connected-services/manager";
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const body = (await request.json()) as { komootProfileUrl?: string };
   const input = body.komootProfileUrl?.trim() ?? "";

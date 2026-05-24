@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { data, redirect, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/sync.import.$provider";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import {
   getManifest,
   getService,
@@ -13,8 +13,7 @@ import { createActivity } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const manifest = getManifest(params.provider);
   if (!manifest || !manifest.importer) {
@@ -48,8 +47,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const manifest = getManifest(params.provider);
   if (!manifest || !manifest.importer) {

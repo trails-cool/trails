@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
 import { and, eq } from "drizzle-orm";
 import { canView } from "~/lib/auth.server";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { getSessionUser, requireSessionUser } from "~/lib/auth/session.server";
 import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
 import { getDb } from "~/lib/db";
 import { syncPushes } from "@trails-cool/db/schema/journal";
@@ -142,8 +142,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");

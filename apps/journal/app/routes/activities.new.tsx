@@ -1,12 +1,11 @@
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/activities.new";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { createActivity } from "~/lib/activities.server";
 import { listRoutes } from "~/lib/routes.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const userRoutes = await listRoutes(user.id);
   return data({
@@ -15,8 +14,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const formData = await request.formData();
   const name = formData.get("name") as string;

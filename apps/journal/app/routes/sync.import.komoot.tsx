@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { data, redirect, useFetcher, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/sync.import.komoot";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { getService } from "~/lib/connected-services";
 import { getDb } from "~/lib/db";
 import { importBatches } from "@trails-cool/db/schema/journal";
@@ -16,8 +16,7 @@ export function meta() {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const service = await getService(user.id, "komoot");
   if (!service) return redirect("/settings/connections/komoot");
@@ -47,8 +46,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  await requireSessionUser(request);
 
   // Delegate to the API route — just redirect so the page reloads with
   // the new batch after the POST.

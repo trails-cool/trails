@@ -1,14 +1,13 @@
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities._index";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { listActivities } from "~/lib/activities.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) return redirect("/auth/login");
+  const user = await requireSessionUser(request);
 
   const url = new URL(request.url);
   const sortParam = url.searchParams.get("sort");

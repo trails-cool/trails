@@ -5,7 +5,7 @@
 // The legacy import path `~/lib/auth.server` continues to re-export
 // these symbols for backwards compat — see auth.server.ts.
 
-import { createCookieSessionStorage } from "react-router";
+import { createCookieSessionStorage, redirect } from "react-router";
 import { eq } from "drizzle-orm";
 import { users } from "@trails-cool/db/schema/journal";
 import { getDb } from "../db.ts";
@@ -38,6 +38,34 @@ export async function getSessionUser(request: Request) {
 
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   return user ?? null;
+}
+
+/**
+ * Loader/action helper: return the session user or throw a redirect to
+ * /auth/login. Centralizes the repeated
+ *   const user = await getSessionUser(request);
+ *   if (!user) return redirect("/auth/login");
+ * pattern across page loaders and form actions.
+ */
+export async function requireSessionUser(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) {
+    throw redirect("/auth/login");
+  }
+  return user;
+}
+
+/**
+ * Same as requireSessionUser but throws a 401 JSON response instead of a
+ * redirect. For fetcher/JSON endpoints (`/api/*` non-v1) where redirecting
+ * would confuse the client-side caller.
+ */
+export async function requireSessionUserJson(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) {
+    throw Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return user;
 }
 
 export async function destroySession(request: Request) {

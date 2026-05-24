@@ -1,7 +1,7 @@
 import { redirect, data } from "react-router";
 import type { Route } from "./+types/auth.verify";
 import { verifyMagicToken, verifyEmailChange } from "~/lib/auth.server";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { requireSessionUser } from "~/lib/auth/session.server";
 import { completeAuth } from "~/lib/auth/completion.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -15,8 +15,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   try {
     if (isEmailChange) {
-      const user = await getSessionUser(request);
-      if (!user) return redirect("/auth/login");
+      const user = await requireSessionUser(request);
       await verifyEmailChange(token, user.id);
       return redirect("/settings/account");
     }
