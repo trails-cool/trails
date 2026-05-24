@@ -52,6 +52,12 @@ export interface RateLimitOptions {
  * one endpoint doesn't lock out the others.
  */
 export function consumeRateLimit(opts: RateLimitOptions): RateLimitResult {
+  // E2E suite drives auth flows from one IP at high volume; production
+  // limits would trip and flake tests. Same opt-out pattern as
+  // requireSecret() / getDatabaseUrl().
+  if (process.env.E2E === "true") {
+    return { allowed: true, remaining: opts.limit, resetMs: opts.windowMs };
+  }
   ensureSweeper();
   const now = Date.now();
   const id = `${opts.scope}:${opts.key}`;
