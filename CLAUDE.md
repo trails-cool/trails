@@ -9,7 +9,9 @@ trails.cool is a federated, self-hostable platform for outdoor enthusiasts with 
 
 Full architecture: `docs/architecture.md`
 Philosophy: `docs/philosophy.md`
-OpenSpec change: `openspec/changes/phase-1-mvp/`
+Roadmap: `docs/roadmap.md`
+Ideas (pre-spec explorations): `docs/ideas/`
+OpenSpec changes: `openspec/changes/`
 
 ## Principles
 
@@ -25,7 +27,7 @@ OpenSpec change: `openspec/changes/phase-1-mvp/`
 - **Frontend**: React + Tailwind CSS + React Router 7 (Remix stack)
 - **Maps**: Leaflet + OpenStreetMap tiles
 - **CRDT**: Yjs + y-websocket (Planner only)
-- **Federation**: Fedify (Journal only, Phase 2)
+- **Federation**: Fedify (Journal only)
 - **Database**: PostgreSQL + PostGIS
 - **Media storage**: S3-compatible (Garage)
 - **Routing engine**: BRouter (Java, runs as separate Docker container)
@@ -41,9 +43,15 @@ apps/
 packages/
   types/            — Shared TypeScript interfaces (Route, Activity, Waypoint)
   ui/               — Shared React components (Tailwind)
-  map/              — Leaflet map wrappers and tile layer configs
+  map/              — React/Leaflet components (MapView, RouteLayer); re-exports map-core
+  map-core/         — Framework-free map constants (colors, tiles, POI, z-index, snap); safe to import server-side
   gpx/              — GPX parsing, generation, validation
+  fit/              — FIT file generation (Wahoo route push)
   i18n/             — react-i18next config + translations
+  api/              — Shared API contracts (endpoints, pagination, error types, versioning)
+  db/               — Drizzle schema, database client, migration helpers
+  jobs/             — pg-boss setup, worker, and background job types
+  sentry-config/    — Shared Sentry configuration
 infrastructure/     — Terraform + Docker Compose
 openspec/           — OpenSpec specs and changes
 docs/               — Architecture, philosophy, tooling docs
