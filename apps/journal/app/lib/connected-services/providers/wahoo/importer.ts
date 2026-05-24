@@ -5,6 +5,7 @@
 // never reads the connected_services credentials JSONB directly.
 
 import { fitToGpx } from "../../fit.ts";
+import { fetchWithTimeout } from "../../../http.server.ts";
 import { importActivity, isAlreadyImported } from "../../../sync/imports.server.ts";
 import type {
   CapabilityContext,
@@ -39,7 +40,7 @@ async function fetchWahooWorkoutPage(
   per_page: number;
 }> {
   const params = new URLSearchParams({ page: String(page), per_page: "30" });
-  const resp = await fetch(`${WAHOO_API}/v1/workouts?${params}`, {
+  const resp = await fetchWithTimeout(`${WAHOO_API}/v1/workouts?${params}`, {
     headers: { Authorization: `Bearer ${creds.access_token}` },
   });
   if (!resp.ok) throw new Error(`Wahoo list workouts failed: ${resp.status}`);
@@ -70,7 +71,7 @@ function toImportable(w: WahooWorkout) {
 async function downloadFit(fileUrl: string): Promise<Buffer> {
   // Wahoo CDN URLs are pre-signed; no auth header needed (and adding one
   // breaks them).
-  const resp = await fetch(fileUrl);
+  const resp = await fetchWithTimeout(fileUrl);
   if (!resp.ok) throw new Error(`Wahoo file download failed: ${resp.status}`);
   return Buffer.from(await resp.arrayBuffer());
 }

@@ -107,7 +107,9 @@ export const routes = journalSchema.table("routes", {
   synthetic: boolean("synthetic").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  ownerUpdatedIdx: index("routes_owner_updated_idx").on(t.ownerId, t.updatedAt.desc()),
+}));
 
 export const routeVersions = journalSchema.table("route_versions", {
   id: text("id").primaryKey(),
@@ -141,7 +143,11 @@ export const activities = journalSchema.table("activities", {
   visibility: text("visibility").$type<Visibility>().notNull().default("private"),
   synthetic: boolean("synthetic").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  // Hot paths: listActivities (sort by started_at) and listPublicActivitiesForOwner.
+  ownerStartedIdx: index("activities_owner_started_idx").on(t.ownerId, t.startedAt.desc()),
+  ownerCreatedIdx: index("activities_owner_created_idx").on(t.ownerId, t.createdAt.desc()),
+}));
 
 // --- OAuth2 PKCE (mobile app auth) ---
 

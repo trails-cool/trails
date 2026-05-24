@@ -1,6 +1,12 @@
 import { data } from "react-router";
+import { z } from "zod";
 import type { Route } from "./+types/api.sync.webhook.$provider";
 import { getManifest } from "~/lib/connected-services";
+
+// Generic webhook envelope. Provider-specific shape validation happens in
+// each provider's `parseWebhook`; here we only enforce that the body is a
+// JSON object so downstream code never crashes on a malformed payload.
+const webhookEnvelope = z.object({ webhook_token: z.string().optional() }).passthrough();
 
 export async function action({ params, request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -13,14 +19,21 @@ export async function action({ params, request }: Route.ActionArgs) {
     return data({ ok: true });
   }
 
-  const body = await request.json();
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return data({ ok: true });
+  }
+  const envelope = webhookEnvelope.safeParse(raw);
+  if (!envelope.success) {
+    return data({ ok: true });
+  }
+  const body = envelope.data;
 
   // Verify webhook token (provider-specific shared secret).
   const expectedToken = process.env[`${params.provider.toUpperCase()}_WEBHOOK_TOKEN`];
-  if (
-    expectedToken &&
-    (body as { webhook_token?: string }).webhook_token !== expectedToken
-  ) {
+  if (expectedToken && body.webhook_token !== expectedToken) {
     return data({ ok: true });
   }
 

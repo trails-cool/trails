@@ -1,4 +1,5 @@
 import { API_VERSION } from "@trails-cool/api";
+import { getOrigin } from "~/lib/config.server";
 
 /**
  * GET /.well-known/trails-cool
@@ -8,7 +9,7 @@ import { API_VERSION } from "@trails-cool/api";
  */
 export function loader() {
   const domain = process.env.DOMAIN ?? "localhost";
-  const origin = process.env.ORIGIN ?? "http://localhost:3000";
+  const origin = getOrigin();
 
   return Response.json({
     apiVersion: API_VERSION,

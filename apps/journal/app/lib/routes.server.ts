@@ -115,13 +115,14 @@ export async function listRoutes(ownerId: string) {
  * List the *public* routes of a given owner. Used for cross-user listings
  * (the public profile page); never includes `unlisted` or `private` content.
  */
-export async function listPublicRoutesForOwner(ownerId: string) {
+export async function listPublicRoutesForOwner(ownerId: string, limit: number = 100) {
   const db = getDb();
   const rows = await db
     .select()
     .from(routes)
     .where(and(eq(routes.ownerId, ownerId), eq(routes.visibility, "public")))
-    .orderBy(desc(routes.updatedAt));
+    .orderBy(desc(routes.updatedAt))
+    .limit(limit);
 
   const ids = rows.map((r) => r.id);
   const geojsonMap = ids.length > 0 ? await getSimplifiedGeojsonBatch(ids) : new Map();
@@ -226,14 +227,14 @@ async function getSimplifiedGeojsonBatch(ids: string[]): Promise<Map<string, str
   if (ids.length === 0) return map;
   try {
     const db = getDb();
-    // Fetch individually — Drizzle's sql template doesn't handle array params well with ANY()
-    await Promise.all(ids.map(async (id) => {
-      const result = await db.execute(
-        sql`SELECT ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson FROM journal.routes WHERE id = ${id} AND geom IS NOT NULL`,
-      );
-      const row = (result as unknown as Array<{ geojson: string }>)[0];
-      if (row?.geojson) map.set(id, row.geojson);
-    }));
+    const result = await db.execute(
+      sql`SELECT id, ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson
+          FROM journal.routes
+          WHERE id = ANY(${ids}::text[]) AND geom IS NOT NULL`,
+    );
+    for (const row of result as unknown as Array<{ id: string; geojson: string }>) {
+      if (row.geojson) map.set(row.id, row.geojson);
+    }
   } catch {
     // Fallback: no geojson
   }

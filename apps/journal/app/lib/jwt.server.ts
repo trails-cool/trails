@@ -1,10 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
+import { getOrigin } from "./config.server.ts";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "dev-jwt-secret-change-in-production",
 );
 
-const ISSUER = process.env.ORIGIN ?? "http://localhost:3000";
+const ISSUER = getOrigin();
 
 export async function createRouteToken(routeId: string, permissions: string[] = ["read", "write"]): Promise<string> {
   return new SignJWT({ route_id: routeId, permissions })

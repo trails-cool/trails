@@ -145,8 +145,9 @@ server.listen(port, async () => {
   const { notificationsPurgeJob } = await import("./app/jobs/notifications-purge.ts");
   const { komootBulkImportJob } = await import("./app/jobs/komoot-bulk-import.ts");
   const { importBatchesSweepJob } = await import("./app/jobs/import-batches-sweep.ts");
+  const { sendWelcomeEmailJob } = await import("./app/jobs/send-welcome-email.ts");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob as any, importBatchesSweepJob);
+  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob as any, importBatchesSweepJob, sendWelcomeEmailJob);
 
   const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
   await startWorker(boss, jobs);

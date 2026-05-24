@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { data, redirect, useFetcher } from "react-router";
+import { getOrigin } from "~/lib/config.server";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/settings.connections.komoot";
 import { getSessionUser } from "~/lib/auth/session.server";
@@ -18,7 +19,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!user) throw redirect("/auth/login");
 
   const service = await getService(user.id, "komoot");
-  const origin = process.env.ORIGIN ?? "http://localhost:3000";
+  const origin = getOrigin();
   const trailsProfileUrl = `${origin}/users/${user.username}`;
 
   return data({
