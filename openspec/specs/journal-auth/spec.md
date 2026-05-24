@@ -6,7 +6,7 @@ Session management and the terms-of-service consent gate for the Journal app. Th
 ## Requirements
 
 ### Requirement: Cookie session for signed-in users
-The Journal SHALL identify signed-in users via a server-set HTTP cookie (`__session`) that carries a serialized JSON payload containing `userId`. The cookie SHALL be `HttpOnly`, `SameSite=Lax`, signed with the server secret, and have a finite max-age. Anonymous browsers SHALL render the public surface (anonymous home, public profiles, public routes/activities) without a session cookie present.
+The Journal SHALL identify signed-in users via a server-set HTTP cookie (`__session`) that carries a serialized JSON payload containing `userId`. The cookie SHALL be `HttpOnly`, `SameSite=Lax`, signed with the server secret, and have a `maxAge` of **30 days**. Anonymous browsers SHALL render the public surface (anonymous home, public profiles, public routes/activities) without a session cookie present.
 
 #### Scenario: Set cookie on successful authentication
 - **WHEN** any authentication path (passkey finish, magic-link verify, code verify) succeeds
@@ -41,12 +41,14 @@ The registration form SHALL require explicit acknowledgement of the Terms of Ser
 Logged-in users whose stored `terms_version` does not match the currently-published version SHALL be prompted to accept the current Terms before accessing any non-allow-listed page.
 
 #### Scenario: Stale version redirects to accept-terms page
-- **WHEN** a logged-in user whose `users.terms_version` is NULL or differs from the current `TERMS_VERSION` requests any page outside the allow-list (`/auth/accept-terms`, `/auth/logout`, `/legal/*`)
+- **WHEN** a logged-in user whose `users.terms_version` is NULL or differs from the current `TERMS_VERSION` requests any path not in the allow-list
 - **THEN** the server redirects them to `/auth/accept-terms?returnTo=<original path>`
 
 #### Scenario: Allow-list keeps Terms and logout reachable
-- **WHEN** the same user requests `/legal/terms`, `/legal/privacy`, `/legal/imprint`, `/auth/accept-terms`, or `/auth/logout`
+- **WHEN** the same user requests any path under `/legal/` (e.g. `/legal/terms`, `/legal/privacy`, `/legal/imprint`), `/auth/accept-terms`, or `/auth/logout`
 - **THEN** the request is served normally without being redirected
+
+Note: the allow-list uses prefix matching (`/legal/` prefix covers all current and future legal pages); it is not a fixed list of individual paths.
 
 #### Scenario: Successful re-acceptance updates both fields
 - **WHEN** a user submits the acceptance form with the required checkbox ticked

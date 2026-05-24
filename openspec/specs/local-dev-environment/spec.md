@@ -79,3 +79,16 @@ The dev environment SHALL provide a command to tear down and recreate the local 
 #### Scenario: Reset dev environment
 - **WHEN** a developer runs `pnpm dev:reset`
 - **THEN** all Docker volumes are removed and containers are recreated
+
+### Requirement: Mobile app dev (Expo)
+The `apps/mobile` React Native app (Expo) requires its own dev commands separate from the web stack.
+
+#### Scenario: iOS development
+- **WHEN** a developer runs `pnpm dev:ios` from `apps/mobile`
+- **THEN** the Expo bundler starts and the iOS simulator opens with the app
+
+#### Scenario: Android development
+- **WHEN** a developer runs `pnpm dev:android` from `apps/mobile`
+- **THEN** the Expo bundler starts and an Android emulator opens with the app
+
+Note: the mobile app requires the Journal to be running locally (or pointing at staging) for API calls. It does not use the BRouter or Yjs stack — route edits in mobile go directly through the Journal API.

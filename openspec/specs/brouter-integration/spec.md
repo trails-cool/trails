@@ -62,11 +62,23 @@ The Planner backend SHALL proxy all BRouter API calls. Clients SHALL NOT communi
 - **THEN** the Planner logs a fatal error and refuses to start
 
 ### Requirement: Rate limiting
-The Planner backend SHALL rate limit BRouter API calls to prevent abuse.
+The Planner backend SHALL rate limit BRouter API calls to prevent abuse. See `rate-limiting` spec for the authoritative limit values.
 
 #### Scenario: Rate limit exceeded
-- **WHEN** a session exceeds 60 route computations per hour
+- **WHEN** a session exceeds 300 route computations per hour (the `DEFAULT_MAX_REQUESTS` value)
 - **THEN** subsequent requests receive a 429 response with a Retry-After header
+
+### Requirement: Client-side segment cache
+The Planner client SHALL cache BRouter responses per waypoint-pair so that only changed segments are re-fetched when waypoints are added or moved.
+
+#### Scenario: Only changed segments re-fetched
+- **WHEN** a user moves one waypoint in a multi-waypoint route
+- **THEN** only the two segments adjacent to the moved waypoint are re-fetched from the proxy
+- **AND** all other segments are served from the client-side cache without a network request
+
+#### Scenario: Cache key is waypoint-pair coordinates
+- **WHEN** the same start/end coordinate pair appears in a new route
+- **THEN** the cached segment result is reused without a BRouter call
 
 ### Requirement: BRouter Docker deployment
 BRouter SHALL run as a Docker container on a dedicated Hetzner host reached over a private Hetzner vSwitch, with planet-wide RD5 segments mounted as a volume. The BRouter container SHALL NOT be exposed on any public network interface.

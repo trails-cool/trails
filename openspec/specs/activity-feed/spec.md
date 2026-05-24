@@ -110,6 +110,10 @@ Creating an activity with `visibility = 'public'` SHALL enqueue a fan-out job th
 - **WHEN** a user creates an activity with `visibility = 'private'` or `'unlisted'`
 - **THEN** no fan-out job is enqueued and no notifications are created
 
+#### Scenario: Visibility change to public fans out
+- **WHEN** an activity owner changes an existing activity's visibility from `private` or `unlisted` to `public`
+- **THEN** a fan-out job is enqueued for the visibility change, creating `activity_published` notifications for all accepted followers — the same fan-out as on initial public creation
+
 #### Scenario: No accepted followers means no notifications
 - **WHEN** a user with zero accepted followers creates a public activity
 - **THEN** the fan-out job runs and inserts zero rows

@@ -12,7 +12,7 @@ The `@trails-cool/jobs` package SHALL initialize a pg-boss instance using the ap
 - **THEN** pg-boss connects to PostgreSQL, creates/migrates the `pgboss` schema if needed, and begins polling for jobs
 
 #### Scenario: Worker stops on shutdown
-- **WHEN** the server process receives SIGTERM
+- **WHEN** the server process receives SIGTERM or SIGINT
 - **THEN** pg-boss completes any in-progress jobs and stops gracefully before the process exits
 
 ### Requirement: Cron job scheduling
@@ -27,11 +27,11 @@ The system SHALL support registering recurring jobs with cron expressions.
 - **THEN** existing cron schedules persist and continue firing without re-registration conflicts
 
 ### Requirement: Job retry policy
-Jobs SHALL support configurable retry policies with exponential backoff.
+Jobs SHALL support configurable retry limits. The `JobDefinition` type exposes `retryLimit` and `expireInSeconds`; exponential backoff (`retryDelay`/`retryBackoff` in pg-boss terms) is not currently wired.
 
 #### Scenario: Transient failure retry
 - **WHEN** a job handler throws an error
-- **THEN** pg-boss retries the job up to the configured retry limit with exponential backoff
+- **THEN** pg-boss retries the job up to the configured `retryLimit`
 
 #### Scenario: Permanent failure
 - **WHEN** a job exhausts all retries

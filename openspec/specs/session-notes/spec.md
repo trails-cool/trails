@@ -27,13 +27,17 @@ Planner sessions SHALL have a shared text editor for participants to write notes
 ### Requirement: Editor implementation
 The notes editor SHALL use CodeMirror 6 with y-codemirror.next for Yjs binding.
 
-#### Scenario: Undo/redo
+#### Scenario: Undo/redo (not fully isolated)
 - **WHEN** a user presses Ctrl+Z / Ctrl+Shift+Z in the notes editor
-- **THEN** undo/redo applies to notes only (separate Y.UndoManager from waypoint undo)
+- **THEN** undo/redo operates via the shared `Y.UndoManager` that also covers waypoints and no-go areas — undo in the notes editor may undo recent waypoint changes and vice versa
 
-#### Scenario: Awareness field isolation
+Note: the spec originally called for a separate `Y.UndoManager` for notes. The shipped implementation uses a single shared manager (`new Y.UndoManager([waypoints, noGoAreas, notes], {...})` in `use-yjs.ts`). Full isolation is aspirational.
+
+#### Scenario: Awareness field isolation (not yet isolated)
 - **WHEN** the notes editor sets cursor awareness state
-- **THEN** it does not conflict with map cursor awareness (uses separate awareness fields)
+- **THEN** it uses the same shared `awareness` object as the map cursor awareness; the `yCollab` extension writes to the `"user"` field on the same channel
+
+Note: the spec originally called for separate awareness fields. The shipped implementation passes the same awareness instance to both the map and notes editor. Full isolation is aspirational.
 
 ### Requirement: Notes in GPX export
 Notes SHALL be included in GPX exports as `<metadata><desc>`.
