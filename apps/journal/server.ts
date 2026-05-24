@@ -4,7 +4,8 @@ import { createRequestListener } from "@react-router/node";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
-import { logger } from "./app/lib/logger.server.ts";
+import { logger, requestContext } from "./app/lib/logger.server.ts";
+import { randomUUID } from "node:crypto";
 import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
 import { getDatabaseUrl } from "@trails-cool/db";
@@ -93,22 +94,32 @@ const server = createServer((req, res) => {
   const url = req.url ?? "/";
   const start = Date.now();
 
-  if (!url.startsWith("/assets/") && url !== "/api/health" && url !== "/api/metrics") {
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      logger.info({ method: req.method, path: url, status: res.statusCode, duration }, "request");
-      httpRequestDuration.observe(
-        { method: req.method ?? "GET", route: url.split("?")[0]!, status: String(res.statusCode) },
-        duration / 1000,
-      );
-    });
-  }
+  // Honor an inbound X-Request-Id header (e.g. from Caddy or a probe)
+  // so request IDs propagate across the proxy hop. Mint a fresh one if
+  // absent. Echo on the response so clients can correlate.
+  const inbound = req.headers["x-request-id"];
+  const requestId =
+    (Array.isArray(inbound) ? inbound[0] : inbound) || randomUUID();
+  res.setHeader("X-Request-Id", requestId);
 
-  if (url === "/api/health") { handleHealth(req, res); return; }
-  if (url === "/api/metrics") { handleMetrics(req, res); return; }
-  if (!serveStatic(req, res)) {
-    listener(req, res);
-  }
+  requestContext.run({ requestId }, () => {
+    if (!url.startsWith("/assets/") && url !== "/api/health" && url !== "/api/metrics") {
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        logger.info({ method: req.method, path: url, status: res.statusCode, duration }, "request");
+        httpRequestDuration.observe(
+          { method: req.method ?? "GET", route: url.split("?")[0]!, status: String(res.statusCode) },
+          duration / 1000,
+        );
+      });
+    }
+
+    if (url === "/api/health") { handleHealth(req, res); return; }
+    if (url === "/api/metrics") { handleMetrics(req, res); return; }
+    if (!serveStatic(req, res)) {
+      listener(req, res);
+    }
+  });
 });
 
 server.listen(port, async () => {
