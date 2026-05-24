@@ -80,12 +80,14 @@ Each import run SHALL be tracked as a batch with status and statistics.
 - **WHEN** an import completes
 - **THEN** the batch shows: totalFound, importedCount, duplicateCount, and duration
 
-### Requirement: Credential encryption (authenticated mode)
-Komoot credentials SHALL be encrypted at rest using AES-256-GCM.
+### Requirement: Credential storage
+Both connection modes store credentials in `connected_services` with `credential_kind = 'web-login'`. Public mode stores only the verified Komoot username; authenticated mode stores an encrypted email + password in the `credentials` JSONB blob. The Komoot provider uses a noop `CredentialAdapter` — it does not go through `ConnectedServiceManager`'s `withFreshCredentials` lifecycle (no token refresh needed for web-login credentials). Credential decryption for API calls happens inside the Komoot importer directly.
+
+The four Komoot-specific routes (`/api/sync/komoot/connect`, `/api/sync/komoot/verify`, `/api/sync/komoot/import`, `/api/sync/komoot/import-status`) intentionally bypass the generic `/api/sync/connect/:provider` / `/api/sync/callback/:provider` framework — Komoot's bio-verification flow is too different from OAuth to fit the generic shape.
 
 #### Scenario: Credentials stored securely
 - **WHEN** a user connects via authenticated mode
-- **THEN** the password is encrypted before storage and only decrypted when making API calls
+- **THEN** the password is encrypted with AES-256-GCM before storage and only decrypted when making API calls
 
 ### Requirement: Privacy disclosure
 The Komoot integration SHALL be documented in the privacy manifest.

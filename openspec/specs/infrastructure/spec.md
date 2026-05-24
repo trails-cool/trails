@@ -21,11 +21,11 @@ Each service SHALL be configured via environment variables defined in Docker Com
 
 #### Scenario: Journal configuration
 - **WHEN** the Journal container starts
-- **THEN** it reads DOMAIN, DATABASE_URL, PLANNER_URL, JWT_SECRET, SESSION_SECRET, and WAHOO_* credentials from environment variables
+- **THEN** it reads DOMAIN, DATABASE_URL, PLANNER_URL, JWT_SECRET, SESSION_SECRET, INTEGRATION_SECRET, WAHOO_* credentials, and SENTRY_DSN from environment variables
 
 #### Scenario: Planner configuration
 - **WHEN** the Planner container starts
-- **THEN** it reads BROUTER_URL and DATABASE_URL from environment variables
+- **THEN** it reads BROUTER_URL, DATABASE_URL, and INTEGRATION_SECRET from environment variables
 
 #### Scenario: Caddy security headers
 - **WHEN** Caddy proxies a request
@@ -69,8 +69,10 @@ GitHub Actions SHALL use separate workflows for app deployment, infrastructure d
 - **THEN** the cd-brouter workflow SSHes as the `trails` user into the dedicated BRouter host using `BROUTER_DEPLOY_HOST` / `BROUTER_DEPLOY_SSH_KEY` and runs `docker compose up -d` in `~trails/brouter/`
 
 #### Scenario: Secret decryption at deploy time
-- **WHEN** any CD workflow runs
-- **THEN** the SOPS-encrypted secrets file is decrypted and provided to docker-compose as an env file
+- **WHEN** `cd-apps.yml` runs
+- **THEN** `secrets.app.env` is decrypted and injected into the Journal and Planner containers
+- **WHEN** `cd-infra.yml` runs
+- **THEN** both `secrets.app.env` and `secrets.infra.env` are decrypted and merged for infrastructure services
 
 #### Scenario: Gitleaks scan
 - **WHEN** a PR is opened

@@ -11,9 +11,11 @@ The Journal route detail page SHALL display POI metadata (phone, address, websit
 - **WHEN** a route detail page is loaded and a waypoint has POI metadata from the Planner
 - **THEN** the waypoint displays the POI name, icon, and category alongside its coordinates
 
-#### Scenario: Phone, address, and website shown
-- **WHEN** a waypoint has POI metadata including phone, address, or website
-- **THEN** those details are shown in the waypoint detail section with appropriate links (tel: for phone, mailto: or https: for website)
+#### Scenario: Phone, address, website, and opening hours shown
+- **WHEN** a waypoint has POI metadata including phone, address, website, or opening hours
+- **THEN** those details are shown in the waypoint detail section with appropriate links (tel: for phone, https: for website; opening hours displayed as text)
+
+Note: `mailto:` links for websites are not rendered — all website values are treated as `https:` links. The `opening_hours` OSM tag is also displayed when present.
 
 #### Scenario: Waypoints without POI data display normally
 - **WHEN** a waypoint on the route detail page has no associated POI metadata
