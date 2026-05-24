@@ -24,14 +24,14 @@ The system SHALL send an email containing the magic link when a user requests pa
 
 #### Scenario: Email content
 - **WHEN** a magic link email is sent
-- **THEN** it includes: the link, expiry time (15 minutes), and plain-text fallback
+- **THEN** it includes: the clickable link, a prominently displayed 6-digit numeric code (for users who prefer copy-paste over clicking), expiry time (15 minutes), and a plain-text fallback
 
 ### Requirement: Welcome email
-The system SHALL send a welcome email after successful registration.
+The system SHALL send a welcome email after successful registration. The welcome email is sent asynchronously via a pg-boss `send-welcome-email` job rather than inline during the registration request.
 
 #### Scenario: Welcome on registration
-- **WHEN** a user completes passkey registration
-- **THEN** a welcome email is sent to their registered email address
+- **WHEN** a user completes registration (passkey or magic-link)
+- **THEN** a `send-welcome-email` job is enqueued and the email is delivered asynchronously to their registered email address
 
 ### Requirement: Email templates
 Each email type SHALL have an HTML template with a plain-text fallback.

@@ -50,10 +50,10 @@ The Planner SHALL load POIs only within the current map viewport, refreshing whe
 
 #### Scenario: Load POIs on viewport
 - **WHEN** POI categories are enabled and the user pans or zooms the map
-- **THEN** POIs are fetched for the new viewport after a 500ms debounce
+- **THEN** POIs are fetched for the new viewport after an 800ms debounce (`DEBOUNCE_MS` in `use-pois.ts`); a minimum request interval of 2000ms additionally throttles rapid viewport changes
 
 #### Scenario: Zoom threshold
-- **WHEN** the map zoom level is below 12
+- **WHEN** the map zoom level is below 10 (`MIN_ZOOM` constant in `use-pois.ts`)
 - **THEN** POI queries are not sent and a message indicates the user should zoom in to see POIs
 
 #### Scenario: Cached results
@@ -65,7 +65,9 @@ The Planner SHALL handle Overpass API rate limits gracefully.
 
 #### Scenario: Rate limited response
 - **WHEN** the Overpass API returns a 429 status
-- **THEN** the Planner shows a temporary "POI data unavailable — try again shortly" message and retries with exponential backoff
+- **THEN** the Planner shows a temporary "POI data unavailable — try again shortly" message and sets a backoff delay before the next request
+
+Note: automatic retry is not implemented. The next request fires only on the next user viewport change or category toggle after the backoff delay has elapsed.
 
 #### Scenario: Overpass unavailable
 - **WHEN** the Overpass API is unreachable
@@ -82,6 +84,8 @@ The Planner SHALL auto-enable relevant POI categories when the routing profile c
 - **WHEN** the routing profile is changed to a hiking variant
 - **THEN** "Shelter" and "Viewpoints" POI categories are automatically enabled
 
-#### Scenario: User override persists
+#### Scenario: User override persists (not yet implemented)
 - **WHEN** a user manually disables an auto-enabled POI category
 - **THEN** it remains disabled until the next profile change
+
+Note: the current implementation (`use-profile-defaults.ts`) always merges the profile defaults on every profile change without checking for prior manual overrides. The override-persistence behaviour is not yet implemented.

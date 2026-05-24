@@ -80,8 +80,9 @@ A signed-in user SHALL be able to add an additional passkey to their account fro
 - **THEN** a WebAuthn registration ceremony runs against the existing user id and a new row is inserted in `credentials` linked to that user
 
 #### Scenario: Post-login add-passkey nudge
-- **WHEN** a user has just verified via magic-link/code and lands on `/?add-passkey=1`
-- **THEN** the home page surfaces an "Add a passkey for faster sign-in" prompt; if dismissed it does not re-appear automatically
+- **WHEN** a user who has zero registered passkeys lands on `/?add-passkey=1`
+- **THEN** the home page surfaces an "Add a passkey for faster sign-in" prompt
+- **AND** once the user adds a passkey the prompt disappears (there is no separate dismiss/suppress mechanism)
 
 ### Requirement: Passkey deletion
 A signed-in user SHALL be able to remove a passkey from their account via the Security settings page (`/settings/security`). The Journal SHALL prevent deletion of the user's last remaining passkey if no alternative auth method (a verified email for magic-link login) is available, to avoid lock-out.
@@ -98,6 +99,8 @@ A signed-in user SHALL be able to remove a passkey from their account via the Se
 Every successful web authentication flow — passkey register-finish, passkey login-finish, magic-link 6-digit-code verify, magic-link click-through verify — SHALL complete by calling a single `completeAuth` function at `apps/journal/app/lib/auth/completion.server.ts`. The function SHALL be the sole place where a successful web authentication mints the cookie session and constructs the redirect to `returnTo` (or `/` when absent or rejected).
 
 Per-method identity verification (WebAuthn ceremony, magic-token consumption, 6-digit-code consumption) SHALL run in its own function and produce a `userId` *before* `completeAuth` is invoked. `completeAuth` SHALL NOT know how identity was proved.
+
+`completeAuth` supports two response modes via an optional `mode` parameter: `"redirect"` (default, for browser flows — returns a `Response` with `Set-Cookie` + `Location`) and `"json"` (for API/mobile flows — returns a JSON body with the session token). All web authentication scenarios use `"redirect"`; the `"json"` mode is used by the OAuth2/PKCE mobile code-exchange flow.
 
 Terms recording happens at user creation time inside the per-method registration functions (`finishRegistration` for passkey, `registerWithMagicLink` for magic-link), not inside `completeAuth`. The Terms gate (root-loader redirect for cookie sessions; `requireApiUser` 403 for bearer-token API requests) SHALL remain the enforcement point for stale `terms_version`.
 

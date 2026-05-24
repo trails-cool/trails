@@ -11,9 +11,13 @@ Production secrets SHALL be stored as SOPS-encrypted files in the repository, de
 - **WHEN** a developer runs `sops infrastructure/secrets.app.env` or `sops infrastructure/secrets.infra.env`
 - **THEN** the file is decrypted in a temporary editor, and re-encrypted on save
 
-#### Scenario: CD decryption
-- **WHEN** the CD workflow runs
-- **THEN** both encrypted secrets files are decrypted using the AGE_SECRET_KEY GitHub secret and merged at deploy time as env files for docker-compose
+#### Scenario: App deploy decryption
+- **WHEN** `cd-apps.yml` runs
+- **THEN** only `secrets.app.env` is decrypted using `AGE_SECRET_KEY` and injected into the Journal and Planner containers
+
+#### Scenario: Infra deploy decryption
+- **WHEN** `cd-infra.yml` runs
+- **THEN** both `secrets.app.env` and `secrets.infra.env` are decrypted and merged for infrastructure services
 
 #### Scenario: Secret audit trail
 - **WHEN** a secret is changed

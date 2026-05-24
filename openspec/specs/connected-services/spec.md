@@ -54,5 +54,7 @@ The system SHALL expose a `ConnectedServiceManager` that owns credential lifecyc
 #### Scenario: Refresh failure flips status to needs_relink
 - **WHEN** the `CredentialAdapter`'s refresh call returns a permanent failure (e.g. revoked refresh token)
 - **THEN** the manager sets `status = 'needs_relink'` on the `connected_services` row
-- **AND** raises an error that the caller surfaces as a re-connect prompt
+- **AND** raises a `ConnectionNotActiveError` that the caller surfaces as a re-connect prompt
 - **AND** subsequent calls for the same service short-circuit until the user re-links
+
+Note: the `status` column has three valid values: `active`, `needs_relink`, and `revoked`. The `revoked` state is set when the user explicitly disconnects but the row is retained for audit purposes.

@@ -89,7 +89,7 @@ The Journal SHALL detect when a connected Wahoo account lacks the `routes_write`
 #### Scenario: Existing connection lacks routes_write
 - **WHEN** the route owner clicks "Send to Wahoo"
 - **AND** the user's `connected_services.granted_scopes` does not include `routes_write`
-- **THEN** the server redirects the user to Wahoo's authorization URL with the full updated scope list and a `state` that encodes `{ return_to: <route_url>, push_after: true }`
+- **THEN** the server redirects the user to Wahoo's authorization URL with the full updated scope list and a `state` that encodes `{ returnTo: <route_url>, pushAfter: { routeId: <id> } }` (camelCase; `pushAfter` is an object, not a boolean)
 - **AND** no Wahoo `/v1/routes` call is attempted
 
 #### Scenario: Push completes after re-auth

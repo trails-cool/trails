@@ -95,6 +95,8 @@ The directory SHALL paginate via `?page=N` (1-indexed) and `?perPage=K` query pa
 - **WHEN** a visitor loads `/explore?perPage=10000` or `/explore?perPage=0`
 - **THEN** the loader clamps `perPage` to `[1, 100]` and renders normally — no 400 response
 
+Note: the `?perPage` parameter is not yet implemented. The current loader uses a hardcoded page size (20). The `?page` parameter is supported. `perPage` support is aspirational.
+
 #### Scenario: Page beyond the last
 - **WHEN** a visitor loads `/explore?page=N` where N is past the last populated page
 - **THEN** the response renders the empty list and a "Previous page" link; no 404
