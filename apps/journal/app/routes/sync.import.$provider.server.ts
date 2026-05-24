@@ -9,6 +9,7 @@ import {
 } from "~/lib/connected-services";
 import { getImportedIds, recordImport } from "~/lib/sync/imports.server";
 import { createActivity } from "~/lib/activities.server";
+import { generateGpx } from "@trails-cool/gpx";
 
 export async function loadSyncImportProvider(request: Request, provider: string | undefined) {
   const user = await requireSessionUser(request);
@@ -77,9 +78,11 @@ export async function syncImportProviderAction(request: Request, provider: strin
       if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
       return Buffer.from(await resp.arrayBuffer());
     });
-    // Lazy-load to avoid bundling fit-file-parser into all routes.
+    // Lazy-load fit-file-parser only — it's heavy and only the FIT
+    // ingestion path needs it. @trails-cool/gpx is already pulled in
+    // statically by other modules in the chunk, so the dynamic import
+    // there was ineffective.
     const { default: FitParser } = await import("fit-file-parser");
-    const { generateGpx } = await import("@trails-cool/gpx");
     const parsed = await new Promise<Record<string, unknown>>((resolve, reject) => {
       const parser = new FitParser({ force: true });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

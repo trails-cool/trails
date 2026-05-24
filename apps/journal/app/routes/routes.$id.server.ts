@@ -8,6 +8,7 @@ import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/
 import { getDb } from "~/lib/db";
 import { syncPushes } from "@trails-cool/db/schema/journal";
 import { getService } from "~/lib/connected-services";
+import { computeDays, parseGpxAsync } from "@trails-cool/gpx";
 
 export async function loadRouteDetail(request: Request, id: string | undefined) {
   const routeId = id ?? "";
@@ -32,7 +33,6 @@ export async function loadRouteDetail(request: Request, id: string | undefined) 
   let waypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; note?: string; osmId?: number; poiTags?: Record<string, string> }> = [];
   if (route.gpx) {
     try {
-      const { computeDays, parseGpxAsync } = await import("@trails-cool/gpx");
       const gpxData = await parseGpxAsync(route.gpx);
       waypoints = gpxData.waypoints.map((w) => ({
         lat: w.lat,
