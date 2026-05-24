@@ -1,92 +1,16 @@
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities.$id";
-import { canView } from "~/lib/auth.server";
-import { getSessionUser, requireSessionUser } from "~/lib/auth/session.server";
-import { getActivity, deleteActivity, linkActivityToRoute, createRouteFromActivity, updateActivityVisibility } from "~/lib/activities.server";
-import { deleteImportByActivity } from "~/lib/sync/imports.server";
-import { listRoutes } from "~/lib/routes.server";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
-import type { Visibility } from "@trails-cool/db/schema/journal";
-
-const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
+import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const activity = await getActivity(params.id);
-  if (!activity) throw data({ error: "Activity not found" }, { status: 404 });
-
-  const user = await getSessionUser(request);
-  const isOwner = user?.id === activity.ownerId;
-
-  // Visibility gate — public always, unlisted on direct link, private owner-only.
-  // 404 (not 403) to avoid leaking existence.
-  if (!canView(activity, user, { asDirectLink: true })) {
-    throw data({ error: "Activity not found" }, { status: 404 });
-  }
-
-  const userRoutes = isOwner && user ? await listRoutes(user.id) : [];
-
-  return data({
-    activity: {
-      id: activity.id,
-      name: activity.name,
-      description: activity.description,
-      distance: activity.distance,
-      elevationGain: activity.elevationGain,
-      elevationLoss: activity.elevationLoss,
-      duration: activity.duration,
-      routeId: activity.routeId,
-      hasGpx: !!activity.gpx,
-      geojson: activity.geojson ?? null,
-      startedAt: activity.startedAt?.toISOString() ?? null,
-      visibility: activity.visibility,
-      createdAt: activity.createdAt.toISOString(),
-      importSource: activity.importSource,
-    },
-    isOwner,
-    routes: userRoutes.map((r) => ({ id: r.id, name: r.name })),
-  });
+  return data(await loadActivityDetail(request, params.id));
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const user = await requireSessionUser(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "link-route") {
-    const routeId = formData.get("routeId") as string;
-    if (routeId) {
-      await linkActivityToRoute(params.id, routeId, user.id);
-    }
-    return redirect(`/activities/${params.id}`);
-  }
-
-  if (intent === "create-route") {
-    const routeId = await createRouteFromActivity(params.id, user.id);
-    if (routeId) return redirect(`/routes/${routeId}`);
-    return data({ error: "No GPX data to create route from" }, { status: 400 });
-  }
-
-  if (intent === "delete") {
-    await deleteImportByActivity(params.id);
-    const deleted = await deleteActivity(params.id, user.id);
-    if (deleted) return redirect("/activities");
-    return data({ error: "Activity not found" }, { status: 404 });
-  }
-
-  if (intent === "set-visibility") {
-    const raw = formData.get("visibility") as string | null;
-    if (!raw || !VISIBILITY_VALUES.has(raw as Visibility)) {
-      return data({ error: "Invalid visibility" }, { status: 400 });
-    }
-    const ok = await updateActivityVisibility(params.id, user.id, raw as Visibility);
-    if (!ok) return data({ error: "Activity not found" }, { status: 404 });
-    return redirect(`/activities/${params.id}`);
-  }
-
-  return data({ error: "Unknown action" }, { status: 400 });
+  return await activityDetailAction(request, params.id);
 }
 
 export function meta({ data: loaderData }: Route.MetaArgs) {

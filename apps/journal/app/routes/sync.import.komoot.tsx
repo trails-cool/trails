@@ -2,63 +2,21 @@
 // and lets the user trigger a new import run.
 
 import { useEffect, useRef } from "react";
-import { data, redirect, useFetcher, useRevalidator } from "react-router";
+import { data, useFetcher, useRevalidator } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/sync.import.komoot";
-import { requireSessionUser } from "~/lib/auth/session.server";
-import { getService } from "~/lib/connected-services";
-import { getDb } from "~/lib/db";
-import { importBatches } from "@trails-cool/db/schema/journal";
-import { desc, eq, and } from "drizzle-orm";
+import { loadKomootImport, komootImportAction } from "./sync.import.komoot.server";
 
 export function meta() {
   return [{ title: "Import from Komoot — trails.cool" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await requireSessionUser(request);
-
-  const service = await getService(user.id, "komoot");
-  if (!service) return redirect("/settings/connections/komoot");
-
-  const db = getDb();
-  const [batch] = await db
-    .select()
-    .from(importBatches)
-    .where(and(eq(importBatches.userId, user.id), eq(importBatches.connectionId, service.id)))
-    .orderBy(desc(importBatches.startedAt))
-    .limit(1);
-
-  return data({
-    batch: batch
-      ? {
-          id: batch.id,
-          status: batch.status,
-          totalFound: batch.totalFound,
-          importedCount: batch.importedCount,
-          duplicateCount: batch.duplicateCount,
-          errorMessage: batch.errorMessage,
-          startedAt: batch.startedAt.toISOString(),
-          completedAt: batch.completedAt?.toISOString() ?? null,
-        }
-      : null,
-  });
+  return data(await loadKomootImport(request));
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireSessionUser(request);
-
-  // Delegate to the API route — just redirect so the page reloads with
-  // the new batch after the POST.
-  const resp = await fetch(
-    new URL("/api/sync/komoot/import", new URL(request.url).origin),
-    { method: "POST", headers: { cookie: request.headers.get("cookie") ?? "" } },
-  );
-  if (!resp.ok) {
-    const body = (await resp.json()) as { error?: string };
-    return data({ error: body.error ?? "failed" }, { status: resp.status });
-  }
-  return redirect("/sync/import/komoot");
+  return await komootImportAction(request);
 }
 
 function formatDuration(seconds: number): string {

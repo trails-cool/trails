@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@expo/fingerprint": "^0.16.7",
+    "@expo/fingerprint": "^0.19.2",
     "@fission-ai/openspec": "^1.3.1",
     "@playwright/test": "^1.60.0",
     "@react-router/dev": "catalog:",
@@ -80,9 +80,9 @@
     "tailwindcss": "catalog:",
     "turbo": "^2.9.14",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.59.3",
+    "typescript-eslint": "^8.59.4",
     "vite": "catalog:",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.7"
   },
   "version": "1.0.0",
   "dependencies": {

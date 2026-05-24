@@ -1,22 +1,15 @@
 import { useState, useEffect } from "react";
-import { data, redirect, useFetcher } from "react-router";
+import { data, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/settings.account";
-import { getSessionUser } from "~/lib/auth/session.server";
+import { loadAccountSettings } from "./settings.account.server";
 
 export function meta() {
   return [{ title: "Account — Settings — trails.cool" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) throw redirect("/auth/login");
-  return data({
-    user: {
-      username: user.username,
-      email: user.email,
-    },
-  });
+  return data(await loadAccountSettings(request));
 }
 
 export default function AccountSettings({ loaderData }: Route.ComponentProps) {

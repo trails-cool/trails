@@ -1,41 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { data, redirect, useFetcher } from "react-router";
+import { data, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
-import { eq } from "drizzle-orm";
 import type { Route } from "./+types/settings.security";
-import { getSessionUser } from "~/lib/auth/session.server";
-import { getDb } from "~/lib/db";
-import { credentials } from "@trails-cool/db/schema/journal";
 import { ClientDate } from "~/components/ClientDate";
+import { loadSecuritySettings } from "./settings.security.server";
 
 export function meta() {
   return [{ title: "Security — Settings — trails.cool" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getSessionUser(request);
-  if (!user) throw redirect("/auth/login");
-
-  const db = getDb();
-  const passkeys = await db
-    .select({
-      id: credentials.id,
-      deviceType: credentials.deviceType,
-      transports: credentials.transports,
-      createdAt: credentials.createdAt,
-    })
-    .from(credentials)
-    .where(eq(credentials.userId, user.id));
-
-  return data({
-    userId: user.id,
-    passkeys: passkeys.map((p) => ({
-      id: p.id,
-      deviceType: p.deviceType,
-      transports: p.transports as string[] | null,
-      createdAt: p.createdAt.toISOString(),
-    })),
-  });
+  return data(await loadSecuritySettings(request));
 }
 
 function transportLabel(transports: string[] | null, t: (key: string) => string): string {
