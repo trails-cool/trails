@@ -195,18 +195,18 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
   }, []);
 
   const handleChartClick = useCallback((position: [number, number]) => {
-    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    const map = window.__leafletMap;
     map?.panTo(position);
   }, []);
 
   const handleChartDragSelect = useCallback((bounds: [[number, number], [number, number]]) => {
-    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    const map = window.__leafletMap;
     map?.fitBounds(bounds, { padding: [30, 30] });
     setIsZoomedByChart(true);
   }, []);
 
   const handleResetZoom = useCallback(() => {
-    const map = (window as unknown as Record<string, unknown>).__leafletMap as L.Map | undefined;
+    const map = window.__leafletMap;
     if (!map || !yjs) return;
     const coordsJson = yjs.routeData.get("coordinates") as string | undefined;
     if (!coordsJson) return;

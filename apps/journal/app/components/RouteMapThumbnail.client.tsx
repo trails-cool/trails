@@ -142,7 +142,7 @@ function DayColoredRoute({ data, dayBreaks, highlightedDay }: { data: GeoJsonObj
           type: "Feature",
           geometry: { type: "LineString", coordinates: seg.coords },
           properties: {},
-        } as unknown as GeoJsonObject;
+        } as GeoJsonObject;
         return (
           <GeoJSON
             key={`${i}-${highlightedDay}`}

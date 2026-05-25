@@ -9,7 +9,6 @@ import { fitToGpx } from "../../fit.ts";
 import { fetchWithTimeout } from "../../../http.server.ts";
 import { isAlreadyImported, importActivity } from "../../../sync/imports.server.ts";
 import { getServiceByProviderUser, withFreshCredentials } from "../../manager.ts";
-import type { OAuthCredentials } from "../../types.ts";
 import type { WebhookEvent, WebhookReceiver } from "../../registry.ts";
 
 interface WahooWebhookBody {
@@ -52,8 +51,7 @@ export const wahooWebhook: WebhookReceiver = {
       // through withFreshCredentials so the manager has a chance to refresh
       // a near-expired credential before any subsequent Wahoo call this
       // handler might make.
-      const buffer = await withFreshCredentials(service.id, async (_creds) => {
-        void (_creds as unknown as OAuthCredentials);
+      const buffer = await withFreshCredentials(service.id, async () => {
         const resp = await fetchWithTimeout(event.fileUrl!);
         if (!resp.ok) throw new Error(`Wahoo file download failed: ${resp.status}`);
         return Buffer.from(await resp.arrayBuffer());

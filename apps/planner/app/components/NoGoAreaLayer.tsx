@@ -45,7 +45,7 @@ export function NoGoAreaLayer({ noGoAreas, doc, enabled, onToggle }: NoGoAreaLay
 
       const polygon = L.polygon(latLngs, NO_GO_STYLE);
       polygon.on("contextmenu", (e) => {
-        L.DomEvent.preventDefault(e as unknown as Event);
+        L.DomEvent.preventDefault(e.originalEvent);
         suppressObserverRef.current = true;
         doc.transact(() => noGoAreas.delete(i, 1), "local");
         suppressObserverRef.current = false;

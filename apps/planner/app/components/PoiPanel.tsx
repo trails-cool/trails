@@ -90,8 +90,9 @@ export function PoiMarkers({ poiState, onAddWaypoint }: PoiPanelProps) {
     // Dynamic import to avoid bundling markercluster when POIs aren't used
     import("leaflet.markercluster").then(() => {
       if (!mounted) return;
-      // After import, L.markerClusterGroup is available
-      const cluster = (L as unknown as { markerClusterGroup: (opts?: object) => L.LayerGroup }).markerClusterGroup({
+      // After import, L.markerClusterGroup is available (typed via
+      // module augmentation in app/types/global.d.ts).
+      const cluster = L.markerClusterGroup({
         maxClusterRadius: 40,
         disableClusteringAtZoom: 15,
         showCoverageOnHover: false,
