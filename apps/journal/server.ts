@@ -176,8 +176,9 @@ server.listen(port, async () => {
   const { komootBulkImportJob } = await import("./app/jobs/komoot-bulk-import.ts");
   const { importBatchesSweepJob } = await import("./app/jobs/import-batches-sweep.ts");
   const { sendWelcomeEmailJob } = await import("./app/jobs/send-welcome-email.ts");
+  const { consumedJtiSweepJob } = await import("./app/jobs/consumed-jti-sweep.ts");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob as any, importBatchesSweepJob, sendWelcomeEmailJob);
+  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob as any, importBatchesSweepJob, sendWelcomeEmailJob, consumedJtiSweepJob);
 
   const boss = createBoss(getDatabaseUrl());
   await startWorker(boss, jobs);

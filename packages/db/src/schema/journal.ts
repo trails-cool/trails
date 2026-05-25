@@ -356,3 +356,17 @@ export const notifications = journalSchema.table("notifications", {
     .on(t.recipientUserId, t.type, t.subjectId)
     .where(sql`${t.subjectId} IS NOT NULL`),
 }));
+
+// Single-use JWT enforcement for callback tokens (planner → journal
+// save flow). Each token carries a `jti` claim; the verifier inserts
+// into this table on first use. A second attempt hits the PK conflict
+// and the verifier rejects the token. Rows are swept after `expires_at`.
+// See spec / planner-audit #2 Phase B.
+export const consumedJwtJti = journalSchema.table("consumed_jwt_jti", {
+  jti: text("jti").primaryKey(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => ({
+  // Sweep runs `DELETE WHERE expires_at < now()` on a daily schedule.
+  expiresAtIdx: index("consumed_jwt_jti_expires_at_idx").on(t.expiresAt),
+}));
