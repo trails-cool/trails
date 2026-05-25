@@ -10,7 +10,8 @@ import { join, extname, resolve } from "node:path";
 import { setupYjsWebSocket } from "./app/lib/yjs-server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
 import { expireSessionsJob } from "./app/jobs/expire-sessions.ts";
-import postgres from "postgres";
+import { getDatabaseUrl } from "@trails-cool/db";
+import postgres, { type Sql } from "postgres";
 
 // See apps/journal/server.ts for the SENTRY_DSN / SENTRY_DISABLED contract.
 const FLAGSHIP_PLANNER_SENTRY_DSN =
@@ -75,17 +76,27 @@ async function handleMetrics(_req: IncomingMessage, res: ServerResponse): Promis
 
 const version = process.env.SENTRY_RELEASE ?? "dev";
 
+// Module-level singleton dedicated to /health (mirrors PR #430 for the
+// journal). Previously a fresh client + connection was opened on every
+// probe; under monitoring cadence that's a fresh handshake every few
+// seconds. Kept separate from any future main-app pool so a starvation
+// event on the app pool doesn't fail the liveness probe.
+let healthClient: Sql | null = null;
+function getHealthClient(): Sql {
+  if (!healthClient) {
+    healthClient = postgres(getDatabaseUrl(), { max: 2, idle_timeout: 30 });
+  }
+  return healthClient;
+}
+
 async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const client = postgres(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails", { max: 1 });
   try {
-    await client`SELECT 1`;
+    await getHealthClient()`SELECT 1`;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version, db: "connected" }));
   } catch {
     res.writeHead(503, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "degraded", version, db: "unreachable" }));
-  } finally {
-    await client.end();
   }
 }
 
@@ -127,7 +138,7 @@ server.listen(port, async () => {
   logger.info({ port }, "Planner server listening");
   logger.info({ port, path: "/sync/:sessionId" }, "Yjs WebSocket available");
 
-  const boss = createBoss(process.env.DATABASE_URL ?? "postgres://trails:trails@localhost:5432/trails");
+  const boss = createBoss(getDatabaseUrl());
   await startWorker(boss, [expireSessionsJob]);
   logger.info("Background job worker started");
 });
