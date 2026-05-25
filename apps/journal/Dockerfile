@@ -23,11 +23,16 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 ARG SENTRY_RELEASE
+# Client-side Sentry DSN baked into the bundle at build time. Empty (or
+# unset) produces a Sentry-free client. Public-by-design: the DSN
+# appears in the shipped client JS regardless.
+ARG VITE_SENTRY_DSN=""
 COPY --from=deps /app/ ./
 COPY . .
 RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null | tr -d '\n\r')" \
     SENTRY_RELEASE="$SENTRY_RELEASE" \
+    VITE_SENTRY_DSN="$VITE_SENTRY_DSN" \
     pnpm --filter @trails-cool/journal build
 
 FROM base AS runtime

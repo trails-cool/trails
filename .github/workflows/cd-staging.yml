@@ -30,6 +30,12 @@ concurrency:
   group: staging-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'main' }}
   cancel-in-progress: true
 
+# Public Sentry DSNs (same as cd-apps.yml). See that workflow for the
+# "public by design" rationale.
+env:
+  SENTRY_DSN_JOURNAL: "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728"
+  SENTRY_DSN_PLANNER: "https://5215134cd78d5e6c199e29300b8425af@o4509530546634752.ingest.de.sentry.io/4511102546608208"
+
 jobs:
   # ── Build ─────────────────────────────────────────────────────────────
   # Tags:
@@ -89,6 +95,7 @@ jobs:
             ghcr.io/trails-cool/${{ matrix.app }}:${{ steps.tags.outputs.sha }}
           build-args: |
             SENTRY_RELEASE=${{ steps.tags.outputs.sha }}
+            VITE_SENTRY_DSN=${{ matrix.app == 'journal' && env.SENTRY_DSN_JOURNAL || '' }}
           secrets: |
             SENTRY_AUTH_TOKEN=/tmp/sentry_token
 
@@ -118,6 +125,8 @@ jobs:
             echo "JOURNAL_IMAGE_TAG=staging"
             echo "PLANNER_IMAGE_TAG=staging"
             echo "SENTRY_RELEASE=${{ github.sha }}"
+            echo "SENTRY_DSN_JOURNAL=$SENTRY_DSN_JOURNAL"
+            echo "SENTRY_DSN_PLANNER=$SENTRY_DSN_PLANNER"
           } >> infrastructure/staging.env
 
       - name: Copy compose file + env to server
@@ -220,6 +229,8 @@ jobs:
             # PR-preview journals all share the persistent staging planner.
             echo "PLANNER_URL=https://planner.staging.trails.cool"
             echo "SENTRY_RELEASE=${{ github.event.pull_request.head.sha }}"
+            echo "SENTRY_DSN_JOURNAL=$SENTRY_DSN_JOURNAL"
+            echo "SENTRY_DSN_PLANNER=$SENTRY_DSN_PLANNER"
           } >> infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env
 
       - name: Generate per-PR Caddyfile snippet

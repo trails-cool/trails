@@ -53,6 +53,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}
       NODE_ENV: production
       PORT: 3000
+      SENTRY_DSN: ${SENTRY_DSN_JOURNAL:-}
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
       SMTP_URL: ""
       SMTP_FROM: trails.cool staging <noreply@staging.trails.cool>
@@ -89,6 +90,7 @@ services:
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/${STAGING_DATABASE}
       NODE_ENV: production
       PORT: 3001
+      SENTRY_DSN: ${SENTRY_DSN_PLANNER:-}
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3001/health || exit 1"]

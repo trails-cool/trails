@@ -5,15 +5,12 @@ import { browserSentryConfig } from "@trails-cool/sentry-config";
 
 let initialized = false;
 
-// Build-time DSN injection: `VITE_SENTRY_DSN` (if set during `pnpm build`)
-// overrides the flagship default so self-hosters can ship their own
-// Sentry project. Set it to `""` (empty string) to disable Sentry on
-// the client entirely.
-const FLAGSHIP_JOURNAL_DSN =
-  "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728";
-const CLIENT_DSN =
-  (import.meta.env as Record<string, string | undefined>).VITE_SENTRY_DSN ??
-  FLAGSHIP_JOURNAL_DSN;
+// Build-time DSN injection. `VITE_SENTRY_DSN` (set during `pnpm build`,
+// see apps/journal/Dockerfile + cd-apps.yml) determines whether the
+// client emits Sentry events at all. Self-hosted builds without the
+// env var produce a Sentry-free client bundle.
+const CLIENT_DSN = (import.meta.env as Record<string, string | undefined>)
+  .VITE_SENTRY_DSN;
 
 export function initSentryClient() {
   if (initialized) return;
