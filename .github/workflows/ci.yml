@@ -231,6 +231,24 @@ jobs:
       - name: Seed database
         run: pnpm db:seed
 
+      - name: Run integration tests
+        # These talk to real Postgres. The unit-test job has no DB so
+        # the `*.integration.test.ts` files skip there; this job has
+        # the DB up + schema pushed, so flip the gate env vars to "1"
+        # and let them run. Each gate is read by one file — see
+        # `runIntegration` in each test.
+        #
+        # --no-file-parallelism: integration tests share the journal
+        # schema and clean up by `DELETE FROM ... WHERE email LIKE
+        # '%@example.test'`. Parallel files step on each other's rows
+        # and trip FK constraints. Running sequentially is still <3s.
+        run: pnpm --filter @trails-cool/journal exec vitest run --no-file-parallelism --reporter=default app/lib/explore.integration.test.ts app/lib/follow.integration.test.ts app/lib/demo-bot.integration.test.ts app/lib/notifications.integration.test.ts app/jobs/notifications-fanout.integration.test.ts
+        env:
+          EXPLORE_INTEGRATION: "1"
+          FOLLOW_INTEGRATION: "1"
+          DEMO_BOT_INTEGRATION: "1"
+          NOTIFICATIONS_INTEGRATION: "1"
+
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v5

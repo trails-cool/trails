@@ -55,6 +55,7 @@ export async function createRoute(ownerId: string, input: RouteInput) {
       elevationGain,
       elevationLoss,
       dayBreaks,
+      ...(input.visibility ? { visibility: input.visibility } : {}),
       ...(input.synthetic ? { synthetic: true } : {}),
     });
 
