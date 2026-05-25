@@ -42,9 +42,14 @@ export async function action({ request }: Route.ActionArgs) {
   });
 }
 
-export async function loader(_args: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   return withDb(async () => {
-    const sessions = await listSessions();
+    const url = new URL(request.url);
+    // Accept an explicit `?limit=` but rely on listSessions to clamp
+    // it to a sane upper bound.
+    const limitParam = Number(url.searchParams.get("limit"));
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined;
+    const sessions = await listSessions(limit);
     return data({ sessions });
   });
 }
