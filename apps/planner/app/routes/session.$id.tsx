@@ -20,10 +20,13 @@ export async function loader({ params }: Route.LoaderArgs) {
     if (!session) {
       throw data({ error: "Session not found" }, { status: 404 });
     }
+    // Don't leak the JWT token to the client. The save flow uses
+    // /api/save-to-journal, which loads token + URL from the DB
+    // server-side. The browser only needs to know whether the button
+    // should render.
     return data({
       sessionId: session.id,
-      callbackUrl: session.callbackUrl ?? null,
-      callbackToken: session.callbackToken ?? null,
+      hasJournalCallback: Boolean(session.callbackUrl && session.callbackToken),
     });
   });
 }
@@ -89,8 +92,7 @@ export default function SessionPage({ loaderData }: Route.ComponentProps) {
           >
             <SessionView
               sessionId={id!}
-              callbackUrl={loaderData.callbackUrl ?? undefined}
-              callbackToken={loaderData.callbackToken ?? undefined}
+              hasJournalCallback={loaderData.hasJournalCallback}
               returnUrl={returnUrl}
               initialWaypoints={initialWaypoints}
               initialNoGoAreas={initialNoGoAreas}
