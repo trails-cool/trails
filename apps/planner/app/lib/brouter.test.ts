@@ -315,3 +315,33 @@ describe("waypoint to BRouter segments", () => {
     expect(pairs).toHaveLength(3);
   });
 });
+
+describe("readBodyWithCap", () => {
+  // We import lazily so the rest of brouter.ts's module-level env
+  // checks don't interfere with the other test files.
+  it("returns the body when within the cap", async () => {
+    const { readBodyWithCap } = await import("./brouter.ts");
+    const resp = new Response("hello");
+    expect(await readBodyWithCap(resp, 1000)).toBe("hello");
+  });
+
+  it("rejects upfront when content-length declares over the cap", async () => {
+    const { readBodyWithCap } = await import("./brouter.ts");
+    const resp = new Response("x", { headers: { "content-length": "99999" } });
+    await expect(readBodyWithCap(resp, 100)).rejects.toThrow(/response too large/);
+  });
+
+  it("aborts mid-stream when bytes exceed the cap (no content-length lie)", async () => {
+    const { readBodyWithCap } = await import("./brouter.ts");
+    // Build a streaming response that emits two chunks; cap between them.
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("a".repeat(60)));
+        controller.enqueue(new TextEncoder().encode("b".repeat(60)));
+        controller.close();
+      },
+    });
+    const resp = new Response(body);
+    await expect(readBodyWithCap(resp, 100)).rejects.toThrow(/exceeded/);
+  });
+});
