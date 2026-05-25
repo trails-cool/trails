@@ -194,7 +194,7 @@ export function RouteInteraction({
 
     // Prevent double-click zoom when clicking ghost marker
     marker.on("dblclick", (e) => {
-      L.DomEvent.stop(e as unknown as Event);
+      L.DomEvent.stop(e.originalEvent);
     });
 
     map.on("mousemove", onMouseMove);

@@ -11,7 +11,7 @@ export function MapExposer() {
   const map = useMap();
   useEffect(() => {
     if (typeof window !== "undefined") {
-      (window as unknown as Record<string, unknown>).__leafletMap = map;
+      window.__leafletMap = map;
     }
   }, [map]);
   return null;

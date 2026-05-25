@@ -210,7 +210,7 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
                 moveWaypoint(i, lat, lng);
               },
               contextmenu: (e) => {
-                L.DomEvent.preventDefault(e as unknown as Event);
+                L.DomEvent.preventDefault(e.originalEvent);
                 const orig = e.originalEvent as MouseEvent;
                 setContextMenu({ x: orig.clientX, y: orig.clientY, index: i });
               },
