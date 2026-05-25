@@ -1,4 +1,5 @@
 import { mergeGeoJsonSegments, type EnrichedRoute, type NoGoArea, type Waypoint } from "./route-merge";
+import { fetchWithTimeout } from "./http.server";
 
 export { mergeGeoJsonSegments };
 export type { EnrichedRoute, NoGoArea };
@@ -63,7 +64,7 @@ export class BRouterError extends Error {
 }
 
 async function fetchSegment(url: string): Promise<Record<string, unknown>> {
-  const response = await fetch(url, { headers: authHeaders() });
+  const response = await fetchWithTimeout(url, { headers: authHeaders() });
   if (!response.ok) {
     const body = await response.text();
     throw new BRouterError(body.trim(), response.status);
@@ -144,7 +145,7 @@ export async function computeSegmentGpx(request: {
   const nogoParam = request.noGoAreas?.length ? noGoAreasToParam(request.noGoAreas) : undefined;
   if (nogoParam) params.set("polygons", nogoParam);
 
-  const resp = await fetch(`${BROUTER_URL}/brouter?${params}`, {
+  const resp = await fetchWithTimeout(`${BROUTER_URL}/brouter?${params}`, {
     headers: authHeaders(),
   });
   if (!resp.ok) {
