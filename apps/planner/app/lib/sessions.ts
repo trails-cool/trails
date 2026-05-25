@@ -106,12 +106,19 @@ export function initializeSessionWithNoGoAreas(
   });
 }
 
-export async function listSessions(): Promise<SessionMetadata[]> {
+// Default page size for the listing API. Hard cap so an unbounded
+// caller can't request thousands of rows (or trigger a full scan).
+const DEFAULT_LIST_LIMIT = 50;
+const MAX_LIST_LIMIT = 200;
+
+export async function listSessions(limit: number = DEFAULT_LIST_LIMIT): Promise<SessionMetadata[]> {
+  const bounded = Math.min(Math.max(1, limit), MAX_LIST_LIMIT);
   return getDb()
     .select()
     .from(sessions)
     .where(eq(sessions.closed, false))
-    .orderBy(desc(sessions.lastActivity));
+    .orderBy(desc(sessions.lastActivity))
+    .limit(bounded);
 }
 
 export async function expireSessions(maxAgeDays: number = 7): Promise<number> {
