@@ -48,7 +48,7 @@ services:
       # to its own planner subdomain.
       PLANNER_URL: ${PLANNER_URL:-https://planner.${DOMAIN}}
       IS_FLAGSHIP: ""
-      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/${STAGING_DATABASE:?STAGING_DATABASE must be set}
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/${STAGING_DATABASE:?STAGING_DATABASE must be set}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}
       NODE_ENV: production
@@ -86,7 +86,7 @@ services:
       BROUTER_URL: ${BROUTER_URL:?BROUTER_URL must be set}
       BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set}
       OVERPASS_URLS: ${OVERPASS_URLS:-https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter}
-      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/${STAGING_DATABASE}
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/${STAGING_DATABASE}
       NODE_ENV: production
       PORT: 3001
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
