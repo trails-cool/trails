@@ -11,14 +11,13 @@ import { createBoss, startWorker } from "@trails-cool/jobs";
 import { getDatabaseUrl } from "@trails-cool/db";
 import postgres, { type Sql } from "postgres";
 
-// Sentry DSN is read from env so self-hosted instances don't ship their
-// errors to the trails.cool flagship Sentry by default. The flagship
-// keeps its DSN as the fallback; setting SENTRY_DSN="" (or any other
-// truthy value) overrides. SENTRY_DISABLED=true skips init entirely.
-const FLAGSHIP_JOURNAL_SENTRY_DSN =
-  "https://a32ffcc575d34be072e91b20f247eeee@o4509530546634752.ingest.de.sentry.io/4509530555547728";
-const sentryDsn = process.env.SENTRY_DSN ?? FLAGSHIP_JOURNAL_SENTRY_DSN;
-if (process.env.SENTRY_DISABLED !== "true" && sentryDsn !== "") {
+// Sentry DSN is supplied via env. No hardcoded fallback — self-hosted
+// instances default to no Sentry. Flagship sets SENTRY_DSN via
+// docker-compose env (see infrastructure/docker-compose.yml).
+// SENTRY_DISABLED=true is an explicit opt-out even when a DSN is set
+// (useful for local prod-mode debugging).
+const sentryDsn = process.env.SENTRY_DSN;
+if (process.env.SENTRY_DISABLED !== "true" && sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     ...nodeSentryConfig("journal server"),

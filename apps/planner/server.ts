@@ -14,10 +14,8 @@ import { getDatabaseUrl } from "@trails-cool/db";
 import postgres, { type Sql } from "postgres";
 
 // See apps/journal/server.ts for the SENTRY_DSN / SENTRY_DISABLED contract.
-const FLAGSHIP_PLANNER_SENTRY_DSN =
-  "https://5215134cd78d5e6c199e29300b8425af@o4509530546634752.ingest.de.sentry.io/4511102546608208";
-const sentryDsn = process.env.SENTRY_DSN ?? FLAGSHIP_PLANNER_SENTRY_DSN;
-if (process.env.SENTRY_DISABLED !== "true" && sentryDsn !== "") {
+const sentryDsn = process.env.SENTRY_DSN;
+if (process.env.SENTRY_DISABLED !== "true" && sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     ...nodeSentryConfig("planner server"),
