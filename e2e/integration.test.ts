@@ -71,6 +71,28 @@ test.describe("Integration: Planner callback → geometry stored", () => {
     });
     expect(resp.status()).toBe(401);
   });
+
+  test("token is single-use — second submit is rejected (Phase B replay guard)", async ({ request }) => {
+    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
+    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+
+    // First save succeeds.
+    const first = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { gpx: VALID_GPX },
+    });
+    expect(first.status()).toBe(200);
+
+    // Second attempt with the *same* token must fail — the jti has
+    // been consumed.
+    const second = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { gpx: VALID_GPX },
+    });
+    expect(second.status()).toBe(401);
+    const body = await second.json() as { error: string };
+    expect(body.error).toMatch(/consumed|already/i);
+  });
 });
 
 test.describe("Integration: Journal ↔ Planner handoff", () => {
