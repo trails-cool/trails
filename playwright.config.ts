@@ -63,6 +63,15 @@ export default defineConfig({
       },
     },
     {
+      name: "journal-planner-save",
+      testMatch: "journal-planner-save.test.ts",
+      use: {
+        // No baseURL — the test navigates between both apps using
+        // absolute URLs.
+        ...devices["Desktop Chrome"],
+      },
+    },
+    {
       name: "notifications",
       testMatch: "notifications.test.ts",
       use: {
