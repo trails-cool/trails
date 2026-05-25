@@ -37,9 +37,9 @@ services:
       # "Powered by trails.cool" footer link when not. Default empty =
       # self-host, which is the safer default.
       IS_FLAGSHIP: ${IS_FLAGSHIP:-}
-      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/trails
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in SOPS secrets.app.env}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in SOPS secrets.app.env}
       NODE_ENV: production
       PORT: 3000
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
@@ -84,7 +84,7 @@ services:
       # community instance misbehaves. Override per-env with
       # OVERPASS_URLS in the SOPS file.
       OVERPASS_URLS: ${OVERPASS_URLS:-https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter}
-      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails
+      DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/trails
       NODE_ENV: production
       PORT: 3001
       SENTRY_RELEASE: ${SENTRY_RELEASE:-}
@@ -108,7 +108,7 @@ services:
       - trails-shared
     environment:
       POSTGRES_USER: trails
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trails}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}
       POSTGRES_DB: trails
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -129,7 +129,7 @@ services:
     image: prometheuscommunity/postgres-exporter:latest
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: postgresql://trails:${POSTGRES_PASSWORD:-trails}@postgres:5432/trails?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/trails?sslmode=disable
       PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yml
     volumes:
       - ./postgres/queries.yml:/etc/postgres-exporter/queries.yml:ro
