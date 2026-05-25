@@ -99,6 +99,10 @@ export function useYjs(
 
     // Initialize waypoints once after first sync
     if (initialWaypoints?.length && !initializedWaypoints.current) {
+      // y-websocket emits both "sync" and "synced" (legacy alias). We
+      // keep "synced" for backwards-compat with older versions; the
+      // typed `.on` signature in the current lib version omits it
+      // even though the runtime still fires it, so we coerce.
       (provider as unknown as { on(event: string, cb: () => void): void }).on("synced", () => {
         // Only add if the doc is empty (avoid duplicating on reconnect)
         if (waypoints.length === 0 && !initializedWaypoints.current) {
