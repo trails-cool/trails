@@ -82,9 +82,26 @@ describe.skipIf(!runIntegration)("demo-bot integration", () => {
   });
 
   it("generateOneWalk inserts a public synthetic route + activity", async () => {
+    // createPlannerSession() calls resp.json() (returns { sessionId });
+    // requestBrouterGpx() then calls resp.text() (returns the GPX body).
+    // Stub both so the chain completes without a real Planner running.
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => STUB_GPX }),
+      vi.fn().mockImplementation((input: string | URL) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.endsWith("/api/sessions")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ sessionId: "test-session" }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          text: async () => STUB_GPX,
+        });
+      }),
     );
 
     const ownerId = await ensureDemoUser();
