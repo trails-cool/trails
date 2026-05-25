@@ -8,12 +8,11 @@ import { waypointFromYMap } from "~/lib/waypoint-ymap";
 
 interface SaveToJournalButtonProps {
   yjs: YjsState;
-  callbackUrl: string;
-  callbackToken: string;
+  sessionId: string;
   returnUrl?: string;
 }
 
-export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl }: SaveToJournalButtonProps) {
+export function SaveToJournalButton({ yjs, sessionId, returnUrl }: SaveToJournalButtonProps) {
   const { t } = useTranslation("planner");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -47,14 +46,14 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
       const notes = yjs.notes.toString() || undefined;
       const gpx = generateGpx({ name: "trails.cool route", description: notes, waypoints, tracks, noGoAreas });
 
-      // POST to Journal callback
-      const response = await fetch(callbackUrl, {
+      // POST to the planner's server-side proxy. The proxy attaches the
+      // journal Bearer token (stored on the session row) and forwards
+      // the GPX. Token never leaves the planner server — see
+      // routes/api.save-to-journal.ts.
+      const response = await fetch("/api/save-to-journal", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${callbackToken}`,
-        },
-        body: JSON.stringify({ gpx }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, gpx }),
       });
 
       if (!response.ok) {
@@ -68,7 +67,7 @@ export function SaveToJournalButton({ yjs, callbackUrl, callbackToken, returnUrl
     } finally {
       setSaving(false);
     }
-  }, [yjs, callbackUrl, callbackToken]);
+  }, [yjs, sessionId]);
 
   return (
     <div className="flex items-center gap-2">

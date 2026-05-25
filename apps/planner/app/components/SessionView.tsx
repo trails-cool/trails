@@ -148,15 +148,20 @@ function SidebarTabs({ yjs, routeStats, days, onWaypointHover, onWaypointSelect 
 
 interface SessionViewProps {
   sessionId: string;
-  callbackUrl?: string;
-  callbackToken?: string;
+  /**
+   * True when the session was created with a journal callback URL +
+   * token (i.e. the user came in from /journal/.../edit-in-planner).
+   * The actual URL + token live server-side; the browser only needs
+   * to know whether to render the Save-to-Journal button.
+   */
+  hasJournalCallback?: boolean;
   returnUrl?: string;
   initialWaypoints?: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean }>;
   initialNoGoAreas?: Array<{ points: Array<{ lat: number; lon: number }> }>;
   initialNotes?: string;
 }
 
-export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, initialWaypoints, initialNoGoAreas, initialNotes }: SessionViewProps) {
+export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialWaypoints, initialNoGoAreas, initialNotes }: SessionViewProps) {
   const { t } = useTranslation("planner");
   useEffect(() => { Sentry.setTag("session_id", sessionId); }, [sessionId]);
   const yjs = useYjs(sessionId, initialWaypoints, initialNoGoAreas, initialNotes);
@@ -253,11 +258,10 @@ export function SessionView({ sessionId, callbackUrl, callbackToken, returnUrl, 
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {callbackUrl && callbackToken && (
+          {hasJournalCallback && (
             <SaveToJournalButton
               yjs={yjs}
-              callbackUrl={callbackUrl}
-              callbackToken={callbackToken}
+              sessionId={sessionId}
               returnUrl={returnUrl}
             />
           )}
