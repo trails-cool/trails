@@ -1,7 +1,5 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-// `newArchEnabled` isn't in the Expo SDK 55 typings yet but is an
-// accepted runtime flag. MapLibre RN v11 requires the new architecture.
 type ExpoConfigWithNewArch = ExpoConfig & { newArchEnabled?: boolean };
 
 export default ({ config }: ConfigContext): ExpoConfigWithNewArch => ({
@@ -14,11 +12,6 @@ export default ({ config }: ConfigContext): ExpoConfigWithNewArch => ({
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
-  splash: {
-    image: "./assets/splash-icon.png",
-    resizeMode: "contain",
-    backgroundColor: "#ffffff",
-  },
   ios: {
     supportsTablet: true,
     bundleIdentifier: "cool.trails.app",
@@ -41,6 +34,12 @@ export default ({ config }: ConfigContext): ExpoConfigWithNewArch => ({
   },
   plugins: [
     "expo-router",
+    "expo-localization",
+    ["expo-splash-screen", {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff",
+    }],
     "expo-secure-store",
     "expo-web-browser",
     "@maplibre/maplibre-react-native",

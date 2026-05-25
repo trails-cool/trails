@@ -64,6 +64,7 @@ export function initI18nClient() {
       ...commonOptions,
       detection: {
         order: ["htmlTag", "navigator"],
+        convertDetectedLanguage: (lng: string) => matchSupportedLng(lng),
         caches: [],
       },
     });
