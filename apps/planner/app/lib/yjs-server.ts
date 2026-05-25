@@ -11,9 +11,46 @@ import { plannerActiveSessions, plannerConnectedClients } from "./metrics.server
 const messageSync = 0;
 const messageAwareness = 1;
 
+// Bound the per-WebSocket-message size and per-session doc size. Both
+// guards exist to stop a single connected client from filling memory
+// (or the persisted `yjs_state` blob) without limit. Picked generously
+// — a multi-day route with hundreds of waypoints is well under 100 KB
+// of serialized Yjs state — but small enough to refuse abuse.
+export const MAX_MESSAGE_BYTES = 256 * 1024; // 256 KB per WS frame
+export const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5 MB per session doc
+// WebSocket close code for policy-violation responses (1008 is the
+// standard RFC 6455 code for "received a message that violates policy").
+const POLICY_VIOLATION = 1008;
+
 const docs = new Map<string, Y.Doc>();
 const awarenessMap = new Map<string, awarenessProtocol.Awareness>();
 const conns = new Map<WebSocket, { sessionId: string; clientIds: Set<number> }>();
+const oversizedSessions = new Set<string>();
+
+/**
+ * Current persisted size of a session's Yjs doc — same bytes that
+ * would land in `sessions.yjs_state` if we saved right now. Exported
+ * so tests can assert the size-cap accounting directly.
+ */
+export function docByteSize(sessionId: string): number {
+  const doc = docs.get(sessionId);
+  if (!doc) return 0;
+  return Y.encodeStateAsUpdate(doc).byteLength;
+}
+
+/**
+ * Refuse further activity on a session whose doc exceeded the cap.
+ * Close every connected client and mark the session so the next
+ * persisted save is skipped (avoid writing an oversized blob to DB).
+ */
+function quarantineSession(sessionId: string, reason: string): void {
+  oversizedSessions.add(sessionId);
+  for (const [ws, meta] of conns) {
+    if (meta.sessionId === sessionId && ws.readyState === ws.OPEN) {
+      try { ws.close(POLICY_VIOLATION, reason); } catch { /* ignore */ }
+    }
+  }
+}
 
 /**
  * Count the number of distinct session ids represented in an iterable
@@ -131,6 +168,15 @@ function debouncedSave(sessionId: string): void {
 function handleMessage(ws: WebSocket, message: Uint8Array, sessionId: string) {
   const doc = docs.get(sessionId);
   if (!doc) return;
+  if (oversizedSessions.has(sessionId)) return;
+
+  // Per-frame cap. Anything larger than 256 KB on a Yjs session is
+  // pathological — a single waypoint add is hundreds of bytes — so the
+  // sender is either buggy or hostile.
+  if (message.byteLength > MAX_MESSAGE_BYTES) {
+    try { ws.close(POLICY_VIOLATION, "message too large"); } catch { /* ignore */ }
+    return;
+  }
 
   const awareness = awarenessMap.get(sessionId);
   const decoder = decoding.createDecoder(message);
@@ -144,6 +190,13 @@ function handleMessage(ws: WebSocket, message: Uint8Array, sessionId: string) {
       const resp = encoding.toUint8Array(encoder);
       if (encoding.length(encoder) > 1) {
         ws.send(resp);
+      }
+      // Per-doc cap. Apply succeeded above; if the doc just grew past
+      // the limit, quarantine before debouncing the next save so we
+      // never write an oversized blob to Postgres.
+      if (docByteSize(sessionId) > MAX_DOC_BYTES) {
+        quarantineSession(sessionId, "doc size cap exceeded");
+        break;
       }
       debouncedSave(sessionId);
       break;
