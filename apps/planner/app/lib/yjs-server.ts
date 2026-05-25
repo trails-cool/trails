@@ -5,7 +5,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import type { IncomingMessage, Server } from "node:http";
-import { saveSessionState, loadSessionState, touchSession } from "./sessions.ts";
+import { saveSessionState, loadSessionState, touchSession, getSession } from "./sessions.ts";
 import { plannerActiveSessions, plannerConnectedClients } from "./metrics.server.ts";
 
 const messageSync = 0;
@@ -221,7 +221,7 @@ function handleMessage(ws: WebSocket, message: Uint8Array, sessionId: string) {
 export function setupYjsWebSocket(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
 
-  server.on("upgrade", (request, socket, head) => {
+  server.on("upgrade", async (request, socket, head) => {
     const url = new URL(request.url ?? "", `http://${request.headers.host}`);
     const match = url.pathname.match(/^\/sync\/(.+)$/);
 
@@ -230,8 +230,28 @@ export function setupYjsWebSocket(server: Server): WebSocketServer {
       return;
     }
 
+    const sessionId = match[1]!;
+    // Reject upgrades for sessions that don't exist or are already
+    // closed/expired. Before this guard, `getOrLoadDoc` happily
+    // *created* a fresh Y.Doc for any sessionId, so an attacker
+    // hitting /sync/<random-uuid> repeatedly could exhaust memory
+    // and resurrect closed sessions. `getSession()` already filters
+    // out `closed = true` rows.
+    try {
+      const session = await getSession(sessionId);
+      if (!session) {
+        socket.destroy();
+        return;
+      }
+    } catch {
+      // DB unreachable — fail closed (refuse) rather than open. The
+      // client will reconnect after backoff once the DB recovers.
+      socket.destroy();
+      return;
+    }
+
     wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request, match[1]);
+      wss.emit("connection", ws, request, sessionId);
     });
   });
 
