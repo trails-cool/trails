@@ -63,13 +63,55 @@ export class BRouterError extends Error {
   }
 }
 
+// Refuse to consume responses larger than this from BRouter. Real
+// per-segment GeoJSON is typically <100 KB; even a long pan-Europe
+// segment with surface metadata stays under 2 MB. 10 MB is the
+// "definitely abuse or upstream bug" threshold — beyond that we'd
+// rather error than OOM.
+const MAX_BROUTER_RESPONSE_BYTES = 10 * 1024 * 1024;
+
+// Exported only for tests — see brouter.test.ts.
+export async function readBodyWithCap(response: Response, maxBytes: number): Promise<string> {
+  // `content-length` is advisory (BRouter sets it; a misbehaving
+  // upstream might not). Reject up front if the declared length is
+  // already over the cap.
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new BRouterError(`response too large (${declared} bytes)`, 502);
+  }
+  // Stream the body, abort once we've seen `maxBytes`.
+  const reader = response.body?.getReader();
+  if (!reader) return await response.text();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let out = "";
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      try { await reader.cancel(); } catch { /* ignore */ }
+      throw new BRouterError(`response exceeded ${maxBytes} bytes`, 502);
+    }
+    out += decoder.decode(value, { stream: true });
+  }
+  out += decoder.decode();
+  return out;
+}
+
 async function fetchSegment(url: string): Promise<Record<string, unknown>> {
   const response = await fetchWithTimeout(url, { headers: authHeaders() });
   if (!response.ok) {
     const body = await response.text();
     throw new BRouterError(body.trim(), response.status);
   }
-  return response.json() as Promise<Record<string, unknown>>;
+  const raw = await readBodyWithCap(response, MAX_BROUTER_RESPONSE_BYTES);
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    throw new BRouterError("invalid JSON from upstream", 502);
+  }
 }
 
 /**
@@ -152,7 +194,9 @@ export async function computeSegmentGpx(request: {
     const body = await resp.text();
     throw new BRouterError(body.trim(), resp.status);
   }
-  const gpx = await resp.text();
+  // Same size cap as the GeoJSON path — GPX for a multi-day route
+  // stays well under 10 MB.
+  const gpx = await readBodyWithCap(resp, MAX_BROUTER_RESPONSE_BYTES);
   if (!gpx.includes("<trkpt")) throw new BRouterError("no route found", 422);
   return gpx;
 }
