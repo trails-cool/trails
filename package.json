@@ -35,7 +35,9 @@
       "path-to-regexp@<0.1.13": "0.1.13",
       "lodash@<4.18.1": "4.18.1",
       "react": "catalog:",
-      "react-dom": "catalog:"
+      "react-dom": "catalog:",
+      "i18next>typescript": "5.9.3",
+      "react-i18next>typescript": "5.9.3"
     },
     "onlyBuiltDependencies": [
       "@sentry/cli",
