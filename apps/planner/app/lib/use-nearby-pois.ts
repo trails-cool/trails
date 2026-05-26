@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchNearbyPois, OverpassRateLimitError, type Poi } from "./overpass";
+import { fetchNearbyPois, OverpassRateLimitError, type Poi } from "./overpass.ts";
 import { poiCategories } from "@trails-cool/map-core";
 
 const NEARBY_RADIUS_METERS = 500;
