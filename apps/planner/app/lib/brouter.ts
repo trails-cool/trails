@@ -1,5 +1,5 @@
-import { mergeGeoJsonSegments, type EnrichedRoute, type NoGoArea, type Waypoint } from "./route-merge";
-import { fetchWithTimeout } from "./http.server";
+import { mergeGeoJsonSegments, type EnrichedRoute, type NoGoArea, type Waypoint } from "./route-merge.ts";
+import { fetchWithTimeout } from "./http.server.ts";
 
 export { mergeGeoJsonSegments };
 export type { EnrichedRoute, NoGoArea };

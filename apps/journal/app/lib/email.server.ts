@@ -1,5 +1,5 @@
 import { createTransport, type Transporter } from "nodemailer";
-import { logger } from "./logger.server";
+import { logger } from "./logger.server.ts";
 
 const FROM = process.env.SMTP_FROM ?? "trails.cool <noreply@trails.cool>";
 

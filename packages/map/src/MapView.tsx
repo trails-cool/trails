@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, LayersControl } from "react-leaflet";
-import { baseLayers } from "./layers";
+import { baseLayers } from "./layers.ts";
 import "leaflet/dist/leaflet.css";
 
 export interface MapViewProps {
