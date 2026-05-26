@@ -79,22 +79,27 @@ export async function readBodyWithCap(response: Response, maxBytes: number): Pro
   if (Number.isFinite(declared) && declared > maxBytes) {
     throw new BRouterError(`response too large (${declared} bytes)`, 502);
   }
-  // Stream the body, abort once we've seen `maxBytes`.
+  // Stream the body, abort once we've seen `maxBytes`. The read +
+  // done-check live in the for header so the loop reads as "iterate
+  // over reads until done"; TS narrows `chunk.value` to Uint8Array
+  // inside the body because the false-done branch rules out
+  // `{ done: true, value: undefined }`.
   const reader = response.body?.getReader();
   if (!reader) return await response.text();
   const decoder = new TextDecoder();
   let received = 0;
   let out = "";
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    received += value.byteLength;
+  for (
+    let chunk = await reader.read();
+    !chunk.done;
+    chunk = await reader.read()
+  ) {
+    received += chunk.value.byteLength;
     if (received > maxBytes) {
       try { await reader.cancel(); } catch { /* ignore */ }
       throw new BRouterError(`response exceeded ${maxBytes} bytes`, 502);
     }
-    out += decoder.decode(value, { stream: true });
+    out += decoder.decode(chunk.value, { stream: true });
   }
   out += decoder.decode();
   return out;

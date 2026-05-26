@@ -15,21 +15,6 @@ async function getDOMParser(): Promise<typeof DOMParser> {
   return _LinkedDOMParser;
 }
 
-export function parseGpx(xml: string): GpxData {
-  // Synchronous path for browser
-  if (typeof DOMParser !== "undefined") {
-    return parseGpxWithParser(new DOMParser(), xml);
-  }
-  // Fallback: try linkedom synchronously (works in Node with top-level await or CJS)
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { DOMParser: LP } = require("linkedom");
-    return parseGpxWithParser(new LP() as unknown as DOMParser, xml);
-  } catch {
-    throw new Error("DOMParser not available — install linkedom");
-  }
-}
-
 export async function parseGpxAsync(xml: string): Promise<GpxData> {
   const Parser = await getDOMParser();
   return parseGpxWithParser(new Parser(), xml);
