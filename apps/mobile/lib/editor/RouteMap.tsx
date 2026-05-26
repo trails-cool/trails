@@ -77,10 +77,11 @@ function RouteMapInner({
   const cameraRef = useRef<CameraRef>(null);
 
   const handleLongPress = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (event: any) => {
-      // v11 event shape: payload lives on `event.nativeEvent.lngLat`
-      // (the old `event.geometry.coordinates` is gone).
+    // maplibre-react-native v11+ codegen `NativePressEvent` isn't
+    // re-exported as a type, so we declare the slice we use locally.
+    // Payload moved from `event.geometry.coordinates` (v10) to
+    // `event.nativeEvent.lngLat` in v11.
+    (event: { nativeEvent?: { lngLat?: readonly [number, number] } }) => {
       const lngLat = event?.nativeEvent?.lngLat;
       if (Array.isArray(lngLat) && lngLat.length >= 2) {
         onLongPress(lngLat[1] as number, lngLat[0] as number);

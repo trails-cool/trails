@@ -10,10 +10,12 @@ import { generateGpx } from "@trails-cool/gpx";
 export async function fitToGpx(buffer: Buffer, name: string): Promise<string | null> {
   const parsed = await new Promise<Record<string, unknown>>((resolve, reject) => {
     const parser = new FitParser({ force: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parser.parse(buffer as any, (error: unknown, data: any) => {
+    // fit-file-parser's typing requires `Buffer<ArrayBuffer>` specifically;
+    // a generic Node `Buffer` is structurally `Buffer<ArrayBufferLike>`.
+    // The runtime accepts either, so coerce the underlying buffer slot.
+    parser.parse(buffer as Buffer<ArrayBuffer>, (error, data) => {
       if (error) reject(error);
-      else resolve(data ?? {});
+      else resolve((data ?? {}) as Record<string, unknown>);
     });
   });
 

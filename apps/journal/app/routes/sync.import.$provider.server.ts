@@ -85,8 +85,11 @@ export async function syncImportProviderAction(request: Request, provider: strin
     const { default: FitParser } = await import("fit-file-parser");
     const parsed = await new Promise<Record<string, unknown>>((resolve, reject) => {
       const parser = new FitParser({ force: true });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      parser.parse(buffer as any, (err: unknown, d: any) => (err ? reject(err) : resolve(d ?? {})));
+      // See lib/connected-services/fit.ts for the same Buffer<ArrayBuffer>
+      // narrowing rationale.
+      parser.parse(buffer as Buffer<ArrayBuffer>, (err, d) =>
+        err ? reject(err) : resolve((d ?? {}) as Record<string, unknown>),
+      );
     });
     const records = (parsed.records ?? []) as Array<{
       position_lat?: number;
