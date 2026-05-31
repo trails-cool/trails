@@ -18,6 +18,6 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "fit-file-parser": "^3.0.0"
+    "fit-file-parser": "^3.0.1"
   }
 }
