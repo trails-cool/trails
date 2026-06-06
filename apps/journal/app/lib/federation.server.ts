@@ -25,6 +25,7 @@
 // 202 for activity types without a registered listener, which is
 // exactly the "acknowledge and drop" the spec wants; the same applies
 // to wrapped types we inspect and ignore (e.g. Undo(Like)).
+import { configure, getConsoleSink } from "@logtape/logtape";
 import { createFederation, type Federation } from "@fedify/fedify";
 import { Accept, Follow, Person, Reject, Undo } from "@fedify/fedify/vocab";
 import { eq } from "drizzle-orm";
@@ -96,8 +97,36 @@ async function findLocalPublicUserByIri(iri: URL | null): Promise<UserRow | null
 }
 
 let _federation: Federation<void> | null = null;
+let _logtapeConfigured = false;
+
+/**
+ * Fedify logs through LogTape, which is silent until configured — and
+ * an unconfigured LogTape means signature-verification failures (the
+ * single most debuggable federation problem) vanish without a trace.
+ * Routed to the console so docker logs / Loki pick them up alongside
+ * pino. Level via FEDERATION_LOG_LEVEL (default "info"; set "debug"
+ * to see per-request signature verification detail).
+ */
+function configureFederationLogging(): void {
+  if (_logtapeConfigured) return;
+  _logtapeConfigured = true;
+  const level = (process.env.FEDERATION_LOG_LEVEL ?? "info") as "debug" | "info" | "warning";
+  configure({
+    sinks: { console: getConsoleSink() },
+    loggers: [
+      { category: "fedify", lowestLevel: level, sinks: ["console"] },
+      // LogTape's meta logger warns about itself; keep it quiet unless
+      // something is really wrong.
+      { category: ["logtape", "meta"], lowestLevel: "warning", sinks: ["console"] },
+    ],
+  }).catch(() => {
+    // configure() throws if something else configured LogTape first —
+    // fine, their sinks win.
+  });
+}
 
 function buildFederation(): Federation<void> {
+  configureFederationLogging();
   const federation = createFederation<void>({
     kv: new PostgresKvStore(),
     // Canonical origin so generated IRIs are correct behind the Caddy

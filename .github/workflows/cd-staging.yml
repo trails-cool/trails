@@ -131,6 +131,9 @@ jobs:
             # rollout 12.2). FEDERATION_KEY_ENCRYPTION_KEY comes from the
             # SOPS env decrypted above; previews never set this flag.
             echo "FEDERATION_ENABLED=true"
+            # Verbose Fedify logs during the soak (signature verification
+            # detail). Dial down to info once federation is proven out.
+            echo "FEDERATION_LOG_LEVEL=debug"
           } >> infrastructure/staging.env
 
       - name: Copy compose file + env to server
