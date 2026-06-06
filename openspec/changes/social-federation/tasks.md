@@ -6,11 +6,11 @@
 
 ## 2. Schema
 
-- [ ] 2.1 Add `users.public_key TEXT NULL`, `users.private_key_encrypted TEXT NULL` (encrypted with `FEDERATION_KEY_ENCRYPTION_KEY`)
-- [ ] 2.2 Add `remote_actors` table: `actor_iri PK`, `display_name`, `username`, `domain`, `avatar_url`, `inbox_url`, `outbox_url`, `public_key`, `software` (the discovery field), `last_polled_at`, `created_at`
-- [ ] 2.3 Extend `journal.activities` with `remote_origin_iri TEXT NULL UNIQUE`, `remote_actor_iri TEXT NULL`, `audience TEXT NOT NULL DEFAULT 'public'`
-- [ ] 2.4 Run `pnpm db:push` locally and confirm migration is clean
-- [ ] 2.5 One-shot pg-boss job `backfill-user-keypairs` that generates a keypair for every existing user lacking one. Runs once at deploy when feature flag flips on
+- [x] 2.1 Add `users.public_key TEXT NULL`, `users.private_key_encrypted TEXT NULL` (encrypted with `FEDERATION_KEY_ENCRYPTION_KEY`)
+- [x] 2.2 Add `remote_actors` table: `actor_iri PK`, `display_name`, `username`, `domain`, `avatar_url`, `inbox_url`, `outbox_url`, `public_key`, `software` (the discovery field), `last_polled_at`, `created_at`
+- [x] 2.3 Extend `journal.activities` with `remote_origin_iri TEXT NULL UNIQUE`, `remote_actor_iri TEXT NULL`, `audience TEXT NOT NULL DEFAULT 'public'`
+- [x] 2.4 Run `pnpm db:push` locally and confirm migration is clean
+- [x] 2.5 One-shot pg-boss job `backfill-user-keypairs` that generates a keypair for every existing user lacking one. Runs once at deploy when feature flag flips on
 
 ## 3. Identity surface
 

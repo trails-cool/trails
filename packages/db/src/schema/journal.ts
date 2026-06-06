@@ -44,6 +44,14 @@ export const users = journalSchema.table("users", {
   // content defaults; existing users were backfilled to `public` by an
   // earlier migration so behavior didn't change for them.
   profileVisibility: text("profile_visibility").$type<ProfileVisibility>().notNull().default("private"),
+  // Federation signing keypair (spec: social-federation). The public key
+  // is a JWK JSON string embedded in the actor object; the private key is
+  // a JWK encrypted at rest with FEDERATION_KEY_ENCRYPTION_KEY (see
+  // apps/journal app/lib/federation-keys.server.ts). NULL until generated —
+  // at registration for new users, or by the one-shot
+  // `backfill-user-keypairs` job for users predating federation.
+  publicKey: text("public_key"),
+  privateKeyEncrypted: text("private_key_encrypted"),
   termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   termsVersion: text("terms_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -123,6 +131,16 @@ export const routeVersions = journalSchema.table("route_versions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Audience of an activity cached from a remote actor's outbox (spec:
+ * social-federation, "Audience-aware feed filtering"). Local activities
+ * are always 'public' here — their actual visibility lives in
+ * `visibility`; this column only matters for remote rows, where
+ * 'followers-only' content must reach only the local viewer whose
+ * accepted follow brought it in.
+ */
+export type Audience = "public" | "followers-only";
+
 export const activities = journalSchema.table("activities", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id")
@@ -142,6 +160,14 @@ export const activities = journalSchema.table("activities", {
   participants: jsonb("participants").$type<string[]>(),
   visibility: text("visibility").$type<Visibility>().notNull().default("private"),
   synthetic: boolean("synthetic").notNull().default(false),
+  // Federation provenance (spec: social-federation). NULL for local
+  // activities. For rows ingested from a remote trails actor's outbox:
+  // `remoteOriginIri` is the activity's IRI on the origin instance
+  // (unique → replay-safe `ON CONFLICT DO NOTHING` ingestion), and
+  // `remoteActorIri` keys into `remote_actors`.
+  remoteOriginIri: text("remote_origin_iri").unique(),
+  remoteActorIri: text("remote_actor_iri"),
+  audience: text("audience").$type<Audience>().notNull().default("public"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   // Hot paths: listActivities (sort by started_at) and listPublicActivitiesForOwner.
@@ -317,6 +343,26 @@ export const follows = journalSchema.table("follows", {
   followedActorIdx: index("follows_followed_actor_idx").on(t.followedActorIri),
   followedUserIdx: index("follows_followed_user_idx").on(t.followedUserId),
 }));
+
+// Cache of remote ActivityPub actors we interact with (spec:
+// social-federation). One row per actor IRI: display fields for feed
+// cards, inbox/outbox URLs for delivery and polling, the public key for
+// inbound HTTP-Signature verification, and `software` (the discovery
+// field) for the trails-to-trails outbound check. Refreshed during
+// outbox polls so feed renders never re-fetch the actor document.
+export const remoteActors = journalSchema.table("remote_actors", {
+  actorIri: text("actor_iri").primaryKey(),
+  displayName: text("display_name"),
+  username: text("username"),
+  domain: text("domain"),
+  avatarUrl: text("avatar_url"),
+  inboxUrl: text("inbox_url"),
+  outboxUrl: text("outbox_url"),
+  publicKey: text("public_key"),
+  software: text("software"),
+  lastPolledAt: timestamp("last_polled_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // Notifications. Each row is a single event the recipient should be
 // informed about. v1 types: follow_request_received, follow_request_approved,

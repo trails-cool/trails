@@ -178,6 +178,11 @@ server.listen(port, async () => {
   const { sendWelcomeEmailJob } = await import("./app/jobs/send-welcome-email.ts");
   const { consumedJtiSweepJob } = await import("./app/jobs/consumed-jti-sweep.ts");
   jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob, importBatchesSweepJob, sendWelcomeEmailJob, consumedJtiSweepJob);
+  // Federation keypair backfill — registered only when federation is on.
+  if (process.env.FEDERATION_ENABLED === "true") {
+    const { backfillUserKeypairsJob } = await import("./app/jobs/backfill-user-keypairs.ts");
+    jobs.push(backfillUserKeypairsJob);
+  }
 
   const boss = createBoss(getDatabaseUrl());
   await startWorker(boss, jobs);
@@ -186,4 +191,12 @@ server.listen(port, async () => {
   const { setBoss } = await import("./app/lib/boss.server.ts");
   setBoss(boss);
   logger.info("Background job worker started");
+
+  // One-shot federation keypair backfill per startup (spec: existing
+  // users get keys before any federation traffic). Each run only
+  // touches users whose public_key IS NULL, so repeats are no-ops.
+  if (process.env.FEDERATION_ENABLED === "true") {
+    await boss.send("backfill-user-keypairs", {});
+    logger.info("federation keypair backfill enqueued");
+  }
 });
