@@ -1,3 +1,12 @@
+> **⚠️ Needs re-scoping before implementation (noted 2026-06-06):** This
+> proposal predates `public-content-visibility` (archived 2026-04-24), which
+> already shipped route/activity visibility as a plain-text column with three
+> values (`private | unlisted | public`), public detail pages, public profiles,
+> and an owner-facing visibility selector. Tasks 1.1–1.3 and 3.1 are obsolete
+> (and 1.1's enum approach contradicts the shipped text-column design — see
+> `packages/db/src/schema/journal.ts`). The remaining scope — per-user sharing
+> (view/edit), forking, contributor tracking — is still valid and unshipped.
+
 ## Why
 
 Routes in the Journal are currently invisible to everyone except the owner. There
