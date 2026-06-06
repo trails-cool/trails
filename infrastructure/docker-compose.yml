@@ -261,8 +261,12 @@ networks:
   # staging compose project can attach to it via `external: true`. Only
   # postgres is joined here on the production side; staging containers join
   # to reach postgres by hostname.
+  # IPv6-enabled so staging/preview journals — whose only network this is —
+  # get v6 federation egress like production. Recreating it on a live host
+  # requires detaching staging, previews, and postgres first.
   trails-shared:
     name: trails-shared
+    enable_ipv6: true
 
 volumes:
   caddy_data:
