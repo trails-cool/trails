@@ -1,8 +1,8 @@
 ## 1. Library + dependencies
 
-- [ ] 1.1 Spike Fedify on a branch: import, mount minimal actor object endpoint for one user, validate WebFinger lookup from a remote AP client. Confirm fit. If unfit, document why and pivot to alternative
-- [ ] 1.2 Add Fedify (or chosen lib) to `apps/journal/package.json`; document version pinning rationale
-- [ ] 1.3 Add `FEDERATION_ENABLED` env var (default `false`) and a thin runtime feature flag the rest of the change reads from
+- [x] 1.1 Spike Fedify on a branch: import, mount minimal actor object endpoint for one user, validate WebFinger lookup from a remote AP client. Confirm fit. If unfit, document why and pivot to alternative
+- [x] 1.2 Add Fedify (or chosen lib) to `apps/journal/package.json`; document version pinning rationale
+- [x] 1.3 Add `FEDERATION_ENABLED` env var (default `false`) and a thin runtime feature flag the rest of the change reads from
 
 ## 2. Schema
 
