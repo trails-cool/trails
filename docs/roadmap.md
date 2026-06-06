@@ -10,7 +10,7 @@ Five changes must ship before public announcement:
 
 | Change | Why it blocks launch |
 |---|---|
-| [`route-sharing`](../openspec/changes/route-sharing/) | Visibility levels (private / public / shared-link) and forking. Federation depends on it. |
+| [`route-sharing`](../openspec/changes/route-sharing/) | Per-user sharing (view/edit), forking, contributor tracking. (Visibility levels already shipped via `public-content-visibility`.) |
 | [`social-federation`](../openspec/changes/social-federation/) | The platform is described as federated — launching without it would be misleading. ActivityPub, WebFinger, inbound Mastodon follows. |
 | [`visual-redesign`](../openspec/changes/visual-redesign/) | Design system not yet implemented. Current UI is unstyled Tailwind. Must land before any public-facing announcement. |
 | [`wahoo-production-cutover`](../openspec/changes/wahoo-production-cutover/) | Wahoo sandbox rate limits make the integration unusable at scale. Ops task, not a feature, but launch-blocking. |
@@ -22,12 +22,16 @@ Five changes must ship before public announcement:
 
 ### Phase 1 — Feature complete
 
-Implement all launch-blocking changes above, in dependency order:
+Implement all launch-blocking changes above. There are no dependencies
+between them — `social-federation`'s former dependency on `route-sharing`
+was satisfied when `public-content-visibility` and `social-feed` shipped
+(public routes/activities, public profiles, IRI-keyed follows). All four
+can proceed independently:
 
-1. `route-sharing` (no dependencies)
-2. `social-federation` (depends on route-sharing for public routes)
+1. `social-federation` (prerequisites already shipped)
+2. `route-sharing`
 3. `wahoo-production-cutover` (ops, can run in parallel)
-4. `changelog` (no feature dependencies)
+4. `changelog`
 
 ### Phase 2 — Polish sprint
 
