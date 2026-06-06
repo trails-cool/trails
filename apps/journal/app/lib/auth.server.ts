@@ -13,6 +13,9 @@ import type {
 } from "@simplewebauthn/types";
 import { getDb } from "./db.ts";
 import { getOrigin } from "./config.server.ts";
+import { federationEnabled } from "./federation.server.ts";
+import { ensureUserKeypair } from "./federation-keys.server.ts";
+import { logger } from "./logger.server.ts";
 import { users, credentials, magicTokens } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
@@ -92,7 +95,25 @@ export async function finishRegistration(
     transports: response.response.transports,
   });
 
+  await generateFederationKeysBestEffort(userId);
+
   return userId;
+}
+
+/**
+ * Spec (social-federation): new users get federation signing keys at
+ * registration. Best-effort — a keygen failure must never fail the
+ * registration itself; the `backfill-user-keypairs` job is the safety
+ * net for any user this skips. No-op while federation is off (the
+ * backfill covers everyone when the flag first flips on).
+ */
+async function generateFederationKeysBestEffort(userId: string): Promise<void> {
+  if (!federationEnabled()) return;
+  try {
+    await ensureUserKeypair(userId);
+  } catch (err) {
+    logger.warn({ err, userId }, "federation keypair generation failed at registration; backfill will retry");
+  }
 }
 
 // --- Add Passkey to Existing Account ---
@@ -175,6 +196,8 @@ export async function registerWithMagicLink(
     termsAcceptedAt: new Date(),
     termsVersion,
   });
+
+  await generateFederationKeysBestEffort(userId);
 
   // Same shape as login's createMagicToken — token for the click-through
   // link, 6-digit code for paste-from-email/SMS flows (mobile).

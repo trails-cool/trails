@@ -108,6 +108,14 @@ Inbound signature verification uses the actor's public key from their actor obje
 
 ## Open Questions
 
+- **`activities.owner_id` is NOT NULL but remote-ingested rows have no local
+  owner** (surfaced during task 2.3, 2026-06-06). Options: make `owner_id`
+  nullable with a check constraint (`owner_id IS NOT NULL OR remote_actor_iri
+  IS NOT NULL`), or key remote rows purely off `remote_actor_iri` in a way
+  that never touches owner-joined queries. Decide in task 7.2 (ingestion)
+  before any remote row is written; the columns landed in 2.3 don't prejudge
+  either option.
+
 - Custom AS extension for activity-type vs. plain `Create(Note)`? Mastodon will only render Notes; an extension type means non-trails clients see nothing useful. Lean toward `Create(Note)` with structured metadata in `attachment` so Mastodon shows the text + GPX link, and trails clients consuming the outbox can read the structured fields.
 - Per-instance inbox vs per-user inbox? Mastodon supports a "shared inbox" optimization. Worth doing for delivery efficiency once we have any volume; v1 can use per-user inboxes only.
 - How does the trails-to-trails check interact with self-hosters who fork or rebrand? Probably the `software` field is `"trails.cool"` (or a derivative we list) and the `/.well-known/trails-cool` endpoint is the authoritative discovery. Tasks phase decides the exact shape.
