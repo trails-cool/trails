@@ -7,6 +7,7 @@ export default [
   route(".well-known/nodeinfo", "routes/api.well-known.nodeinfo.ts"),
   route("nodeinfo/2.1", "routes/api.nodeinfo.ts"),
   route("users/:username/inbox", "routes/users.$username.inbox.ts"),
+  route("users/:username/outbox", "routes/users.$username.outbox.ts"),
   route("oauth/authorize", "routes/oauth.authorize.tsx"),
   route("oauth/token", "routes/oauth.token.ts"),
   route("auth/register", "routes/auth.register.tsx"),

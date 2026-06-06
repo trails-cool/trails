@@ -124,6 +124,17 @@ Inbound signature verification uses the actor's public key from their actor obje
   with `/.well-known/trails-cool` as the secondary signal.
 - **Fedify's KvStore is Postgres-backed** (`journal.federation_kv`) so inbox
   replay protection and document caches survive restarts; swept daily.
+- **Outgoing activity shape: `Create(Note)` with PropertyValue attachments**
+  (task 5.1; resolves the open question below toward Mastodon compat). The
+  Note's HTML content carries name/description/stats plus a link to the
+  activity page; distance/elevation/duration ride along as `PropertyValue`
+  attachments that Mastodon ignores gracefully and trails consumers can read
+  without HTML parsing. GPX download links can join once activities have a
+  public GPX endpoint.
+- **Private-user 404 for collection endpoints is enforced at the route layer**
+  (task 5.1): Fedify builds collection-level responses (outbox
+  OrderedCollection) from counter/cursors without consulting the page
+  dispatcher, so the dispatcher's `null` → 404 contract doesn't cover them.
 
 ## Open Questions
 

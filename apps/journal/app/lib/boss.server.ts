@@ -8,8 +8,14 @@ import { logger } from "./logger.server.ts";
 
 // Structurally typed (we only need `send`) so we don't have to pull
 // pg-boss into the journal app's dep graph just for the typedef.
+export interface BossSendOptions {
+  retryLimit?: number;
+  retryBackoff?: boolean;
+  retryDelay?: number;
+}
+
 interface BossLike {
-  send(queueName: string, data: unknown): Promise<string | null>;
+  send(queueName: string, data: unknown, options?: BossSendOptions): Promise<string | null>;
 }
 
 let _boss: BossLike | null = null;
@@ -40,10 +46,11 @@ export async function enqueueOptional(
   queue: string,
   data: unknown,
   ctx: Record<string, unknown> = {},
+  options?: BossSendOptions,
 ): Promise<void> {
   try {
     const boss = getBoss();
-    await boss.send(queue, data);
+    await boss.send(queue, data, options);
   } catch (err) {
     logger.warn({ err, queue, ...ctx }, "boss.send failed; continuing");
   }

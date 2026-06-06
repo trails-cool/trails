@@ -34,12 +34,14 @@
 
 ## 5. Outbox + push delivery
 
-- [ ] 5.1 Outbox endpoint at `/users/:username/outbox`. Returns paginated `OrderedCollection` of the user's `public` activities as `Create(Note)` (with structured trails-specific metadata in `attachment` so Mastodon shows text + GPX link, and trails consumers can read distance/elevation)
-- [ ] 5.2 Honor signed-fetch (Authorized Fetch) on outbox GETs. Unsigned requests get a public-only subset; signed requests get the same (locked accounts is later-change territory)
-- [ ] 5.3 On local activity create with `visibility = 'public'`, enqueue a `deliver-activity` pg-boss job per accepted remote follower
-- [ ] 5.4 `deliver-activity` job: HTTP-sign + POST `Create(Note)` to follower inbox; retry with exponential backoff on 5xx; permanent-fail after retry budget; log final outcome
-- [ ] 5.5 Per-remote-host rate limit on outbound: 1 req/sec per host
-- [ ] 5.6 On local activity update or delete, enqueue corresponding `Update`/`Delete` activities to followers (basic — full update/delete fan-out)
+- [x] 5.1 Outbox endpoint at `/users/:username/outbox`. Returns paginated `OrderedCollection` of the user's `public` activities as `Create(Note)` (with structured trails-specific metadata in `attachment` so Mastodon shows text + GPX link, and trails consumers can read distance/elevation)
+- [x] 5.2 Honor signed-fetch (Authorized Fetch) on outbox GETs. Unsigned requests get a public-only subset; signed requests get the same (locked accounts is later-change territory)
+  > The two scenarios collapse to one shape — the outbox only ever contains public items, so no signature check is needed until locked accounts exist. Documented in code.
+- [x] 5.3 On local activity create with `visibility = 'public'`, enqueue a `deliver-activity` pg-boss job per accepted remote follower
+- [x] 5.4 `deliver-activity` job: HTTP-sign + POST `Create(Note)` to follower inbox; retry with exponential backoff on 5xx; permanent-fail after retry budget; log final outcome
+- [x] 5.5 Per-remote-host rate limit on outbound: 1 req/sec per host
+- [x] 5.6 On local activity update or delete, enqueue corresponding `Update`/`Delete` activities to followers (basic — full update/delete fan-out)
+  > Implemented as: visibility flip → public sends Create; flip away from public or hard delete sends Delete(Tombstone). There is no general field-edit server path today, so `Update` has no trigger yet — revisit if/when activity editing ships.
 
 ## 6. Outbound follow + trails-to-trails check
 
