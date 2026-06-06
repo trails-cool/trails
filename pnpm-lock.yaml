@@ -209,6 +209,9 @@ importers:
       '@js-temporal/polyfill':
         specifier: ^0.5.1
         version: 0.5.1
+      '@logtape/logtape':
+        specifier: ^2.0.5
+        version: 2.1.1
       '@react-router/node':
         specifier: 'catalog:'
         version: 7.16.0(react-router@7.16.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(typescript@6.0.3)

@@ -66,6 +66,7 @@ services:
       # empty (flag off) so preview journals never emit federation traffic.
       FEDERATION_ENABLED: ${FEDERATION_ENABLED:-}
       FEDERATION_KEY_ENCRYPTION_KEY: ${FEDERATION_KEY_ENCRYPTION_KEY:-}
+      FEDERATION_LOG_LEVEL: ${FEDERATION_LOG_LEVEL:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
       interval: 15s
