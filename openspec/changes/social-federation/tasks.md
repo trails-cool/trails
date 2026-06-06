@@ -14,21 +14,23 @@
 
 ## 3. Identity surface
 
-- [ ] 3.1 `localActorIri(username)` already exists from `social-feed`; ensure it's reused everywhere (no string concat on URLs)
-- [ ] 3.2 Implement `/.well-known/webfinger?resource=acct:user@domain` returning JRD with `rel="self"` actor link (gated on `profile_visibility = 'public'`)
-- [ ] 3.3 Content-negotiated handler at `/users/:username`: HTML for browsers, `application/activity+json` for AP clients (returning the `Person` actor object). Both gated on `profile_visibility = 'public'`
-- [ ] 3.4 Actor object includes `software: trails.cool` (custom AS extension) so other instances can recognize us for the trails-to-trails outbound check
+- [x] 3.1 `localActorIri(username)` already exists from `social-feed`; ensure it's reused everywhere (no string concat on URLs)
+- [x] 3.2 Implement `/.well-known/webfinger?resource=acct:user@domain` returning JRD with `rel="self"` actor link (gated on `profile_visibility = 'public'`)
+- [x] 3.3 Content-negotiated handler at `/users/:username`: HTML for browsers, `application/activity+json` for AP clients (returning the `Person` actor object). Both gated on `profile_visibility = 'public'`
+- [x] 3.4 Actor object includes `software: trails.cool` (custom AS extension) so other instances can recognize us for the trails-to-trails outbound check
+  > Adapted during implementation: shipped as a standard **NodeInfo** endpoint (`/.well-known/nodeinfo` + `/nodeinfo/2.1`, `software.name: trails-cool`) instead of a custom AS field — Fedify's typed vocab can't emit arbitrary actor properties, and NodeInfo is what the fediverse actually reads for software identity. `/.well-known/trails-cool` remains as the secondary discovery surface.
 
 ## 4. Inbox
 
-- [ ] 4.1 Inbox endpoint at `/users/:username/inbox`. Verifies HTTP Signature on every request before any further processing
-- [ ] 4.2 Handle `Follow`: gate on local user's `profile_visibility`, write follow row, push `Accept(Follow)` back, return 202
-- [ ] 4.3 Handle `Undo(Follow)`: delete the matching row, return 202
-- [ ] 4.4 Handle `Accept(Follow)`: settle our outgoing Pending row's `accepted_at`, enqueue a one-off outbox-poll for the just-accepted actor, return 202
-- [ ] 4.5 Handle `Reject(Follow)`: delete our outgoing follow row, surface in user's outgoing-follows list, return 202
-- [ ] 4.6 Handle every other activity type: return 202 and drop silently (logged at debug)
-- [ ] 4.7 Replay protection: dedupe on activity IRI for follow-graph activities (small hot table or Redis set)
-- [ ] 4.8 Per-source-instance rate limit on inbox: 60 requests / 5 min from any single host
+- [x] 4.1 Inbox endpoint at `/users/:username/inbox`. Verifies HTTP Signature on every request before any further processing
+- [x] 4.2 Handle `Follow`: gate on local user's `profile_visibility`, write follow row, push `Accept(Follow)` back, return 202
+- [x] 4.3 Handle `Undo(Follow)`: delete the matching row, return 202
+- [x] 4.4 Handle `Accept(Follow)`: settle our outgoing Pending row's `accepted_at`, enqueue a one-off outbox-poll for the just-accepted actor, return 202
+- [x] 4.5 Handle `Reject(Follow)`: delete our outgoing follow row, surface in user's outgoing-follows list, return 202
+  > Protocol part done; the UI notice lands with the outgoing-follows list (task 6.6).
+- [x] 4.6 Handle every other activity type: return 202 and drop silently (logged at debug)
+- [x] 4.7 Replay protection: dedupe on activity IRI for follow-graph activities (small hot table or Redis set)
+- [x] 4.8 Per-source-instance rate limit on inbox: 60 requests / 5 min from any single host
 
 ## 5. Outbox + push delivery
 

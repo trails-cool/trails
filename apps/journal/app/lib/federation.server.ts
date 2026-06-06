@@ -1,9 +1,5 @@
 // ActivityPub federation via Fedify. See openspec/changes/social-federation.
 //
-// Spike scope (task 1.1): a minimal Federation instance serving WebFinger
-// discovery + Person actor objects for public users. No keypairs, no inbox
-// processing, no delivery yet — those land in later tasks.
-//
 // Version pinning (task 1.2): @fedify/fedify is pinned to exactly 2.1.16.
 // The whole 2.2.x line is uninstallable from npm — each release depends on
 // @fedify/webfinger@2.2.x, which was never published (latest is 2.1.16).
@@ -11,23 +7,47 @@
 //
 // Mounting model: Fedify owns URL dispatch for its endpoints via
 // `federation.fetch(request)`. We delegate to it from React Router routes:
-//   - /.well-known/webfinger  → resource route (no component, raw Response)
-//   - /users/:username        → route middleware short-circuits to Fedify
-//     when the request asks for an ActivityPub representation; browsers
-//     fall through to the HTML profile loader (content negotiation per
-//     the design decision "actor IRI is the profile URL").
-import { createFederation, MemoryKvStore, type Federation } from "@fedify/fedify";
-import { Person } from "@fedify/fedify/vocab";
+//   - /.well-known/webfinger    → resource route (raw Response)
+//   - /.well-known/nodeinfo,
+//     /nodeinfo/2.1             → resource route (software discovery for
+//     the trails-to-trails outbound check — NodeInfo is the fediverse
+//     standard for this; the actor-level `software` AS extension the
+//     tasks file originally sketched isn't expressible with Fedify's
+//     typed vocab, and NodeInfo is what Mastodon et al. actually read)
+//   - /users/:username          → route middleware short-circuits to
+//     Fedify when the request asks for an ActivityPub representation;
+//     browsers fall through to the HTML profile loader
+//   - /users/:username/inbox    → resource route (POST), rate-limited
+//     per source instance before Fedify verifies the HTTP Signature
+//
+// Inbox scope (spec: "Narrow inbox — follow-graph activities only"):
+// Follow, Undo(Follow), Accept(Follow), Reject(Follow). Fedify returns
+// 202 for activity types without a registered listener, which is
+// exactly the "acknowledge and drop" the spec wants; the same applies
+// to wrapped types we inspect and ignore (e.g. Undo(Like)).
+import { createFederation, type Federation } from "@fedify/fedify";
+import { Accept, Follow, Person, Reject, Undo } from "@fedify/fedify/vocab";
 import { eq } from "drizzle-orm";
 import { users } from "@trails-cool/db/schema/journal";
 import { getDb } from "./db.ts";
 import { getOrigin } from "./config.server.ts";
+import { localActorIri } from "./actor-iri.ts";
+import { PostgresKvStore } from "./federation-kv.server.ts";
+import { ensureUserKeypair, loadUserKeypair } from "./federation-keys.server.ts";
+import {
+  recordRemoteFollow,
+  removeRemoteFollow,
+  settleOutgoingFollow,
+  rejectOutgoingFollow,
+} from "./federation-inbox.server.ts";
+import { enqueueOptional } from "./boss.server.ts";
+import { logger } from "./logger.server.ts";
 
 /**
  * Feature flag (task 1.3). All federation surfaces — WebFinger, actor
- * objects, inbox, outbox — are disabled (404) unless FEDERATION_ENABLED
- * is exactly "true". Default off so schema/code can deploy before any
- * federation traffic is possible.
+ * objects, inbox, outbox, NodeInfo — are disabled (404) unless
+ * FEDERATION_ENABLED is exactly "true". Default off so schema/code can
+ * deploy before any federation traffic is possible.
  */
 export function federationEnabled(): boolean {
   return process.env.FEDERATION_ENABLED === "true";
@@ -42,41 +62,159 @@ export function wantsActivityJson(request: Request): boolean {
   );
 }
 
+type UserRow = typeof users.$inferSelect;
+
+async function findUserByUsername(username: string): Promise<UserRow | null> {
+  const db = getDb();
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  return user ?? null;
+}
+
+/**
+ * Resolve a *local, public* user from an actor IRI; null otherwise.
+ * Matches against our canonical actor IRI shape (`{origin}/users/{name}`,
+ * the same shape localActorIri produces).
+ */
+async function findLocalPublicUserByIri(iri: URL | null): Promise<UserRow | null> {
+  if (iri === null) return null;
+  const prefix = `${getOrigin()}/users/`;
+  if (!iri.href.startsWith(prefix)) return null;
+  const username = iri.href.slice(prefix.length);
+  if (!username || username.includes("/")) return null;
+  const user = await findUserByUsername(username);
+  return user && user.profileVisibility === "public" ? user : null;
+}
+
 let _federation: Federation<void> | null = null;
 
 function buildFederation(): Federation<void> {
   const federation = createFederation<void>({
-    // MemoryKvStore is fine for the spike (it only caches remote documents
-    // and nonces). Replace with a Postgres-backed store before real
-    // federation traffic (revisit in task 4.x).
-    kv: new MemoryKvStore(),
+    kv: new PostgresKvStore(),
     // Canonical origin so generated IRIs are correct behind the Caddy
     // proxy (the Node server itself only sees plain HTTP).
     origin: getOrigin(),
   });
 
-  federation.setActorDispatcher("/users/{identifier}", async (ctx, identifier) => {
-    const db = getDb();
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, identifier))
-      .limit(1);
-    // Private profiles do not federate at all: returning null makes Fedify
-    // respond 404, and WebFinger lookups for this user 404 with it — no
-    // leak of user existence (spec: "Private user is invisible to
-    // federation").
-    if (!user || user.profileVisibility !== "public") return null;
-    return new Person({
-      id: ctx.getActorUri(identifier),
-      preferredUsername: identifier,
-      name: user.displayName ?? user.username,
-      summary: user.bio || undefined,
-      // Human-facing profile URL — same as the actor IRI by design, but
-      // declared explicitly so AP clients link browsers to the HTML view.
-      url: new URL(`/users/${identifier}`, getOrigin()),
+  federation
+    .setActorDispatcher("/users/{identifier}", async (ctx, identifier) => {
+      const user = await findUserByUsername(identifier);
+      // Private profiles do not federate at all: returning null makes
+      // Fedify respond 404, and WebFinger lookups 404 with it — no leak
+      // of user existence (spec: "Private user is invisible to
+      // federation").
+      if (!user || user.profileVisibility !== "public") return null;
+      const keys = await ctx.getActorKeyPairs(identifier);
+      return new Person({
+        id: ctx.getActorUri(identifier),
+        preferredUsername: identifier,
+        name: user.displayName ?? user.username,
+        summary: user.bio || undefined,
+        // Human-facing profile URL — same as the actor IRI by design,
+        // declared explicitly so AP clients link browsers to HTML.
+        url: new URL(localActorIri(identifier)),
+        inbox: ctx.getInboxUri(identifier),
+        // Public keys for inbound HTTP-Signature verification by
+        // remotes (Mastodon reads publicKey; newer stacks read the
+        // multikey assertionMethods).
+        publicKey: keys[0]?.cryptographicKey,
+        assertionMethods: keys.map((k) => k.multikey),
+      });
+    })
+    .setKeyPairsDispatcher(async (_ctxData, identifier) => {
+      let user = await findUserByUsername(identifier);
+      if (!user || user.profileVisibility !== "public") return [];
+      // The backfill job normally guarantees keys; generate lazily as a
+      // last line of defense (idempotent, guarded on NULL public_key).
+      if (!user.publicKey) {
+        await ensureUserKeypair(user.id);
+        user = await findUserByUsername(identifier);
+        if (!user) return [];
+      }
+      const pair = await loadUserKeypair(user);
+      return pair ? [pair] : [];
     });
-  });
+
+  federation
+    .setInboxListeners("/users/{identifier}/inbox")
+    .on(Follow, async (ctx, follow) => {
+      // Spec 4.2: Follow from any AP-compatible remote — auto-accept
+      // when the local target is public; otherwise drop (the actor
+      // already 404s for private users).
+      if (follow.id == null || follow.actorId == null || follow.objectId == null) return;
+      const parsed = ctx.parseUri(follow.objectId);
+      if (parsed?.type !== "actor") return;
+      const { outcome } = await recordRemoteFollow(follow.actorId.href, parsed.identifier);
+      if (outcome !== "accepted") return;
+      const follower = await follow.getActor(ctx);
+      if (follower == null) return;
+      await ctx.sendActivity(
+        { identifier: parsed.identifier },
+        follower,
+        new Accept({
+          id: new URL(`${localActorIri(parsed.identifier)}#accepts/${crypto.randomUUID()}`),
+          actor: ctx.getActorUri(parsed.identifier),
+          object: follow,
+        }),
+      );
+    })
+    .on(Undo, async (ctx, undo) => {
+      // Spec 4.3: Undo(Follow) removes the follow row. Other Undos are
+      // acknowledged and dropped.
+      const object = await undo.getObject(ctx);
+      if (!(object instanceof Follow)) return;
+      if (undo.actorId == null || object.objectId == null) return;
+      const parsed = ctx.parseUri(object.objectId);
+      if (parsed?.type !== "actor") return;
+      await removeRemoteFollow(undo.actorId.href, parsed.identifier);
+    })
+    .on(Accept, async (ctx, accept) => {
+      // Spec 4.4: a remote accepted our outgoing Follow — settle the
+      // Pending row and trigger the first outbox poll for that actor.
+      const object = await accept.getObject(ctx);
+      if (!(object instanceof Follow)) return;
+      if (accept.actorId == null) return;
+      const localUser = await findLocalPublicUserByIri(object.actorId);
+      if (!localUser) return;
+      const { settled } = await settleOutgoingFollow(localUser.id, accept.actorId.href);
+      if (settled) {
+        // Queue worker lands in the outbox-poll change (task 7.x);
+        // enqueueOptional logs-and-continues until then.
+        await enqueueOptional("poll-remote-actor", { actorIri: accept.actorId.href }, {
+          reason: "first poll after accepted follow",
+        });
+      }
+    })
+    .on(Reject, async (ctx, reject) => {
+      // Spec 4.5: remote refused our Follow — drop the Pending row.
+      const object = await reject.getObject(ctx);
+      if (!(object instanceof Follow)) return;
+      if (reject.actorId == null) return;
+      const localUser = await findLocalPublicUserByIri(object.actorId);
+      if (!localUser) return;
+      await rejectOutgoingFollow(localUser.id, reject.actorId.href);
+    })
+    .onError(async (_ctx, error) => {
+      logger.warn({ err: error }, "federation: inbox listener error");
+    });
+
+  // Software discovery (task 3.4, adapted): NodeInfo is the standard
+  // the fediverse uses to identify server software; the trails-to-trails
+  // outbound check (task 6.x) reads this from remote instances.
+  federation.setNodeInfoDispatcher("/nodeinfo/2.1", () => ({
+    software: {
+      name: "trails-cool",
+      version: process.env.SENTRY_RELEASE ?? "0.0.0-dev",
+      homepage: new URL("https://trails.cool/"),
+    },
+    protocols: ["activitypub"],
+    // Deliberately zeroed: publishing per-instance usage counts is a
+    // privacy decision we haven't made (privacy manifest, task 10.1).
+    usage: { users: {}, localPosts: 0, localComments: 0 },
+  }));
 
   return federation;
 }
@@ -96,4 +234,23 @@ export function handleFederationRequest(request: Request): Promise<Response> {
     return Promise.resolve(new Response("Not Found", { status: 404 }));
   }
   return getFederation().fetch(request, { contextData: undefined });
+}
+
+/**
+ * Extract the source instance host from an inbound federation request
+ * for per-instance rate limiting (spec 4.8). The HTTP Signature keyId
+ * is a URL on the sender's instance; its host identifies the instance
+ * before any verification work. Unsigned junk shares one tight bucket.
+ */
+export function federationSourceHost(request: Request): string {
+  const signature = request.headers.get("signature") ?? "";
+  const match = /keyId="([^"]+)"/.exec(signature);
+  if (match?.[1]) {
+    try {
+      return new URL(match[1]).host;
+    } catch {
+      // unparseable keyId → shared bucket below
+    }
+  }
+  return "unknown";
 }

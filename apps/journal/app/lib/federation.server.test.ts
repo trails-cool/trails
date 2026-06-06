@@ -19,7 +19,7 @@ vi.mock("./db.ts", () => ({
   }),
 }));
 
-const { handleFederationRequest, wantsActivityJson } = await import(
+const { handleFederationRequest, wantsActivityJson, federationSourceHost } = await import(
   "./federation.server.ts"
 );
 
@@ -101,6 +101,33 @@ describe("actor object", () => {
     dbUsers.push({ ...PUBLIC_USER, profileVisibility: "private" });
     const res = await handleFederationRequest(actorRequest("bruno"));
     expect(res.status).toBe(404);
+  });
+});
+
+describe("federationSourceHost", () => {
+  it("extracts the host from the HTTP Signature keyId", () => {
+    const req = new Request("http://localhost:3000/users/bruno/inbox", {
+      method: "POST",
+      headers: {
+        signature:
+          'keyId="https://mastodon.social/users/alice#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest",signature="abc=="',
+      },
+    });
+    expect(federationSourceHost(req)).toBe("mastodon.social");
+  });
+
+  it("buckets unsigned or malformed requests as unknown", () => {
+    expect(
+      federationSourceHost(new Request("http://localhost:3000/users/bruno/inbox", { method: "POST" })),
+    ).toBe("unknown");
+    expect(
+      federationSourceHost(
+        new Request("http://localhost:3000/users/bruno/inbox", {
+          method: "POST",
+          headers: { signature: 'keyId="not a url",signature="x"' },
+        }),
+      ),
+    ).toBe("unknown");
   });
 });
 

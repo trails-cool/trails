@@ -45,7 +45,7 @@ Outbound federation is intentionally narrower: trails users can follow other **t
 - **UI**: Pending state on Follow button, "outgoing follows" section listing Pending requests with cancel option, federation-aware empty states on `/feed`.
 - **Federation surface**: real federation traffic crosses the public internet for the first time — push to followers, inbox processing, outbox polling. Rate-limited per-host on outbound, per-actor on inbound.
 - **Dependencies**: Fedify (or chosen equivalent). No other heavy runtime additions.
-- **Schema**: additive — `users.public_key`, `users.private_key_encrypted`, `remote_actors` table, `activities.remote_origin_iri/remote_actor_iri/audience`, no changes to `follows` (already federation-ready).
+- **Schema**: additive — `users.public_key`, `users.private_key_encrypted`, `remote_actors` table, `activities.remote_origin_iri/remote_actor_iri/audience`, plus (discovered during implementation) `follows.follower_actor_iri` with `follower_id` relaxed to nullable: the original "no changes to `follows`" claim only held for *outbound* follows — an inbound remote follower has no local `users` row to reference, so the follower side needed its own IRI column (exactly-one-of enforced by check constraint). Also `federation_kv` (Fedify KvStore backing table for replay protection + caches).
 - **Privacy manifest**: federation entry covering inbox/outbox traffic, remote actor cache, and what a remote instance learns when it fetches one of our actor objects.
 - **Operational**: deploy raises real public-facing concerns — abuse-prone inbox endpoint, outbound rate limits, key rotation. Pre-launch checklist documented in deployment docs.
 - **Out of scope** (tracked as later changes):

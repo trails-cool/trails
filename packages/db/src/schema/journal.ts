@@ -10,6 +10,7 @@ import {
   customType,
   uniqueIndex,
   index,
+  check,
 } from "drizzle-orm/pg-core";
 
 const bytea = customType<{ data: Buffer }>({
@@ -330,18 +331,44 @@ export const importBatches = journalSchema.table("import_batches", {
 
 export const follows = journalSchema.table("follows", {
   id: text("id").primaryKey(),
-  followerId: text("follower_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  // Local follower. NULL for inbound federated follows (a remote actor
+  // following a local user), where `followerActorIri` identifies the
+  // follower instead. Exactly one of the two is set (check constraint).
+  followerId: text("follower_id").references(() => users.id, { onDelete: "cascade" }),
+  // Remote follower's actor IRI (spec: social-federation, inbound
+  // Follow). NULL for local-origin follows.
+  followerActorIri: text("follower_actor_iri"),
   followedActorIri: text("followed_actor_iri").notNull(),
   followedUserId: text("followed_user_id").references(() => users.id, { onDelete: "cascade" }),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   followerActorUnique: uniqueIndex("follows_follower_actor_unique").on(t.followerId, t.followedActorIri),
+  // Dedupe inbound remote follows: one row per (remote follower, local
+  // followed user). Partial — local-origin rows have a NULL IRI here.
+  remoteFollowerUnique: uniqueIndex("follows_remote_follower_unique")
+    .on(t.followerActorIri, t.followedUserId)
+    .where(sql`${t.followerActorIri} IS NOT NULL`),
   followerCreatedIdx: index("follows_follower_created_idx").on(t.followerId, t.createdAt.desc()),
   followedActorIdx: index("follows_followed_actor_idx").on(t.followedActorIri),
   followedUserIdx: index("follows_followed_user_idx").on(t.followedUserId),
+  hasFollowerCheck: check(
+    "follows_has_follower_check",
+    sql`(${t.followerId} IS NOT NULL) <> (${t.followerActorIri} IS NOT NULL)`,
+  ),
+}));
+
+// Fedify KvStore backing table (inbox replay protection, remote
+// document / key caches). Keys are JSON-serialized KvKey arrays;
+// values arbitrary JSON. Expired rows are filtered at read time and
+// swept by the `federation-kv-sweep` job.
+export const federationKv = journalSchema.table("federation_kv", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  expiresAtIdx: index("federation_kv_expires_at_idx").on(t.expiresAt),
 }));
 
 // Cache of remote ActivityPub actors we interact with (spec:
