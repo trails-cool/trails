@@ -27,7 +27,7 @@
 // to wrapped types we inspect and ignore (e.g. Undo(Like)).
 import { configure, getConsoleSink } from "@logtape/logtape";
 import { createFederation, type Federation } from "@fedify/fedify";
-import { Accept, Follow, Person, Reject, Undo } from "@fedify/fedify/vocab";
+import { Accept, Follow, Person, PropertyValue, Reject, Undo } from "@fedify/fedify/vocab";
 import { eq } from "drizzle-orm";
 import { users } from "@trails-cool/db/schema/journal";
 import { getDb } from "./db.ts";
@@ -158,6 +158,16 @@ function buildFederation(): Federation<void> {
         // multikey assertionMethods).
         publicKey: keys[0]?.cryptographicKey,
         assertionMethods: keys.map((k) => k.multikey),
+        // Mastodon renders PropertyValue attachments as the profile
+        // metadata table — a human-visible "this is a trails profile"
+        // marker. (The machine-readable marker is NodeInfo; this is
+        // flair.) Mastodon strips most HTML in values but keeps links.
+        attachments: [
+          new PropertyValue({
+            name: "🥾 trails.cool",
+            value: `<a href="${localActorIri(identifier)}" rel="me">${getOrigin().replace(/^https?:\/\//, "")}/users/${identifier}</a>`,
+          }),
+        ],
       });
     })
     .setKeyPairsDispatcher(async (_ctxData, identifier) => {

@@ -95,6 +95,12 @@ describe("actor object", () => {
     expect(actor.preferredUsername).toBe("bruno");
     expect(actor.name).toBe("Bruno");
     expect(actor.summary).toBe("Riding bikes");
+    // Profile-metadata field Mastodon renders ("this is a trails profile")
+    const attachments = Array.isArray(actor.attachment) ? actor.attachment : [actor.attachment];
+    const field = attachments.find((a: { type: string }) => a?.type === "PropertyValue");
+    expect(field?.name).toBe("🥾 trails.cool");
+    expect(field?.value).toContain('href="http://localhost:3000/users/bruno"');
+    expect(field?.value).toContain('rel="me"');
   });
 
   it("404s the actor for a private user", async () => {
