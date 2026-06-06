@@ -26,7 +26,7 @@
 // exactly the "acknowledge and drop" the spec wants; the same applies
 // to wrapped types we inspect and ignore (e.g. Undo(Like)).
 import { configure, getConsoleSink } from "@logtape/logtape";
-import { createFederation, type Federation } from "@fedify/fedify";
+import { createFederation, InProcessMessageQueue, type Federation } from "@fedify/fedify";
 import { Accept, Follow, Person, PropertyValue, Reject, Undo } from "@fedify/fedify/vocab";
 import { eq } from "drizzle-orm";
 import { users } from "@trails-cool/db/schema/journal";
@@ -129,10 +129,28 @@ function buildFederation(): Federation<void> {
   configureFederationLogging();
   const federation = createFederation<void>({
     kv: new PostgresKvStore(),
+    // Message queue so inbox listener execution and outbound deliveries
+    // (e.g. the Accept we push back after a Follow) happen asynchronously
+    // with Fedify's own retry policy, instead of inside the inbound HTTP
+    // request — Mastodon gives deliveries a 10s read timeout, and a slow
+    // remote must never make us blow it. In-process is acceptable for
+    // the single-process journal: queued work is lost on restart, but
+    // every message type we enqueue is recoverable (remotes retry
+    // Follows; our own pg-boss jobs own activity delivery). Revisit with
+    // a Postgres-backed MessageQueue if that stops being true.
+    queue: new InProcessMessageQueue(),
+    // Started explicitly below — keeps vitest runs (which build this
+    // instance via handleFederationRequest) free of dangling timers.
+    manuallyStartQueue: true,
     // Canonical origin so generated IRIs are correct behind the Caddy
     // proxy (the Node server itself only sees plain HTTP).
     origin: getOrigin(),
   });
+  if (!process.env.VITEST) {
+    // Fire-and-forget: runs the queue consumer loop for the process
+    // lifetime. Dev and prod both reach this on first federation use.
+    void federation.startQueue(undefined);
+  }
 
   federation
     .setActorDispatcher("/users/{identifier}", async (ctx, identifier) => {
