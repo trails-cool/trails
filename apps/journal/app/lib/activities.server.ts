@@ -6,6 +6,7 @@ import type { Visibility } from "@trails-cool/db/schema/journal";
 import { validateGpx, writeGeom } from "./gpx-save.server.ts";
 import type { GpxData } from "./gpx-save.server.ts";
 import { enqueueOptional } from "./boss.server.ts";
+import { enqueueActivityDeliveries } from "./federation-delivery.server.ts";
 
 export interface ActivityInput {
   name: string;
@@ -38,6 +39,16 @@ export async function updateActivityVisibility(
   // followers (only the first transition per activity emits).
   if (visibility === "public") {
     await enqueueOptional("notifications-fanout", { activityId: id }, { source: "updateActivityVisibility" });
+    // Federation: newly-public activities push to remote followers as
+    // Create(Note) (spec 5.3/5.6 — publish-on-flip is the "update"
+    // remotes care about; the delivery job re-checks visibility).
+    await enqueueActivityDeliveries(ownerId, id, "create");
+  } else {
+    // Was the activity possibly public before? Retract from remotes —
+    // a Delete for an object a remote never saw is acknowledged and
+    // dropped, so over-sending here is harmless and avoids tracking
+    // previous visibility (spec 5.6, basic update/delete fan-out).
+    await enqueueActivityDeliveries(ownerId, id, "delete");
   }
 
   return true;
@@ -92,6 +103,8 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   // up-front rather than flipped later).
   if (input.visibility === "public") {
     await enqueueOptional("notifications-fanout", { activityId: id }, { source: "createActivity" });
+    // Federation push delivery to accepted remote followers (spec 5.3).
+    await enqueueActivityDeliveries(ownerId, id, "create");
   }
 
   return id;
@@ -108,9 +121,15 @@ export async function getActivity(id: string) {
 
 export async function deleteActivity(id: string, ownerId: string): Promise<boolean> {
   const db = getDb();
-  const [activity] = await db.select({ id: activities.id }).from(activities)
+  const [activity] = await db.select({ id: activities.id, visibility: activities.visibility }).from(activities)
     .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)));
   if (!activity) return false;
+  // Enqueue the federation retraction *before* the row disappears —
+  // the Delete payload carries everything it needs (object IRI +
+  // owner), so it survives the deletion (spec 5.6).
+  if (activity.visibility === "public") {
+    await enqueueActivityDeliveries(ownerId, id, "delete");
+  }
   await db.delete(activities).where(eq(activities.id, id));
   return true;
 }

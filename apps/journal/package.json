@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fedify/fedify": "2.1.16",
+    "@js-temporal/polyfill": "^0.5.1",
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
     "@sentry/node": "catalog:",
