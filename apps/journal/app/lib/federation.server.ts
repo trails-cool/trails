@@ -34,6 +34,12 @@ import { getOrigin } from "./config.server.ts";
 import { localActorIri } from "./actor-iri.ts";
 import { PostgresKvStore } from "./federation-kv.server.ts";
 import { ensureUserKeypair, loadUserKeypair } from "./federation-keys.server.ts";
+import { activityToCreate } from "./federation-objects.server.ts";
+import {
+  OUTBOX_PAGE_SIZE,
+  countPublicActivities,
+  listPublicActivitiesPage,
+} from "./federation-outbox.server.ts";
 import {
   recordRemoteFollow,
   removeRemoteFollow,
@@ -117,6 +123,7 @@ function buildFederation(): Federation<void> {
         // declared explicitly so AP clients link browsers to HTML.
         url: new URL(localActorIri(identifier)),
         inbox: ctx.getInboxUri(identifier),
+        outbox: ctx.getOutboxUri(identifier),
         // Public keys for inbound HTTP-Signature verification by
         // remotes (Mastodon reads publicKey; newer stacks read the
         // multikey assertionMethods).
@@ -137,6 +144,30 @@ function buildFederation(): Federation<void> {
       const pair = await loadUserKeypair(user);
       return pair ? [pair] : [];
     });
+
+  // Outbox (spec 5.1/5.2): paginated OrderedCollection of the user's
+  // public activities as Create(Note). Unsigned and signed fetches see
+  // the same content — the outbox only ever contains public items, so
+  // Authorized Fetch adds nothing until locked accounts exist (the
+  // spec's two scenarios deliberately collapse to one shape).
+  federation
+    .setOutboxDispatcher("/users/{identifier}/outbox", async (_ctx, identifier, cursor) => {
+      const user = await findUserByUsername(identifier);
+      if (!user || user.profileVisibility !== "public") return null;
+      const offset = cursor === null ? 0 : Number.parseInt(cursor, 10);
+      if (Number.isNaN(offset) || offset < 0) return null;
+      const page = await listPublicActivitiesPage(user.id, offset, OUTBOX_PAGE_SIZE);
+      return {
+        items: page.map((a) => activityToCreate(a, identifier)),
+        nextCursor: page.length === OUTBOX_PAGE_SIZE ? String(offset + OUTBOX_PAGE_SIZE) : null,
+      };
+    })
+    .setCounter(async (_ctx, identifier) => {
+      const user = await findUserByUsername(identifier);
+      if (!user || user.profileVisibility !== "public") return null;
+      return countPublicActivities(user.id);
+    })
+    .setFirstCursor(() => "0");
 
   federation
     .setInboxListeners("/users/{identifier}/inbox")
@@ -222,6 +253,18 @@ function buildFederation(): Federation<void> {
 export function getFederation(): Federation<void> {
   _federation ??= buildFederation();
   return _federation;
+}
+
+/**
+ * Is this username a local user that federates (exists + public)?
+ * Route-level gate for federation surfaces whose collection-level
+ * responses Fedify builds without consulting the page dispatcher
+ * (e.g. the outbox OrderedCollection) — private users must 404
+ * everywhere, mirroring the actor object.
+ */
+export async function isFederatableUser(username: string): Promise<boolean> {
+  const user = await findUserByUsername(username);
+  return user !== null && user.profileVisibility === "public";
 }
 
 /**

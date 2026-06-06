@@ -182,7 +182,8 @@ server.listen(port, async () => {
   if (process.env.FEDERATION_ENABLED === "true") {
     const { backfillUserKeypairsJob } = await import("./app/jobs/backfill-user-keypairs.ts");
     const { federationKvSweepJob } = await import("./app/jobs/federation-kv-sweep.ts");
-    jobs.push(backfillUserKeypairsJob, federationKvSweepJob);
+    const { deliverActivityJob } = await import("./app/jobs/deliver-activity.ts");
+    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, deliverActivityJob);
   }
 
   const boss = createBoss(getDatabaseUrl());
