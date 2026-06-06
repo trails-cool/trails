@@ -1,8 +1,19 @@
-// Module-level pg-boss singleton. server.ts initializes the boss + starts
+// Process-level pg-boss singleton. server.ts initializes the boss + starts
 // the worker; feature code (e.g., activities.server.ts) calls `getBoss()`
 // to enqueue jobs against the same instance. The singleton's lifecycle
 // is bound to the Node process — startWorker calls boss.start(); the
 // SIGTERM handler stops it.
+//
+// The instance lives on globalThis, NOT in a module-local variable. In
+// production there are TWO copies of this module in the process:
+// server.ts imports the TypeScript source directly (node
+// --experimental-strip-types), while route handlers live in the
+// bundled build/server/index.js with its own module instance. A
+// module-local `_boss` set by server.ts is invisible to the bundle, so
+// every request-path enqueue (notifications fan-out, federation
+// deliveries, komoot imports) silently failed in production with
+// "pg-boss not initialized". Symbol.for() gives both copies the same
+// global registry key.
 
 import { logger } from "./logger.server.ts";
 
@@ -18,11 +29,13 @@ interface BossLike {
   send(queueName: string, data: unknown, options?: BossSendOptions): Promise<string | null>;
 }
 
-let _boss: BossLike | null = null;
+const BOSS_KEY = Symbol.for("trails-cool.journal.pg-boss");
+
+type BossGlobal = { [BOSS_KEY]?: BossLike | null };
 
 /** Set by server.ts once the boss is created + started. */
-export function setBoss(boss: BossLike): void {
-  _boss = boss;
+export function setBoss(boss: BossLike | null): void {
+  (globalThis as BossGlobal)[BOSS_KEY] = boss;
 }
 
 /**
@@ -31,10 +44,11 @@ export function setBoss(boss: BossLike): void {
  * server context).
  */
 export function getBoss(): BossLike {
-  if (!_boss) {
+  const boss = (globalThis as BossGlobal)[BOSS_KEY];
+  if (!boss) {
     throw new Error("pg-boss not initialized — getBoss called before server bootstrap");
   }
-  return _boss;
+  return boss;
 }
 
 /**
