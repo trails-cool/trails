@@ -4,6 +4,24 @@ import type { Route } from "./+types/activities.$id";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
+import {
+  federationEnabled,
+  wantsActivityJson,
+  handleFederationRequest,
+} from "~/lib/federation.server";
+
+// Content negotiation: this URL doubles as the ActivityPub Note IRI for
+// the activity (the id our outbox/push deliveries emit). AP clients get
+// the Note object from Fedify's object dispatcher; browsers fall through
+// to the HTML page. Same pattern as the actor route (users.$username).
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request }, next) => {
+    if (federationEnabled() && wantsActivityJson(request)) {
+      return handleFederationRequest(request);
+    }
+    return next();
+  },
+];
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   return data(await loadActivityDetail(request, params.id));
