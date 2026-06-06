@@ -127,6 +127,10 @@ jobs:
             echo "SENTRY_RELEASE=${{ github.sha }}"
             echo "SENTRY_DSN_JOURNAL=$SENTRY_DSN_JOURNAL"
             echo "SENTRY_DSN_PLANNER=$SENTRY_DSN_PLANNER"
+            # Federation soak on persistent staging only (social-federation
+            # rollout 12.2). FEDERATION_KEY_ENCRYPTION_KEY comes from the
+            # SOPS env decrypted above; previews never set this flag.
+            echo "FEDERATION_ENABLED=true"
           } >> infrastructure/staging.env
 
       - name: Copy compose file + env to server
