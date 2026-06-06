@@ -250,7 +250,13 @@ services:
 
 networks:
   # Default project network — kept implicit for production services.
+  # IPv6 is enabled so the journal can federate with v6-only instances
+  # (e.g. social.ullrich.is). Docker ≥27 auto-allocates a ULA subnet and
+  # NAT66-masquerades egress via the host's public v6 address.
+  # NOTE: flipping this on an existing deployment requires recreating the
+  # network: `docker compose down && docker compose --env-file .env up -d`.
   default:
+    enable_ipv6: true
   # Created by this compose project with a fixed (un-namespaced) name so the
   # staging compose project can attach to it via `external: true`. Only
   # postgres is joined here on the production side; staging containers join

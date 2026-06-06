@@ -109,6 +109,12 @@ services:
           memory: 256M
 
 networks:
+  # IPv6 egress for staging/preview journals, matching production — see
+  # the production compose file for details. Preview networks are created
+  # fresh per PR; the persistent staging network needs a one-time
+  # down/up to pick this up.
+  default:
+    enable_ipv6: true
   trails-shared:
     external: true
     name: trails-shared
