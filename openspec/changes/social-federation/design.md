@@ -106,6 +106,25 @@ Inbound signature verification uses the actor's public key from their actor obje
 6. Flip `FEDERATION_ENABLED` on, soften the home blurb, document the federation runbook in `docs/deployment.md`.
 7. Rollback: feature flag off (instant), or revert PR (recoverable). Existing `follows` rows stay intact; remote rows would need cleanup.
 
+## Implementation Decisions (made during apply)
+
+- **Inbound remote followers live in `follows` with a nullable `follower_id`**
+  (decided in task 4.2, 2026-06-06). The original claim that `follows` was
+  federation-ready only covered outbound; a remote follower has no local
+  `users` row. Added `follower_actor_iri` with a check constraint enforcing
+  exactly one of (`follower_id`, `follower_actor_iri`), and a partial unique
+  index deduping `(follower_actor_iri, followed_user_id)`. Existing queries
+  filter on `follower_id`/`followed_user_id` and are unaffected; follower
+  counts now naturally include remote followers; notification fan-out
+  explicitly filters `follower_id IS NOT NULL`.
+- **Software identity ships via NodeInfo, not a custom AS actor field**
+  (task 3.4). Fedify's typed vocab can't emit arbitrary actor properties, and
+  NodeInfo (`software.name: trails-cool`) is the standard the fediverse reads.
+  The trails-to-trails outbound check (task 6.x) should read remote NodeInfo,
+  with `/.well-known/trails-cool` as the secondary signal.
+- **Fedify's KvStore is Postgres-backed** (`journal.federation_kv`) so inbox
+  replay protection and document caches survive restarts; swept daily.
+
 ## Open Questions
 
 - **`activities.owner_id` is NOT NULL but remote-ingested rows have no local

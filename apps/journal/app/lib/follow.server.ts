@@ -238,7 +238,10 @@ export async function approveFollowRequest(ownerId: string, followId: string): P
       .select({ username: users.username, displayName: users.displayName })
       .from(users)
       .where(eq(users.id, ownerId));
-    if (target) {
+    // followerId is NULL for inbound federated follows — those are
+    // auto-accepted and never appear in the Requests tab, but guard
+    // anyway: remote followers can't receive local notifications.
+    if (target && followerId !== null) {
       await createNotification({
         type: "follow_request_approved",
         recipientUserId: followerId,

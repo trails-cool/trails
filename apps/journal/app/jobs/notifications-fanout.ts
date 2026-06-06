@@ -59,7 +59,9 @@ export async function fanout(activityId: string): Promise<void> {
     return;
   }
 
-  // Find every accepted follower of the owner.
+  // Find every accepted *local* follower of the owner. Remote
+  // followers (follower_id NULL, follower_actor_iri set) get the
+  // activity via federation push delivery, not via notifications.
   const recipients = await db
     .select({ followerId: follows.followerId })
     .from(follows)
@@ -67,6 +69,7 @@ export async function fanout(activityId: string): Promise<void> {
       and(
         eq(follows.followedUserId, row.ownerId),
         isNotNull(follows.acceptedAt),
+        isNotNull(follows.followerId),
       ),
     );
 
@@ -75,7 +78,7 @@ export async function fanout(activityId: string): Promise<void> {
     // Don't notify the owner about their own activity if they happen
     // to follow themselves (shouldn't happen — followUser refuses
     // self-follow — but defense in depth).
-    if (r.followerId === row.ownerId) continue;
+    if (r.followerId === row.ownerId || r.followerId === null) continue;
     const created = await createNotification({
       type: "activity_published",
       recipientUserId: r.followerId,

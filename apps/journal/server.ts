@@ -178,10 +178,11 @@ server.listen(port, async () => {
   const { sendWelcomeEmailJob } = await import("./app/jobs/send-welcome-email.ts");
   const { consumedJtiSweepJob } = await import("./app/jobs/consumed-jti-sweep.ts");
   jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob, importBatchesSweepJob, sendWelcomeEmailJob, consumedJtiSweepJob);
-  // Federation keypair backfill — registered only when federation is on.
+  // Federation jobs — registered only when federation is on.
   if (process.env.FEDERATION_ENABLED === "true") {
     const { backfillUserKeypairsJob } = await import("./app/jobs/backfill-user-keypairs.ts");
-    jobs.push(backfillUserKeypairsJob);
+    const { federationKvSweepJob } = await import("./app/jobs/federation-kv-sweep.ts");
+    jobs.push(backfillUserKeypairsJob, federationKvSweepJob);
   }
 
   const boss = createBoss(getDatabaseUrl());
