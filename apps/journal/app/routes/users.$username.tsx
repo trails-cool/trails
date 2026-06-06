@@ -4,6 +4,24 @@ import { useTranslation } from "react-i18next";
 import { ClientDate } from "~/components/ClientDate";
 import { FollowButton } from "~/components/FollowButton";
 import { loadUserProfile } from "./users.$username.server";
+import {
+  federationEnabled,
+  wantsActivityJson,
+  handleFederationRequest,
+} from "~/lib/federation.server";
+
+// Content negotiation: this URL is both the human profile (HTML) and the
+// ActivityPub actor IRI (application/activity+json). AP clients are
+// short-circuited to Fedify before the HTML loader runs; browsers fall
+// through untouched.
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request }, next) => {
+    if (federationEnabled() && wantsActivityJson(request)) {
+      return handleFederationRequest(request);
+    }
+    return next();
+  },
+];
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   return data(await loadUserProfile(request, params.username));

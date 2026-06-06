@@ -3,6 +3,7 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 export default [
   index("routes/home.tsx"),
   route(".well-known/trails-cool", "routes/api.well-known.trails-cool.ts"),
+  route(".well-known/webfinger", "routes/api.well-known.webfinger.ts"),
   route("oauth/authorize", "routes/oauth.authorize.tsx"),
   route("oauth/token", "routes/oauth.token.ts"),
   route("auth/register", "routes/auth.register.tsx"),
