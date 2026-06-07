@@ -27,15 +27,15 @@
 // to wrapped types we inspect and ignore (e.g. Undo(Like)).
 import { configure, getConsoleSink } from "@logtape/logtape";
 import { createFederation, InProcessMessageQueue, type Federation } from "@fedify/fedify";
-import { Accept, Follow, Person, PropertyValue, Reject, Undo } from "@fedify/fedify/vocab";
-import { eq } from "drizzle-orm";
-import { users } from "@trails-cool/db/schema/journal";
+import { Accept, Follow, Note, Person, PropertyValue, Reject, Undo } from "@fedify/fedify/vocab";
+import { and, eq } from "drizzle-orm";
+import { activities, users } from "@trails-cool/db/schema/journal";
 import { getDb } from "./db.ts";
 import { getOrigin } from "./config.server.ts";
 import { localActorIri } from "./actor-iri.ts";
 import { PostgresKvStore } from "./federation-kv.server.ts";
 import { ensureUserKeypair, loadUserKeypair } from "./federation-keys.server.ts";
-import { activityToCreate } from "./federation-objects.server.ts";
+import { activityToCreate, activityToNote } from "./federation-objects.server.ts";
 import {
   OUTBOX_PAGE_SIZE,
   countPublicActivities,
@@ -288,6 +288,30 @@ function buildFederation(): Federation<void> {
     .onError(async (_ctx, error) => {
       logger.warn({ err: error }, "federation: inbox listener error");
     });
+
+  // Dereferenceable Note objects: the Notes we emit (outbox + push
+  // delivery) use /activities/{id} as their id, so that IRI must serve
+  // the Note as activity+json. Mastodon's search-fetch of an activity
+  // URL and strict instances that re-fetch pushed objects both rely on
+  // this. Browsers keep getting HTML — the activities.$id route
+  // middleware short-circuits AP requests here.
+  federation.setObjectDispatcher(Note, "/activities/{id}", async (_ctx, values) => {
+    const db = getDb();
+    const [row] = await db
+      .select()
+      .from(activities)
+      .where(and(eq(activities.id, values.id), eq(activities.visibility, "public")))
+      .limit(1);
+    if (!row) return null;
+    const [owner] = await db
+      .select({ username: users.username, profileVisibility: users.profileVisibility })
+      .from(users)
+      .where(eq(users.id, row.ownerId))
+      .limit(1);
+    // Private owners don't federate — their content 404s like their actor.
+    if (!owner || owner.profileVisibility !== "public") return null;
+    return activityToNote(row, owner.username);
+  });
 
   // Software discovery (task 3.4, adapted): NodeInfo is the standard
   // the fediverse uses to identify server software; the trails-to-trails

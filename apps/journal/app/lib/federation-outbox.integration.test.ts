@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db.ts";
 import { users, activities, follows } from "@trails-cool/db/schema/journal";
@@ -97,6 +97,42 @@ describe.runIf(runIntegration)("federation outbox (integration)", () => {
     const res = await fetchOutbox(`/users/${USERNAME}/outbox`);
     expect(res.status).toBe(404);
     await db.update(users).set({ profileVisibility: "public" }).where(eq(users.id, userId));
+  });
+
+  it("serves a public activity's Note at its IRI (dereferenceable)", async () => {
+    const { handleFederationRequest } = await import("./federation.server.ts");
+    const db = getDb();
+    const [row] = await db
+      .select({ id: activities.id })
+      .from(activities)
+      .where(and(eq(activities.ownerId, userId), eq(activities.visibility, "public")))
+      .limit(1);
+    const res = await handleFederationRequest(
+      new Request(`http://localhost:3000/activities/${row!.id}`, {
+        headers: { accept: "application/activity+json" },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const note = await res.json();
+    expect(note.type).toBe("Note");
+    expect(note.id).toBe(`http://localhost:3000/activities/${row!.id}`);
+    expect(note.attributedTo).toContain(`/users/${USERNAME}`);
+  });
+
+  it("404s the Note of a private activity", async () => {
+    const { handleFederationRequest } = await import("./federation.server.ts");
+    const db = getDb();
+    const [priv] = await db
+      .select({ id: activities.id })
+      .from(activities)
+      .where(and(eq(activities.ownerId, userId), eq(activities.visibility, "private")))
+      .limit(1);
+    const res = await handleFederationRequest(
+      new Request(`http://localhost:3000/activities/${priv!.id}`, {
+        headers: { accept: "application/activity+json" },
+      }),
+    );
+    expect(res.status).toBe(404);
   });
 
   it("lists accepted remote followers as the delivery audience", async () => {
