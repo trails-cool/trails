@@ -17,8 +17,12 @@ import type { Visibility } from "@trails-cool/db/schema/journal";
 const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
 
 export async function loadActivityDetail(request: Request, id: string | undefined) {
-  const activity = await getActivity(id ?? "");
-  if (!activity) throw data({ error: "Activity not found" }, { status: 404 });
+  const fetched = await getActivity(id ?? "");
+  if (!fetched) throw data({ error: "Activity not found" }, { status: 404 });
+  // Remote-ingested activities have no local detail page — their
+  // canonical page lives on the origin instance; the feed links there.
+  if (fetched.ownerId === null) throw data({ error: "Activity not found" }, { status: 404 });
+  const activity = { ...fetched, ownerId: fetched.ownerId };
 
   const user = await getSessionUser(request);
   const isOwner = user?.id === activity.ownerId;

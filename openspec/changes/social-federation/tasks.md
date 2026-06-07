@@ -57,11 +57,12 @@
 
 ## 7. Outbox-poll ingestion
 
-- [ ] 7.1 pg-boss recurring job `poll-remote-outboxes` (cron every 5 min): iterate distinct accepted remote actor IRIs in `follows` where `remote_actors.last_polled_at < now() - interval '1 hour'`; for each, signed GET on the outbox using one of the local accepted-followers' keys
-- [ ] 7.2 Insert returned activities into `journal.activities` with `remote_origin_iri`, `remote_actor_iri`, `audience`. `ON CONFLICT (remote_origin_iri) DO NOTHING` for replay safety. Stop early on streak of conflicts
-- [ ] 7.3 Refresh `remote_actors` cache row on each poll (display name, avatar, outbox URL, public key)
+- [x] 7.1 pg-boss recurring job `poll-remote-outboxes` (cron every 5 min): iterate distinct accepted remote actor IRIs in `follows` where `remote_actors.last_polled_at < now() - interval '1 hour'`; for each, signed GET on the outbox using one of the local accepted-followers' keys
+- [x] 7.2 Insert returned activities into `journal.activities` with `remote_origin_iri`, `remote_actor_iri`, `audience`. `ON CONFLICT (remote_origin_iri) DO NOTHING` for replay safety. Stop early on streak of conflicts
+- [x] 7.3 Refresh `remote_actors` cache row on each poll (display name, avatar, outbox URL, public key)
 - [ ] 7.4 Per-remote-host rate limit (1 req / 5 sec); honor `Retry-After` / `429`; back off the host
-- [ ] 7.5 First-poll trigger on `accepted_at` transition (already enqueued from 4.4)
+  > Partially done (2026-06-07): 1 req/5 s pacing implemented; any fetch failure (incl. 429) skips the host until the next 5-min sweep. Explicit Retry-After-duration backoff remains — needs header access through Fedify's document loader errors.
+- [x] 7.5 First-poll trigger on `accepted_at` transition (already enqueued from 4.4)
 
 ## 8. Feed query update
 

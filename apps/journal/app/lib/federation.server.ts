@@ -311,7 +311,10 @@ function buildFederation(): Federation<void> {
       .from(activities)
       .where(and(eq(activities.id, values.id), eq(activities.visibility, "public")))
       .limit(1);
-    if (!row) return null;
+    // Remote-ingested activities are not our objects — only locally
+    // authored rows dereference here (their canonical IRI is on the
+    // origin instance).
+    if (!row || row.ownerId === null) return null;
     const [owner] = await db
       .select({ username: users.username, profileVisibility: users.profileVisibility })
       .from(users)

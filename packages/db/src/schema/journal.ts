@@ -144,9 +144,12 @@ export type Audience = "public" | "followers-only";
 
 export const activities = journalSchema.table("activities", {
   id: text("id").primaryKey(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => users.id),
+  // Local author. NULL for activities ingested from a remote trails
+  // actor's outbox, where `remoteActorIri` identifies the author —
+  // exactly one of the two is set (check constraint below; same
+  // pattern as follows.follower_id / follower_actor_iri). Resolves
+  // the owner_id open question in social-federation design.md.
+  ownerId: text("owner_id").references(() => users.id),
   routeId: text("route_id").references(() => routes.id),
   name: text("name").notNull(),
   description: text("description").default(""),
@@ -164,16 +167,25 @@ export const activities = journalSchema.table("activities", {
   // Federation provenance (spec: social-federation). NULL for local
   // activities. For rows ingested from a remote trails actor's outbox:
   // `remoteOriginIri` is the activity's IRI on the origin instance
-  // (unique → replay-safe `ON CONFLICT DO NOTHING` ingestion), and
-  // `remoteActorIri` keys into `remote_actors`.
+  // (unique → replay-safe `ON CONFLICT DO NOTHING` ingestion),
+  // `remoteActorIri` keys into `remote_actors`, and
+  // `remotePublishedAt` carries the origin's publish time (feed sort
+  // uses COALESCE(remote_published_at, created_at)).
   remoteOriginIri: text("remote_origin_iri").unique(),
   remoteActorIri: text("remote_actor_iri"),
+  remotePublishedAt: timestamp("remote_published_at", { withTimezone: true }),
   audience: text("audience").$type<Audience>().notNull().default("public"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   // Hot paths: listActivities (sort by started_at) and listPublicActivitiesForOwner.
   ownerStartedIdx: index("activities_owner_started_idx").on(t.ownerId, t.startedAt.desc()),
   ownerCreatedIdx: index("activities_owner_created_idx").on(t.ownerId, t.createdAt.desc()),
+  // Feed join for remote rows (spec §8).
+  remoteActorIdx: index("activities_remote_actor_idx").on(t.remoteActorIri),
+  hasAuthorCheck: check(
+    "activities_has_author_check",
+    sql`(${t.ownerId} IS NOT NULL) <> (${t.remoteActorIri} IS NOT NULL)`,
+  ),
 }));
 
 // --- OAuth2 PKCE (mobile app auth) ---
