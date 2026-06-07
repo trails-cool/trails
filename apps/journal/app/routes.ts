@@ -36,6 +36,7 @@ export default [
   route("api/users/:username/follow", "routes/api.users.$username.follow.ts"),
   route("api/users/:username/unfollow", "routes/api.users.$username.unfollow.ts"),
   route("follows/requests", "routes/follows.requests.tsx"),
+  route("follows/outgoing", "routes/follows.outgoing.tsx"),
   route("api/follows/:id/approve", "routes/api.follows.$id.approve.ts"),
   route("api/follows/:id/reject", "routes/api.follows.$id.reject.ts"),
   route("feed", "routes/feed.tsx"),

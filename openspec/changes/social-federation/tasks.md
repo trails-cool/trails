@@ -45,13 +45,15 @@
 
 ## 6. Outbound follow + trails-to-trails check
 
-- [ ] 6.1 Update `followUser` to allow remote IRIs; before creating, fetch the remote actor object and inspect `software`/discovery endpoint
+- [x] 6.1 Update `followUser` to allow remote IRIs; before creating, fetch the remote actor object and inspect `software`/discovery endpoint
   > Split-domain interop constraint (2026-06-07): resolve the handle via WebFinger first, then run the NodeInfo/`software` check against the **actor IRI's host** (the server domain), never the handle's domain — Hollo/Mastodon-style split-domain instances (`@user@example.com` served from `social.example.com`) would otherwise be wrongly refused. See `docs/ideas/split-domain-handles.md`.
-- [ ] 6.2 Implement `/.well-known/trails-cool` endpoint on our side (publishes our software identity) so other trails instances recognize us
-- [ ] 6.3 If the discovery check fails, return 4xx with a clear "outbound federation to non-trails instances isn't supported yet" message + docs link
-- [ ] 6.4 If the check passes, write follow row with `accepted_at = NULL`, push `Follow` activity to remote inbox
-- [ ] 6.5 UI: "Pending" button state on profile (replaces Follow/Unfollow) when `accepted_at IS NULL`
-- [ ] 6.6 Outgoing-follows page or section listing Pending requests with cancel control (`Undo(Follow)` + delete row)
+- [x] 6.2 Implement `/.well-known/trails-cool` endpoint on our side (publishes our software identity) so other trails instances recognize us
+- [x] 6.3 If the discovery check fails, return 4xx with a clear "outbound federation to non-trails instances isn't supported yet" message + docs link
+- [x] 6.4 If the check passes, write follow row with `accepted_at = NULL`, push `Follow` activity to remote inbox
+- [x] 6.5 UI: "Pending" button state on profile (replaces Follow/Unfollow) when `accepted_at IS NULL`
+  > The Pending button already existed from locked accounts. Remote actors have no local profile page, so the remote Pending state lives on /follows/outgoing (6.6) instead.
+- [x] 6.6 Outgoing-follows page or section listing Pending requests with cancel control (`Undo(Follow)` + delete row)
+  > Shipped as /follows/outgoing: follow-by-handle form + pending/accepted list + cancel (also satisfies the Reject-surfacing note on 4.5 — rejected rows simply disappear from this list). Linked from the feed empty state.
 
 ## 7. Outbox-poll ingestion
 
