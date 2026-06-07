@@ -224,6 +224,9 @@ export const oauthTokens = journalSchema.table("oauth_tokens", {
 //   - 'oauth':     { access_token, refresh_token, expires_at }
 //   - 'web-login': { email, encrypted_password, session_jar }   (Komoot, future)
 //   - 'device':    {}                                            (Apple Health, future)
+//   - 'public':    {}  credential-less public-profile connection (Komoot public mode)
+// Keep this list in sync with the CHECK constraint in
+// packages/db/migrations/0002_connected_services.sql.
 // See docs/adr/0001 and CONTEXT.md (Connected Services).
 export const connectedServices = journalSchema.table(
   "connected_services",
