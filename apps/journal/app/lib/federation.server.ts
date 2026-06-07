@@ -180,10 +180,18 @@ function buildFederation(): Federation<void> {
         // metadata table — a human-visible "this is a trails profile"
         // marker. (The machine-readable marker is NodeInfo; this is
         // flair.) Mastodon strips most HTML in values but keeps links.
+        // NOTE: Mastodon's parser requires `attachment` to be a JSON
+        // *array* and silently ignores a bare object — and Fedify
+        // compacts single-element arrays to bare objects. Keep at least
+        // two fields here so the array survives serialization.
         attachments: [
           new PropertyValue({
             name: "🥾 trails.cool",
             value: `<a href="${localActorIri(identifier)}" rel="me">${getOrigin().replace(/^https?:\/\//, "")}/users/${identifier}</a>`,
+          }),
+          new PropertyValue({
+            name: "Instance",
+            value: `<a href="${getOrigin()}">${getOrigin().replace(/^https?:\/\//, "")}</a>`,
           }),
         ],
       });
