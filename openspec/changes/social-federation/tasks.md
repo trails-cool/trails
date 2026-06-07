@@ -46,6 +46,7 @@
 ## 6. Outbound follow + trails-to-trails check
 
 - [ ] 6.1 Update `followUser` to allow remote IRIs; before creating, fetch the remote actor object and inspect `software`/discovery endpoint
+  > Split-domain interop constraint (2026-06-07): resolve the handle via WebFinger first, then run the NodeInfo/`software` check against the **actor IRI's host** (the server domain), never the handle's domain — Hollo/Mastodon-style split-domain instances (`@user@example.com` served from `social.example.com`) would otherwise be wrongly refused. See `docs/ideas/split-domain-handles.md`.
 - [ ] 6.2 Implement `/.well-known/trails-cool` endpoint on our side (publishes our software identity) so other trails instances recognize us
 - [ ] 6.3 If the discovery check fails, return 4xx with a clear "outbound federation to non-trails instances isn't supported yet" message + docs link
 - [ ] 6.4 If the check passes, write follow row with `accepted_at = NULL`, push `Follow` activity to remote inbox

@@ -71,6 +71,11 @@ activities are neither delivered to nor accepted from non-trails
 instances. (The Wanderer-interop idea would widen this allowlist —
 explicitly out of scope here.)
 
+Split-domain interop: the check runs against the **actor IRI's host**
+(server domain) after WebFinger resolution, never the handle's domain —
+remote instances may run Hollo/Mastodon-style split domains. See
+`docs/ideas/split-domain-handles.md`.
+
 ### Decision: Sync check is a pg-boss cron, owner-driven re-fetch
 
 Daily job on the *mirror-holding* instance: for each mirror whose
