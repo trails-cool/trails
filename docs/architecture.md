@@ -190,19 +190,34 @@ Tech stack:
 ### Mastodon Compatibility
 
 Completed activities appear as posts with:
-- Text description
-- Map preview image (auto-generated)
-- Link to full view on trails.cool (or the self hosted instance)
-- Photo attachments
-- GPX as attachment
+- Text description ✅ shipped (`social-federation`: HTML content + stats
+  + PropertyValue metadata, dereferenceable Note objects)
+- Map preview image (auto-generated) — captured in
+  `docs/ideas/fediverse-enhancements.md`
+- Link to full view on trails.cool (or the self hosted instance) ✅ shipped
+- Photo attachments — with `activity-photos`
+- GPX as attachment — needs a public GPX endpoint for activities first
+  (see `fediverse-enhancements.md`)
 
 Mastodon users can:
-- See activities in their timeline
-- Like activities (federates back)
-- Comment on activities (federates back)
+- See activities in their timeline ✅ shipped (verified live 2026-06-07)
+- Like activities (federates back) — captured as "fediverse kudos" in
+  `fediverse-enhancements.md`; v1's narrow inbox drops Like/Announce
+  by design
+- Comment on activities (federates back) — captured in
+  `fediverse-enhancements.md`; gated on moderation tooling
+  (`docs/ideas/instance-administration.md`)
 
 Route-specific federation (collaboration invites, version updates) uses
-custom ActivityPub extensions not visible in Mastodon.
+custom ActivityPub extensions not visible in Mastodon — spec'd as
+`openspec/changes/route-federation/`.
+
+Interop lessons from the first live soak (2026-06-06/07, recorded in
+`openspec/changes/social-federation/design.md`): Mastodon requires
+`attachment` arrays (bare objects are silently ignored), records
+received `Delete`s as permanent tombstones, gives inbox deliveries a
+10-second timeout, and never backfills outbox history — every new
+outgoing shape must be verified against a real instance, not the spec.
 
 ## Route Sharing & Permissions
 
@@ -409,14 +424,18 @@ shared host are ingested.
 
 ```
 planner.trails.cool    -> Planner frontend + Yjs sync + BRouter
-trails.cool            -> Journal frontend + API
-api.trails.cool        -> ActivityPub endpoints
-cdn.trails.cool        -> Media + map tiles (optional)
+trails.cool            -> Journal frontend + API + ActivityPub endpoints
+cdn.trails.cool        -> Media + map tiles (optional, future)
 ```
+
+ActivityPub lives on the main domain per Resolved Decision #18 (single
+domain per instance) — there is no `api.trails.cool`. Staging and PR
+previews additionally live under `*.staging.trails.cool` (see
+CLAUDE.md "Staging & Previews").
 
 ### Estimated Costs (100 users)
 
-- Hetzner CX21: 5 EUR/month
+- Hetzner cx23: ~6 EUR/month
 - Storage: 3.20 EUR/month
 - Domain: ~10 EUR/year
 - Backups: ~2 EUR/month
@@ -458,7 +477,7 @@ github.com/trails-cool/trails
     gpx/                - GPX parsing, generation, validation
     i18n/               - Shared i18n config + translation strings (react-i18next)
   infrastructure/       - Terraform + Docker Compose
-  specs/                - OpenSpec specifications
+  openspec/             - OpenSpec specifications + changes
   docker/
     brouter/            - BRouter Docker image + segment management
   docs/                 - Documentation
@@ -466,55 +485,65 @@ github.com/trails-cool/trails
 
 Tooling: **Turborepo** for monorepo management, **pnpm** workspaces.
 
-OpenSpec specs live in `specs/` directory, feeding into both apps.
+OpenSpec specs live in the `openspec/` directory, feeding into both apps.
 This keeps specifications close to implementation and allows Claude Code
 to reference specs when working on either app.
 
 ## MVP Phasing
 
 Note: Detailed specifications for each phase will be created using
-[OpenSpec](https://openspec.dev/) and stored in the `specs/` directory
+[OpenSpec](https://openspec.dev/) and stored in the `openspec/` directory
 of the monorepo. This architecture plan feeds into OpenSpec as the
 high-level context for generating implementation specs.
 
-### Phase 1: Foundation (Weeks 1-8)
+### Phase 1: Foundation (Weeks 1-8) — ✅ shipped
 
 **Planner MVP**:
-- [ ] Collaborative waypoint editing (Yjs)
-- [ ] BRouter integration (route computation)
-- [ ] Map display (Leaflet + OSM overlays)
-- [ ] Session sharing (shareable link)
-- [ ] Profile selection (bike/hike)
-- [ ] Elevation profile display
-- [ ] GPX export
+- [x] Collaborative waypoint editing (Yjs)
+- [x] BRouter integration (route computation)
+- [x] Map display (Leaflet + OSM overlays)
+- [x] Session sharing (shareable link)
+- [x] Profile selection (bike/hike)
+- [x] Elevation profile display
+- [x] GPX export
 
 **Journal MVP**:
-- [ ] User accounts (local, no federation)
-- [ ] Route CRUD
-- [ ] Start Planner session from route (callback integration)
-- [ ] GPX import/export
-- [ ] Basic profile page
-- [ ] Activity feed (own activities)
+- [x] User accounts (local, no federation)
+- [x] Route CRUD
+- [x] Start Planner session from route (callback integration)
+- [x] GPX import/export
+- [x] Basic profile page
+- [x] Activity feed (own activities)
 
-### Phase 2: Social & Federation (Months 3-6)
+### Phase 2: Social & Federation (Months 3-6) — in progress
 
-- [ ] ActivityPub federation
-- [ ] Following/followers
-- [ ] Likes and comments
-- [ ] Activity import (Strava/Garmin GPX/FIT upload)
-- [ ] Photo attachments on activities
-- [ ] Mastodon compatibility
-- [ ] Route sharing permissions
-- [ ] Route versioning
+- [x] ActivityPub federation — `social-federation` (inbound follows +
+      activity push delivery live on staging since 2026-06-07;
+      trails-to-trails outbound §6/§7 remaining)
+- [x] Following/followers (`social-feed`)
+- [ ] Likes and comments — `docs/ideas/social-interactions.md` (local)
+      + `fediverse-enhancements.md` (federated)
+- [x] Activity import (GPX upload, Komoot, Wahoo; Strava/Garmin OAuth
+      and FIT *import* still open)
+- [ ] Photo attachments on activities — `activity-photos` change drafted
+- [x] Mastodon compatibility (follow + timeline posts verified live)
+- [ ] Route sharing permissions — `route-sharing` change drafted
+- [x] Route versioning
+- [ ] Route federation (mirroring, cross-instance edits) —
+      `route-federation` change drafted
 
 ### Phase 3: Scale & Mobile (Months 6-12)
 
-- [ ] Mobile app (Capacitor or native)
-- [ ] Offline route editing (WASM + cached segments)
-- [ ] Multi-day route planning
-- [ ] Route recommendations
-- [ ] Clubs/groups
-- [ ] CDN for map segments (mobile offline)
+- [ ] Mobile app — `mobile-app` change in progress
+- [ ] Offline route editing (WASM + cached segments) — not yet captured
+      beyond this line
+- [ ] Multi-day route planning — routes ✅ shipped; activity collections:
+      `docs/ideas/multi-day-collections.md`
+- [ ] Route recommendations — distinct from `route-discovery` (spatial
+      explore); not yet captured beyond this line
+- [ ] Clubs/groups — not yet captured beyond this line
+- [ ] CDN for map segments (mobile offline) — not yet captured beyond
+      this line
 
 ## Resolved Decisions
 
@@ -713,7 +742,7 @@ allows querying session metadata (last activity, participant count) for
 garbage collection.
 
 The Planner service uses its own PostgreSQL schema (`planner.*`) separate
-from the Journal schema (`activity.*`). On the trails.cool flagship,
+from the Journal schema (`journal.*`). On the trails.cool flagship,
 both schemas live in the same PostgreSQL instance. Self-hosters who don't
 run a Planner don't need the planner schema.
 
@@ -833,7 +862,22 @@ Keep it simple. Can revisit if users request it.
 
 ## Remaining Open Questions
 
-1. **Multi-day activity collections**: Exact data model for linking day-activities
-   into a multi-day trip collection
-2. **brouter-web dependencies**: Review https://github.com/nrenner/brouter-web
-   for proven library choices (map rendering, elevation charts, etc.)
+1. **Multi-day activity collections**: Exact data model for linking
+   day-activities into a multi-day trip collection — exploration started
+   in `docs/ideas/multi-day-collections.md`
+2. ~~**brouter-web dependencies**: Review https://github.com/nrenner/brouter-web
+   for proven library choices~~ — resolved in practice: the Planner
+   shipped on Leaflet + its own elevation/coloring implementations
+   (see `road-type-coloring`, `elevation-map-interaction` specs)
+
+## Where the rest of this vision is tracked
+
+Everything in this document that isn't shipped lives in one of:
+
+- `openspec/changes/` — drafted, buildable changes (`route-federation`
+  for Decisions #2/#3/#12/#16 and Scenarios 3–4; `route-sharing`,
+  `activity-photos`, `route-discovery`, `mobile-app`, …)
+- `docs/ideas/` — pre-spec explorations (`instance-administration`,
+  `social-interactions`, `activity-participants`,
+  `multi-day-collections`, `fediverse-enhancements`, …)
+- `docs/roadmap.md` — what ships when, and why
