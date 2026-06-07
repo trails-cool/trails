@@ -102,6 +102,66 @@ curl -sf https://trails.cool/api/health && curl -sf https://staging.trails.cool/
 Plan it as a short maintenance window (~2–3 min downtime); don't ship
 network-option changes expecting the workflows to apply them.
 
+## Federation runbook
+
+Federation (ActivityPub via Fedify) is gated by `FEDERATION_ENABLED=true`
+per environment. Currently: staging **on**, production **off**. The full
+change history and design live in `openspec/changes/social-federation/`.
+
+### Enabling on an environment
+
+1. Ensure `FEDERATION_KEY_ENCRYPTION_KEY` is in `secrets.app.env`
+   (SOPS) — keypair generation fails closed in production without it.
+2. Set `FEDERATION_ENABLED=true` in the environment's compose env (see
+   `cd-staging.yml` for the staging pattern).
+3. First boot with the flag on enqueues `backfill-user-keypairs`
+   (generates RSA keys for existing users — idempotent) and registers
+   the federation jobs (`deliver-activity`, `poll-remote-actor`,
+   `poll-remote-outboxes`, `federation-kv-sweep`).
+4. Smoke: `curl -s "https://<domain>/.well-known/webfinger?resource=acct:<user>@<domain>"`
+   (200 for a public user, 404 otherwise) and `/nodeinfo/2.1`.
+
+`FEDERATION_LOG_LEVEL=debug` turns on Fedify's per-request signature
+diagnostics (staging runs debug during soaks; dial back to `info`).
+
+### Key rotation
+
+Rotating `FEDERATION_KEY_ENCRYPTION_KEY` requires re-encrypting every
+`users.private_key_encrypted` (decrypt with old, encrypt with new) —
+there is no script yet; write one against
+`apps/journal/app/lib/federation-keys.server.ts` primitives when first
+needed. Rotating a single user's keypair: NULL their key columns and
+let the backfill regenerate (remotes pick the new key up from the actor
+document; deliveries signed with the old key fail until then).
+
+### Abuse monitoring
+
+- Inbox is rate-limited 60 req/5 min per source instance
+  (`federationSourceHost`); 429s show in journal logs.
+- Outbound is paced (1 req/s delivery, 1 req/5 s polling per host).
+- Watch `docker logs <journal>` for `fedify·federation` lines; Loki
+  picks them up. No per-instance blocklist yet — see
+  `docs/ideas/instance-administration.md` (manual emergency lever:
+  block the source IP/host in Caddy).
+
+### Troubleshooting deliveries
+
+Hard-won checklist from the 2026-06-06/07 soak (details in
+`openspec/changes/social-federation/design.md`):
+
+1. **Test both IP families from inside the journal container** before
+   suspecting signatures (`family: 6` vs `4` — dangling A records and
+   v6-only instances are common; our containers have IPv6 since
+   #466/#468).
+2. Remote shows the post count but no posts → remotes never backfill
+   outbox history; only pushed or individually-fetched objects appear.
+3. Delivered but invisible, no errors anywhere → check the remote's
+   `tombstones` table; a previously-retracted URI is refused forever.
+4. Mastodon gives deliveries a 10s read timeout — anything synchronous
+   and slow in the inbox path breaks federation silently.
+5. Actor changes (profile fields, keys) need the remote to re-fetch:
+   `tootctl accounts refresh user@domain` on a Mastodon you control.
+
 ## cd-brouter manual trigger
 
 ```bash

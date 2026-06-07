@@ -192,7 +192,7 @@ export default {
         },
         federation: {
           title: "Föderiert by design",
-          body: "Deine Journal-Instanz spricht via ActivityPub mit anderen trails.cool-Servern. Folge Freundinnen und Freunden überall.",
+          body: "Teil des Fediverse via ActivityPub: Mastodon-Nutzer:innen können dir folgen und deine öffentlichen Aktivitäten sehen, und du folgst trails-Nutzer:innen auf jeder Instanz.",
         },
         ownership: {
           title: "Deine Daten, immer",

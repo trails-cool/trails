@@ -76,9 +76,9 @@
 
 ## 10. Privacy + docs
 
-- [ ] 10.1 Update privacy manifest: federation traffic, remote actor cache, what data is exposed in the actor object (display name, avatar, public key)
-- [ ] 10.2 `docs/deployment.md`: federation runbook — feature flag, key rotation procedure, abuse monitoring, troubleshooting
-- [ ] 10.3 Soften the Journal home "Federated by design" blurb on flagship now (or align it to "ActivityPub federation: inbound + trails-to-trails outbound" once this lands)
+- [x] 10.1 Update privacy manifest: federation traffic, remote actor cache, what data is exposed in the actor object (display name, avatar, public key)
+- [x] 10.2 `docs/deployment.md`: federation runbook — feature flag, key rotation procedure, abuse monitoring, troubleshooting
+- [x] 10.3 Soften the Journal home "Federated by design" blurb on flagship now (or align it to "ActivityPub federation: inbound + trails-to-trails outbound" once this lands)
 
 ## 11. Testing
 
