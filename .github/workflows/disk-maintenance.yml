@@ -1,0 +1,52 @@
+name: Disk Maintenance
+
+# Daily safety net for flagship disk usage. The deploy workflows prune
+# superseded image layers after their own runs, but that protection
+# disappears exactly when it's needed most: a deploy that fails early
+# never reaches its prune step, while other workflows keep pulling
+# fresh images (2026-06-07 incident: cd-apps red all day, ~10 staging
+# deploys, disk 100% full, postgres down on a Saturday morning).
+#
+# Also doubles as a redundant alert channel: the run FAILS when the
+# disk is still above the threshold after pruning, so a scheduled-run
+# failure email lands even if the Grafana disk alert drowns in other
+# noise (which is what happened during the incident).
+
+on:
+  schedule:
+    # Daily at 04:30 UTC (offset from staging-cleanup's Monday 04:00)
+    - cron: "30 4 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: disk-maintenance
+  cancel-in-progress: false
+
+jobs:
+  prune-flagship:
+    name: Prune unused images (flagship)
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Prune and check disk headroom
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            echo "before: $(df -h / | tail -1)"
+            # 12h filter: never touch layers a same-day deploy may still
+            # be assembling; running containers' images are never pruned.
+            docker image prune -af --filter "until=12h"
+            echo "after:  $(df -h / | tail -1)"
+
+            PCT=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+            if [ "$PCT" -ge 85 ]; then
+              echo "Disk still at ${PCT}% after pruning — needs a human."
+              echo "Largest docker consumers:"
+              docker system df
+              exit 1
+            fi
+            echo "Disk at ${PCT}% — healthy."
