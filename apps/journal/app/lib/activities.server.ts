@@ -6,7 +6,10 @@ import type { Visibility } from "@trails-cool/db/schema/journal";
 import { validateGpx, writeGeom } from "./gpx-save.server.ts";
 import type { GpxData } from "./gpx-save.server.ts";
 import { enqueueOptional } from "./boss.server.ts";
-import { enqueueActivityDeliveries } from "./federation-delivery.server.ts";
+import {
+  enqueueActivityDeliveries,
+  visibilityTransitionAction,
+} from "./federation-delivery.server.ts";
 
 export interface ActivityInput {
   name: string;
@@ -26,12 +29,21 @@ export async function updateActivityVisibility(
   visibility: Visibility,
 ): Promise<boolean> {
   const db = getDb();
-  const result = await db
+  // Read the previous visibility first: the federation action depends on
+  // the *transition*, not the new value alone (a gratuitous Delete
+  // permanently tombstones the object's URI on Mastodon — see
+  // visibilityTransitionAction).
+  const [existing] = await db
+    .select({ visibility: activities.visibility })
+    .from(activities)
+    .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)))
+    .limit(1);
+  if (!existing) return false;
+
+  await db
     .update(activities)
     .set({ visibility })
-    .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)))
-    .returning({ id: activities.id });
-  if (result.length === 0) return false;
+    .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)));
 
   // Notify followers when an activity becomes public. The unique
   // (recipient, type, subject_id) partial index makes the fan-out
@@ -39,16 +51,14 @@ export async function updateActivityVisibility(
   // followers (only the first transition per activity emits).
   if (visibility === "public") {
     await enqueueOptional("notifications-fanout", { activityId: id }, { source: "updateActivityVisibility" });
-    // Federation: newly-public activities push to remote followers as
-    // Create(Note) (spec 5.3/5.6 — publish-on-flip is the "update"
-    // remotes care about; the delivery job re-checks visibility).
-    await enqueueActivityDeliveries(ownerId, id, "create");
-  } else {
-    // Was the activity possibly public before? Retract from remotes —
-    // a Delete for an object a remote never saw is acknowledged and
-    // dropped, so over-sending here is harmless and avoids tracking
-    // previous visibility (spec 5.6, basic update/delete fan-out).
-    await enqueueActivityDeliveries(ownerId, id, "delete");
+  }
+
+  // Federation: Create on (re-)publish, Delete(Tombstone) only when the
+  // activity actually was public before — remotes never saw anything
+  // else, and an unnecessary Delete poisons the URI forever.
+  const action = visibilityTransitionAction(existing.visibility, visibility);
+  if (action !== null) {
+    await enqueueActivityDeliveries(ownerId, id, action);
   }
 
   return true;

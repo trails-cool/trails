@@ -12,6 +12,32 @@ import { activityObjectIri } from "./federation-objects.server.ts";
 
 export type DeliveryAction = "create" | "delete";
 
+/**
+ * Which federation action (if any) a visibility change warrants.
+ *
+ * The asymmetry matters: Mastodon records a `Delete` as a permanent
+ * tombstone — a later `Create` for the same URI is silently refused
+ * forever. So a retraction must only go out when remotes could
+ * actually have the object (it was public), never "just in case"
+ * (learned on the 2026-06-07 staging soak, where an unlisted
+ * activity's no-op save tombstoned its URI before its first real
+ * publish).
+ *
+ * - → public: push Create. Also for public→public — re-pushing is
+ *   harmless (remotes dedupe by id) and doubles as back-delivery.
+ * - public → non-public: push Delete(Tombstone) — remotes saw it.
+ * - non-public → non-public: nothing — remotes never had it, and a
+ *   Delete would poison the URI for any future publish.
+ */
+export function visibilityTransitionAction(
+  previous: string,
+  next: string,
+): DeliveryAction | null {
+  if (next === "public") return "create";
+  if (previous === "public") return "delete";
+  return null;
+}
+
 export interface DeliveryPayload {
   action: DeliveryAction;
   /** Present for `create` — the job re-reads the row at delivery time. */
