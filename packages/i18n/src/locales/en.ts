@@ -192,7 +192,7 @@ export default {
         },
         federation: {
           title: "Federated by design",
-          body: "Your Journal instance talks to other trails.cool servers via ActivityPub. Follow friends anywhere.",
+          body: "Part of the fediverse via ActivityPub: Mastodon users can follow you and see your public activities, and you can follow trails users on any instance.",
         },
         ownership: {
           title: "Your data, always",
