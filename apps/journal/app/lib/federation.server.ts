@@ -1,9 +1,10 @@
 // ActivityPub federation via Fedify. See openspec/changes/social-federation.
 //
-// Version pinning (task 1.2): @fedify/fedify is pinned to exactly 2.1.16.
-// The whole 2.2.x line is uninstallable from npm — each release depends on
-// @fedify/webfinger@2.2.x, which was never published (latest is 2.1.16).
-// Revisit the pin once `pnpm view @fedify/fedify dependencies` resolves.
+// Version pinning (task 1.2): @fedify/fedify is pinned exactly (no caret).
+// History: 2.2.x was briefly uninstallable from npm (its @fedify/webfinger
+// dependency wasn't published) — fixed upstream; upgraded to 2.2.5 on
+// 2026-06-07. The exact pin stays deliberate: a federation library defines
+// the wire shapes remote instances see, so upgrades should be conscious.
 //
 // Mounting model: Fedify owns URL dispatch for its endpoints via
 // `federation.fetch(request)`. We delegate to it from React Router routes:
