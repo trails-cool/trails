@@ -310,6 +310,21 @@ export default function PrivacyPage() {
             getrennt werden.
           </li>
           <li>
+            <strong>Garmin</strong> (Garmin Ltd.) – Optionaler Import von
+            Aktivitäten aus Garmin Connect. Beim Verbinden werden
+            OAuth-Tokens ausgetauscht und die Garmin-Nutzer-ID gespeichert.
+            Garmin übermittelt anschließend neue Aktivitäten (inkl.
+            GPS-Aufzeichnung als FIT-Datei) automatisch an diese Instanz;
+            ältere Aktivitäten nur auf Ihre ausdrückliche Anforderung
+            (Zeitraum-Import). Es werden keine Gesundheitsdaten (Schlaf,
+            Herzfrequenz-Tageswerte o.&nbsp;ä.) abgerufen — nur Aktivitäten.
+            Widerrufen Sie den Zugriff bei Garmin oder trennen Sie die
+            Verbindung in den Einstellungen, endet die Übermittlung sofort;
+            bereits importierte Aktivitäten bleiben in Ihrem Journal und
+            können dort gelöscht werden. Es gilt die Datenschutzerklärung
+            von Garmin.
+          </li>
+          <li>
             <strong>Hosting</strong> – Die Dienste werden in Rechenzentren
             innerhalb der EU betrieben. Ein Auftragsverarbeitungsvertrag mit
             dem Hoster besteht.
@@ -327,7 +342,13 @@ export default function PrivacyPage() {
           Wahoo&rdquo; on a route — sent so the route appears on your
           ELEMNT/BOLT/ROAM); Komoot (only when you opt in: public mode
           stores your Komoot user ID only; authenticated mode stores your
-          encrypted Komoot password); hosting provider in the EU under a DPA.
+          encrypted Komoot password); Garmin (only when you opt in: OAuth
+          tokens and your Garmin user ID; Garmin then pushes new activities
+          including GPS files to this instance automatically, and older
+          activities only when you request a date range — activities only,
+          never health metrics; revoking at Garmin or disconnecting here
+          stops the flow immediately, imported activities stay yours);
+          hosting provider in the EU under a DPA.
         </p>
       </section>
 

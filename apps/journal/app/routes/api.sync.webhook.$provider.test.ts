@@ -30,7 +30,7 @@ describe("POST /api/sync/webhook/:provider", () => {
   beforeEach(() => {
     parseWebhook.mockReset();
     handle.mockReset();
-    parseWebhook.mockReturnValue(null);
+    parseWebhook.mockReturnValue([]);
     vi.unstubAllEnvs();
   });
 
@@ -83,7 +83,7 @@ describe("POST /api/sync/webhook/:provider", () => {
   });
 
   it("invokes parseWebhook with a valid object body", async () => {
-    parseWebhook.mockReturnValue({ eventType: "x", providerUserId: "1", workoutId: "9" });
+    parseWebhook.mockReturnValue([{ eventType: "x", providerUserId: "1", workoutId: "9" }]);
     handle.mockResolvedValue(undefined);
     const res = await call({ event_type: "x" });
     expect(statusOf(res)).toBe(200);

@@ -478,6 +478,29 @@ export default {
       },
     },
     sync: {
+      garmin: {
+        title: "Von Garmin importieren",
+        subtitle:
+          "Garmin liefert Aktivitäten automatisch an trails.cool, sobald sie entstehen. Für ältere Aktivitäten fordere unten einen Zeitraum an — Garmin liefert sie asynchron nach.",
+        notConnected: "Dein Garmin-Konto ist noch nicht verbunden.",
+        goConnect: "Garmin in den Einstellungen verbinden",
+        needsRelink: "Deine Garmin-Verbindung muss neu verknüpft werden, bevor du Importe anfordern kannst.",
+        from: "Von",
+        to: "Bis",
+        request: "Import anfordern",
+        requesting: "Wird angefordert…",
+        requested: "Angefordert! Aktivitäten erscheinen, sobald Garmin sie liefert.",
+        asyncNote:
+          "Garmin verarbeitet Verlaufs-Anfragen auf ihrer Seite — große Zeiträume können dauern. Überlappende Zeiträume erneut anzufordern ist unproblematisch; nichts wird doppelt importiert.",
+        importedSince_one: "{{count}} Aktivität seit dieser Anfrage importiert",
+        importedSince_other: "{{count}} Aktivitäten seit dieser Anfrage importiert",
+        errors: {
+          not_connected: "Dein Garmin-Konto ist nicht verbunden.",
+          needs_relink: "Deine Garmin-Verbindung muss zuerst neu verknüpft werden.",
+          invalid_range: "Wähle einen gültigen Zeitraum in der Vergangenheit (Start vor Ende).",
+          request_failed: "Garmin hat die Anfrage abgelehnt — versuche es in ein paar Minuten erneut.",
+        },
+      },
       import: "Importieren",
       importFrom: "Import von {{provider}}",
       imported: "Importiert",

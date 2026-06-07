@@ -58,6 +58,7 @@ export default [
   route("api/settings/passkey/delete", "routes/api.settings.passkey.delete.ts"),
   route("api/settings/delete-account", "routes/api.settings.delete-account.ts"),
   route("sync/import/komoot", "routes/sync.import.komoot.tsx"),
+  route("sync/import/garmin", "routes/sync.import.garmin.tsx"),
   route("sync/import/:provider", "routes/sync.import.$provider.tsx"),
   route("api/sync/komoot/verify", "routes/api.sync.komoot.verify.ts"),
   route("api/sync/komoot/connect", "routes/api.sync.komoot.connect.ts"),

@@ -21,16 +21,21 @@ export async function loadConnectionsSettings(request: Request) {
     .from(connectedServices)
     .where(eq(connectedServices.userId, user.id));
 
-  const providers = getAllManifests().map((m) => {
-    const conn = connections.find((c) => c.provider === m.id);
-    return {
-      id: m.id,
-      name: m.displayName,
-      connected: !!conn,
-      providerUserId: conn?.providerUserId,
-      connectUrl: m.connectUrl ?? null,
-    };
-  });
+  const providers = getAllManifests()
+    // Providers can hide themselves when the instance lacks their API
+    // credentials (Garmin: program keys are per-operator).
+    .filter((m) => m.configured?.() ?? true)
+    .map((m) => {
+      const conn = connections.find((c) => c.provider === m.id);
+      return {
+        id: m.id,
+        name: m.displayName,
+        connected: !!conn,
+        providerUserId: conn?.providerUserId,
+        connectUrl: m.connectUrl ?? null,
+        importUrl: m.importUrl ?? null,
+      };
+    });
 
   return { providers };
 }

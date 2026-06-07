@@ -340,6 +340,11 @@ export const importBatches = journalSchema.table("import_batches", {
   importedCount: integer("imported_count").notNull().default(0),
   duplicateCount: integer("duplicate_count").notNull().default(0),
   errorMessage: text("error_message"),
+  // Ranged backfill requests (Garmin): the activity time window this
+  // batch asked the provider to re-deliver. NULL for pick-list style
+  // imports (komoot bulk) that aren't range-shaped.
+  rangeStart: timestamp("range_start", { withTimezone: true }),
+  rangeEnd: timestamp("range_end", { withTimezone: true }),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
 });

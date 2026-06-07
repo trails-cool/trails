@@ -52,7 +52,7 @@ export default function ConnectionsSettings({ loaderData }: Route.ComponentProps
             {p.connected ? (
               <div className="flex items-center gap-3">
                 <a
-                  href={`/sync/import/${p.id}`}
+                  href={p.importUrl ?? `/sync/import/${p.id}`}
                   className="text-sm text-blue-600 hover:underline"
                 >
                   {t("sync.import")}

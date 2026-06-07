@@ -37,13 +37,13 @@ export async function action({ params, request }: Route.ActionArgs) {
     return data({ ok: true });
   }
 
-  const event = manifest.webhookReceiver.parseWebhook(body);
-  if (!event) return data({ ok: true });
-
-  try {
-    await manifest.webhookReceiver.handle(event);
-  } catch (e) {
-    console.error(`Webhook import failed for ${manifest.id}/${event.workoutId}:`, e);
+  const events = manifest.webhookReceiver.parseWebhook(body);
+  for (const event of events) {
+    try {
+      await manifest.webhookReceiver.handle(event);
+    } catch (e) {
+      console.error(`Webhook import failed for ${manifest.id}/${event.workoutId}:`, e);
+    }
   }
 
   return data({ ok: true });

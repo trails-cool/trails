@@ -59,6 +59,15 @@ export interface WebhookEvent {
   providerUserId: string;
   workoutId: string;
   fileUrl?: string;
+  // Optional summary stats carried by providers whose notifications
+  // include them (Garmin pushes summaries; a FIT-less activity is still
+  // importable stats-only). Providers without summaries leave these out.
+  name?: string;
+  startedAt?: string;
+  duration?: number | null;
+  distance?: number | null;
+  // File format behind fileUrl when the provider says (FIT | GPX | TCX).
+  fileType?: string;
 }
 
 // CapabilityContext gives capability adapters the tools they need without
@@ -81,7 +90,10 @@ export interface RoutePusher {
 }
 
 export interface WebhookReceiver {
-  parseWebhook(body: unknown): WebhookEvent | null;
+  // One provider POST can carry many events (Garmin batches
+  // notifications). Single-event providers return a one-element array;
+  // an empty array means "nothing actionable" and the route 200s.
+  parseWebhook(body: unknown): WebhookEvent[];
   handle(event: WebhookEvent): Promise<void>;
 }
 
@@ -99,13 +111,30 @@ export interface ProviderManifest {
   // Custom connect page URL. When set, the connections settings page links
   // here instead of the default OAuth connect endpoint.
   connectUrl?: string;
+  // Custom import page URL. When set, the connections settings page links
+  // here instead of the generic /sync/import/<id> pick-list page (Garmin
+  // has no list endpoint — its import page is a backfill requester).
+  importUrl?: string;
+  // When defined and returning false, the provider is hidden from the
+  // connections settings page (e.g. instance has no API credentials for
+  // it). Undefined = always shown.
+  configured?: () => boolean;
+  // OAuth2 PKCE: when true, the connect route generates a code verifier
+  // (carried in an httpOnly cookie across the redirect) and passes the
+  // S256 challenge to buildAuthUrl / the verifier to exchangeCode.
+  pkce?: boolean;
   // OAuth authorization URL builder (for the connect flow).
-  buildAuthUrl?: (redirectUri: string, state: string) => string;
+  buildAuthUrl?: (
+    redirectUri: string,
+    state: string,
+    extras?: { codeChallenge?: string },
+  ) => string;
   // OAuth code exchange (for the callback). Returns the credential blob to
   // store and the granted scopes.
   exchangeCode?: (
     code: string,
     redirectUri: string,
+    extras?: { codeVerifier?: string },
   ) => Promise<{
     credentials: unknown;
     providerUserId: string | null;
