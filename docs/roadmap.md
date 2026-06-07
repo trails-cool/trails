@@ -88,3 +88,4 @@ See `docs/ideas/` for pre-spec explorations:
 - `social-interactions.md` — local likes + comments (the foundation the federated kudos/comments attach to)
 - `activity-participants.md` — tag co-riders on shared activities, confirm/decline, federated mentions
 - `multi-day-collections.md` — activity collections for multi-day trips (architecture open question #1)
+- `fediverse-enhancements.md` — post-v1 federation: map images in Notes, fediverse kudos, comments, Events/Mobilizon, Wanderer interop, federated explore
