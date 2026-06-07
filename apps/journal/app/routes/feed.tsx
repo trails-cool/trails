@@ -81,6 +81,14 @@ export default function Feed({ loaderData }: Route.ComponentProps) {
               {t("social.feed.seePublic")}
             </Link>
           )}
+          {view === "followed" && (
+            <Link
+              to="/follows/outgoing"
+              className="mt-1 block text-sm text-blue-600 hover:underline"
+            >
+              {t("social.feed.followRemote")}
+            </Link>
+          )}
         </div>
       ) : (
         <ul className="mt-6 space-y-4">

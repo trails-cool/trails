@@ -15,5 +15,9 @@ export function loader() {
     apiVersion: API_VERSION,
     instanceName: domain,
     apiBaseUrl: `${origin}/api/v1`,
+    // Software identity for trails-to-trails federation discovery
+    // (social-federation 6.2). NodeInfo (/nodeinfo/2.1) is the primary
+    // check; this is the trails-specific secondary signal.
+    software: "trails-cool",
   });
 }
