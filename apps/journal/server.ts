@@ -183,7 +183,9 @@ server.listen(port, async () => {
     const { backfillUserKeypairsJob } = await import("./app/jobs/backfill-user-keypairs.ts");
     const { federationKvSweepJob } = await import("./app/jobs/federation-kv-sweep.ts");
     const { deliverActivityJob } = await import("./app/jobs/deliver-activity.ts");
-    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, deliverActivityJob);
+    const { pollRemoteActorJob } = await import("./app/jobs/poll-remote-actor.ts");
+    const { pollRemoteOutboxesJob } = await import("./app/jobs/poll-remote-outboxes.ts");
+    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, deliverActivityJob, pollRemoteActorJob, pollRemoteOutboxesJob);
   }
 
   const boss = createBoss(getDatabaseUrl());

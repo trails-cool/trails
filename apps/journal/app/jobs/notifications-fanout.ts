@@ -51,6 +51,9 @@ export async function fanout(activityId: string): Promise<void> {
     logger.warn({ activityId }, "fanout: activity not found, skipping");
     return;
   }
+  // Remote-ingested rows have no local owner and never fan out locally
+  // (the users innerJoin already excludes them; this narrows the type).
+  if (row.ownerId === null) return;
   // Defense in depth — the create-side guard already filters this, but
   // recheck here so the job doesn't mistakenly fan out a row that was
   // later flipped to private/unlisted before the job ran.
