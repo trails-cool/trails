@@ -252,6 +252,15 @@ jobs:
             echo "SENTRY_RELEASE=${{ github.event.pull_request.head.sha }}"
             echo "SENTRY_DSN_JOURNAL=$SENTRY_DSN_JOURNAL"
             echo "SENTRY_DSN_PLANNER=$SENTRY_DSN_PLANNER"
+            # Federation on previews too (social-federation rollout 12.4):
+            # makes any PR preview a second live trails instance that
+            # persistent staging can follow across — the trails-to-trails
+            # soak surface. FEDERATION_KEY_ENCRYPTION_KEY comes from the
+            # SOPS env decrypted above. Preview teardown orphans remote
+            # follower rows on the other side; remotes handle dead
+            # instances via ordinary delivery-failure expiry.
+            echo "FEDERATION_ENABLED=true"
+            echo "FEDERATION_LOG_LEVEL=debug"
           } >> infrastructure/staging-pr-${{ steps.ports.outputs.pr }}.env
 
       - name: Generate per-PR Caddyfile snippet
