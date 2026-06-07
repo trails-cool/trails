@@ -84,13 +84,20 @@
 
 ## 11. Testing
 
-- [ ] 11.1 Unit tests: HTTP-Signature verification on inbox; signature production on outbox-poll; encrypt/decrypt of private keys
-- [ ] 11.2 Integration test: post a signed `Follow` to local inbox from a fake Mastodon-shaped client → assert `Accept(Follow)` is delivered + follow row exists
-- [ ] 11.3 Integration test: post a `Create(Note)` to local inbox → assert it is dropped silently (no DB writes)
-- [ ] 11.4 Integration test: bring up two trails instances (Docker Compose multi-instance setup); A on instance 1 follows B on instance 2 → assert Follow → Accept → first poll all happen and B's public activity appears in A's `/feed`
-- [ ] 11.5 Integration test: outbound follow attempt against a Mastodon-shaped actor → assert 4xx with the limitation message
-- [ ] 11.6 Integration test (audience leak guard): two local users A and B, only A follows remote trails actor X; X's followers-only post lands in cache. Assert A sees it, B does not
-- [ ] 11.7 E2E: with feature flag on, follow bruno across instances + see public activity appear
+- [x] 11.1 Unit tests: HTTP-Signature verification on inbox; signature production on outbox-poll; encrypt/decrypt of private keys
+  > Done via combination (2026-06-07): encrypt/decrypt + sign/verify roundtrip in `federation-keys.server.test.ts`; HTTP-Signature verification/production is Fedify's tested core, exercised wire-level by the 11.4 harness (signed Follow/Accept/Authorized Fetch between two live instances).
+- [x] 11.2 Integration test: post a signed `Follow` to local inbox from a fake Mastodon-shaped client → assert `Accept(Follow)` is delivered + follow row exists
+  > Done (2026-06-07): handler level in `federation-inbox.integration.test.ts`; full wire level (real signed Follow → Accept delivered + rows on both sides) in the 11.4 harness — a real instance instead of a fake client. Actual-Mastodon behavior was verified live in the 2026-06-06/07 soak.
+- [x] 11.3 Integration test: post a `Create(Note)` to local inbox → assert it is dropped silently (no DB writes)
+  > Done (2026-06-07): in the 11.4 driver — unsigned Create(Note) to the inbox gets 4xx and writes nothing. Signed Creates have no listener (poll-only ingestion by design) and are discarded by Fedify.
+- [x] 11.4 Integration test: bring up two trails instances (Docker Compose multi-instance setup); A on instance 1 follows B on instance 2 → assert Follow → Accept → first poll all happen and B's public activity appears in A's `/feed`
+  > Done (2026-06-07): `e2e/federation/` harness (postgres + caddy internal CA + two journal containers) driven by `federation-two-instance.integration.test.ts` via `run.sh`. Opt-in, not in CI. Caught a real trails↔trails bug: cross-origin embedded Follow objects in Accept/Reject/Undo are distrusted by Fedify and their fragment IRIs dereference to the actor document — listeners now recover via the wire objectId (captured before getObject(), which memoizes) + the personal-inbox recipient.
+- [x] 11.5 Integration test: outbound follow attempt against a Mastodon-shaped actor → assert 4xx with the limitation message
+  > Done earlier in §6: `federation-outbound.integration.test.ts` ("refuses non-trails instances with a clear code"); route returns 400 + `not_trails`.
+- [x] 11.6 Integration test (audience leak guard): two local users A and B, only A follows remote trails actor X; X's followers-only post lands in cache. Assert A sees it, B does not
+  > Done earlier in §8: `social-feed.integration.test.ts` audience-leak guard.
+- [x] 11.7 E2E: with feature flag on, follow bruno across instances + see public activity appear
+  > Done (2026-06-07) by the 11.4 driver at the HTTP/UI boundary: the follow goes through the real `/follows/outgoing` route action with a real session cookie, and the assertion reads the rendered `/feed` HTML (activity name + `@bob@journal-b.test` attribution). A browser-driven repeat would re-test the same path through Playwright; skipped deliberately.
 
 ## 12. Rollout
 

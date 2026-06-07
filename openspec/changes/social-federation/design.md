@@ -108,6 +108,24 @@ Inbound signature verification uses the actor's public key from their actor obje
 
 ## Implementation Decisions (made during apply)
 
+- **Cross-origin object references in Accept/Reject/Undo listeners**
+  (decided in task 11.4, 2026-06-07). When another *trails* instance
+  accepts our Follow, the embedded Follow inside its Accept is
+  cross-origin from the sender's perspective (the Follow's id lives on
+  OUR domain), so Fedify correctly distrusts the embedded copy and
+  re-fetches the id — but our Follow ids are fragment URIs
+  (`<actorIri>#follows/<uuid>`), and fetching one returns the actor
+  document, not a Follow. `getObject()` then yields a `Person` and the
+  listener used to bail silently. Mastodon never trips this because the
+  Accept it sends embeds its *own* (same-origin) Follow. Fix: listeners
+  fall back to the wire `objectId` — captured **before** `getObject()`,
+  which memoizes the fetched document and changes what `objectId`
+  reports — validated against our Follow-id shape plus the personal
+  inbox's `ctx.recipient`. Still forgery-safe: `settleOutgoingFollow`
+  only matches a Pending row toward the HTTP-Signature-authenticated
+  sender. Found by (and regression-covered in) the two-instance
+  harness, `e2e/federation/`.
+
 - **Inbound remote followers live in `follows` with a nullable `follower_id`**
   (decided in task 4.2, 2026-06-06). The original claim that `follows` was
   federation-ready only covered outbound; a remote follower has no local

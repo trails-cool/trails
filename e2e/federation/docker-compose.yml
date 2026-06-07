@@ -1,0 +1,145 @@
+# Two-instance federation harness (social-federation task 11.4).
+#
+# Brings up two complete journal instances — journal-a.test and
+# journal-b.test — that federate with each other over a private Docker
+# network, with real HTTPS between them (Caddy internal CA; the journals
+# trust it via NODE_EXTRA_CA_CERTS). Driven by
+# apps/journal/app/lib/federation-two-instance.integration.test.ts via
+# ./run.sh — see README.md.
+#
+# Ports published to the host (driver-facing, loopback only):
+#   127.0.0.1:5499 → postgres        (schema push + seeding + asserts)
+#   127.0.0.1:3401 → journal-a :3000 (plain HTTP; the TLS hop is only
+#   127.0.0.1:3402 → journal-b :3000  needed for instance↔instance)
+
+name: trails-federation-e2e
+# Shared journal environment. Secrets here are throwaway test values —
+# the whole stack is loopback-only and torn down by run.sh.
+x-journal-env: &journal-env
+  SESSION_SECRET: two-instance-test-secret
+  FEDERATION_ENABLED: "true"
+  FEDERATION_KEY_ENCRYPTION_KEY: two-instance-test-encryption-key
+  FEDERATION_LOG_LEVEL: debug
+  LOG_LEVEL: debug
+  # Both instances live on RFC 1918 Docker addresses; Fedify's SSRF
+  # guard must be told to stand down. Testing only — see the comment in
+  # apps/journal/app/lib/federation.server.ts.
+  FEDERATION_ALLOW_PRIVATE_ADDRESS: "true"
+  # Trust Caddy's internal CA for the instance↔instance HTTPS hop.
+  # Published world-readable by the ca-publisher one-shot — the journal
+  # runs as a non-root user and can't read caddy's 0700 data volume.
+  NODE_EXTRA_CA_CERTS: /ca/root.crt
+  SENTRY_DISABLED: "true"
+
+
+services:
+  postgres:
+    image: imresamu/postgis:16-3.4 # multi-arch, same as docker-compose.dev.yml
+    environment:
+      POSTGRES_USER: trails
+      POSTGRES_PASSWORD: trails
+      POSTGRES_DB: trails_a
+    volumes:
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/90-init-dbs.sql:ro
+    ports:
+      - "127.0.0.1:5499:5432"
+    healthcheck:
+      # -h 127.0.0.1 forces TCP: during first-boot initdb a temporary
+      # postgres answers on the unix socket only, and a socket-based
+      # pg_isready reports healthy before the init scripts have run.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U trails -d trails_b"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  caddy:
+    image: caddy:2-alpine
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks:
+      default:
+        # The instances reach each other through Caddy: these aliases
+        # make journal-a.test / journal-b.test resolve to the proxy
+        # inside the compose network.
+        aliases:
+          - journal-a.test
+          - journal-b.test
+    healthcheck:
+      # The journals read the internal CA root at process start
+      # (NODE_EXTRA_CA_CERTS) — gate their startup on it existing.
+      test: ["CMD", "test", "-f", "/data/caddy/pki/authorities/local/root.crt"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: copies Caddy's internal root CA into a volume the
+  # non-root journal user can actually read (caddy's own data dir is
+  # 0700 root).
+  ca-publisher:
+    image: caddy:2-alpine
+    entrypoint:
+      - sh
+      - -c
+      - |
+        until [ -f /data/caddy/pki/authorities/local/root.crt ]; do sleep 0.5; done
+        cp /data/caddy/pki/authorities/local/root.crt /ca/root.crt
+        chmod 444 /ca/root.crt
+    volumes:
+      - caddy-data:/data:ro
+      - ca-cert:/ca
+    depends_on:
+      caddy:
+        condition: service_healthy
+
+  journal-a:
+    build:
+      context: ../..
+      dockerfile: apps/journal/Dockerfile
+    image: trails-federation-e2e-journal
+    pull_policy: never
+    environment:
+      <<: *journal-env
+      DATABASE_URL: postgres://trails:trails@postgres:5432/trails_a
+      ORIGIN: https://journal-a.test
+    ports:
+      - "127.0.0.1:3401:3000"
+    volumes:
+      - ca-cert:/ca:ro
+    healthcheck: &journal-health
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ca-publisher:
+        condition: service_completed_successfully
+
+  journal-b:
+    # Image-only on purpose: run.sh builds it once via journal-a before
+    # `up`. Building from both services races the export of the shared
+    # tag ("already exists"), and a registry pull must never happen.
+    image: trails-federation-e2e-journal
+    pull_policy: never
+    environment:
+      <<: *journal-env
+      DATABASE_URL: postgres://trails:trails@postgres:5432/trails_b
+      ORIGIN: https://journal-b.test
+    ports:
+      - "127.0.0.1:3402:3000"
+    volumes:
+      - ca-cert:/ca:ro
+    healthcheck: *journal-health
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ca-publisher:
+        condition: service_completed_successfully
+
+volumes:
+  caddy-data:
+  ca-cert:
+
