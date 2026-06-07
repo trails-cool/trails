@@ -1,0 +1,16 @@
+# TLS terminator for the two-instance federation harness. `local_certs`
+# issues every site cert from Caddy's internal CA; the journals trust it
+# via NODE_EXTRA_CA_CERTS (see docker-compose.yml).
+{
+	local_certs
+	# No public reachability — don't try (or wait on) ACME/OCSP anything.
+	skip_install_trust
+}
+
+journal-a.test {
+	reverse_proxy journal-a:3000
+}
+
+journal-b.test {
+	reverse_proxy journal-b:3000
+}

@@ -97,6 +97,20 @@ async function findLocalPublicUserByIri(iri: URL | null): Promise<UserRow | null
   return user && user.profileVisibility === "public" ? user : null;
 }
 
+/**
+ * Whether `id` is one of OUR outgoing Follow activity ids
+ * (`<actorIri>#follows/<uuid>`, see federation-outbound.server.ts) and
+ * names the recipient of the personal inbox the activity arrived in.
+ * Used by the Accept/Reject listeners: another trails instance can't
+ * embed a trustworthy copy of our Follow (its id is cross-origin for
+ * them), so the id is the only recoverable reference.
+ */
+function isRecipientFollowUri(ctx: { recipient: string | null }, id: URL | null): boolean {
+  if (id == null || ctx.recipient == null) return false;
+  if (!id.hash.startsWith("#follows/")) return false;
+  return id.href.startsWith(`${localActorIri(ctx.recipient)}#`);
+}
+
 let _federation: Federation<void> | null = null;
 let _logtapeConfigured = false;
 
@@ -146,6 +160,15 @@ function buildFederation(): Federation<void> {
     // Canonical origin so generated IRIs are correct behind the Caddy
     // proxy (the Node server itself only sees plain HTTP).
     origin: getOrigin(),
+    // SSRF-guard opt-out for the two-instance federation harness
+    // (e2e/federation/), where both instances live on a private Docker
+    // network that Fedify's document loader rightly refuses to fetch
+    // from. Testing only — never set this in a real deployment: the
+    // private-address block is a genuine security boundary (a malicious
+    // actor IRI must not be able to point us at internal targets).
+    ...(process.env.FEDERATION_ALLOW_PRIVATE_ADDRESS === "true"
+      ? { allowPrivateAddress: true }
+      : {}),
   });
   if (!process.env.VITEST) {
     // Fire-and-forget: runs the queue consumer loop for the process
@@ -261,25 +284,66 @@ function buildFederation(): Federation<void> {
     .on(Undo, async (ctx, undo) => {
       // Spec 4.3: Undo(Follow) removes the follow row. Other Undos are
       // acknowledged and dropped.
+      if (undo.actorId == null) return;
+      const undoObjectId = undo.objectId; // capture before dereference (see Accept)
       const object = await undo.getObject(ctx);
-      if (!(object instanceof Follow)) return;
-      if (undo.actorId == null || object.objectId == null) return;
-      const parsed = ctx.parseUri(object.objectId);
-      if (parsed?.type !== "actor") return;
-      await removeRemoteFollow(undo.actorId.href, parsed.identifier);
+      if (object instanceof Follow && object.objectId != null) {
+        const parsed = ctx.parseUri(object.objectId);
+        if (parsed?.type !== "actor") return;
+        await removeRemoteFollow(undo.actorId.href, parsed.identifier);
+        return;
+      }
+      // trails→trails fallback: another trails instance's Undo embeds
+      // a Follow whose id lives on the SENDER's domain, but the embed
+      // is cross-origin relative to nothing we can verify, and
+      // dereferencing `…#follows/<id>` yields the sender's actor
+      // document, not a Follow (fragments aren't separately fetchable).
+      // Our Follow ids are `<actorIri>#follows/<uuid>` — when the Undo
+      // names one owned by the authenticated sender, the recipient of
+      // this personal inbox is the unfollowed user.
+      if (
+        ctx.recipient != null &&
+        undoObjectId?.hash.startsWith("#follows/") &&
+        undoObjectId.origin === new URL(undo.actorId.href).origin
+      ) {
+        await removeRemoteFollow(undo.actorId.href, ctx.recipient);
+      }
     })
     .on(Accept, async (ctx, accept) => {
       // Spec 4.4: a remote accepted our outgoing Follow — settle the
       // Pending row and trigger the first outbox poll for that actor.
-      const object = await accept.getObject(ctx);
-      if (!(object instanceof Follow)) return;
       if (accept.actorId == null) return;
-      const localUser = await findLocalPublicUserByIri(object.actorId);
+      // Capture the raw object reference BEFORE dereferencing:
+      // getObject() memoizes the fetched document, after which objectId
+      // reports the fetched object's id (fragment stripped) instead of
+      // the id that was on the wire.
+      const objectId = accept.objectId;
+      const object = await accept.getObject(ctx);
+      logger.debug(
+        {
+          recipient: ctx.recipient,
+          objectId: objectId?.href ?? null,
+          objectType: object?.constructor?.name ?? null,
+        },
+        "federation: Accept listener dispatch",
+      );
+      let localUser: Awaited<ReturnType<typeof findLocalPublicUserByIri>> = null;
+      if (object instanceof Follow) {
+        localUser = await findLocalPublicUserByIri(object.actorId);
+      } else if (isRecipientFollowUri(ctx, objectId)) {
+        // trails→trails: our own Follow id is cross-origin from the
+        // accepting instance's perspective, so Fedify rightly distrusts
+        // the embedded copy and a re-fetch of `…#follows/<id>` returns
+        // our actor document instead of a Follow. The id itself names
+        // this inbox's recipient, which is all settling needs — and
+        // settleOutgoingFollow only matches a Pending row toward the
+        // authenticated sender, so a forged Accept can't settle
+        // anything that wasn't already directed at that actor.
+        localUser = await findLocalPublicUserByIri(new URL(localActorIri(ctx.recipient!)));
+      }
       if (!localUser) return;
       const { settled } = await settleOutgoingFollow(localUser.id, accept.actorId.href);
       if (settled) {
-        // Queue worker lands in the outbox-poll change (task 7.x);
-        // enqueueOptional logs-and-continues until then.
         await enqueueOptional("poll-remote-actor", { actorIri: accept.actorId.href }, {
           reason: "first poll after accepted follow",
         });
@@ -287,10 +351,16 @@ function buildFederation(): Federation<void> {
     })
     .on(Reject, async (ctx, reject) => {
       // Spec 4.5: remote refused our Follow — drop the Pending row.
-      const object = await reject.getObject(ctx);
-      if (!(object instanceof Follow)) return;
       if (reject.actorId == null) return;
-      const localUser = await findLocalPublicUserByIri(object.actorId);
+      const objectId = reject.objectId; // capture before dereference (see Accept)
+      const object = await reject.getObject(ctx);
+      let localUser: Awaited<ReturnType<typeof findLocalPublicUserByIri>> = null;
+      if (object instanceof Follow) {
+        localUser = await findLocalPublicUserByIri(object.actorId);
+      } else if (isRecipientFollowUri(ctx, objectId)) {
+        // Same trails→trails fallback as the Accept listener above.
+        localUser = await findLocalPublicUserByIri(new URL(localActorIri(ctx.recipient!)));
+      }
       if (!localUser) return;
       await rejectOutgoingFollow(localUser.id, reject.actorId.href);
     })
