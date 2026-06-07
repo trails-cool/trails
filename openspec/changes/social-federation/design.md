@@ -135,6 +135,15 @@ Inbound signature verification uses the actor's public key from their actor obje
   (task 5.1): Fedify builds collection-level responses (outbox
   OrderedCollection) from counter/cursors without consulting the page
   dispatcher, so the dispatcher's `null` → 404 contract doesn't cover them.
+- **Retractions are transition-aware; tombstones are forever** (learned on
+  the 2026-06-07 soak). Mastodon records a received `Delete` as a permanent
+  tombstone for that URI — later `Create`s for the same URI are silently
+  refused. Push delivery therefore sends `Delete` only on an actual
+  public→non-public transition (`visibilityTransitionAction`), never "just
+  in case". Consequence worth surfacing user-facing eventually: if a user
+  un-publishes a federated activity and re-publishes it later, remotes that
+  processed the retraction will not show it again — same semantics as
+  Mastodon's own delete-and-redraft.
 
 ## Open Questions
 
