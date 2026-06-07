@@ -1,6 +1,6 @@
 import type { JobDefinition } from "@trails-cool/jobs";
 import { and, eq } from "drizzle-orm";
-import { activities } from "@trails-cool/db/schema/journal";
+import { activities, users } from "@trails-cool/db/schema/journal";
 import { getDb } from "../lib/db.ts";
 import { getOrigin } from "../lib/config.server.ts";
 import { getFederation } from "../lib/federation.server.ts";
@@ -75,6 +75,17 @@ async function deliverOne(p: DeliveryPayload): Promise<void> {
       .limit(1);
     if (!row) {
       logger.info({ objectIri: p.objectIri }, "deliver-activity: activity gone or non-public; skipping");
+      return;
+    }
+    // Spec 9.3: flipping the profile to private stops federation — also
+    // for deliveries already enqueued when the flip happened.
+    const [owner] = await db
+      .select({ profileVisibility: users.profileVisibility })
+      .from(users)
+      .where(eq(users.username, p.ownerUsername))
+      .limit(1);
+    if (!owner || owner.profileVisibility !== "public") {
+      logger.info({ objectIri: p.objectIri }, "deliver-activity: owner no longer public; skipping");
       return;
     }
     activity = activityToCreate(row as FederatableActivity, p.ownerUsername);

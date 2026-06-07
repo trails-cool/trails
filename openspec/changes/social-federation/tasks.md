@@ -66,14 +66,15 @@
 
 ## 8. Feed query update
 
-- [ ] 8.1 Update `listSocialFeed` to include audience-aware filtering: include `(audience='public' OR (audience='followers-only' AND f.followed_actor_iri = a.remote_actor_iri))` predicate
-- [ ] 8.2 Update feed sort to use `COALESCE(created_at, remote_created_at)` for mixed local/remote rows
+- [x] 8.1 Update `listSocialFeed` to include audience-aware filtering: include `(audience='public' OR (audience='followers-only' AND f.followed_actor_iri = a.remote_actor_iri))` predicate
+- [x] 8.2 Update feed sort to use `COALESCE(created_at, remote_created_at)` for mixed local/remote rows
 
 ## 9. Profile page updates
 
-- [ ] 9.1 Pending state on Follow button (distinct from Follow/Unfollow)
-- [ ] 9.2 Federation gate: actor object endpoint returns 404 if `profile_visibility = 'private'`, mirroring the human profile gate
-- [ ] 9.3 When a user flips to `private`, federation must stop: outgoing `Accept(Follow)` rows where they're the followed party are no longer honored, push delivery is suppressed, and inbound Follows return 404. (Existing accepted follow rows on the remote side are not actively reaped — remotes will discover via their next outbox poll returning 404 / via a broadcast `Update` of the actor — pick the right approach during implementation)
+- [x] 9.1 Pending state on Follow button (distinct from Follow/Unfollow)
+  > Shipped with locked accounts for local profiles; remote Pending lives on /follows/outgoing (no local profile page for remote actors).
+- [x] 9.2 Federation gate: actor object endpoint returns 404 if `profile_visibility = 'private'`, mirroring the human profile gate
+- [x] 9.3 When a user flips to `private`, federation must stop: outgoing `Accept(Follow)` rows where they're the followed party are no longer honored, push delivery is suppressed, and inbound Follows return 404. (Existing accepted follow rows on the remote side are not actively reaped — remotes will discover via their next outbox poll returning 404 / via a broadcast `Update` of the actor — pick the right approach during implementation)
 
 ## 10. Privacy + docs
 
