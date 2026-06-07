@@ -4,6 +4,9 @@ interface Entry {
   username: string;
   displayName: string | null;
   domain: string;
+  /** Local path (`/users/x`) or, for federated entries, the remote profile URL. */
+  profileUrl: string;
+  remote: boolean;
 }
 
 interface Props {
@@ -42,9 +45,10 @@ export function CollectionPage({ kind, user, entries, page, total }: Props) {
       ) : (
         <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
           {entries.map((entry) => (
-            <li key={entry.username} className="px-4 py-3">
+            <li key={`${entry.username}@${entry.domain}`} className="px-4 py-3">
               <a
-                href={`/users/${entry.username}`}
+                href={entry.profileUrl}
+                {...(entry.remote ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 className="flex items-center justify-between hover:underline"
               >
                 <span className="text-sm font-medium text-gray-900">
