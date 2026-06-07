@@ -83,6 +83,13 @@ jobs:
           echo "DOMAIN=trails.cool" >> infrastructure/app.env
           # Flagship marker — see cd-infra.yml for what this gates.
           echo "IS_FLAGSHIP=true" >> infrastructure/app.env
+          # Federation on (social-federation rollout 12.5, flipped
+          # 2026-06-07 after the staging + Mastodon soak). The
+          # FEDERATION_KEY_ENCRYPTION_KEY comes from the SOPS env
+          # decrypted above. Rollback: delete these two lines, merge,
+          # rerun cd-apps — instant off, federation surfaces 404.
+          echo "FEDERATION_ENABLED=true" >> infrastructure/app.env
+          echo "FEDERATION_LOG_LEVEL=info" >> infrastructure/app.env
           # Sentry DSNs (public — see workflow top-level env for context).
           echo "SENTRY_DSN_JOURNAL=$SENTRY_DSN_JOURNAL" >> infrastructure/app.env
           echo "SENTRY_DSN_PLANNER=$SENTRY_DSN_PLANNER" >> infrastructure/app.env

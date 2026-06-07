@@ -109,7 +109,7 @@
   > Same staging soak: pushed Create(Note) rendered in the Mastodon home timeline (tombstone + 10s-timeout lessons recorded in design.md).
 - [ ] 12.4 Soak outbound trails-to-trails — bring up second trails instance (staging or self-host), follow across, both directions verified
   > Protocol mechanics fully verified by the two-instance harness (`e2e/federation/`, task 11.4) — which found and fixed the cross-origin Accept bug. Live surface is ready: PR previews run federated (#491), so the soak is: follow from staging.trails.cool to a user on `pr-<N>.staging.trails.cool` and back. Needs a seeded user on a preview (server-side); queued for the next operator session.
-- [ ] 12.5 Flip flag on; restore home marketing copy; document in deployment runbook
-  > Runbook documented (docs/deployment.md, 10.2) and the home blurb already states the accurate scope (10.3) — remaining: the prod `FEDERATION_ENABLED=true` flip, an operator decision.
+- [x] 12.5 Flip flag on; restore home marketing copy; document in deployment runbook
+  > Flipped 2026-06-07 (operator-approved): `FEDERATION_ENABLED=true` ships in cd-apps.yml's flagship env, with the compose wiring defaulting *off* for self-hosters. Home blurb already accurate (10.3), runbook documented (10.2). Applied via a manual cd-apps dispatch after merge.
 - [x] 12.6 Rollback: flag off (instant) or revert PR. Existing `follows` rows stay intact
   > Documented in the deployment runbook's federation section; flag-off instantly 404s every federation surface while rows persist.

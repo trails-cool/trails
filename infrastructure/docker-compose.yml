@@ -53,6 +53,15 @@ services:
       WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
+      # Federation (ActivityPub, social-federation rollout 12.5). Empty
+      # = off: every federation surface 404s — the safe self-host
+      # default. The flagship turns it on via cd-apps.yml (same pattern
+      # as IS_FLAGSHIP); the encryption key comes from SOPS. Rollback is
+      # dropping the flag and redeploying — instant, follow rows
+      # persist. See docs/deployment.md "Federation runbook".
+      FEDERATION_ENABLED: ${FEDERATION_ENABLED:-}
+      FEDERATION_KEY_ENCRYPTION_KEY: ${FEDERATION_KEY_ENCRYPTION_KEY:-}
+      FEDERATION_LOG_LEVEL: ${FEDERATION_LOG_LEVEL:-}
       INTEGRATION_SECRET: ${INTEGRATION_SECRET:?INTEGRATION_SECRET must be set in SOPS secrets.app.env}
       # Demo-activity-bot. Disabled by default everywhere; flip to "true"
       # only in prod. When unset, DEMO_BOT_PERSONA uses the built-in
