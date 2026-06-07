@@ -109,6 +109,9 @@ services:
           memory: 256M
 
 networks:
+  # Staging/preview services attach only to trails-shared — created (and
+  # IPv6-enabled) by the production compose project. There is no per-project
+  # default network here, so v6 egress comes from trails-shared itself.
   trails-shared:
     external: true
     name: trails-shared
