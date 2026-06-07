@@ -61,9 +61,9 @@ services:
       WAHOO_CLIENT_SECRET: ""
       WAHOO_WEBHOOK_TOKEN: ""
       DEMO_BOT_ENABLED: ""
-      # Federation soak (social-federation rollout step 12.2). Enabled by
-      # cd-staging.yml for persistent staging only; PR previews leave both
-      # empty (flag off) so preview journals never emit federation traffic.
+      # Federation (social-federation rollout). Enabled by cd-staging.yml
+      # for persistent staging (12.2) and for PR previews (12.4 — every
+      # preview is a second live instance staging can follow across).
       FEDERATION_ENABLED: ${FEDERATION_ENABLED:-}
       FEDERATION_KEY_ENCRYPTION_KEY: ${FEDERATION_KEY_ENCRYPTION_KEY:-}
       FEDERATION_LOG_LEVEL: ${FEDERATION_LOG_LEVEL:-}
