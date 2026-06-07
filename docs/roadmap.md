@@ -73,6 +73,7 @@ These changes are scoped and designed but not blocking launch:
 | [`route-discovery`](../openspec/changes/route-discovery/) | Spatial map-based route exploration. The text `/explore` page covers the gap at launch. |
 | [`activity-photos`](../openspec/changes/activity-photos/) | Photo uploads for activities. Enriches content but not a day-one requirement. |
 | [`mobile-app`](../openspec/changes/mobile-app/) | React Native unified app. Substantial scope; explicitly post-launch. |
+| [`route-federation`](../openspec/changes/route-federation/) | Routes as federated objects: Invite/Accept mirroring, cross-instance Planner edits. The collaboration half of the federation vision; depends on `social-federation` §6 + `route-sharing`. |
 
 ---
 
@@ -83,3 +84,7 @@ See `docs/ideas/` for pre-spec explorations:
 - `mobile-activity-recording/` — GPS tracking and activity logging from a native app
 - `mobile-nearby-sync/` — BLE-based proximity discovery
 - `self-host-overpass/` — Self-hosted Overpass API for POI overlays
+- `instance-administration.md` — admin role, registration toggle, suspend/ban, federation blocklists, reports
+- `social-interactions.md` — local likes + comments (the foundation the federated kudos/comments attach to)
+- `activity-participants.md` — tag co-riders on shared activities, confirm/decline, federated mentions
+- `multi-day-collections.md` — activity collections for multi-day trips (architecture open question #1)
