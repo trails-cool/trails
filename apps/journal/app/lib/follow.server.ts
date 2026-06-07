@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, count, desc, isNull, isNotNull } from "drizzle-orm";
 import { getDb } from "./db.ts";
-import { users, follows } from "@trails-cool/db/schema/journal";
+import { users, follows, remoteActors } from "@trails-cool/db/schema/journal";
 import { localActorIri } from "./actor-iri.ts";
 import { createNotification } from "./notifications.server.ts";
 import { logger } from "./logger.server.ts";
@@ -283,35 +283,89 @@ export interface CollectionEntry {
   username: string;
   displayName: string | null;
   domain: string;
+  /** Where the entry's profile lives: local path or remote actor URL. */
+  profileUrl: string;
+  remote: boolean;
 }
 
 const COLLECTION_PAGE_SIZE = 50;
 
 /**
+ * Best-effort identity for a remote actor we may or may not have
+ * cached: prefer the remote_actors row, fall back to parsing the IRI
+ * (canonical fediverse shape `https://host/users/name`).
+ */
+function remoteEntry(
+  actorIri: string,
+  cached: { username: string | null; displayName: string | null; domain: string | null },
+): CollectionEntry {
+  let host = "";
+  let lastSegment: string;
+  try {
+    const url = new URL(actorIri);
+    host = url.host;
+    lastSegment = url.pathname.split("/").filter(Boolean).pop() ?? "";
+  } catch {
+    // Malformed IRI in the DB — display it raw rather than hide the row.
+    lastSegment = actorIri;
+  }
+  return {
+    username: cached.username ?? lastSegment,
+    displayName: cached.displayName,
+    domain: cached.domain ?? host,
+    profileUrl: actorIri,
+    remote: true,
+  };
+}
+
+/**
  * Paginated list of accepted followers of `userId`. Newest acceptance first.
- * Pending requests are excluded — they live in the Requests tab on
- * /notifications.
+ * Includes remote (federated) followers — `follower_actor_iri` rows — so the
+ * list matches countFollowers; display data comes from the remote_actors
+ * cache when present, IRI parsing otherwise. Pending requests are excluded —
+ * they live in the Requests tab on /notifications.
  */
 export async function listFollowers(userId: string, page: number = 1): Promise<CollectionEntry[]> {
   const db = getDb();
   const offset = (Math.max(1, page) - 1) * COLLECTION_PAGE_SIZE;
   const rows = await db
     .select({
-      username: users.username,
-      displayName: users.displayName,
-      domain: users.domain,
+      localUsername: users.username,
+      localDisplayName: users.displayName,
+      localDomain: users.domain,
+      followerActorIri: follows.followerActorIri,
+      remoteUsername: remoteActors.username,
+      remoteDisplayName: remoteActors.displayName,
+      remoteDomain: remoteActors.domain,
     })
     .from(follows)
-    .innerJoin(users, eq(follows.followerId, users.id))
+    .leftJoin(users, eq(follows.followerId, users.id))
+    .leftJoin(remoteActors, eq(follows.followerActorIri, remoteActors.actorIri))
     .where(and(eq(follows.followedUserId, userId), isNotNull(follows.acceptedAt)))
     .orderBy(desc(follows.acceptedAt))
     .limit(COLLECTION_PAGE_SIZE)
     .offset(offset);
-  return rows;
+  return rows.map((r) =>
+    r.localUsername !== null
+      ? {
+          username: r.localUsername,
+          displayName: r.localDisplayName,
+          domain: r.localDomain ?? "",
+          profileUrl: `/users/${r.localUsername}`,
+          remote: false,
+        }
+      : remoteEntry(r.followerActorIri ?? "", {
+          username: r.remoteUsername,
+          displayName: r.remoteDisplayName,
+          domain: r.remoteDomain,
+        }),
+  );
 }
 
 /**
  * Paginated list of accepted follows from `userId`. Newest acceptance first.
+ * Includes remote (trails-to-trails) targets — rows whose followed side is
+ * only an actor IRI — for the same count/list consistency as listFollowers.
  * Pending outgoing follows (against private/locked targets) are excluded.
  */
 export async function listFollowing(userId: string, page: number = 1): Promise<CollectionEntry[]> {
@@ -319,15 +373,34 @@ export async function listFollowing(userId: string, page: number = 1): Promise<C
   const offset = (Math.max(1, page) - 1) * COLLECTION_PAGE_SIZE;
   const rows = await db
     .select({
-      username: users.username,
-      displayName: users.displayName,
-      domain: users.domain,
+      localUsername: users.username,
+      localDisplayName: users.displayName,
+      localDomain: users.domain,
+      followedActorIri: follows.followedActorIri,
+      remoteUsername: remoteActors.username,
+      remoteDisplayName: remoteActors.displayName,
+      remoteDomain: remoteActors.domain,
     })
     .from(follows)
-    .innerJoin(users, eq(follows.followedUserId, users.id))
+    .leftJoin(users, eq(follows.followedUserId, users.id))
+    .leftJoin(remoteActors, eq(follows.followedActorIri, remoteActors.actorIri))
     .where(and(eq(follows.followerId, userId), isNotNull(follows.acceptedAt)))
     .orderBy(desc(follows.acceptedAt))
     .limit(COLLECTION_PAGE_SIZE)
     .offset(offset);
-  return rows;
+  return rows.map((r) =>
+    r.localUsername !== null
+      ? {
+          username: r.localUsername,
+          displayName: r.localDisplayName,
+          domain: r.localDomain ?? "",
+          profileUrl: `/users/${r.localUsername}`,
+          remote: false,
+        }
+      : remoteEntry(r.followedActorIri, {
+          username: r.remoteUsername,
+          displayName: r.remoteDisplayName,
+          domain: r.remoteDomain,
+        }),
+  );
 }
