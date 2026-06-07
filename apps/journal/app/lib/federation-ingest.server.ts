@@ -8,6 +8,7 @@
 //
 // Network steps are injectable for offline integration tests.
 
+import { FetchError } from "@fedify/fedify";
 import { and, eq, isNull, isNotNull, lt, or, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { activities, follows, remoteActors, users } from "@trails-cool/db/schema/journal";
@@ -25,6 +26,14 @@ const POLL_INTERVAL_MS = 60 * 60 * 1000;
 const HOST_PACE_MS = 5_000;
 /** Stop early after this many consecutive already-seen items (7.2). */
 const CONFLICT_STREAK_LIMIT = 5;
+/** Backoff after a 429 without a usable Retry-After (7.4). */
+const DEFAULT_BACKOFF_MS = 15 * 60 * 1000;
+/**
+ * Cap an honored Retry-After at the poll interval — anything longer is
+ * equivalent to "skip until a later sweep", and an absurd header from
+ * a misbehaving remote shouldn't park a host for days.
+ */
+const MAX_BACKOFF_MS = POLL_INTERVAL_MS;
 
 export interface ParsedRemoteActivity {
   originIri: string;
@@ -159,6 +168,59 @@ export interface PollDeps {
 
 const lastFetchPerHost = new Map<string, number>();
 
+// 7.4: hosts that answered 429 are skipped until their backoff expires.
+// In-process state, like the pacing map above — a restart forgets it,
+// which is fine: the worst case is one extra request that gets another
+// 429 and re-arms the backoff.
+const hostBackoffUntil = new Map<string, number>();
+
+/**
+ * Parse a Retry-After header value (RFC 9110: delta-seconds or an
+ * HTTP-date) into a millisecond delay from `now`. Null if absent or
+ * unparseable.
+ */
+export function parseRetryAfter(value: string | null, now: number): number | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  // Bare integers are delta-seconds; negative ones are invalid (and
+  // must not fall through to Date.parse, which reads them as years).
+  if (/^-?\d+$/.test(trimmed)) {
+    return /^\d+$/.test(trimmed) ? Number(trimmed) * 1000 : null;
+  }
+  const date = Date.parse(trimmed);
+  if (!Number.isNaN(date)) return Math.max(0, date - now);
+  return null;
+}
+
+/**
+ * Record a 429 from `host`: back off for the remote's Retry-After
+ * (capped) or a default. Returns the applied delay in ms.
+ */
+export function noteHostRateLimited(
+  host: string,
+  retryAfter: string | null,
+  now = Date.now(),
+): number {
+  const delay = Math.min(parseRetryAfter(retryAfter, now) ?? DEFAULT_BACKOFF_MS, MAX_BACKOFF_MS);
+  hostBackoffUntil.set(host, now + delay);
+  return delay;
+}
+
+/** Whether `host` is inside a 429 backoff window. */
+export function isHostBackingOff(host: string, now = Date.now()): boolean {
+  const until = hostBackoffUntil.get(host) ?? 0;
+  if (until <= now) {
+    hostBackoffUntil.delete(host);
+    return false;
+  }
+  return true;
+}
+
+/** Test hook: forget all 429 backoff state. */
+export function resetHostBackoff(): void {
+  hostBackoffUntil.clear();
+}
+
 function defaultDeps(): PollDeps {
   return {
     async fetchJson(url, signerUsername) {
@@ -186,6 +248,10 @@ export async function pollRemoteActor(
   actorIri: string,
   deps: PollDeps = defaultDeps(),
 ): Promise<{ inserted: number } | { skipped: string }> {
+  // 7.4: respect an active 429 backoff before doing any work.
+  const host = new URL(actorIri).host;
+  if (isHostBackingOff(host)) return { skipped: "host rate-limited (backing off)" };
+
   const db = getDb();
 
   // Signer: any local user with an accepted follow against this actor.
@@ -203,7 +269,6 @@ export async function pollRemoteActor(
     .limit(1);
   if (!signer) return { skipped: "no accepted local follower" };
 
-  const host = new URL(actorIri).host;
   try {
     await deps.pace(host);
 
@@ -251,7 +316,14 @@ export async function pollRemoteActor(
     logger.info({ actorIri, fetched: items.length, inserted }, "federation: outbox poll");
     return { inserted };
   } catch (err) {
-    // 429 / network failures: log and let the hourly sweep retry.
+    // 429: honor Retry-After (or default) and skip the host until the
+    // backoff expires (7.4).
+    if (err instanceof FetchError && err.response?.status === 429) {
+      const delayMs = noteHostRateLimited(host, err.response.headers.get("retry-after"));
+      logger.warn({ actorIri, host, delayMs }, "federation: remote rate-limited poll; backing off host");
+      return { skipped: "rate limited" };
+    }
+    // Other network failures: log and let the hourly sweep retry.
     logger.warn({ err, actorIri }, "federation: outbox poll failed; will retry on next sweep");
     return { skipped: "fetch failed" };
   }
