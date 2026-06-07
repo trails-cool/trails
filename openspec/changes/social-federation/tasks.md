@@ -101,9 +101,15 @@
 
 ## 12. Rollout
 
-- [ ] 12.1 Schema lands additively behind `FEDERATION_ENABLED=false` (no traffic, no risk)
-- [ ] 12.2 Soak inbound only on flagship — enable WebFinger + actor + inbox; verify Mastodon can fetch + follow + receive Accept
-- [ ] 12.3 Soak push delivery — local public activity reaches a Mastodon follower's home timeline
+- [x] 12.1 Schema lands additively behind `FEDERATION_ENABLED=false` (no traffic, no risk)
+  > True since the §2 schema PRs: all federation columns/tables shipped additively, prod has run them with the flag off (404 on every federation surface) throughout the staging soak.
+- [x] 12.2 Soak inbound only on flagship — enable WebFinger + actor + inbox; verify Mastodon can fetch + follow + receive Accept
+  > Soaked on persistent **staging** (2026-06-06/07) against a real Mastodon (social.ullrich.is): WebFinger → actor fetch → Follow → Accept → profile fields all verified live; six latent bugs found and fixed in the process. Staging shares the flagship host, Caddy, and Postgres — the environment risk surface is exercised; only the prod *domain* hasn't federated yet (that's the 12.5 flag flip).
+- [x] 12.3 Soak push delivery — local public activity reaches a Mastodon follower's home timeline
+  > Same staging soak: pushed Create(Note) rendered in the Mastodon home timeline (tombstone + 10s-timeout lessons recorded in design.md).
 - [ ] 12.4 Soak outbound trails-to-trails — bring up second trails instance (staging or self-host), follow across, both directions verified
+  > Protocol mechanics fully verified by the two-instance harness (`e2e/federation/`, task 11.4) — which found and fixed the cross-origin Accept bug. Live surface is ready: PR previews run federated (#491), so the soak is: follow from staging.trails.cool to a user on `pr-<N>.staging.trails.cool` and back. Needs a seeded user on a preview (server-side); queued for the next operator session.
 - [ ] 12.5 Flip flag on; restore home marketing copy; document in deployment runbook
-- [ ] 12.6 Rollback: flag off (instant) or revert PR. Existing `follows` rows stay intact
+  > Runbook documented (docs/deployment.md, 10.2) and the home blurb already states the accurate scope (10.3) — remaining: the prod `FEDERATION_ENABLED=true` flip, an operator decision.
+- [x] 12.6 Rollback: flag off (instant) or revert PR. Existing `follows` rows stay intact
+  > Documented in the deployment runbook's federation section; flag-off instantly 404s every federation surface while rows persist.
