@@ -51,9 +51,23 @@ export async function importActivity(
   userId: string,
   provider: string,
   externalWorkoutId: string,
-  input: { name: string; gpx?: string },
+  input: {
+    name: string;
+    gpx?: string;
+    // Stats-only imports (no GPS file — e.g. Garmin notifications for
+    // FIT-less activities) carry whatever the provider's summary had.
+    distance?: number | null;
+    duration?: number | null;
+    startedAt?: Date | null;
+  },
 ): Promise<{ activityId: string }> {
-  const activityId = await createActivity(userId, { name: input.name, gpx: input.gpx });
+  const activityId = await createActivity(userId, {
+    name: input.name,
+    gpx: input.gpx,
+    distance: input.distance,
+    duration: input.duration,
+    startedAt: input.startedAt,
+  });
   await recordImport(userId, provider, externalWorkoutId, activityId);
   return { activityId };
 }

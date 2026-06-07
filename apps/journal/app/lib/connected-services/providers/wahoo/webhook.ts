@@ -23,18 +23,20 @@ interface WahooWebhookBody {
 
 
 export const wahooWebhook: WebhookReceiver = {
-  parseWebhook(body: unknown): WebhookEvent | null {
+  parseWebhook(body: unknown): WebhookEvent[] {
     const payload = body as WahooWebhookBody;
-    if (payload.event_type !== "workout_summary" || !payload.user?.id) return null;
+    if (payload.event_type !== "workout_summary" || !payload.user?.id) return [];
 
-    return {
-      eventType: payload.event_type,
-      providerUserId: String(payload.user.id),
-      workoutId: String(
-        payload.workout_summary?.workout?.id ?? payload.workout_summary?.id ?? "",
-      ),
-      fileUrl: payload.workout_summary?.file?.url,
-    };
+    return [
+      {
+        eventType: payload.event_type,
+        providerUserId: String(payload.user.id),
+        workoutId: String(
+          payload.workout_summary?.workout?.id ?? payload.workout_summary?.id ?? "",
+        ),
+        fileUrl: payload.workout_summary?.file?.url,
+      },
+    ];
   },
 
   async handle(event: WebhookEvent): Promise<void> {

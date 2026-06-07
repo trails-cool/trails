@@ -28,7 +28,7 @@ Garmin specifics that shape everything below (Garmin Connect Developer Program, 
 
 ### Decision: OAuth2 + PKCE rides the existing `oauth` credential kind
 
-Garmin's token blob is shape-compatible with `OAuthCredentials` (`access_token`, `refresh_token`, `expires_at`), so `credential_kind = 'oauth'` and the existing OAuth `CredentialAdapter` handle storage and refresh. PKCE only affects the **authorize/exchange** steps, which are already per-provider in the manifest's OAuth config — the manifest gains a code-verifier generation + `code_challenge` parameter, with the verifier carried through the OAuth `state` storage (`oauth-state.server.ts`) the same way the existing flow carries its state nonce.
+Garmin's token blob is shape-compatible with `OAuthCredentials` (`access_token`, `refresh_token`, `expires_at`), so `credential_kind = 'oauth'` and the existing OAuth `CredentialAdapter` handle storage and refresh. PKCE only affects the **authorize/exchange** steps, which are already per-provider in the manifest's OAuth config — the manifest gains a code-verifier generation + `code_challenge` parameter. *Corrected during apply:* the existing `state` param is intent-encoding reflected through redirects (visible in URLs), not server-side storage — and the verifier must never appear in a URL. It rides a short-lived httpOnly cookie scoped to the callback path instead (`oauth-state.server.ts` PKCE helpers; manifests opt in via `pkce: true`).
 
 **Alternative considered:** a new `oauth-pkce` credential kind. Rejected — the *stored* credential is identical; PKCE is a handshake detail, not a credential shape. A new kind would fork the adapter for zero storage benefit.
 

@@ -53,6 +53,10 @@ services:
       WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
+      # Garmin Connect Developer Program keys (spec: garmin-import).
+      # Empty = the Garmin provider is hidden on /settings/connections.
+      GARMIN_CLIENT_ID: ${GARMIN_CLIENT_ID:-}
+      GARMIN_CLIENT_SECRET: ${GARMIN_CLIENT_SECRET:-}
       # Federation (ActivityPub, social-federation rollout 12.5). Empty
       # = off: every federation surface 404s — the safe self-host
       # default. The flagship turns it on via cd-apps.yml (same pattern

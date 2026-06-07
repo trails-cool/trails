@@ -478,6 +478,29 @@ export default {
       },
     },
     sync: {
+      garmin: {
+        title: "Import from Garmin",
+        subtitle:
+          "Garmin delivers activities to trails.cool as they happen. To pull in your history, request a date range below — Garmin sends those activities over asynchronously.",
+        notConnected: "Your Garmin account isn't connected yet.",
+        goConnect: "Connect Garmin in settings",
+        needsRelink: "Your Garmin connection needs to be re-linked before requesting imports.",
+        from: "From",
+        to: "To",
+        request: "Request import",
+        requesting: "Requesting…",
+        requested: "Requested! Activities will appear as Garmin delivers them.",
+        asyncNote:
+          "Garmin processes history requests on their side — large ranges can take a while to arrive. Re-requesting an overlapping range is safe; nothing gets imported twice.",
+        importedSince_one: "{{count}} activity imported since this request",
+        importedSince_other: "{{count}} activities imported since this request",
+        errors: {
+          not_connected: "Your Garmin account isn't connected.",
+          needs_relink: "Your Garmin connection needs to be re-linked first.",
+          invalid_range: "Pick a valid date range in the past (start before end).",
+          request_failed: "Garmin rejected the request — try again in a few minutes.",
+        },
+      },
       import: "Import",
       importFrom: "Import from {{provider}}",
       imported: "Imported",

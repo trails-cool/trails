@@ -168,6 +168,18 @@ export async function markNeedsRelink(
   console.warn(`[connected-services] ${serviceId} flipped to needs_relink: ${reason}`);
 }
 
+// Provider-side revocation (e.g. a Garmin deregistration notification):
+// keep the row for audit, flip to 'revoked' so every subsequent
+// withFreshCredentials short-circuits and the UI shows a re-connect
+// prompt. Imported activities are untouched.
+export async function markRevoked(serviceId: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(connectedServices)
+    .set({ status: "revoked" })
+    .where(eq(connectedServices.id, serviceId));
+}
+
 export async function updateGrantedScopes(
   serviceId: string,
   grantedScopes: string[],

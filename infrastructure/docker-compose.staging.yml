@@ -60,6 +60,8 @@ services:
       WAHOO_CLIENT_ID: ""
       WAHOO_CLIENT_SECRET: ""
       WAHOO_WEBHOOK_TOKEN: ""
+      GARMIN_CLIENT_ID: ${GARMIN_CLIENT_ID:-}
+      GARMIN_CLIENT_SECRET: ${GARMIN_CLIENT_SECRET:-}
       DEMO_BOT_ENABLED: ""
       # Federation (social-federation rollout). Enabled by cd-staging.yml
       # for persistent staging (12.2) and for PR previews (12.4 — every

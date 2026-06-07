@@ -5,6 +5,8 @@ import { requireSessionUser } from "~/lib/auth/session.server";
 import { getManifest, link } from "~/lib/connected-services";
 import {
   decodeOAuthState,
+  readPkceVerifier,
+  clearPkceCookieHeader,
 } from "~/lib/connected-services/oauth-state.server";
 import { pushRouteToProvider } from "~/lib/connected-services/push-action.server";
 
@@ -32,8 +34,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const origin = getOrigin();
   const redirectUri = `${origin}/api/sync/callback/${params.provider}`;
 
+  // PKCE providers: recover the verifier from the connect-time cookie.
+  const codeVerifier = manifest.pkce ? readPkceVerifier(request) : null;
+  if (manifest.pkce && !codeVerifier) {
+    return redirect(`${fallbackReturn}?error=sync_failed`);
+  }
+
   try {
-    const exchange = await manifest.exchangeCode(code, redirectUri);
+    const exchange = await manifest.exchangeCode(
+      code,
+      redirectUri,
+      codeVerifier ? { codeVerifier } : undefined,
+    );
     await link({
       userId: user.id,
       provider: manifest.id,
@@ -65,5 +77,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return redirect(`${target}?push=${outcome.status}`);
   }
 
-  return redirect(state.returnTo ?? "/settings");
+  return redirect(state.returnTo ?? "/settings", {
+    // Spent verifier — clear it regardless of which provider this was
+    // (harmless no-op for non-PKCE providers without the cookie).
+    headers: { "Set-Cookie": clearPkceCookieHeader() },
+  });
 }
