@@ -114,6 +114,10 @@ jobs:
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            # Abort the deploy on the first failure. Without this, a failed
+            # schema push deploys new code against an old schema (the
+            # 2026-06-06 schema-drift incident).
+            set -euo pipefail
             cd /opt/trails-cool
 
             # Login to ghcr.io
@@ -125,10 +129,33 @@ jobs:
             # Hand-written data migrations (idempotent) run BEFORE drizzle-kit
             # push so unique-key reshapes can collapse duplicate rows first.
             docker compose --env-file app.env run --rm journal node --experimental-strip-types /app/packages/db/src/migrate-data.ts
-            docker compose --env-file app.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            # drizzle-kit exits 0 even when it aborts on an interactive
+            # prompt it can't show (no TTY in CI) — that exact lie hid a
+            # month of staging schema drift. Treat any Error in its output
+            # as a failed deploy.
+            docker compose --env-file app.env run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force 2>&1 | tee /tmp/drizzle-push.log
+            if grep -q "Error:" /tmp/drizzle-push.log; then
+              echo "drizzle-kit push reported an error — failing the deploy"
+              exit 1
+            fi
             # --remove-orphans cleans up containers whose service was deleted
             # from the compose file, matching cd-infra's behaviour.
             docker compose --env-file app.env up -d --remove-orphans journal planner
+
+            # Gate on container health: a deploy that leaves journal or
+            # planner unhealthy must fail loudly, not report green.
+            for svc in journal planner; do
+              for i in $(seq 1 24); do
+                status=$(docker inspect -f '{{.State.Health.Status}}' "trails-cool-$svc-1" 2>/dev/null || echo missing)
+                [ "$status" = "healthy" ] && break
+                sleep 5
+              done
+              if [ "$status" != "healthy" ]; then
+                echo "$svc did not become healthy (last status: $status)"
+                docker compose --env-file app.env logs "$svc" --tail 50 || true
+                exit 1
+              fi
+            done
 
             # Reload Caddy with the Caddyfile we just scp'd. cd-apps
             # ships infrastructure/Caddyfile alongside docker-compose.yml

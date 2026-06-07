@@ -64,6 +64,11 @@ jobs:
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            # Abort on first failure. The 2026-06-06/07 outage: a network
+            # recreation stopped postgres, a later step failed, and the
+            # deploy left production down for ~9h while the job's partial
+            # progress looked plausible. Fail fast, verify health at the end.
+            set -euo pipefail
             cd /opt/trails-cool
 
             # .env was placed by the SCP step (decrypted app + infra secrets)
@@ -92,6 +97,22 @@ jobs:
             fi
 
             docker compose ps
+
+            # Gate on the stack actually being up: postgres healthy and —
+            # since an infra restart bounces the app containers' database —
+            # journal back to healthy too. A deploy that leaves either down
+            # must fail loudly (see the 2026-06-06/07 outage).
+            for ctr in trails-cool-postgres-1 trails-cool-journal-1; do
+              for i in $(seq 1 36); do
+                status=$(docker inspect -f '{{.State.Health.Status}}' "$ctr" 2>/dev/null || echo missing)
+                [ "$status" = "healthy" ] && break
+                sleep 5
+              done
+              if [ "$status" != "healthy" ]; then
+                echo "$ctr did not become healthy (last status: $status)"
+                exit 1
+              fi
+            done
 
             # Annotate deploy in Grafana
             GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env | cut -d= -f2-)
