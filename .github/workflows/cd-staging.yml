@@ -195,6 +195,13 @@ jobs:
             # via cd-infra) are live. Idempotent.
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
 
+            # Reclaim superseded image layers. cd-apps prunes after its own
+            # deploys, but a day of staging/preview deploys while cd-apps is
+            # red can fill the disk on its own (2026-06-07: 100% full,
+            # postgres down). The 1h filter avoids racing layers another
+            # in-flight deploy just pulled.
+            docker image prune -af --filter "until=1h" || true
+
             docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent ps
 
   # ── PR preview deploy ────────────────────────────────────────────────
@@ -355,6 +362,10 @@ jobs:
 
             # Reload Caddy to pick up the per-PR snippet (writes/replaces it from the SCP step)
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+
+            # Same disk-hygiene prune as the persistent staging deploy —
+            # preview pushes are the highest-volume image source.
+            docker image prune -af --filter "until=1h" || true
 
             docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" ps
 

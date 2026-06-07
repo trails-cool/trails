@@ -64,6 +64,23 @@ describe.runIf(runIntegration)("federation inbox (integration)", () => {
     expect(rows[0]!.acceptedAt).not.toBeNull();
   });
 
+  it("remote followers appear in the followers list (count/list consistency)", async () => {
+    const username = `fed-list-${Date.now()}`;
+    const userId = await makeUser({ username });
+    await recordRemoteFollow(REMOTE_ACTOR, username);
+
+    const { listFollowers, countFollowers } = await import("./follow.server.ts");
+    const [entries, total] = await Promise.all([listFollowers(userId), countFollowers(userId)]);
+    expect(total).toBe(1);
+    expect(entries).toHaveLength(1);
+    const entry = entries[0]!;
+    expect(entry.remote).toBe(true);
+    expect(entry.profileUrl).toBe(REMOTE_ACTOR);
+    // No remote_actors cache row in this test → identity parsed from the IRI.
+    expect(entry.username).toBe("alice");
+    expect(entry.domain).toBe("other-trails.example");
+  });
+
   it("inbound Follow is idempotent — replays don't double-insert", async () => {
     const username = `fed-replay-${Date.now()}`;
     const userId = await makeUser({ username });

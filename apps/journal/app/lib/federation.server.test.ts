@@ -95,12 +95,18 @@ describe("actor object", () => {
     expect(actor.preferredUsername).toBe("bruno");
     expect(actor.name).toBe("Bruno");
     expect(actor.summary).toBe("Riding bikes");
-    // Profile-metadata field Mastodon renders ("this is a trails profile")
-    const attachments = Array.isArray(actor.attachment) ? actor.attachment : [actor.attachment];
-    const field = attachments.find((a: { type: string }) => a?.type === "PropertyValue");
-    expect(field?.name).toBe("🥾 trails.cool");
-    expect(field?.value).toContain('href="http://localhost:3000/users/bruno"');
-    expect(field?.value).toContain('rel="me"');
+    // Profile-metadata fields Mastodon renders ("this is a trails
+    // profile"). MUST serialize as a JSON array — Mastodon's parser
+    // silently ignores a bare attachment object, which is what Fedify
+    // compacts single-element arrays into (hence two fields).
+    expect(Array.isArray(actor.attachment)).toBe(true);
+    const fields = actor.attachment.filter((a: { type: string }) => a?.type === "PropertyValue");
+    expect(fields.length).toBeGreaterThanOrEqual(2);
+    const trails = fields.find((f: { name: string }) => f.name === "🥾 trails.cool");
+    expect(trails?.value).toContain('href="http://localhost:3000/users/bruno"');
+    expect(trails?.value).toContain('rel="me"');
+    const instance = fields.find((f: { name: string }) => f.name === "Instance");
+    expect(instance?.value).toContain("localhost:3000");
   });
 
   it("404s the actor for a private user", async () => {
