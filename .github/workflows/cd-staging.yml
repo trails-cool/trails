@@ -181,7 +181,14 @@ jobs:
 
             # Pull and deploy staging containers (journal + planner via "persistent" profile)
             docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent pull
-            docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            # drizzle-kit exits 0 even when it aborts on an interactive
+            # prompt (no TTY in CI) — set -e alone can't catch it. That lie
+            # hid a month of staging schema drift (2026-06-06 incident).
+            docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force 2>&1 | tee /tmp/drizzle-push.log
+            if grep -q "Error:" /tmp/drizzle-push.log; then
+              echo "drizzle-kit push reported an error — failing the deploy"
+              exit 1
+            fi
             docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent up -d --remove-orphans
 
             # Reload Caddy so new staging routes (or Caddyfile changes shipped
@@ -337,7 +344,13 @@ jobs:
 
             # Pull, migrate, deploy (journal-only — no --profile means planner skipped)
             docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" pull journal
-            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force
+            # Same drizzle-kit exit-code-0-on-error guard as the persistent
+            # staging deploy above.
+            docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" run --rm journal npx drizzle-kit push --config /app/packages/db/drizzle.config.ts --force 2>&1 | tee /tmp/drizzle-push.log
+            if grep -q "Error:" /tmp/drizzle-push.log; then
+              echo "drizzle-kit push reported an error — failing the preview deploy"
+              exit 1
+            fi
             docker compose -f docker-compose.staging.yml -p "$PROJECT" --env-file "$ENV_FILE" up -d --remove-orphans journal
 
             # Reload Caddy to pick up the per-PR snippet (writes/replaces it from the SCP step)

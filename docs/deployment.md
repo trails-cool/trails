@@ -67,6 +67,41 @@ gh workflow run cd-infra.yml -f restart_all=true
 
 Restarts every flagship service. Does NOT touch the BRouter host.
 
+## Network-changing deploys (flagship)
+
+Changing options on an existing Docker network (`enable_ipv6`, subnets,
+drivers) requires Docker to **recreate** the network — and a network can
+only be recreated when *no* container from *any* compose project is
+attached. The flagship has three+ projects sharing `trails-shared`
+(production, persistent staging, every PR preview), and the CD workflows
+only manage their own project, so a network-option change shipped through
+`cd-infra` alone WILL deadlock mid-deploy and can leave production down
+(this is exactly the 2026-06-06/07 outage: postgres stopped for the
+recreation, the deploy failed on the held network, nothing restarted it
+for ~9 hours).
+
+The manual procedure, in order, on the flagship:
+
+```bash
+cd /opt/trails-cool
+# 1. Free trails-shared: down every preview + persistent staging
+docker compose ls --filter name=trails-pr- --format json   # enumerate previews
+docker compose -f docker-compose.staging.yml -p trails-pr-<N> --env-file staging-pr-<N>.env down
+docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent down
+# 2. Recreate networks via the production project
+docker compose --env-file app.env down
+docker compose --env-file app.env up -d
+# 3. Bring staging + previews back
+docker compose -f docker-compose.staging.yml -p trails-staging --env-file staging.env --profile persistent up -d
+docker compose -f docker-compose.staging.yml -p trails-pr-<N> --env-file staging-pr-<N>.env up -d
+# 4. Verify
+docker network inspect trails-cool_default trails-shared --format '{{.Name}} ipv6={{.EnableIPv6}}'
+curl -sf https://trails.cool/api/health && curl -sf https://staging.trails.cool/api/health
+```
+
+Plan it as a short maintenance window (~2–3 min downtime); don't ship
+network-option changes expecting the workflows to apply them.
+
 ## cd-brouter manual trigger
 
 ```bash
