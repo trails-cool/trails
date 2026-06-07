@@ -65,11 +65,15 @@ BEGIN
     ALTER COLUMN status SET NOT NULL;
 
   -- 5. CHECK constraints. Drop-then-add for idempotency.
+  -- 'public' = credential-less public-profile connection (Komoot public
+  -- mode, api.sync.komoot.verify.ts). It was missing from the original
+  -- list, which made this migration fail against production data on
+  -- 2026-06-07 (a komoot public connection existed) and block cd-apps.
   ALTER TABLE journal.connected_services
     DROP CONSTRAINT IF EXISTS connected_services_credential_kind_check;
   ALTER TABLE journal.connected_services
     ADD CONSTRAINT connected_services_credential_kind_check
-    CHECK (credential_kind IN ('oauth', 'web-login', 'device'));
+    CHECK (credential_kind IN ('oauth', 'web-login', 'device', 'public'));
 
   ALTER TABLE journal.connected_services
     DROP CONSTRAINT IF EXISTS connected_services_status_check;
