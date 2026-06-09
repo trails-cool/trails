@@ -257,6 +257,17 @@ The shared file `infrastructure/docker-compose.staging.yml` covers both — env 
 
 **Debugging.** SSH to the flagship (`ssh -i ~/.ssh/trails-cool-deploy root@trails.cool`) and run `docker compose -f docker-compose.staging.yml -p trails-pr-<N> logs -f` to tail a preview. `docker compose ls --filter name=trails-pr-` shows everything currently up.
 
+## Agent Skills & Config
+
+Skills are stored in `.agents/skills/` — the cross-agent convention (works with pi, Codex, and Claude Code via symlink).
+
+```
+.agents/skills/          ← canonical location
+.claude/skills           ← symlink → ../.agents/skills
+```
+
+Both `.agents/` and `.claude/` also carry agent-specific config (commands, plugins, settings). Check them into version control so all agents see the same setup.
+
 ## OpenSpec Workflow
 
 Specs live in `openspec/`. Use these slash commands:
