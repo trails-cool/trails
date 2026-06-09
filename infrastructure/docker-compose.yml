@@ -201,7 +201,13 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
-      - "--storage.tsdb.retention.size=1GB"
+      # Size-based retention is a disk-safety backstop, not the primary
+      # policy (time=15d is). It counts the WAL toward the budget, so a
+      # too-small cap makes Prometheus delete freshly-compacted blocks on
+      # creation — which it did at 1GB, leaving only the ~2h head block
+      # queryable (a stuck/corrupt WAL had bloated to 2.1GB). 6GB holds
+      # ~15d of metrics at current cardinality with headroom; disk is 38G.
+      - "--storage.tsdb.retention.size=6GB"
 
   loki:
     image: grafana/loki:latest
