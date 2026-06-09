@@ -236,6 +236,67 @@ groups:
         annotations:
           summary: "Caddy is returning 502 errors — journal or planner upstream unreachable"
 
+      # Prometheus self-health. A corrupt WAL segment once made every
+      # compaction fail for days, silently collapsing metric retention to
+      # the ~2h head block (size-retention kept deleting fresh blocks).
+      # This fires on any compaction failure OR WAL corruption in the last
+      # hour. Depends on the `prometheus` self-scrape job.
+      - uid: prometheus-compaction-failing
+        title: Prometheus TSDB compaction failing
+        condition: B
+        noDataState: OK
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: increase(prometheus_tsdb_compactions_failed_total[1h]) + increase(prometheus_tsdb_wal_corruptions_total[1h])
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 10m
+        annotations:
+          summary: "Prometheus TSDB compaction or WAL is failing — metric retention is at risk. Check the WAL for a corrupt segment (this silently capped retention to ~2h before)."
+
+      # Overpass upstream health. The public Overpass servers the Planner
+      # proxies to (overpass-api.de / lz4) flake — rate-limiting (429) and
+      # stalls. This alerts on a *sustained* upstream failure rate (>20%
+      # over 10m), distinct from the Caddy-502 alert which only sees the
+      # symptom. Brief blips (e.g. the ~30s stall on 2026-06-08) won't
+      # page; sustained degradation will. client-abort is excluded (that's
+      # the caller giving up, not the upstream failing). Per-status detail
+      # lives on the Planner dashboard.
+      - uid: overpass-upstream-unhealthy
+        title: Overpass upstream failure rate high
+        condition: B
+        noDataState: OK
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: (sum(rate(overpass_upstream_requests_total{status!~"2..|client-abort"}[10m])) or vector(0)) / clamp_min(sum(rate(overpass_upstream_requests_total[10m])), 0.001) * 100
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { params: [20], type: gt }
+                  operator: { type: and }
+                  reducer: { type: last }
+        for: 10m
+        annotations:
+          summary: "Overpass upstream failure rate above 20% over 10m — public Overpass servers are degraded or rate-limiting. See the Planner dashboard; weigh self-hosting Overpass."
+
 contactPoints:
   # Single "default" contact point with multiple integrations: every alert
   # fan-outs to both email and Pushover. Grafana resolves $VAR / ${VAR}

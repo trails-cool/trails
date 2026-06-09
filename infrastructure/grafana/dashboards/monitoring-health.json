@@ -1,0 +1,179 @@
+{
+  "title": "Monitoring Health",
+  "uid": "monitoring-health",
+  "description": "Self-health of the observability stack (Prometheus TSDB + Loki ingestion). Added after a corrupt Prometheus WAL silently collapsed metric retention to a ~2h window — these panels make that condition visible.",
+  "timezone": "browser",
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "Monitoring Components Up",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=~\"prometheus|loki|cadvisor|node|caddy|postgres\"}",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Prometheus — Compaction & WAL Failures (1h)",
+      "description": "Any non-zero value means the TSDB is failing to persist or truncate — the exact signature of the corrupt-WAL incident. The prometheus-compaction-failing alert watches this.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "increase(prometheus_tsdb_compactions_failed_total[1h])",
+          "legendFormat": "compaction failures"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "increase(prometheus_tsdb_wal_corruptions_total[1h])",
+          "legendFormat": "WAL corruptions"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "increase(prometheus_tsdb_wal_truncations_failed_total[1h])",
+          "legendFormat": "WAL truncation failures"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Prometheus — Retention Deletions / hour",
+      "description": "Blocks deleted by size- vs time-based retention. Sustained size-retention deletions with low data age means the size cap is too small (counts the WAL) — blocks get deleted on creation.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "increase(prometheus_tsdb_size_retentions_total[1h])",
+          "legendFormat": "size-based"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "increase(prometheus_tsdb_time_retentions_total[1h])",
+          "legendFormat": "time-based"
+        }
+      ]
+    },
+    {
+      "title": "Prometheus — Head Series (active cardinality)",
+      "description": "Active in-memory series. Watch this after dropping cAdvisor families / adding scrape targets.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "prometheus_tsdb_head_series",
+          "legendFormat": "head series"
+        }
+      ]
+    },
+    {
+      "title": "Prometheus — Samples Appended / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(prometheus_tsdb_head_samples_appended_total[5m])",
+          "legendFormat": "samples/s"
+        }
+      ]
+    },
+    {
+      "title": "Prometheus — Block Storage vs Retention Limit",
+      "description": "On-disk block bytes against the configured size-retention limit. If block bytes track the limit while data age stays low, the cap is too tight.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "prometheus_tsdb_storage_blocks_bytes",
+          "legendFormat": "block bytes"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "prometheus_tsdb_retention_limit_bytes",
+          "legendFormat": "size-retention limit"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Prometheus — Retention Depth (oldest sample age)",
+      "description": "How far back queryable metrics actually go. Should track ~15d once healthy; it sat near ~2h during the incident.",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "time() - prometheus_tsdb_lowest_timestamp_seconds",
+          "legendFormat": "oldest sample age"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 86400 },
+              { "color": "green", "value": 604800 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Loki — Lines Received / sec",
+      "description": "Log ingestion rate. A drop to zero means Promtail stopped shipping.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(loki_distributor_lines_received_total[5m]))",
+          "legendFormat": "lines/s"
+        }
+      ]
+    },
+    {
+      "title": "Loki — In-Memory Chunks",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(loki_ingester_memory_chunks)",
+          "legendFormat": "memory chunks"
+        }
+      ]
+    }
+  ]
+}
