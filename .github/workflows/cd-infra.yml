@@ -43,7 +43,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile,infrastructure/prometheus/prometheus.yml,infrastructure/loki/loki-config.yml,infrastructure/promtail/promtail-config.yml,infrastructure/postgres/queries.yml,infrastructure/postgres/init-grafana-user.sql,infrastructure/grafana/provisioning,infrastructure/grafana/dashboards"
+          source: "infrastructure/docker-compose.yml,infrastructure/caddy,infrastructure/prometheus/prometheus.yml,infrastructure/loki/loki-config.yml,infrastructure/promtail/promtail-config.yml,infrastructure/postgres/queries.yml,infrastructure/postgres/init-grafana-user.sql,infrastructure/grafana/provisioning,infrastructure/grafana/dashboards"
           target: /opt/trails-cool
           strip_components: 1
 
@@ -88,13 +88,24 @@ jobs:
             if [ "${{ github.event.inputs.restart_all }}" = "true" ]; then
               docker compose --env-file .env up -d --remove-orphans
             else
-              # Restart infra services (except Caddy — just reload its config).
+              # Restart infra services (config reloads handled below).
               # --remove-orphans cleans up containers whose service was deleted
               # from the compose file (e.g., the flagship `brouter` removal in
               # PR #297 left an orphan that had to be removed by hand).
               docker compose --env-file .env up -d --remove-orphans postgres prometheus loki promtail grafana postgres-exporter node-exporter cadvisor
-              docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
             fi
+
+            # Apply config-only changes that `up -d` skips — it recreates a
+            # container only when its compose *definition* changes, not when a
+            # mounted config file's content changes. The configs are mounted as
+            # directories (not single files), so a reload/restart re-reads the
+            # freshly scp'd file; a single-file mount would have pinned the old
+            # inode. Prometheus hot-reloads on SIGHUP (zero downtime); Loki and
+            # Promtail reload their main config only on restart; Caddy reloads
+            # gracefully (validates, swaps live, no downtime).
+            docker compose --env-file .env kill -s SIGHUP prometheus
+            docker compose --env-file .env restart loki promtail
+            docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
 
             docker compose ps
 
