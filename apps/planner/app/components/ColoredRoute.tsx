@@ -11,7 +11,11 @@ import {
   elevationColor, routeGradeColor, maxspeedColor,
 } from "@trails-cool/map-core";
 
-export type ColorMode = "plain" | "elevation" | "surface" | "grade" | "highway" | "maxspeed" | "smoothness" | "tracktype" | "cycleway" | "bikeroute";
+import type { ColorMode } from "~/lib/route-data";
+
+// ColorMode lives in the routeData schema module; re-exported here for
+// existing importers.
+export type { ColorMode };
 
 interface ColoredRouteProps {
   coordinates: [number, number, number][]; // [lon, lat, ele]

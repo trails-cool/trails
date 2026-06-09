@@ -1,10 +1,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
-import { generateGpx } from "@trails-cool/gpx";
-import type { TrackPoint, NoGoArea } from "@trails-cool/gpx";
-import { waypointFromYMap } from "~/lib/waypoint-ymap";
+import { buildPlanGpx } from "~/lib/gpx-export";
 
 interface SaveToJournalButtonProps {
   yjs: YjsState;
@@ -23,28 +20,9 @@ export function SaveToJournalButton({ yjs, sessionId, returnUrl }: SaveToJournal
     setError(null);
 
     try {
-      // Build GPX from computed track with planning data (no-go areas)
-      // so the route round-trips correctly through the journal.
-      let tracks: TrackPoint[][] = [];
-      const geojsonStr = yjs.routeData.get("geojson") as string | undefined;
-      if (geojsonStr) {
-        try {
-          const geojson = JSON.parse(geojsonStr);
-          const coords: number[][] = geojson.features?.[0]?.geometry?.coordinates ?? [];
-          if (coords.length > 0) {
-            tracks = [coords.map((c) => ({ lat: c[1]!, lon: c[0]!, ele: c[2] }))];
-          }
-        } catch { /* invalid geojson */ }
-      }
-
-      const noGoAreas: NoGoArea[] = yjs.noGoAreas.toArray().map((yMap: Y.Map<unknown>) => ({
-        points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
-      })).filter((a) => a.points.length >= 3);
-
-      const waypoints = yjs.waypoints.toArray().map(waypointFromYMap);
-
-      const notes = yjs.notes.toString() || undefined;
-      const gpx = generateGpx({ name: "trails.cool route", description: notes, waypoints, tracks, noGoAreas });
+      // Full plan GPX (track + waypoints + no-go areas + notes) so the
+      // route round-trips correctly through the journal.
+      const gpx = buildPlanGpx(yjs);
 
       // POST to the planner's server-side proxy. The proxy attaches the
       // journal Bearer token (stored on the session row) and forwards
