@@ -31,6 +31,11 @@ export async function loadFeed(request: Request) {
       geojson: a.geojson ?? null,
       ownerUsername: a.ownerUsername,
       ownerDisplayName: a.ownerDisplayName,
+      // Remote (federated) attribution — only the followed view can
+      // contain remote rows; the public view is local-only.
+      ownerDomain: "ownerDomain" in a ? a.ownerDomain : null,
+      externalUrl: "externalUrl" in a ? a.externalUrl : null,
+      remote: "remote" in a ? a.remote : false,
     })),
   };
 }

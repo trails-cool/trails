@@ -192,7 +192,7 @@ export default {
         },
         federation: {
           title: "Föderiert by design",
-          body: "Deine Journal-Instanz spricht via ActivityPub mit anderen trails.cool-Servern. Folge Freundinnen und Freunden überall.",
+          body: "Teil des Fediverse via ActivityPub: Mastodon-Nutzer:innen können dir folgen und deine öffentlichen Aktivitäten sehen, und du folgst trails-Nutzer:innen auf jeder Instanz.",
         },
         ownership: {
           title: "Deine Daten, immer",
@@ -321,6 +321,19 @@ export default {
         count_other: "Folgt {{count}}",
         empty: "Folgt noch niemandem.",
       },
+      outgoing: {
+        heading: "Folgen über Instanzen hinweg",
+        subtitle: "Folge Leuten auf anderen trails.cool-Instanzen. Anfragen bleiben ausstehend, bis ihre Instanz sie annimmt.",
+        handleLabel: "Handle der Person",
+        followButton: "Folgen",
+        pendingBadge: "Ausstehend",
+        acceptedBadge: "Folge ich",
+        cancelRequest: "Anfrage zurückziehen",
+        unfollow: "Entfolgen",
+        empty: "Noch keine Follows auf anderen Instanzen. Gib oben ein Handle ein, um zu starten.",
+        notTrails: "Ausgehende Föderation ist derzeit nur zwischen trails-Instanzen möglich — diese Instanz nutzt kein trails.cool.",
+        disabled: "Föderation ist auf dieser Instanz nicht aktiviert.",
+      },
       prevPage: "Zurück",
       nextPage: "Weiter",
       pageOfTotal: "Seite {{page}} von {{totalPages}}",
@@ -328,6 +341,7 @@ export default {
         title: "Feed",
         heading: "Folge ich",
         empty: "Du folgst noch niemandem. Stöbere Profile durch und klicke auf Folgen, um deinen Feed aufzubauen.",
+        followRemote: "Folge jemandem auf einer anderen trails-Instanz →",
         seePublic: "Oder durchstöbere den öffentlichen Feed dieser Instanz →",
         toggle: {
           followed: "Folge ich",
@@ -464,6 +478,29 @@ export default {
       },
     },
     sync: {
+      garmin: {
+        title: "Von Garmin importieren",
+        subtitle:
+          "Garmin liefert Aktivitäten automatisch an trails.cool, sobald sie entstehen. Für ältere Aktivitäten fordere unten einen Zeitraum an — Garmin liefert sie asynchron nach.",
+        notConnected: "Dein Garmin-Konto ist noch nicht verbunden.",
+        goConnect: "Garmin in den Einstellungen verbinden",
+        needsRelink: "Deine Garmin-Verbindung muss neu verknüpft werden, bevor du Importe anfordern kannst.",
+        from: "Von",
+        to: "Bis",
+        request: "Import anfordern",
+        requesting: "Wird angefordert…",
+        requested: "Angefordert! Aktivitäten erscheinen, sobald Garmin sie liefert.",
+        asyncNote:
+          "Garmin verarbeitet Verlaufs-Anfragen auf ihrer Seite — große Zeiträume können dauern. Überlappende Zeiträume erneut anzufordern ist unproblematisch; nichts wird doppelt importiert.",
+        importedSince_one: "{{count}} Aktivität seit dieser Anfrage importiert",
+        importedSince_other: "{{count}} Aktivitäten seit dieser Anfrage importiert",
+        errors: {
+          not_connected: "Dein Garmin-Konto ist nicht verbunden.",
+          needs_relink: "Deine Garmin-Verbindung muss zuerst neu verknüpft werden.",
+          invalid_range: "Wähle einen gültigen Zeitraum in der Vergangenheit (Start vor Ende).",
+          request_failed: "Garmin hat die Anfrage abgelehnt — versuche es in ein paar Minuten erneut.",
+        },
+      },
       import: "Importieren",
       importFrom: "Import von {{provider}}",
       imported: "Importiert",

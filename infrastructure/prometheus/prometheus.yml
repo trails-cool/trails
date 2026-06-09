@@ -1,6 +1,10 @@
 global:
-  scrape_interval: 5s
-  evaluation_interval: 5s
+  # 20s is plenty of resolution for a single-box self-hosted deployment.
+  # The previous 5s tripled (vs the 15s default) the sample volume and
+  # WAL growth for no practical benefit; all alert/recording rules use
+  # [5m] windows and `for:` >= 1m, so 20s evaluation is fine.
+  scrape_interval: 20s
+  evaluation_interval: 20s
 
 scrape_configs:
   - job_name: "journal"
@@ -24,10 +28,34 @@ scrape_configs:
   - job_name: "cadvisor"
     static_configs:
       - targets: ["cadvisor:8080"]
+    # cAdvisor emits ~100 per-container metric families; our dashboards
+    # and alerts only use CPU, memory, and container_start_time. Drop the
+    # high-cardinality families we never query (per-filesystem, block-IO,
+    # per-task state, memory-failure counters, socket tables). These
+    # dominated the ~12k active series — dropping them is the main
+    # cardinality cut. Add a name back here if you start charting it.
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_(fs_.*|blkio_.*|tasks_state|memory_failures_total|memory_numa_.*|network_tcp.*|network_udp.*)'
+        action: drop
 
   - job_name: "caddy"
     static_configs:
       - targets: ["caddy:2019"]
+
+  # Self-monitoring. Prometheus did not scrape its own /metrics, so TSDB
+  # health (compaction failures, WAL corruption, head series, retention
+  # deletions) was invisible — which is how a corrupt WAL silently
+  # collapsed retention to a ~2h window for days. Scraping itself + Loki
+  # surfaces that on the "Monitoring Health" dashboard and the
+  # prometheus-compaction-failing alert.
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "loki"
+    static_configs:
+      - targets: ["loki:3100"]
 
   # BRouter runs on a separate Hetzner Robot host (ullrich.is), reached
   # over the vSwitch at 10.0.1.10. cAdvisor there is scoped to trails-
@@ -38,3 +66,8 @@ scrape_configs:
       - targets: ["10.0.1.10:8080"]
         labels:
           host: "brouter"
+    # Same high-cardinality drop as the local cadvisor job above.
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_(fs_.*|blkio_.*|tasks_state|memory_failures_total|memory_numa_.*|network_tcp.*|network_udp.*)'
+        action: drop

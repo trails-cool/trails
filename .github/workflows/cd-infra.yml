@@ -43,7 +43,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile,infrastructure/prometheus/prometheus.yml,infrastructure/loki/loki-config.yml,infrastructure/promtail/promtail-config.yml,infrastructure/postgres/queries.yml,infrastructure/postgres/init-grafana-user.sql,infrastructure/grafana/provisioning,infrastructure/grafana/dashboards"
+          source: "infrastructure/docker-compose.yml,infrastructure/caddy,infrastructure/prometheus/prometheus.yml,infrastructure/loki/loki-config.yml,infrastructure/promtail/promtail-config.yml,infrastructure/postgres/queries.yml,infrastructure/postgres/init-grafana-user.sql,infrastructure/grafana/provisioning,infrastructure/grafana/dashboards"
           target: /opt/trails-cool
           strip_components: 1
 
@@ -84,24 +84,48 @@ jobs:
               docker compose exec -T postgres psql -U trails -d trails -c "ALTER ROLE grafana_reader PASSWORD '$GRAFANA_DB_PW'" 2>/dev/null || true
             fi
 
+            # Capture whether prometheus was recreated. A fresh container already
+            # reads the new config on startup; sending it SIGHUP immediately can
+            # kill Prometheus 3.10 during early boot (exit 2 observed on
+            # 2026-06-09).
+            PROMETHEUS_BEFORE_ID=$(docker inspect -f '{{.Id}}' trails-cool-prometheus-1 2>/dev/null || true)
+
             # Full restart: gh workflow run cd-infra.yml -f restart_all=true
             if [ "${{ github.event.inputs.restart_all }}" = "true" ]; then
               docker compose --env-file .env up -d --remove-orphans
             else
-              # Restart infra services (except Caddy — just reload its config).
+              # Restart infra services (config reloads handled below).
               # --remove-orphans cleans up containers whose service was deleted
               # from the compose file (e.g., the flagship `brouter` removal in
               # PR #297 left an orphan that had to be removed by hand).
               docker compose --env-file .env up -d --remove-orphans postgres prometheus loki promtail grafana postgres-exporter node-exporter cadvisor
-              docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
             fi
+
+            PROMETHEUS_AFTER_ID=$(docker inspect -f '{{.Id}}' trails-cool-prometheus-1 2>/dev/null || true)
+
+            # Apply config-only changes that `up -d` skips — it recreates a
+            # container only when its compose *definition* changes, not when a
+            # mounted config file's content changes. The configs are mounted as
+            # directories (not single files), so a reload/restart re-reads the
+            # freshly scp'd file; a single-file mount would have pinned the old
+            # inode. Prometheus hot-reloads on SIGHUP (zero downtime) only when
+            # the same container stayed up; a recreated container already loaded
+            # the new config on startup. Loki and Promtail reload their main
+            # config only on restart; Caddy reloads gracefully (validates, swaps
+            # live, no downtime).
+            if [ -n "$PROMETHEUS_BEFORE_ID" ] && [ "$PROMETHEUS_BEFORE_ID" = "$PROMETHEUS_AFTER_ID" ]; then
+              docker compose --env-file .env kill -s SIGHUP prometheus
+            fi
+            docker compose --env-file .env restart loki promtail
+            docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
 
             docker compose ps
 
-            # Gate on the stack actually being up: postgres healthy and —
-            # since an infra restart bounces the app containers' database —
-            # journal back to healthy too. A deploy that leaves either down
-            # must fail loudly (see the 2026-06-06/07 outage).
+            # Gate on the stack actually being up: postgres healthy, journal
+            # back to healthy after the DB bounce, and Prometheus answering
+            # /-/ready. A deploy that leaves any of them down must fail loudly
+            # (see the 2026-06-06/07 outage, plus the 2026-06-09 Prometheus
+            # startup/HUP regression).
             for ctr in trails-cool-postgres-1 trails-cool-journal-1; do
               for i in $(seq 1 36); do
                 status=$(docker inspect -f '{{.State.Health.Status}}' "$ctr" 2>/dev/null || echo missing)
@@ -113,6 +137,23 @@ jobs:
                 exit 1
               fi
             done
+
+            PROMETHEUS_READY=
+            for i in $(seq 1 36); do
+              prom_status=$(docker inspect -f '{{.State.Status}}' trails-cool-prometheus-1 2>/dev/null || echo missing)
+              if [ "$prom_status" = "running" ]; then
+                prom_ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' trails-cool-prometheus-1)
+                if curl -sf "http://$prom_ip:9090/-/ready" >/dev/null; then
+                  PROMETHEUS_READY=1
+                  break
+                fi
+              fi
+              sleep 5
+            done
+            if [ -z "$PROMETHEUS_READY" ]; then
+              echo "trails-cool-prometheus-1 did not become ready (last status: $prom_status)"
+              exit 1
+            fi
 
             # Annotate deploy in Grafana
             GRAFANA_TOKEN=$(grep GRAFANA_SERVICE_TOKEN .env | cut -d= -f2-)

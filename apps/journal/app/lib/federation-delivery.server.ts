@@ -124,10 +124,11 @@ export async function getCachedRemoteActor(actorIri: string): Promise<CachedRemo
   return row ?? null;
 }
 
-/** Upsert the fields delivery learns about a remote actor. */
+/** Upsert the fields delivery/polling learn about a remote actor. */
 export async function upsertRemoteActor(fields: {
   actorIri: string;
   inboxUrl?: string | null;
+  outboxUrl?: string | null;
   displayName?: string | null;
   username?: string | null;
   domain?: string | null;

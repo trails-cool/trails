@@ -261,6 +261,22 @@ export default function PrivacyPage() {
             geplant.
           </li>
           <li>
+            <strong>Föderation (ActivityPub)</strong> – Wenn Ihr Profil auf{" "}
+            <code>public</code> steht, ist Ihr Konto über das
+            ActivityPub-Protokoll föderiert: Andere Server (z.&nbsp;B.
+            Mastodon-Instanzen oder andere trails.cool-Instanzen) können Ihr
+            öffentliches Profil (Anzeigename, Nutzername, Bio, öffentlicher
+            Signaturschlüssel) abrufen und Ihnen folgen. An die Server
+            angenommener Follower übermitteln wir Ihre als{" "}
+            <code>public</code> markierten Aktivitäten (Titel, Statistiken,
+            Link). Diese Server liegen außerhalb unserer Kontrolle; was dort
+            mit zugestellten Inhalten geschieht (Speicherung, Anzeige,
+            Weiterverbreitung), richtet sich nach deren Richtlinien.
+            Rechtsgrundlage ist Ihre Einwilligung durch das aktive
+            Veröffentlichen (Art. 6 Abs. 1 lit. a DSGVO). Private Profile
+            föderieren nicht.
+          </li>
+          <li>
             <strong>BRouter</strong> – Routenberechnung läuft auf einer von uns
             selbst gehosteten Instanz. Keine Weitergabe an Dritte.
           </li>
@@ -294,6 +310,21 @@ export default function PrivacyPage() {
             getrennt werden.
           </li>
           <li>
+            <strong>Garmin</strong> (Garmin Ltd.) – Optionaler Import von
+            Aktivitäten aus Garmin Connect. Beim Verbinden werden
+            OAuth-Tokens ausgetauscht und die Garmin-Nutzer-ID gespeichert.
+            Garmin übermittelt anschließend neue Aktivitäten (inkl.
+            GPS-Aufzeichnung als FIT-Datei) automatisch an diese Instanz;
+            ältere Aktivitäten nur auf Ihre ausdrückliche Anforderung
+            (Zeitraum-Import). Es werden keine Gesundheitsdaten (Schlaf,
+            Herzfrequenz-Tageswerte o.&nbsp;ä.) abgerufen — nur Aktivitäten.
+            Widerrufen Sie den Zugriff bei Garmin oder trennen Sie die
+            Verbindung in den Einstellungen, endet die Übermittlung sofort;
+            bereits importierte Aktivitäten bleiben in Ihrem Journal und
+            können dort gelöscht werden. Es gilt die Datenschutzerklärung
+            von Garmin.
+          </li>
+          <li>
             <strong>Hosting</strong> – Die Dienste werden in Rechenzentren
             innerhalb der EU betrieben. Ein Auftragsverarbeitungsvertrag mit
             dem Hoster besteht.
@@ -311,7 +342,13 @@ export default function PrivacyPage() {
           Wahoo&rdquo; on a route — sent so the route appears on your
           ELEMNT/BOLT/ROAM); Komoot (only when you opt in: public mode
           stores your Komoot user ID only; authenticated mode stores your
-          encrypted Komoot password); hosting provider in the EU under a DPA.
+          encrypted Komoot password); Garmin (only when you opt in: OAuth
+          tokens and your Garmin user ID; Garmin then pushes new activities
+          including GPS files to this instance automatically, and older
+          activities only when you request a date range — activities only,
+          never health metrics; revoking at Garmin or disconnecting here
+          stops the flow immediately, imported activities stay yours);
+          hosting provider in the EU under a DPA.
         </p>
       </section>
 
@@ -448,6 +485,53 @@ export default function PrivacyPage() {
             renderers like future mobile push or email. Visible only to
             the recipient. Read notifications are deleted after 90 days;
             unread notifications are kept until you read them.
+          </li>
+        </ul>
+      </section>
+
+      <section className="mt-8">
+        <h3 className="text-xl font-semibold text-gray-900">
+          Federation (ActivityPub)
+        </h3>
+        <p className="mt-2 text-gray-700">
+          Applies only when your profile visibility is <code>public</code>.
+          Private profiles do not federate at all — no actor object, no
+          WebFinger, no inbox.
+        </p>
+        <ul className="mt-3 list-disc pl-6 text-gray-700 space-y-1">
+          <li>
+            Your actor object (fetchable by any fediverse server) exposes:
+            username, display name, bio, profile link, and your public
+            signing key. Never your email, never private content.
+          </li>
+          <li>
+            Activities you mark <code>public</code> are pushed to the
+            servers of your accepted remote followers and listed in your
+            public outbox. Once delivered, copies live on those servers
+            under their policies — un-publishing sends a retraction, but
+            remote deletion cannot be guaranteed (and remote servers that
+            processed a retraction will not re-show a later re-publish).
+          </li>
+          <li>
+            Signing keys: one RSA keypair per user. The private key is
+            stored encrypted at rest and never leaves this server.
+          </li>
+          <li>
+            Remote actor cache: for accounts that interact with this
+            instance we store their public profile basics (handle, display
+            name, inbox/outbox URLs, public key) to render follower lists
+            and feeds without re-fetching.
+          </li>
+          <li>
+            Remote content: public (or followers-only) activities from
+            trails users you follow on other instances are cached here for
+            your feed — followers-only items are shown only to the
+            follower whose follow brought them in.
+          </li>
+          <li>
+            Inbox traffic (signed requests from other servers) appears in
+            the standard server logs (14-day retention, see section 4) and
+            is rate-limited per source instance.
           </li>
         </ul>
       </section>

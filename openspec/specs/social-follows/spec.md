@@ -82,35 +82,23 @@ A signed-in user SHALL have an actionable surface listing every Pending follow r
 - **THEN** they are redirected to `/auth/login`
 
 ### Requirement: Social activity feed
-The Journal SHALL expose a feed at `/feed`, visible only to signed-in users, with two views selectable via `?view=`: **Followed** (default; public activities from the local users they follow with an accepted relation) and **Public** (instance-wide public activities — see `activity-feed` spec, "Instance-wide public activity feed"). The page SHALL render a tab/toggle at the top so the viewer can switch between the two views. `private` and `unlisted` activities SHALL NOT appear in either view. Pending follows SHALL NOT contribute content to the Followed view.
+The Journal SHALL expose a feed at `/feed`, visible only to signed-in users, listing activities from the users they follow with an accepted follow. The feed SHALL include `public` activities from any followed actor (local or remote) and SHALL include `followers-only` activities from a remote actor only for the specific local viewer who holds an accepted follow against that actor. `private` and (local) `unlisted` activities SHALL NOT appear regardless of follow state.
 
-#### Scenario: Followed view aggregates accepted-followed users' public activities
-- **WHEN** a signed-in user with one or more accepted follows loads `/feed` (or `/feed?view=followed`)
-- **THEN** the Followed view is selected and shows the most recent public activities across all accepted-followed users, reverse-chronological, up to 50 per page, with owner attribution, distance, date, and a map thumbnail
+#### Scenario: Feed aggregates local + remote public activities
+- **WHEN** a signed-in user with one or more accepted follows (mix of local + remote trails) loads `/feed`
+- **THEN** the page shows the most recent public activities across all followed actors, reverse-chronological, up to 50 per page
 
-#### Scenario: Public view aggregates instance-wide public activities
-- **WHEN** a signed-in user loads `/feed?view=public`
-- **THEN** the Public view is selected and shows the most recent public activities across the entire instance, reverse-chronological, up to 50 per page, regardless of follow state
+#### Scenario: Followers-only remote content reaches only the right viewer
+- **WHEN** two local users A and B exist; only A holds an accepted follow against remote actor X; X publishes a followers-only activity that lands in our cache via A's poll
+- **THEN** A sees the activity in `/feed` and B does not
 
-#### Scenario: Pending follows don't contribute to the Followed view
-- **WHEN** a signed-in user has only Pending follows (no acceptance yet) and loads the Followed view
-- **THEN** the view renders the empty state — no Pending-target content is fetched or shown
-
-#### Scenario: Empty Followed view links to the Public view
+#### Scenario: Empty feed state
 - **WHEN** a signed-in user with zero accepted follows loads `/feed`
-- **THEN** the Followed view shows an empty-state message and an in-page link to switch to the Public view (`?view=public`), so they can browse the instance without leaving `/feed`
+- **THEN** the page shows an empty-state message pointing them to follow someone
 
-#### Scenario: Empty Public view
-- **WHEN** the instance has zero public activities and a signed-in user loads `/feed?view=public`
-- **THEN** the Public view shows an empty-state message; no link to elsewhere is required
-
-#### Scenario: Unrecognized view value falls back to Followed
-- **WHEN** a signed-in user loads `/feed?view=<anything-other-than-public>`
-- **THEN** the loader treats the request as the Followed view (default) without raising an error — the parameter is opaque from the client's perspective
-
-#### Scenario: Logged-out visitor cannot access the feed
-- **WHEN** an unauthenticated visitor requests `/feed` (any view)
-- **THEN** they are redirected to `/auth/login`
+#### Scenario: Pending follows do not contribute to the feed
+- **WHEN** a signed-in user has only Pending outgoing follows
+- **THEN** the feed renders the empty state; no remote content is fetched or shown for that follow until `Accept(Follow)` lands
 
 ### Requirement: Schema is forward-compatible with federation
 The `follows` table SHALL key the followed side by an `actor_iri TEXT` column (not a plain user FK), so the `social-federation` change can store remote IRIs in the same column without migration. Local follows SHALL populate `actor_iri` with the local user's canonical actor IRI (`https://{DOMAIN}/users/{username}`).
@@ -151,3 +139,22 @@ The follow lifecycle SHALL produce notifications for the recipient of the social
 #### Scenario: Unfollow does not notify
 - **WHEN** a follower unfollows or cancels a Pending request
 - **THEN** no notification is created on the followed side
+
+### Requirement: Pending lifecycle for outbound trails-to-trails follows
+A follow row originated from a local user against a remote *trails* actor SHALL be created with `accepted_at = NULL` (Pending) until the remote's `Accept(Follow)` activity arrives at our inbox. The local user SHALL see the Pending state on the profile page and SHALL be able to cancel a Pending request, which deletes the row and delivers `Undo(Follow)` to the remote inbox.
+
+#### Scenario: Outbound follow enters Pending
+- **WHEN** a local user follows `@alice@other-trails.example`
+- **THEN** the follow row is created with `accepted_at = NULL`, a signed `Follow` is delivered to the remote inbox, and the profile button shows Pending
+
+#### Scenario: Pending → Accepted
+- **WHEN** the remote inbox returns `Accept(Follow)` for our outgoing Follow
+- **THEN** `accepted_at` is set to `now()`, an immediate one-off outbox-poll is enqueued for that actor, and the profile button transitions to Unfollow
+
+#### Scenario: Pending → Rejected
+- **WHEN** the remote inbox returns `Reject(Follow)` for our outgoing Follow
+- **THEN** the follow row is deleted and a small UI notice is surfaced on the user's outgoing-follows list
+
+#### Scenario: Cancel a Pending follow
+- **WHEN** the follower cancels a Pending request from the outgoing-follows list
+- **THEN** the follow row is deleted and an `Undo(Follow)` activity is delivered to the remote inbox

@@ -7,7 +7,16 @@ import { createNotification } from "./notifications.server.ts";
 import { logger } from "./logger.server.ts";
 
 export class FollowError extends Error {
-  readonly code: "self_follow" | "user_not_found" | "not_found" | "forbidden";
+  readonly code:
+    | "self_follow"
+    | "user_not_found"
+    | "not_found"
+    | "forbidden"
+    // outbound federation codes (federation-outbound.server.ts)
+    | "invalid_handle"
+    | "local_handle"
+    | "remote_resolve_failed"
+    | "not_trails";
   constructor(code: FollowError["code"], message: string) {
     super(message);
     this.name = "FollowError";

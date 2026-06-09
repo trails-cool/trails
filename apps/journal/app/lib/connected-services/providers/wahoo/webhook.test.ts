@@ -1,6 +1,6 @@
 // Contract tests for the Wahoo WebhookReceiver capability adapter.
 //
-// Seam: parseWebhook(body) -> WebhookEvent | null
+// Seam: parseWebhook(body) -> WebhookEvent[] (empty = nothing actionable)
 //       handle(event) -> void  (creates an activity if file present, dedups via sync_imports)
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -41,22 +41,24 @@ describe("wahooWebhook.parseWebhook", () => {
         file: { url: "https://cdn.example/42.fit" },
       },
     });
-    expect(event).toEqual({
-      eventType: "workout_summary",
-      providerUserId: "7",
-      workoutId: "42",
-      fileUrl: "https://cdn.example/42.fit",
-    });
+    expect(event).toEqual([
+      {
+        eventType: "workout_summary",
+        providerUserId: "7",
+        workoutId: "42",
+        fileUrl: "https://cdn.example/42.fit",
+      },
+    ]);
   });
 
-  it("returns null for unrecognized event types", () => {
-    expect(wahooWebhook.parseWebhook({ event_type: "other" })).toBeNull();
+  it("returns no events for unrecognized event types", () => {
+    expect(wahooWebhook.parseWebhook({ event_type: "other" })).toEqual([]);
   });
 
-  it("returns null when user.id is missing", () => {
+  it("returns no events when user.id is missing", () => {
     expect(
       wahooWebhook.parseWebhook({ event_type: "workout_summary", user: {} }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 });
 

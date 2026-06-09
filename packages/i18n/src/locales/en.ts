@@ -192,7 +192,7 @@ export default {
         },
         federation: {
           title: "Federated by design",
-          body: "Your Journal instance talks to other trails.cool servers via ActivityPub. Follow friends anywhere.",
+          body: "Part of the fediverse via ActivityPub: Mastodon users can follow you and see your public activities, and you can follow trails users on any instance.",
         },
         ownership: {
           title: "Your data, always",
@@ -321,6 +321,19 @@ export default {
         count_other: "Following {{count}}",
         empty: "Not following anyone yet.",
       },
+      outgoing: {
+        heading: "Following across instances",
+        subtitle: "Follow people on other trails.cool instances. Requests stay pending until their instance accepts.",
+        handleLabel: "Their handle",
+        followButton: "Follow",
+        pendingBadge: "Pending",
+        acceptedBadge: "Following",
+        cancelRequest: "Cancel request",
+        unfollow: "Unfollow",
+        empty: "No follows on other instances yet. Enter a handle above to start.",
+        notTrails: "Outbound federation is currently trails-to-trails only — that instance doesn't run trails.cool.",
+        disabled: "Federation is not enabled on this instance.",
+      },
       prevPage: "Previous",
       nextPage: "Next",
       pageOfTotal: "Page {{page}} of {{totalPages}}",
@@ -328,6 +341,7 @@ export default {
         title: "Feed",
         heading: "Following",
         empty: "You're not following anyone yet. Browse profiles and tap Follow to start building your feed.",
+        followRemote: "Follow someone on another trails instance →",
         seePublic: "Or browse the instance public feed →",
         toggle: {
           followed: "Following",
@@ -464,6 +478,29 @@ export default {
       },
     },
     sync: {
+      garmin: {
+        title: "Import from Garmin",
+        subtitle:
+          "Garmin delivers activities to trails.cool as they happen. To pull in your history, request a date range below — Garmin sends those activities over asynchronously.",
+        notConnected: "Your Garmin account isn't connected yet.",
+        goConnect: "Connect Garmin in settings",
+        needsRelink: "Your Garmin connection needs to be re-linked before requesting imports.",
+        from: "From",
+        to: "To",
+        request: "Request import",
+        requesting: "Requesting…",
+        requested: "Requested! Activities will appear as Garmin delivers them.",
+        asyncNote:
+          "Garmin processes history requests on their side — large ranges can take a while to arrive. Re-requesting an overlapping range is safe; nothing gets imported twice.",
+        importedSince_one: "{{count}} activity imported since this request",
+        importedSince_other: "{{count}} activities imported since this request",
+        errors: {
+          not_connected: "Your Garmin account isn't connected.",
+          needs_relink: "Your Garmin connection needs to be re-linked first.",
+          invalid_range: "Pick a valid date range in the past (start before end).",
+          request_failed: "Garmin rejected the request — try again in a few minutes.",
+        },
+      },
       import: "Import",
       importFrom: "Import from {{provider}}",
       imported: "Imported",

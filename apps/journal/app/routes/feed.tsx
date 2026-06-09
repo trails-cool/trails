@@ -81,13 +81,25 @@ export default function Feed({ loaderData }: Route.ComponentProps) {
               {t("social.feed.seePublic")}
             </Link>
           )}
+          {view === "followed" && (
+            <Link
+              to="/follows/outgoing"
+              className="mt-1 block text-sm text-blue-600 hover:underline"
+            >
+              {t("social.feed.followRemote")}
+            </Link>
+          )}
         </div>
       ) : (
         <ul className="mt-6 space-y-4">
           {activities.map((a) => (
             <li key={a.id}>
               <a
-                href={`/activities/${a.id}`}
+                // Remote (federated) activities link to their canonical
+                // page on the origin instance — there is no local detail
+                // page for them.
+                href={a.remote && a.externalUrl ? a.externalUrl : `/activities/${a.id}`}
+                {...(a.remote ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
               >
                 <div className="flex gap-4">
@@ -104,13 +116,22 @@ export default function Feed({ loaderData }: Route.ComponentProps) {
                     <div>
                       <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
                       <div className="mt-1 text-sm text-gray-500">
-                        <a
-                          href={`/users/${a.ownerUsername}`}
-                          className="hover:text-gray-700 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {a.ownerDisplayName ?? a.ownerUsername}
-                        </a>
+                        {a.remote ? (
+                          <span>
+                            {a.ownerDisplayName ?? a.ownerUsername ?? a.ownerDomain}
+                            {a.ownerUsername && a.ownerDomain && (
+                              <span className="text-gray-400"> @{a.ownerUsername}@{a.ownerDomain}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <a
+                            href={`/users/${a.ownerUsername}`}
+                            className="hover:text-gray-700 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {a.ownerDisplayName ?? a.ownerUsername}
+                          </a>
+                        )}
                         {" · "}
                         <ClientDate iso={a.startedAt ?? a.createdAt} />
                       </div>

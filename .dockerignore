@@ -1,0 +1,14 @@
+# Keep Docker build contexts small and hermetic. CI builds from a clean
+# checkout so this mostly matters for local builds (e2e/federation
+# harness), where node_modules would otherwise bloat the context to
+# gigabytes — and worse, `COPY . .` would overlay host-installed
+# node_modules over the image's own pnpm install.
+**/node_modules
+**/.turbo
+**/build
+**/.react-router
+.git
+e2e/results
+playwright-report
+test-results
+**/*.log

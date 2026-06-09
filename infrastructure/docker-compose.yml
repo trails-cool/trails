@@ -14,10 +14,17 @@ services:
     environment:
       DOMAIN: ${DOMAIN:-trails.cool}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # Per-PR staging snippets dropped in by cd-staging.yml. Bind mount
-      # auto-creates the host directory if it doesn't exist, so a fresh
-      # server doesn't need pre-provisioning.
+      # Mount the caddy/ DIRECTORY, not the Caddyfile directly. A single-
+      # file bind mount pins to the host file's inode at create time, so a
+      # deploy that replaces the file (scp) leaves the container reading the
+      # old inode — `caddy reload` then reloads stale config. A directory
+      # mount resolves children live, so reload picks up the new Caddyfile.
+      # The container path /etc/caddy/Caddyfile is unchanged.
+      - ./caddy:/etc/caddy:ro
+      # Per-PR staging snippets dropped in by cd-staging.yml, overlaid onto
+      # the read-only caddy dir above (caddy/sites/.gitkeep keeps the
+      # mountpoint present). Bind mount auto-creates the host directory if
+      # it doesn't exist, so a fresh server doesn't need pre-provisioning.
       - ./sites:/etc/caddy/sites:ro
       - caddy_data:/data
       - caddy_config:/config
@@ -53,6 +60,19 @@ services:
       WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
       WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
       WAHOO_WEBHOOK_TOKEN: ${WAHOO_WEBHOOK_TOKEN:-}
+      # Garmin Connect Developer Program keys (spec: garmin-import).
+      # Empty = the Garmin provider is hidden on /settings/connections.
+      GARMIN_CLIENT_ID: ${GARMIN_CLIENT_ID:-}
+      GARMIN_CLIENT_SECRET: ${GARMIN_CLIENT_SECRET:-}
+      # Federation (ActivityPub, social-federation rollout 12.5). Empty
+      # = off: every federation surface 404s — the safe self-host
+      # default. The flagship turns it on via cd-apps.yml (same pattern
+      # as IS_FLAGSHIP); the encryption key comes from SOPS. Rollback is
+      # dropping the flag and redeploying — instant, follow rows
+      # persist. See docs/deployment.md "Federation runbook".
+      FEDERATION_ENABLED: ${FEDERATION_ENABLED:-}
+      FEDERATION_KEY_ENCRYPTION_KEY: ${FEDERATION_KEY_ENCRYPTION_KEY:-}
+      FEDERATION_LOG_LEVEL: ${FEDERATION_LOG_LEVEL:-}
       INTEGRATION_SECRET: ${INTEGRATION_SECRET:?INTEGRATION_SECRET must be set in SOPS secrets.app.env}
       # Demo-activity-bot. Disabled by default everywhere; flip to "true"
       # only in prod. When unset, DEMO_BOT_PERSONA uses the built-in
@@ -174,8 +194,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
-    command: ["-config.file=/etc/promtail/config.yml"]
+      # Directory mount (not the file) so a deploy's replaced config is seen
+      # live and a SIGHUP reload picks it up — see the caddy note above.
+      - ./promtail:/etc/promtail:ro
+    command: ["-config.file=/etc/promtail/promtail-config.yml"]
     depends_on:
       - loki
 
@@ -183,20 +205,26 @@ services:
     image: prom/prometheus:latest
     restart: unless-stopped
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Directory mount (not the file) so config changes are seen live and a
+      # SIGHUP reload applies them without recreating the container — see the
+      # caddy note above. --config.file path below is unchanged.
+      - ./prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
-      - "--storage.tsdb.retention.size=1GB"
+      - "--storage.tsdb.retention.size=2GB"
 
   loki:
     image: grafana/loki:latest
     restart: unless-stopped
     volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      # Directory mount (not the file) so a replaced config is seen live —
+      # see the caddy note above. Loki only reloads its main config on
+      # restart (no SIGHUP), so cd-infra restarts loki rather than HUPs it.
+      - ./loki:/etc/loki:ro
       - loki_data:/loki
-    command: ["-config.file=/etc/loki/local-config.yaml"]
+    command: ["-config.file=/etc/loki/loki-config.yml"]
     # Publish only on the vSwitch IP so Promtail running on the
     # dedicated BRouter host can push logs in. Hetzner Cloud firewall
     # still blocks 3100 from the public internet. Internal services on

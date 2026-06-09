@@ -108,6 +108,24 @@ Inbound signature verification uses the actor's public key from their actor obje
 
 ## Implementation Decisions (made during apply)
 
+- **Cross-origin object references in Accept/Reject/Undo listeners**
+  (decided in task 11.4, 2026-06-07). When another *trails* instance
+  accepts our Follow, the embedded Follow inside its Accept is
+  cross-origin from the sender's perspective (the Follow's id lives on
+  OUR domain), so Fedify correctly distrusts the embedded copy and
+  re-fetches the id — but our Follow ids are fragment URIs
+  (`<actorIri>#follows/<uuid>`), and fetching one returns the actor
+  document, not a Follow. `getObject()` then yields a `Person` and the
+  listener used to bail silently. Mastodon never trips this because the
+  Accept it sends embeds its *own* (same-origin) Follow. Fix: listeners
+  fall back to the wire `objectId` — captured **before** `getObject()`,
+  which memoizes the fetched document and changes what `objectId`
+  reports — validated against our Follow-id shape plus the personal
+  inbox's `ctx.recipient`. Still forgery-safe: `settleOutgoingFollow`
+  only matches a Pending row toward the HTTP-Signature-authenticated
+  sender. Found by (and regression-covered in) the two-instance
+  harness, `e2e/federation/`.
+
 - **Inbound remote followers live in `follows` with a nullable `follower_id`**
   (decided in task 4.2, 2026-06-06). The original claim that `follows` was
   federation-ready only covered outbound; a remote follower has no local
@@ -147,13 +165,17 @@ Inbound signature verification uses the actor's public key from their actor obje
 
 ## Open Questions
 
-- **`activities.owner_id` is NOT NULL but remote-ingested rows have no local
-  owner** (surfaced during task 2.3, 2026-06-06). Options: make `owner_id`
-  nullable with a check constraint (`owner_id IS NOT NULL OR remote_actor_iri
-  IS NOT NULL`), or key remote rows purely off `remote_actor_iri` in a way
-  that never touches owner-joined queries. Decide in task 7.2 (ingestion)
-  before any remote row is written; the columns landed in 2.3 don't prejudge
-  either option.
+- ~~**`activities.owner_id` is NOT NULL but remote-ingested rows have no local
+  owner**~~ — **Resolved in task 7.2 (2026-06-07):** `owner_id` is nullable
+  with a check constraint enforcing exactly one of (`owner_id`,
+  `remote_actor_iri`) — the same pattern as `follows.follower_id` /
+  `follower_actor_iri`. Compiler-audited fallout: notification fan-out,
+  the Note object dispatcher, and the activity detail loader all
+  explicitly 404/skip remote rows (their canonical page is the origin
+  instance; the feed links outward). Every other surface joins `users`
+  on `owner_id` and excludes remote rows structurally. A
+  `remote_published_at` column carries the origin's publish time for
+  the §8 feed sort.
 
 - Custom AS extension for activity-type vs. plain `Create(Note)`? Mastodon will only render Notes; an extension type means non-trails clients see nothing useful. Lean toward `Create(Note)` with structured metadata in `attachment` so Mastodon shows the text + GPX link, and trails clients consuming the outbox can read the structured fields.
 - Per-instance inbox vs per-user inbox? Mastodon supports a "shared inbox" optimization. Worth doing for delivery efficiency once we have any volume; v1 can use per-user inboxes only.

@@ -47,6 +47,11 @@ test.describe("Social follows + /feed", () => {
     await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
   });
 
+  test("/follows/outgoing redirects anonymous visitors to login", async ({ page }) => {
+    await page.goto("/follows/outgoing");
+    await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10000 });
+  });
+
   test("/follows/requests redirects to /notifications?tab=requests", async ({ page, browser }) => {
     // The route was folded into the Notifications page as a tab. The
     // 301 still resolves; for anonymous visitors the notifications

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, isNotNull, sql } from "drizzle-orm";
+import { unionAll } from "drizzle-orm/pg-core";
 import { getDb } from "./db.ts";
-import { activities, routes, syncImports, users, follows } from "@trails-cool/db/schema/journal";
+import { activities, routes, syncImports, users, follows, remoteActors } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 import { validateGpx, writeGeom } from "./gpx-save.server.ts";
 import type { GpxData } from "./gpx-save.server.ts";
@@ -195,14 +196,25 @@ export async function listPublicActivitiesForOwner(
 }
 
 /**
- * Social feed: aggregated public activities from users that `followerId`
- * follows (accepted only). Reverse-chronological. Joins users for owner
- * attribution. Unlisted/private activities never appear, regardless of
- * follow state.
+ * Social feed (spec: social-federation §8): aggregated activities from
+ * actors that `followerId` follows with an *accepted* follow — local
+ * users and remote trails actors alike. Reverse-chronological on
+ * COALESCE(remote_published_at, created_at).
+ *
+ * Audience rules:
+ * - local rows: `visibility = 'public'` only (unlisted/private never
+ *   appear regardless of follow state)
+ * - remote rows: `audience = 'public'` or `followers-only` — the
+ *   latter gated structurally by joining the *viewer's own* accepted
+ *   follow against the originating actor (spec: "Followers-only remote
+ *   content reaches only the right viewer")
+ * Pending follows contribute nothing (accepted_at IS NOT NULL on both
+ * branches — previously missing on the local branch).
  */
 export async function listSocialFeed(followerId: string, limit: number = 50) {
   const db = getDb();
-  const rows = await db
+
+  const local = db
     .select({
       id: activities.id,
       name: activities.name,
@@ -211,8 +223,12 @@ export async function listSocialFeed(followerId: string, limit: number = 50) {
       duration: activities.duration,
       startedAt: activities.startedAt,
       createdAt: activities.createdAt,
-      ownerUsername: users.username,
-      ownerDisplayName: users.displayName,
+      sortTime: sql<Date>`${activities.createdAt}`.as("sort_time"),
+      ownerUsername: sql<string | null>`${users.username}`.as("owner_username"),
+      ownerDisplayName: sql<string | null>`${users.displayName}`.as("owner_display_name"),
+      ownerDomain: sql<string | null>`${users.domain}`.as("owner_domain"),
+      externalUrl: sql<string | null>`NULL`.as("external_url"),
+      remote: sql<boolean>`false`.as("remote"),
     })
     .from(activities)
     .innerJoin(follows, eq(follows.followedUserId, activities.ownerId))
@@ -220,14 +236,46 @@ export async function listSocialFeed(followerId: string, limit: number = 50) {
     .where(
       and(
         eq(follows.followerId, followerId),
+        isNotNull(follows.acceptedAt),
         eq(activities.visibility, "public"),
       ),
-    )
-    .orderBy(desc(activities.createdAt))
+    );
+
+  const remote = db
+    .select({
+      id: activities.id,
+      name: activities.name,
+      distance: activities.distance,
+      elevationGain: activities.elevationGain,
+      duration: activities.duration,
+      startedAt: activities.startedAt,
+      createdAt: activities.createdAt,
+      sortTime: sql<Date>`COALESCE(${activities.remotePublishedAt}, ${activities.createdAt})`.as("sort_time"),
+      ownerUsername: sql<string | null>`${remoteActors.username}`.as("owner_username"),
+      ownerDisplayName: sql<string | null>`${remoteActors.displayName}`.as("owner_display_name"),
+      ownerDomain: sql<string | null>`${remoteActors.domain}`.as("owner_domain"),
+      externalUrl: sql<string | null>`${activities.remoteOriginIri}`.as("external_url"),
+      remote: sql<boolean>`true`.as("remote"),
+    })
+    .from(activities)
+    .innerJoin(follows, eq(follows.followedActorIri, activities.remoteActorIri))
+    .leftJoin(remoteActors, eq(activities.remoteActorIri, remoteActors.actorIri))
+    .where(
+      and(
+        eq(follows.followerId, followerId),
+        isNotNull(follows.acceptedAt),
+        // public reaches every accepted follower; followers-only is
+        // already gated by joining the viewer's own accepted follow.
+        sql`${activities.audience} IN ('public', 'followers-only')`,
+      ),
+    );
+
+  const rows = await unionAll(local, remote)
+    .orderBy(sql`sort_time DESC`)
     .limit(limit);
 
-  const ids = rows.map((r) => r.id);
-  const geojsonMap = ids.length > 0 ? await getSimplifiedActivityGeojsonBatch(ids) : new Map();
+  const localIds = rows.filter((r) => !r.remote).map((r) => r.id);
+  const geojsonMap = localIds.length > 0 ? await getSimplifiedActivityGeojsonBatch(localIds) : new Map();
   return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
 }
 

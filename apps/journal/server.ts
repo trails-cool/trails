@@ -177,13 +177,16 @@ server.listen(port, async () => {
   const { importBatchesSweepJob } = await import("./app/jobs/import-batches-sweep.ts");
   const { sendWelcomeEmailJob } = await import("./app/jobs/send-welcome-email.ts");
   const { consumedJtiSweepJob } = await import("./app/jobs/consumed-jti-sweep.ts");
-  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob, importBatchesSweepJob, sendWelcomeEmailJob, consumedJtiSweepJob);
+  const { garminImportActivityJob } = await import("./app/jobs/garmin-import-activity.ts");
+  jobs.push(notificationsFanoutJob, notificationsPurgeJob, komootBulkImportJob, importBatchesSweepJob, sendWelcomeEmailJob, consumedJtiSweepJob, garminImportActivityJob);
   // Federation jobs — registered only when federation is on.
   if (process.env.FEDERATION_ENABLED === "true") {
     const { backfillUserKeypairsJob } = await import("./app/jobs/backfill-user-keypairs.ts");
     const { federationKvSweepJob } = await import("./app/jobs/federation-kv-sweep.ts");
     const { deliverActivityJob } = await import("./app/jobs/deliver-activity.ts");
-    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, deliverActivityJob);
+    const { pollRemoteActorJob } = await import("./app/jobs/poll-remote-actor.ts");
+    const { pollRemoteOutboxesJob } = await import("./app/jobs/poll-remote-outboxes.ts");
+    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, deliverActivityJob, pollRemoteActorJob, pollRemoteOutboxesJob);
   }
 
   const boss = createBoss(getDatabaseUrl());
