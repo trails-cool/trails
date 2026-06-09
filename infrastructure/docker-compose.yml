@@ -201,7 +201,7 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
-      - "--storage.tsdb.retention.size=1GB"
+      - "--storage.tsdb.retention.size=2GB"
 
   loki:
     image: grafana/loki:latest
