@@ -1,4 +1,4 @@
-FROM node:25-slim AS base
+FROM node:26-slim AS base
 # curl is used by the docker-compose healthcheck (node:25-slim is Debian
 # trixie-slim and ships neither curl nor wget by default).
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
