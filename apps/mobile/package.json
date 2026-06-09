@@ -41,7 +41,7 @@
     "@trails-cool/map-core": "workspace:*",
     "@trails-cool/sentry-config": "workspace:*",
     "@trails-cool/types": "workspace:*",
-    "expo": "~56.0.4",
+    "expo": "~56.0.9",
     "expo-constants": "~56.0.17",
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.19",
