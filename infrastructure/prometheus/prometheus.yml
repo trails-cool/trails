@@ -43,6 +43,20 @@ scrape_configs:
     static_configs:
       - targets: ["caddy:2019"]
 
+  # Self-monitoring. Prometheus did not scrape its own /metrics, so TSDB
+  # health (compaction failures, WAL corruption, head series, retention
+  # deletions) was invisible — which is how a corrupt WAL silently
+  # collapsed retention to a ~2h window for days. Scraping itself + Loki
+  # surfaces that on the "Monitoring Health" dashboard and the
+  # prometheus-compaction-failing alert.
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "loki"
+    static_configs:
+      - targets: ["loki:3100"]
+
   # BRouter runs on a separate Hetzner Robot host (ullrich.is), reached
   # over the vSwitch at 10.0.1.10. cAdvisor there is scoped to trails-
   # labeled containers only — we don't collect metrics for any of the
