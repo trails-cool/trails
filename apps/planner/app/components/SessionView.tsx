@@ -6,6 +6,7 @@ import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
 import { useYjs, type YjsState } from "~/lib/use-yjs";
 import { useRouting, type RouteError } from "~/lib/use-routing";
+import { getCoordinates } from "~/lib/route-data";
 import { useDays } from "~/lib/use-days";
 import { useUndo, useUndoShortcuts } from "~/lib/use-undo";
 import { ProfileSelector } from "~/components/ProfileSelector";
@@ -208,14 +209,10 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
   const handleResetZoom = useCallback(() => {
     const map = window.__leafletMap;
     if (!map || !yjs) return;
-    const coordsJson = yjs.routeData.get("coordinates") as string | undefined;
-    if (!coordsJson) return;
-    try {
-      const coords: [number, number, number][] = JSON.parse(coordsJson);
-      if (coords.length < 2) return;
-      const latLngs = coords.map((c) => [c[1]!, c[0]!] as [number, number]);
-      map.fitBounds(L.latLngBounds(latLngs), { padding: [50, 50] });
-    } catch { /* ignore */ }
+    const coords = getCoordinates(yjs.routeData);
+    if (!coords || coords.length < 2) return;
+    const latLngs = coords.map((c) => [c[1], c[0]] as [number, number]);
+    map.fitBounds(L.latLngBounds(latLngs), { padding: [50, 50] });
     setIsZoomedByChart(false);
   }, [yjs]);
 

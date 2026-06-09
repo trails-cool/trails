@@ -14,6 +14,7 @@ import {
 } from "@trails-cool/map-core";
 import { drawElevationChart, PADDING } from "~/lib/elevation-chart-draw";
 import { useElevationData } from "~/lib/use-elevation-data";
+import { setColorMode, type ColorMode } from "~/lib/route-data";
 
 interface ElevationChartProps {
   yjs: YjsState;
@@ -371,7 +372,7 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
   );
 
   const setMode = useCallback((mode: string) => {
-    yjs.routeData.set("colorMode", mode);
+    setColorMode(yjs.routeData, mode as ColorMode);
   }, [yjs.routeData]);
 
   if (points.length < 2) return null;

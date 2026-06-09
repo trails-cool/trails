@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { YjsState } from "./use-yjs.ts";
 import type { PoiState } from "./use-pois.ts";
 import { getCategoriesForProfile } from "@trails-cool/map-core";
+import { getProfile } from "./route-data.ts";
 
 /**
  * Auto-enable relevant POI categories when the routing profile changes.
@@ -15,7 +16,7 @@ export function useProfileDefaults(yjs: YjsState | null, poiState: PoiState): vo
     if (!yjs) return;
 
     const handleChange = () => {
-      const profile = yjs.routeData.get("profile") as string | undefined;
+      const profile = getProfile(yjs.routeData);
       if (!profile) return;
 
       // Skip initial load — respect existing state

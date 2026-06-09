@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import * as Y from "yjs";
 import * as awarenessProtocol from "y-protocols/awareness";
 import type { YjsState } from "~/lib/use-yjs";
+import { DEFAULT_PROFILE, clearRouteData, getProfile, setGeojson } from "~/lib/route-data";
 
 // --- localStorage helpers ---
 
@@ -125,8 +126,8 @@ export function YjsDebugPanel({ yjs, sessionId }: { yjs: YjsState; sessionId: st
       while (yjs.waypoints.length > 0) {
         yjs.waypoints.delete(0, 1);
       }
-      yjs.routeData.delete("geojson");
-      yjs.routeData.delete("profile");
+      // Nested transact joins this transaction
+      clearRouteData(yjs.doc, yjs.routeData);
     });
   }, [yjs]);
 
@@ -138,7 +139,7 @@ export function YjsDebugPanel({ yjs, sessionId }: { yjs: YjsState; sessionId: st
 
     if (waypoints.length < 2) return;
 
-    const profile = (yjs.routeData.get("profile") as string) ?? "trekking";
+    const profile = getProfile(yjs.routeData) ?? DEFAULT_PROFILE;
     const response = await fetch("/api/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -147,7 +148,7 @@ export function YjsDebugPanel({ yjs, sessionId }: { yjs: YjsState; sessionId: st
 
     if (response.ok) {
       const geojson = await response.json();
-      yjs.routeData.set("geojson", JSON.stringify(geojson));
+      setGeojson(yjs.routeData, geojson);
     }
   }, [yjs, sessionId]);
 

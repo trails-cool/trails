@@ -1,31 +1,20 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import * as Y from "yjs";
 import { useTranslation } from "react-i18next";
 import type { YjsState } from "~/lib/use-yjs";
 import type { DayStage } from "@trails-cool/gpx";
-import { setOvernight, isOvernight } from "~/lib/overnight";
+import { setOvernight } from "~/lib/overnight";
 import { DayBreakdown } from "./DayBreakdown";
 import { useNearbyPois } from "~/lib/use-nearby-pois";
 import { poiCategories } from "@trails-cool/map-core";
 import type { Poi } from "~/lib/overpass";
-import { waypointFromYMap } from "~/lib/waypoint-ymap";
+import {
+  extractWaypointData,
+  waypointFromYMap,
+  waypointToYMap,
+  type WaypointData,
+} from "~/lib/waypoint-ymap";
 
 const NOTE_MAX = 500;
-
-interface WaypointData {
-  lat: number;
-  lon: number;
-  name?: string;
-  note?: string;
-  overnight: boolean;
-}
-
-function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
-  return waypoints.toArray().map((yMap) => {
-    const wp = waypointFromYMap(yMap);
-    return { lat: wp.lat, lon: wp.lon, name: wp.name, note: wp.note, overnight: isOvernight(yMap) };
-  });
-}
 
 interface WaypointSidebarProps {
   yjs: YjsState;
@@ -48,7 +37,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const update = () => setWaypoints(getWaypointsFromYjs(yjs.waypoints));
+    const update = () => setWaypoints(extractWaypointData(yjs.waypoints));
     yjs.waypoints.observeDeep(update);
     update();
     return () => yjs.waypoints.unobserveDeep(update);
@@ -66,26 +55,10 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
       if (from === to || from < 0 || to < 0) return;
       const item = yjs.waypoints.get(from);
       if (!item) return;
-      const data = {
-        lat: item.get("lat") as number,
-        lon: item.get("lon") as number,
-        name: item.get("name") as string | undefined,
-        note: item.get("note") as string | undefined,
-        overnight: isOvernight(item),
-        osmId: item.get("osmId") as number | undefined,
-        poiTags: item.get("poiTags") as Record<string, string> | undefined,
-      };
+      const wp = waypointFromYMap(item);
       yjs.doc.transact(() => {
         yjs.waypoints.delete(from, 1);
-        const yMap = new Y.Map();
-        yMap.set("lat", data.lat);
-        yMap.set("lon", data.lon);
-        if (data.name) yMap.set("name", data.name);
-        if (data.note) yMap.set("note", data.note);
-        if (data.overnight) yMap.set("overnight", true);
-        if (data.osmId !== undefined) yMap.set("osmId", data.osmId);
-        if (data.poiTags) yMap.set("poiTags", data.poiTags);
-        yjs.waypoints.insert(to, [yMap]);
+        yjs.waypoints.insert(to, [waypointToYMap(wp)]);
       }, "local");
     },
     [yjs.waypoints, yjs.doc],

@@ -1,27 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
-import type { ColorMode } from "~/components/ColoredRoute";
 import { usePois } from "~/lib/use-pois";
 import { snapToPoi } from "~/lib/poi-snap";
-import { isOvernight } from "~/lib/overnight";
 import { findSegmentForPoint } from "~/components/ColoredRoute";
-import { waypointFromYMap } from "~/lib/waypoint-ymap";
+import { extractWaypointData, type WaypointData } from "~/lib/waypoint-ymap";
+import {
+  getColorMode,
+  readComputedRoute,
+  type ColorMode,
+} from "~/lib/route-data";
 
-export interface WaypointData {
-  lat: number;
-  lon: number;
-  name?: string;
-  note?: string;
-  overnight: boolean;
-}
-
-function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
-  return waypoints.toArray().map((yMap) => {
-    const wp = waypointFromYMap(yMap);
-    return { lat: wp.lat, lon: wp.lon, name: wp.name, note: wp.note, overnight: isOvernight(yMap) };
-  });
-}
+export type { WaypointData };
 
 function pointToSegmentDist(
   pLat: number, pLon: number,
@@ -36,11 +26,6 @@ function pointToSegmentDist(
   const projLon = aLon + t * dx;
   const projLat = aLat + t * dy;
   return Math.sqrt((pLon - projLon) ** 2 + (pLat - projLat) ** 2);
-}
-
-function parseJsonArray<T>(json: string | undefined): T[] {
-  if (!json) return [];
-  try { return JSON.parse(json); } catch { return []; }
 }
 
 export interface RouteState {
@@ -80,7 +65,7 @@ export function useWaypointManager(
   // Sync waypoints from Yjs
   useEffect(() => {
     const update = () => {
-      const wps = getWaypointsFromYjs(yjs.waypoints);
+      const wps = extractWaypointData(yjs.waypoints);
       setState((prev) => ({ ...prev, waypoints: wps }));
       if (wps.length >= 2 && onRouteRequest) {
         onRouteRequest(wps);
@@ -94,39 +79,12 @@ export function useWaypointManager(
   // Sync route data from Yjs
   useEffect(() => {
     const update = () => {
-      const coordsJson = yjs.routeData.get("coordinates") as string | undefined;
-      const boundsJson = yjs.routeData.get("segmentBoundaries") as string | undefined;
-      const modeVal = yjs.routeData.get("colorMode") as ColorMode | undefined;
-
-      let routeCoordinates: [number, number, number][] | null = null;
-      if (coordsJson) {
-        try { routeCoordinates = JSON.parse(coordsJson); } catch { /* ignore */ }
-      } else {
-        // Fallback: parse from geojson for backwards compat
-        const geojson = yjs.routeData.get("geojson") as string | undefined;
-        if (geojson) {
-          try {
-            const parsed = JSON.parse(geojson);
-            const coords = parsed.features?.[0]?.geometry?.coordinates;
-            if (coords) {
-              routeCoordinates = coords.map((c: number[]) => [c[0]!, c[1]!, c[2] ?? 0] as [number, number, number]);
-            }
-          } catch { /* ignore */ }
-        }
-      }
-
+      const { coordinates, ...computed } = readComputedRoute(yjs.routeData);
       setState((prev) => ({
         ...prev,
-        routeCoordinates,
-        segmentBoundaries: parseJsonArray<number>(boundsJson),
-        surfaces: parseJsonArray<string>(yjs.routeData.get("surfaces") as string | undefined),
-        highways: parseJsonArray<string>(yjs.routeData.get("highways") as string | undefined),
-        maxspeeds: parseJsonArray<string>(yjs.routeData.get("maxspeeds") as string | undefined),
-        smoothnesses: parseJsonArray<string>(yjs.routeData.get("smoothnesses") as string | undefined),
-        tracktypes: parseJsonArray<string>(yjs.routeData.get("tracktypes") as string | undefined),
-        cycleways: parseJsonArray<string>(yjs.routeData.get("cycleways") as string | undefined),
-        bikeroutes: parseJsonArray<string>(yjs.routeData.get("bikeroutes") as string | undefined),
-        colorMode: modeVal ?? "plain",
+        ...computed,
+        routeCoordinates: coordinates,
+        colorMode: getColorMode(yjs.routeData),
       }));
     };
     yjs.routeData.observe(update);

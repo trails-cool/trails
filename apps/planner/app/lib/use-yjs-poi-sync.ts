@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { YjsState } from "./use-yjs.ts";
 import type { PoiState } from "./use-pois.ts";
-
-const YJS_KEY_POI_CATEGORIES = "poiCategories";
+import { getPoiCategories, setPoiCategories } from "./route-data.ts";
 
 /**
  * Bidirectional sync between POI/overlay state and Yjs routeData.
@@ -21,7 +20,7 @@ export function useYjsPoiSync(yjs: YjsState | null, poiState: PoiState): void {
     prevCategories.current = current;
 
     suppressYjsUpdate.current = true;
-    yjs.routeData.set(YJS_KEY_POI_CATEGORIES, JSON.stringify(current));
+    setPoiCategories(yjs.routeData, current);
     // Allow Yjs observer to fire but suppress our handler
     queueMicrotask(() => { suppressYjsUpdate.current = false; });
   }, [yjs, poiState.enabledCategories]);
@@ -33,17 +32,12 @@ export function useYjsPoiSync(yjs: YjsState | null, poiState: PoiState): void {
     const handleChange = () => {
       if (suppressYjsUpdate.current) return;
 
-      const raw = yjs.routeData.get(YJS_KEY_POI_CATEGORIES) as string | undefined;
-      if (!raw) return;
+      const categories = getPoiCategories(yjs.routeData);
+      if (!categories) return;
 
-      try {
-        const categories = JSON.parse(raw) as string[];
-        if (!arraysEqual(categories, prevCategories.current)) {
-          prevCategories.current = categories;
-          poiState.setEnabledCategories(categories);
-        }
-      } catch {
-        // Invalid JSON in Yjs — ignore
+      if (!arraysEqual(categories, prevCategories.current)) {
+        prevCategories.current = categories;
+        poiState.setEnabledCategories(categories);
       }
     };
 

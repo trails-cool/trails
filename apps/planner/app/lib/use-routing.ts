@@ -9,6 +9,14 @@ import {
   type NoGoArea,
 } from "./route-merge.ts";
 import { SegmentCache } from "./segment-cache.ts";
+import {
+  DEFAULT_PROFILE,
+  PROFILE_KEY,
+  extractNoGoAreas,
+  getProfile,
+  writeComputedRoute,
+} from "./route-data.ts";
+import { extractWaypoints } from "./waypoint-ymap.ts";
 
 interface RouteStats {
   distance?: number;
@@ -22,10 +30,7 @@ interface WaypointData {
 }
 
 function getWaypointsFromYjs(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
-  return waypoints.toArray().map((yMap) => ({
-    lat: yMap.get("lat") as number,
-    lon: yMap.get("lon") as number,
-  }));
+  return extractWaypoints(waypoints).map((wp) => ({ lat: wp.lat, lon: wp.lon }));
 }
 
 function restoreWaypoints(yjs: YjsState, snapshot: WaypointData[], restoringRef: React.RefObject<boolean>) {
@@ -72,9 +77,7 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
       if (!yjs || !isHost || waypoints.length < 2) return;
 
       // Collect no-go areas from Yjs
-      const noGoAreas: NoGoArea[] = yjs.noGoAreas.toArray().map((yMap) => ({
-        points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
-      })).filter((a) => a.points.length >= 3);
+      const noGoAreas: NoGoArea[] = extractNoGoAreas(yjs.noGoAreas);
 
       // Save current waypoints so we can restore on failure
       const snapshotBeforeCompute = getWaypointsFromYjs(yjs.waypoints);
@@ -84,7 +87,7 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
       const controller = new AbortController();
       inflightAbortRef.current = controller;
 
-      const profile = (yjs.routeData.get("profile") as string) ?? "fastbike";
+      const profile = getProfile(yjs.routeData) ?? DEFAULT_PROFILE;
       const noGoHash = hashNoGoAreas(noGoAreas);
       const cache = segmentCacheRef.current;
 
@@ -158,32 +161,7 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
         });
 
         // Store enriched route data in Yjs for all participants
-        yjs.doc.transact(() => {
-          yjs.routeData.set("geojson", JSON.stringify(enriched.geojson));
-          yjs.routeData.set("coordinates", JSON.stringify(enriched.coordinates));
-          yjs.routeData.set("segmentBoundaries", JSON.stringify(enriched.segmentBoundaries));
-          if (enriched.surfaces?.length) {
-            yjs.routeData.set("surfaces", JSON.stringify(enriched.surfaces));
-          }
-          if (enriched.highways?.length) {
-            yjs.routeData.set("highways", JSON.stringify(enriched.highways));
-          }
-          if (enriched.maxspeeds?.length) {
-            yjs.routeData.set("maxspeeds", JSON.stringify(enriched.maxspeeds));
-          }
-          if (enriched.smoothnesses?.length) {
-            yjs.routeData.set("smoothnesses", JSON.stringify(enriched.smoothnesses));
-          }
-          if (enriched.tracktypes?.length) {
-            yjs.routeData.set("tracktypes", JSON.stringify(enriched.tracktypes));
-          }
-          if (enriched.cycleways?.length) {
-            yjs.routeData.set("cycleways", JSON.stringify(enriched.cycleways));
-          }
-          if (enriched.bikeroutes?.length) {
-            yjs.routeData.set("bikeroutes", JSON.stringify(enriched.bikeroutes));
-          }
-        });
+        writeComputedRoute(yjs.doc, yjs.routeData, enriched);
       } catch (err) {
         // A superseding request aborted this one — leave state alone so
         // the newer call's result becomes authoritative.
@@ -222,7 +200,7 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
 
     // Observe routeData for profile changes
     const profileObserver = (event: Y.YMapEvent<unknown>) => {
-      if (event.keysChanged.has("profile")) {
+      if (event.keysChanged.has(PROFILE_KEY)) {
         triggerRecompute();
       }
     };

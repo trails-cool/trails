@@ -1,33 +1,12 @@
 import { useCallback, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import * as Y from "yjs";
 import type { YjsState } from "~/lib/use-yjs";
-import { generateGpx, computeDays } from "@trails-cool/gpx";
-import type { TrackPoint, NoGoArea } from "@trails-cool/gpx";
-import { waypointFromYMap } from "~/lib/waypoint-ymap";
-
-function getTracks(yjs: YjsState): TrackPoint[][] {
-  const geojsonStr = yjs.routeData.get("geojson") as string | undefined;
-  if (!geojsonStr) return [];
-  try {
-    const geojson = JSON.parse(geojsonStr);
-    const coords: number[][] = geojson.features?.[0]?.geometry?.coordinates ?? [];
-    if (coords.length > 0) {
-      return [coords.map((c) => ({ lat: c[1]!, lon: c[0]!, ele: c[2] }))];
-    }
-  } catch { /* invalid geojson */ }
-  return [];
-}
-
-function getWaypoints(yjs: YjsState) {
-  return yjs.waypoints.toArray().map(waypointFromYMap);
-}
-
-function getNoGoAreas(yjs: YjsState): NoGoArea[] {
-  return yjs.noGoAreas.toArray().map((yMap: Y.Map<unknown>) => ({
-    points: (yMap.get("points") as Array<{ lat: number; lon: number }>) ?? [],
-  })).filter((a) => a.points.length >= 3);
-}
+import {
+  buildDayGpxFiles,
+  buildPlanGpx,
+  buildRouteGpx,
+  hasDayBreaks,
+} from "~/lib/gpx-export";
 
 function download(gpx: string, filename: string) {
   const blob = new Blob([gpx], { type: "application/gpx+xml" });
@@ -55,68 +34,23 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
   }, [open]);
 
   const handleExportRoute = useCallback(() => {
-    const tracks = getTracks(yjs);
-    const gpx = generateGpx({ name: "trails.cool route", waypoints: [], tracks });
-    download(gpx, "route.gpx");
+    download(buildRouteGpx(yjs), "route.gpx");
     setOpen(false);
   }, [yjs]);
 
   const handleExportPlan = useCallback(() => {
-    const tracks = getTracks(yjs);
-    const waypoints = getWaypoints(yjs);
-    const noGoAreas = getNoGoAreas(yjs);
-    const notes = yjs.notes.toString() || undefined;
-    const gpx = generateGpx({ name: "trails.cool route", description: notes, waypoints, tracks, noGoAreas });
-    download(gpx, "route-plan.gpx");
+    download(buildPlanGpx(yjs), "route-plan.gpx");
     setOpen(false);
   }, [yjs]);
 
   const handleExportDays = useCallback(() => {
-    const tracks = getTracks(yjs);
-    const waypoints = getWaypoints(yjs);
-    const allPoints = tracks.flat();
-    if (allPoints.length === 0 || waypoints.length === 0) return;
-
-    const days = computeDays(waypoints, tracks);
-    if (days.length <= 1) {
-      // Single day — just export the full route
-      const gpx = generateGpx({ name: "trails.cool route", tracks });
-      download(gpx, "route.gpx");
-      setOpen(false);
-      return;
-    }
-
-    // Find closest track index for each waypoint
-    const wpTrackIndices = waypoints.map((wp) => {
-      let bestIdx = 0;
-      let bestDist = Infinity;
-      for (let i = 0; i < allPoints.length; i++) {
-        const dx = allPoints[i]!.lat - wp.lat;
-        const dy = allPoints[i]!.lon - wp.lon;
-        const d = dx * dx + dy * dy;
-        if (d < bestDist) { bestDist = d; bestIdx = i; }
-      }
-      return bestIdx;
-    });
-
-    for (const day of days) {
-      const startIdx = wpTrackIndices[day.startWaypointIndex]!;
-      const endIdx = wpTrackIndices[day.endWaypointIndex]!;
-      const dayPoints = allPoints.slice(startIdx, endIdx + 1);
-      const dayName = day.startName && day.endName
-        ? `Day ${day.dayNumber}: ${day.startName} - ${day.endName}`
-        : `Day ${day.dayNumber}`;
-      const gpx = generateGpx({ name: dayName, tracks: [dayPoints] });
-      const filename = `day-${day.dayNumber}${day.startName ? `-${day.startName.toLowerCase().replace(/\s+/g, "-")}` : ""}.gpx`;
-      download(gpx, filename);
+    for (const file of buildDayGpxFiles(yjs)) {
+      download(file.gpx, file.filename);
     }
     setOpen(false);
   }, [yjs]);
 
-  const hasMultipleDays = (() => {
-    const waypoints = getWaypoints(yjs);
-    return waypoints.some((w) => w.isDayBreak);
-  })();
+  const hasMultipleDays = hasDayBreaks(yjs);
 
   return (
     <div ref={ref} className="relative z-[1001]">
