@@ -100,7 +100,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "infrastructure/docker-compose.yml,infrastructure/Caddyfile"
+          source: "infrastructure/docker-compose.yml,infrastructure/caddy"
           target: /opt/trails-cool
           strip_components: 1
 

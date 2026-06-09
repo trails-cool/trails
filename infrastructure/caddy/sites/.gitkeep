@@ -1,0 +1,3 @@
+# Mountpoint for the runtime ./sites overlay (per-PR staging snippets).
+# Caddy reads site blocks from /etc/caddy/sites; this keeps the dir present
+# inside the read-only ./caddy bind mount so the overlay can attach.

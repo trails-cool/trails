@@ -36,7 +36,9 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Directory mount (not the file) to match prod — a single-file bind
+      # mount pins the host inode, so a replaced config is never seen.
+      - ./infrastructure/prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
 
   grafana:
@@ -60,9 +62,10 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./infrastructure/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      # Directory mount (not the file) to match prod.
+      - ./infrastructure/loki:/etc/loki:ro
       - loki_data:/loki
-    command: ["-config.file=/etc/loki/local-config.yaml"]
+    command: ["-config.file=/etc/loki/loki-config.yml"]
 
 volumes:
   pgdata:
