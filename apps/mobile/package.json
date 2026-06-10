@@ -32,7 +32,7 @@
   "dependencies": {
     "@expo/metro-runtime": "^56.0.14",
     "@gorhom/bottom-sheet": "^5.2.14",
-    "@maplibre/maplibre-react-native": "^11.3.3",
+    "@maplibre/maplibre-react-native": "^11.3.4",
     "@sentry/cli": "^3.5.0",
     "@sentry/react-native": "~8.13.0",
     "@trails-cool/api": "workspace:*",
