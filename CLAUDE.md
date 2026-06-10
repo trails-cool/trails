@@ -41,9 +41,7 @@ apps/
   planner/          — Planner app (React Router 7)
   journal/          — Journal app (React Router 7 + Fedify)
 packages/
-  types/            — Shared TypeScript interfaces (Route, Activity, Waypoint)
-  ui/               — Shared React components (Tailwind)
-  map/              — React/Leaflet components (MapView, RouteLayer); re-exports map-core
+  types/            — Shared wire types both apps exchange (Waypoint)
   map-core/         — Framework-free map constants (colors, tiles, POI, z-index, snap); safe to import server-side
   gpx/              — GPX parsing, generation, validation
   fit/              — FIT file generation (Wahoo route push)
@@ -125,8 +123,8 @@ local config symmetric.
 
 - **Route registration**: Both apps use explicit `routes.ts` (not file-based routing). When adding a new route file, you **must** add it to `apps/*/app/routes.ts` or it won't be compiled into the build.
 - All user-facing strings must use i18n (`useTranslation()` hook, never hardcode strings)
-- Use `@trails-cool/types` for shared interfaces — don't duplicate type definitions
-- Map components go in `@trails-cool/map`, not in individual apps
+- Database row types are derived from the Drizzle schema (`@trails-cool/db`); API wire shapes are the Zod contracts in `@trails-cool/api`; only types both apps exchange (e.g. Waypoint) live in `@trails-cool/types`
+- Map constants (colors, tiles, POI categories, z-indexes) go in `@trails-cool/map-core`; React/Leaflet map components live in the app that uses them
 - GPX parsing/generation goes in `@trails-cool/gpx`
 - Database schemas: `planner.*` for Planner data, `journal.*` for Journal data
 - Route geometry must be stored as PostGIS LineString (extracted from GPX on save)

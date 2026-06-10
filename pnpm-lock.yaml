@@ -241,18 +241,12 @@ importers:
       '@trails-cool/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
-      '@trails-cool/map':
-        specifier: workspace:*
-        version: link:../../packages/map
       '@trails-cool/sentry-config':
         specifier: workspace:*
         version: link:../../packages/sentry-config
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@trails-cool/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(expo-sqlite@56.0.4(expo@56.0.4)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.7))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7))(pg@8.20.0)(postgres@3.4.9)
@@ -495,9 +489,6 @@ importers:
       '@trails-cool/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
-      '@trails-cool/map':
-        specifier: workspace:*
-        version: link:../../packages/map
       '@trails-cool/map-core':
         specifier: workspace:*
         version: link:../../packages/map-core
@@ -507,9 +498,6 @@ importers:
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@trails-cool/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       codemirror:
         specifier: ^6.0.2
         version: 6.0.2
@@ -663,24 +651,6 @@ importers:
         specifier: 'catalog:'
         version: 22.19.20
 
-  packages/map:
-    dependencies:
-      '@trails-cool/map-core':
-        specifier: workspace:*
-        version: link:../map-core
-      leaflet:
-        specifier: '>=1.9'
-        version: 1.9.4
-      react:
-        specifier: ^19.2.5
-        version: 19.2.7
-      react-dom:
-        specifier: ^19.2.7
-        version: 19.2.7(react@19.2.7)
-      react-leaflet:
-        specifier: '>=5'
-        version: 5.0.0(leaflet@1.9.4)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-
   packages/map-core: {}
 
   packages/sentry-config:
@@ -690,8 +660,6 @@ importers:
         version: 22.19.20
 
   packages/types: {}
-
-  packages/ui: {}
 
   scripts:
     devDependencies:
@@ -10453,9 +10421,7 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.85.3': {}
 

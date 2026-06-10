@@ -15,7 +15,7 @@ import { AccountDropdown } from "~/components/AccountDropdown";
 import { MobileNavMenu } from "~/components/MobileNavMenu";
 import { initSentryClient, stopSentryClient } from "~/lib/sentry.client";
 import { TERMS_VERSION } from "~/lib/legal";
-import stylesheet from "@trails-cool/ui/styles.css?url";
+import stylesheet from "./styles.css?url";
 
 // Paths that must stay reachable even when the user has a stale
 // terms_version, so they can read the Terms, accept them, or log out.
