@@ -16,6 +16,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.save-to-journal";
 import { getSession } from "~/lib/sessions";
 import { fetchWithTimeout } from "~/lib/http.server";
+import { validateFetchUrl, getCallbackAllowedHosts } from "~/lib/url-validation.server";
 
 interface SaveRequestBody {
   sessionId?: unknown;
@@ -49,6 +50,15 @@ export async function action({ request }: Route.ActionArgs) {
   if (!session) return data({ error: "session not found" }, { status: 404 });
   if (!session.callbackUrl || !session.callbackToken) {
     return data({ error: "session has no journal callback" }, { status: 400 });
+  }
+
+  // Defense in depth: re-validate immediately before the outbound fetch.
+  // Guards sessions persisted before callbackUrl validation existed, and
+  // narrows the window for a host that was public at create time but
+  // resolves private now.
+  const v = validateFetchUrl(session.callbackUrl, { allowedHosts: getCallbackAllowedHosts() });
+  if (!v.ok) {
+    return data({ error: "session callback URL is not allowed" }, { status: 400 });
   }
 
   let resp: Response;

@@ -44,6 +44,59 @@ describe("validateFetchUrl", () => {
   });
 });
 
+describe("validateFetchUrl — private-address blocking (production)", () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    // Production-without-E2E is the only mode that blocks (mirrors the
+    // requireSecret guard). Tests otherwise run as NODE_ENV=test → off.
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("E2E", "");
+  });
+
+  const blocked = [
+    "http://127.0.0.1/x",
+    "http://localhost:3000/x",
+    "http://sub.localhost/x",
+    "http://169.254.169.254/latest/meta-data/", // cloud metadata
+    "http://10.0.0.5/x",
+    "http://172.16.0.1/x",
+    "http://172.31.255.254/x",
+    "http://192.168.1.1/x",
+    "http://100.64.0.1/x", // CGNAT
+    "http://0.0.0.0/x",
+    "http://[::1]/x",
+    "http://[fc00::1]/x",
+    "http://[fe80::1]/x",
+    "http://[::ffff:127.0.0.1]/x",
+  ];
+  for (const url of blocked) {
+    it(`blocks ${url}`, () => {
+      expect(validateFetchUrl(url).ok).toBe(false);
+    });
+  }
+
+  it("still allows public hosts", () => {
+    expect(validateFetchUrl("https://journal.trails.cool/api/cb").ok).toBe(true);
+    expect(validateFetchUrl("http://203.0.113.10/x").ok).toBe(true); // public IP literal
+    expect(validateFetchUrl("http://172.15.0.1/x").ok).toBe(true); // just outside RFC1918 /12
+    expect(validateFetchUrl("http://172.32.0.1/x").ok).toBe(true);
+  });
+
+  it("an explicit allowlist overrides private blocking (operator decision)", () => {
+    expect(
+      validateFetchUrl("http://10.0.0.2:3000/cb", { allowedHosts: ["10.0.0.2:3000"] }).ok,
+    ).toBe(true);
+  });
+
+  it("does not block private hosts outside production (dev/e2e localhost flow)", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    expect(validateFetchUrl("http://localhost:3000/cb").ok).toBe(true);
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("E2E", "true");
+    expect(validateFetchUrl("http://localhost:3000/cb").ok).toBe(true);
+  });
+});
+
 describe("validateRedirectUrl", () => {
   it("accepts an absolute https URL", () => {
     expect(validateRedirectUrl("https://trails.cool/r/123").ok).toBe(true);
