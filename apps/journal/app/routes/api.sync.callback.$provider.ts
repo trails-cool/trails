@@ -1,13 +1,11 @@
 import { redirect, data } from "react-router";
-import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.sync.callback.$provider";
 import { requireSessionUser } from "~/lib/auth/session.server";
-import { getManifest, link } from "~/lib/connected-services";
+import { getManifest } from "~/lib/connected-services";
 import {
-  decodeOAuthState,
-  readPkceVerifier,
+  completeOAuthFlow,
   clearPkceCookieHeader,
-} from "~/lib/connected-services/oauth-state.server";
+} from "~/lib/connected-services/oauth-flow.server";
 import { pushRouteToProvider } from "~/lib/connected-services/push-action.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -18,51 +16,28 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return data({ error: "Unknown provider" }, { status: 404 });
   }
 
-  const url = new URL(request.url);
-  const state = decodeOAuthState(url.searchParams.get("state"));
+  const result = await completeOAuthFlow(manifest, request, user.id);
+  const state = result.state;
   const fallbackReturn = state.returnTo ?? "/settings";
+  // Spent (or irrelevant) verifier — clear it on every outcome.
+  const headers = { "Set-Cookie": clearPkceCookieHeader() };
 
-  // User denied the new scope at Wahoo. Send them back to the originating
-  // page with a notice instead of looping them through OAuth again.
-  if (url.searchParams.get("error") === "access_denied") {
-    return redirect(`${fallbackReturn}?push=needs_permission`);
+  switch (result.status) {
+    case "denied":
+      // User declined at the provider. Back to the originating page
+      // with a notice instead of looping them through OAuth again.
+      return redirect(`${fallbackReturn}?push=needs_permission`, { headers });
+    case "missing_code":
+      return data({ error: "Missing authorization code" }, { status: 400 });
+    case "missing_verifier":
+      return redirect(`${fallbackReturn}?error=sync_failed`, { headers });
+    case "error":
+      return redirect(`${fallbackReturn}?error=${result.code}`, { headers });
+    case "linked":
+      break;
   }
 
-  const code = url.searchParams.get("code");
-  if (!code) return data({ error: "Missing authorization code" }, { status: 400 });
-
-  const origin = getOrigin();
-  const redirectUri = `${origin}/api/sync/callback/${params.provider}`;
-
-  // PKCE providers: recover the verifier from the connect-time cookie.
-  const codeVerifier = manifest.pkce ? readPkceVerifier(request) : null;
-  if (manifest.pkce && !codeVerifier) {
-    return redirect(`${fallbackReturn}?error=sync_failed`);
-  }
-
-  try {
-    const exchange = await manifest.exchangeCode(
-      code,
-      redirectUri,
-      codeVerifier ? { codeVerifier } : undefined,
-    );
-    await link({
-      userId: user.id,
-      provider: manifest.id,
-      credentialKind: manifest.credentialKind,
-      credentials: exchange.credentials as Record<string, unknown>,
-      providerUserId: exchange.providerUserId,
-      grantedScopes: exchange.grantedScopes,
-    });
-  } catch (e) {
-    console.error(`OAuth callback failed for ${params.provider}:`, e);
-    const errCode =
-      typeof (e as { code?: string }).code === "string"
-        ? (e as { code: string }).code
-        : "sync_failed";
-    return redirect(`${fallbackReturn}?error=${errCode}`);
-  }
-
+  // Resume an interrupted push now that the connection has the scope.
   if (state.pushAfter?.routeId) {
     const outcome = await pushRouteToProvider({
       userId: user.id,
@@ -70,16 +45,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       routeId: state.pushAfter.routeId,
     });
     const target = state.returnTo ?? `/routes/${state.pushAfter.routeId}`;
-    if (outcome.status === "success") return redirect(`${target}?push=success`);
-    if (outcome.status === "scope_missing") return redirect(`${target}?push=needs_permission`);
-    if (outcome.status === "needs_relink") return redirect(`${target}?push=needs_permission`);
-    if (outcome.status === "error") return redirect(`${target}?push=error&code=${outcome.code}`);
-    return redirect(`${target}?push=${outcome.status}`);
+    if (outcome.status === "success") return redirect(`${target}?push=success`, { headers });
+    if (outcome.status === "scope_missing") return redirect(`${target}?push=needs_permission`, { headers });
+    if (outcome.status === "needs_relink") return redirect(`${target}?push=needs_permission`, { headers });
+    if (outcome.status === "error") return redirect(`${target}?push=error&code=${outcome.code}`, { headers });
+    return redirect(`${target}?push=${outcome.status}`, { headers });
   }
 
-  return redirect(state.returnTo ?? "/settings", {
-    // Spent verifier — clear it regardless of which provider this was
-    // (harmless no-op for non-PKCE providers without the cookie).
-    headers: { "Set-Cookie": clearPkceCookieHeader() },
-  });
+  return redirect(state.returnTo ?? "/settings", { headers });
 }
