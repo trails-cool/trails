@@ -193,7 +193,7 @@ server.listen(port, async () => {
   await startWorker(boss, jobs);
   // Register the started boss so feature code can enqueue jobs against
   // the same instance via getBoss() / enqueueOptional().
-  const { setBoss } = await import("./app/lib/boss.server.ts");
+  const { setBoss, enqueue } = await import("./app/lib/boss.server.ts");
   setBoss(boss);
   logger.info("Background job worker started");
 
@@ -201,7 +201,7 @@ server.listen(port, async () => {
   // users get keys before any federation traffic). Each run only
   // touches users whose public_key IS NULL, so repeats are no-ops.
   if (process.env.FEDERATION_ENABLED === "true") {
-    await boss.send("backfill-user-keypairs", {});
+    await enqueue("backfill-user-keypairs", {});
     logger.info("federation keypair backfill enqueued");
   }
 });

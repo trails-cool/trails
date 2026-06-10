@@ -1,11 +1,6 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { sendWelcome } from "../lib/email.server.ts";
 import { logger } from "../lib/logger.server.ts";
-
-interface WelcomeEmailData {
-  email: string;
-  username: string;
-}
 
 /**
  * Queue-backed welcome email send. The old code did
@@ -13,14 +8,14 @@ interface WelcomeEmailData {
  * pg-boss retries on transient failure (3 attempts) and surfaces persistent
  * failures via the dead-letter queue / logs.
  */
-export const sendWelcomeEmailJob: JobDefinition = {
+export const sendWelcomeEmailJob = defineJournalJob({
   name: "send-welcome-email",
   retryLimit: 3,
   expireInSeconds: 120,
   async handler(job) {
     const batch = Array.isArray(job) ? job : [job];
     for (const item of batch) {
-      const { email, username } = item.data as WelcomeEmailData;
+      const { email, username } = item.data;
       try {
         await sendWelcome(email, username);
       } catch (err) {
@@ -29,4 +24,4 @@ export const sendWelcomeEmailJob: JobDefinition = {
       }
     }
   },
-};
+});

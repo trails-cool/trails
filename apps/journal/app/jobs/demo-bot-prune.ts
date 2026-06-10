@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import {
   demoRetentionDays,
   isDemoBotEnabled,
@@ -11,7 +11,7 @@ import { logger } from "../lib/logger.server.ts";
  * Daily prune. Deletes synthetic rows older than
  * `DEMO_BOT_RETENTION_DAYS` (default 14). Never touches real users.
  */
-export const demoBotPruneJob: JobDefinition = {
+export const demoBotPruneJob = defineJournalJob({
   name: "demo-bot-prune",
   cron: "15 3 * * *",
   retryLimit: 1,
@@ -24,4 +24,4 @@ export const demoBotPruneJob: JobDefinition = {
     await refreshDemoBotGauges();
     return { days, ...counts };
   },
-};
+});

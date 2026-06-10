@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { lt } from "drizzle-orm";
 import { consumedJwtJti } from "@trails-cool/db/schema/journal";
 import { getDb } from "../lib/db.ts";
@@ -13,7 +13,7 @@ import { logger } from "../lib/logger.server.ts";
  *
  * See planner-audit #2 Phase B.
  */
-export const consumedJtiSweepJob: JobDefinition = {
+export const consumedJtiSweepJob = defineJournalJob({
   name: "consumed-jti-sweep",
   cron: "45 3 * * *", // daily at 03:45 UTC (offset from notifications-purge)
   retryLimit: 1,
@@ -28,4 +28,4 @@ export const consumedJtiSweepJob: JobDefinition = {
     logger.info({ purged }, "consumed-jti-sweep");
     return { purged };
   },
-};
+});
