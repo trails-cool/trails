@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import { getAuthenticatedUser } from "./oauth.server.ts";
 import { TERMS_VERSION } from "./legal.ts";
 import { ERROR_CODES } from "@trails-cool/api";
@@ -35,4 +36,20 @@ export async function requireApiUser(request: Request) {
  */
 export function apiError(status: number, code: string, message: string, fields?: Array<{ field: string; message: string }>) {
   return Response.json({ error: message, code, fields }, { status });
+}
+
+/**
+ * Respond with a payload validated against its @trails-cool/api
+ * contract. The schema is enforced, not advisory: a handler whose
+ * payload drifts from the contract fails its unit tests / e2e run with
+ * a ZodError instead of silently shipping a different wire shape.
+ * Parsing also strips unknown keys, so the response is exactly the
+ * contract — nothing extra leaks.
+ */
+export function apiJson<S extends z.ZodType>(
+  schema: S,
+  payload: z.input<S>,
+  init?: ResponseInit,
+): Response {
+  return Response.json(schema.parse(payload), init);
 }

@@ -39,7 +39,11 @@ export const CreateActivityRequestSchema = z.object({
   distance: z.number().optional(),
 });
 
+/** Response to POST /api/v1/activities */
+export const CreateActivityResponseSchema = z.object({ id: z.uuid() });
+
 export type ActivitySummary = z.infer<typeof ActivitySummarySchema>;
+export type CreateActivityResponse = z.infer<typeof CreateActivityResponseSchema>;
 export type ActivityDetail = z.infer<typeof ActivityDetailSchema>;
 export type ActivityListResponse = z.infer<typeof ActivityListResponseSchema>;
 export type CreateActivityRequest = z.infer<typeof CreateActivityRequestSchema>;
