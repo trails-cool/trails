@@ -20,10 +20,22 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-      # react-native is pinned by the Expo SDK — upgrade it via an Expo
-      # SDK bump, not on its own. Community react-native-* libraries are
-      # intentionally NOT ignored here; they can be bumped independently.
+      # These packages are version-pinned by the Expo SDK (see
+      # expo/bundledNativeModules.json) — upgrade them via an Expo SDK
+      # bump / `npx expo install --fix`, never on their own. Dependabot
+      # bumping them past the SDK's expected version broke the native
+      # build (expo-modules-core macro mismatch, June 2026) because CI
+      # never compiles native code. `react` stays unignored: the web
+      # apps own its version via the workspace catalog, and apps/mobile
+      # excludes it from expo version checks.
       - dependency-name: "react-native"
+      - dependency-name: "react-native-gesture-handler"
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-safe-area-context"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "react-native-worklets"
+      - dependency-name: "@sentry/react-native"
+      - dependency-name: "jest-expo"
 
   - package-ecosystem: "github-actions"
     directory: "/"

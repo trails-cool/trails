@@ -4,8 +4,8 @@ import { getDb } from "./db.ts";
 import { routes, routeVersions } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 import { sql } from "drizzle-orm";
-import { validateGpx, writeGeom } from "./gpx-save.server.ts";
-import type { GpxData } from "./gpx-save.server.ts";
+import { processGpx, writeGeom } from "./gpx-save.server.ts";
+import type { ProcessedGpx } from "./gpx-save.server.ts";
 import type { OwnedRef } from "./ownership.server.ts";
 
 export interface RouteInput {
@@ -26,21 +26,17 @@ export async function createRoute(ownerId: string, input: RouteInput) {
   const db = getDb();
   const id = randomUUID();
 
-  let parsed: GpxData | null = null;
+  let processed: ProcessedGpx | null = null;
   let distance: number | null = input.distance ?? null;
   let elevationGain: number | null = input.elevationGain ?? null;
   let elevationLoss: number | null = input.elevationLoss ?? null;
   let dayBreaks: number[] = input.dayBreaks ?? [];
 
   if (input.gpx) {
-    parsed = await validateGpx(input.gpx);
-    // Only compute stats from GPX if not pre-supplied by caller
+    processed = await processGpx(input.gpx);
+    // Only use GPX-derived stats if not pre-supplied by caller
     if (input.distance === undefined) {
-      const stats = computeRouteStats(parsed);
-      distance = stats.distance;
-      elevationGain = stats.elevationGain;
-      elevationLoss = stats.elevationLoss;
-      dayBreaks = stats.dayBreaks;
+      ({ distance, elevationGain, elevationLoss, dayBreaks } = processed.stats);
     }
   }
 
@@ -60,9 +56,8 @@ export async function createRoute(ownerId: string, input: RouteInput) {
       ...(input.synthetic ? { synthetic: true } : {}),
     });
 
-    if (input.gpx && parsed) {
-      const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
-      await writeGeom(tx, id, "routes", coords);
+    if (input.gpx && processed) {
+      await writeGeom(tx, id, "routes", processed.coords);
 
       await tx.insert(routeVersions).values({
         id: randomUUID(),
@@ -135,9 +130,9 @@ export async function updateRoute(route: OwnedRef, input: Partial<RouteInput>) {
   const { id, ownerId } = route;
   const db = getDb();
 
-  let parsed: GpxData | null = null;
+  let processed: ProcessedGpx | null = null;
   if (input.gpx) {
-    parsed = await validateGpx(input.gpx);
+    processed = await processGpx(input.gpx);
   }
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
@@ -145,8 +140,8 @@ export async function updateRoute(route: OwnedRef, input: Partial<RouteInput>) {
   if (input.description !== undefined) updateData.description = input.description;
   if (input.visibility !== undefined) updateData.visibility = input.visibility;
 
-  if (input.gpx && parsed) {
-    const stats = computeRouteStats(parsed);
+  if (input.gpx && processed) {
+    const { stats } = processed;
     updateData.gpx = input.gpx;
     updateData.distance = stats.distance;
     updateData.elevationGain = stats.elevationGain;
@@ -163,9 +158,8 @@ export async function updateRoute(route: OwnedRef, input: Partial<RouteInput>) {
       .set(updateData)
       .where(and(eq(routes.id, id), eq(routes.ownerId, ownerId)));
 
-    if (input.gpx && parsed) {
-      const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
-      await writeGeom(tx, id, "routes", coords);
+    if (input.gpx && processed) {
+      await writeGeom(tx, id, "routes", processed.coords);
 
       const existingVersions = await tx
         .select()
@@ -195,19 +189,6 @@ export async function deleteRoute(route: OwnedRef) {
     .where(and(eq(routes.id, route.id), eq(routes.ownerId, route.ownerId)))
     .returning({ id: routes.id });
   return result.length > 0;
-}
-
-function computeRouteStats(gpxData: GpxData) {
-  const dayBreaks = gpxData.waypoints
-    .map((w, i) => (w.isDayBreak ? i : -1))
-    .filter((i) => i >= 0);
-  return {
-    distance: gpxData.distance,
-    elevationGain: gpxData.elevation.gain,
-    elevationLoss: gpxData.elevation.loss,
-    dayBreaks,
-    description: gpxData.description,
-  };
 }
 
 async function getGeojson(table: "routes" | "activities", id: string): Promise<string | null> {
