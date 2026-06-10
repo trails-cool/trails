@@ -39,3 +39,27 @@ export function waypointToYMap(wp: Waypoint): Y.Map<unknown> {
   applyWaypointToYMap(yMap, wp);
   return yMap;
 }
+
+/** Reads the whole shared waypoint list as plain Waypoints. */
+export function extractWaypoints(waypoints: Y.Array<Y.Map<unknown>>): Waypoint[] {
+  return waypoints.toArray().map(waypointFromYMap);
+}
+
+/** Waypoint flattened for UI state (isDayBreak as a plain boolean). */
+export interface WaypointData {
+  lat: number;
+  lon: number;
+  name?: string;
+  note?: string;
+  overnight: boolean;
+}
+
+export function extractWaypointData(waypoints: Y.Array<Y.Map<unknown>>): WaypointData[] {
+  return extractWaypoints(waypoints).map((wp) => ({
+    lat: wp.lat,
+    lon: wp.lon,
+    name: wp.name,
+    note: wp.note,
+    overnight: wp.isDayBreak === true,
+  }));
+}

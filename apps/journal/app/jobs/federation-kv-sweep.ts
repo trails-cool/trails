@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { PostgresKvStore } from "../lib/federation-kv.server.ts";
 import { logger } from "../lib/logger.server.ts";
 
@@ -7,7 +7,7 @@ import { logger } from "../lib/logger.server.ts";
  * nonces and caches carry TTLs; reads already filter expired rows, this
  * keeps the table from growing unbounded).
  */
-export const federationKvSweepJob: JobDefinition = {
+export const federationKvSweepJob = defineJournalJob({
   name: "federation-kv-sweep",
   cron: "15 4 * * *", // daily at 04:15 UTC (offset from the other sweeps)
   retryLimit: 1,
@@ -17,4 +17,4 @@ export const federationKvSweepJob: JobDefinition = {
     logger.info({ purged }, "federation-kv-sweep");
     return { purged };
   },
-};
+});

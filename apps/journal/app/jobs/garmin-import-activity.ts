@@ -1,9 +1,6 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { logger } from "../lib/logger.server.ts";
-import {
-  runGarminActivityImport,
-  type GarminImportData,
-} from "../lib/connected-services/providers/garmin/import.server.ts";
+import { runGarminActivityImport } from "../lib/connected-services/providers/garmin/import.server.ts";
 
 // Garmin webhook notifications enqueue here (spec: garmin-import,
 // "Push-notification activity import"): the webhook answers 200
@@ -11,14 +8,14 @@ import {
 // download, FIT→GPX, activity creation. Backfill bursts deliver many
 // notifications at once; the queue absorbs them and pg-boss retries
 // transient download failures.
-export const garminImportActivityJob: JobDefinition = {
+export const garminImportActivityJob = defineJournalJob({
   name: "garmin-import-activity",
   retryLimit: 3,
   expireInSeconds: 300,
   async handler(jobs) {
     const batch = Array.isArray(jobs) ? jobs : [jobs];
     for (const job of batch) {
-      const data = job.data as GarminImportData;
+      const data = job.data;
       try {
         await runGarminActivityImport(data);
       } catch (err) {
@@ -30,4 +27,4 @@ export const garminImportActivityJob: JobDefinition = {
       }
     }
   },
-};
+});

@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import * as Y from "yjs";
-import type { ColorMode } from "~/components/ColoredRoute";
 import type { ElevationPoint } from "~/lib/elevation-chart-draw";
+import {
+  getColorMode,
+  getGeojson,
+  readRoadMetadata,
+  type ColorMode,
+  type RoadMetadata,
+} from "~/lib/route-data";
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -44,21 +50,9 @@ function extractElevation(geojsonStr: string): ElevationPoint[] {
   }
 }
 
-function parseJsonArray(json: string | undefined): string[] {
-  if (!json) return [];
-  try { return JSON.parse(json); } catch { return []; }
-}
-
-export interface ElevationData {
+export interface ElevationData extends RoadMetadata {
   points: ElevationPoint[];
   colorMode: ColorMode;
-  surfaces: string[];
-  highways: string[];
-  maxspeeds: string[];
-  smoothnesses: string[];
-  tracktypes: string[];
-  cycleways: string[];
-  bikeroutes: string[];
 }
 
 export function useElevationData(routeData: Y.Map<unknown>): ElevationData {
@@ -76,17 +70,11 @@ export function useElevationData(routeData: Y.Map<unknown>): ElevationData {
 
   useEffect(() => {
     const update = () => {
-      const geojson = routeData.get("geojson") as string | undefined;
+      const geojson = getGeojson(routeData);
       setData({
         points: geojson ? extractElevation(geojson) : [],
-        colorMode: (routeData.get("colorMode") as ColorMode | undefined) ?? "plain",
-        surfaces: parseJsonArray(routeData.get("surfaces") as string | undefined),
-        highways: parseJsonArray(routeData.get("highways") as string | undefined),
-        maxspeeds: parseJsonArray(routeData.get("maxspeeds") as string | undefined),
-        smoothnesses: parseJsonArray(routeData.get("smoothnesses") as string | undefined),
-        tracktypes: parseJsonArray(routeData.get("tracktypes") as string | undefined),
-        cycleways: parseJsonArray(routeData.get("cycleways") as string | undefined),
-        bikeroutes: parseJsonArray(routeData.get("bikeroutes") as string | undefined),
+        colorMode: getColorMode(routeData),
+        ...readRoadMetadata(routeData),
       });
     };
     routeData.observe(update);

@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { listActorsDuePolling } from "../lib/federation-ingest.server.ts";
 import { enqueueOptional } from "../lib/boss.server.ts";
 import { logger } from "../lib/logger.server.ts";
@@ -9,7 +9,7 @@ import { logger } from "../lib/logger.server.ts";
  * been polled within the last hour, and fan out one poll-remote-actor
  * job each. Per-host pacing lives in the poll itself.
  */
-export const pollRemoteOutboxesJob: JobDefinition = {
+export const pollRemoteOutboxesJob = defineJournalJob({
   name: "poll-remote-outboxes",
   cron: "*/5 * * * *",
   retryLimit: 1,
@@ -22,4 +22,4 @@ export const pollRemoteOutboxesJob: JobDefinition = {
     if (due.length > 0) logger.info({ due: due.length }, "poll-remote-outboxes sweep");
     return { due: due.length };
   },
-};
+});

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { YjsState } from "~/lib/use-yjs";
+import { DEFAULT_PROFILE, getProfile, setProfile as setYjsProfile } from "~/lib/route-data";
 
 const PROFILE_IDS = ["fastbike", "safety", "shortest", "car", "trekking"] as const;
 
@@ -10,11 +11,11 @@ interface ProfileSelectorProps {
 
 export function ProfileSelector({ yjs }: ProfileSelectorProps) {
   const { t } = useTranslation("planner");
-  const [profile, setProfile] = useState("fastbike");
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
 
   useEffect(() => {
     const update = () => {
-      const p = yjs.routeData.get("profile") as string | undefined;
+      const p = getProfile(yjs.routeData);
       if (p) setProfile(p);
     };
     yjs.routeData.observe(update);
@@ -26,7 +27,7 @@ export function ProfileSelector({ yjs }: ProfileSelectorProps) {
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const value = e.target.value;
       setProfile(value);
-      yjs.routeData.set("profile", value);
+      setYjsProfile(yjs.routeData, value);
     },
     [yjs.routeData],
   );

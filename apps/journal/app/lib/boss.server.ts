@@ -16,6 +16,7 @@
 // global registry key.
 
 import { logger } from "./logger.server.ts";
+import type { JobName, JobPayloads } from "../jobs/payloads.ts";
 
 // Structurally typed (we only need `send`) so we don't have to pull
 // pg-boss into the journal app's dep graph just for the typedef.
@@ -52,19 +53,32 @@ export function getBoss(): BossLike {
 }
 
 /**
+ * Enqueue a job. The queue name must be a key of JobPayloads and the
+ * payload must match its declared shape. Throws if the queue is down —
+ * use this when the caller's correctness depends on the job existing
+ * (e.g. a batch row that would otherwise wait forever).
+ */
+export async function enqueue<K extends JobName>(
+  queue: K,
+  data: JobPayloads[K],
+  options?: BossSendOptions,
+): Promise<void> {
+  await getBoss().send(queue, data, options);
+}
+
+/**
  * Best-effort enqueue: log + swallow errors so a downstream queue
  * outage doesn't fail the user-visible request that triggered the
  * fan-out. Use this for "fire and forget" notifications work.
  */
-export async function enqueueOptional(
-  queue: string,
-  data: unknown,
+export async function enqueueOptional<K extends JobName>(
+  queue: K,
+  data: JobPayloads[K],
   ctx: Record<string, unknown> = {},
   options?: BossSendOptions,
 ): Promise<void> {
   try {
-    const boss = getBoss();
-    await boss.send(queue, data, options);
+    await enqueue(queue, data, options);
   } catch (err) {
     logger.warn({ err, queue, ...ctx }, "boss.send failed; continuing");
   }

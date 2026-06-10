@@ -5,6 +5,7 @@ import type { YjsState } from "~/lib/use-yjs";
 import { overlayLayers } from "@trails-cool/map";
 import { usePois } from "~/lib/use-pois";
 import { Z_CURSOR } from "@trails-cool/map-core";
+import { getBaseLayer, getOverlays, setBaseLayer, setOverlays } from "~/lib/route-data";
 
 // Exposes the Leaflet map instance on window.__leafletMap for E2E testing and external integrations.
 export function MapExposer() {
@@ -188,11 +189,10 @@ export function OverlaySync({
       if (suppressRef.current) return;
       const layer = overlayLayers.find((l) => l.name === e.name);
       if (!layer) return;
-      const raw = yjs.routeData.get("overlays") as string | undefined;
-      const current: string[] = raw ? JSON.parse(raw) : [];
+      const current = getOverlays(yjs.routeData) ?? [];
       if (!current.includes(layer.id)) {
         const updated = [...current, layer.id];
-        yjs.routeData.set("overlays", JSON.stringify(updated));
+        setOverlays(yjs.routeData, updated);
         onOverlayChange(updated);
       }
     };
@@ -201,16 +201,14 @@ export function OverlaySync({
       if (suppressRef.current) return;
       const layer = overlayLayers.find((l) => l.name === e.name);
       if (!layer) return;
-      const raw = yjs.routeData.get("overlays") as string | undefined;
-      const current: string[] = raw ? JSON.parse(raw) : [];
-      const updated = current.filter((id) => id !== layer.id);
-      yjs.routeData.set("overlays", JSON.stringify(updated));
+      const updated = (getOverlays(yjs.routeData) ?? []).filter((id) => id !== layer.id);
+      setOverlays(yjs.routeData, updated);
       onOverlayChange(updated);
     };
 
     const handleBaseChange = (e: L.LayersControlEvent) => {
       if (suppressRef.current) return;
-      yjs.routeData.set("baseLayer", e.name);
+      setBaseLayer(yjs.routeData, e.name);
     };
 
     map.on("overlayadd", handleAdd as L.LeafletEventHandlerFn);
@@ -225,11 +223,9 @@ export function OverlaySync({
 
   useEffect(() => {
     const handleChange = () => {
-      const raw = yjs.routeData.get("overlays") as string | undefined;
-      if (raw) {
-        try { onOverlayChange(JSON.parse(raw)); } catch { /* ignore */ }
-      }
-      const base = yjs.routeData.get("baseLayer") as string | undefined;
+      const overlays = getOverlays(yjs.routeData);
+      if (overlays) onOverlayChange(overlays);
+      const base = getBaseLayer(yjs.routeData);
       if (base) onBaseLayerChange(base);
     };
     yjs.routeData.observe(handleChange);
