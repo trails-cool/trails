@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { importBatches } from "@trails-cool/db/schema/journal";
 import { fetchKomootTours, fetchKomootTourGpx } from "./komoot.server.ts";
@@ -7,9 +7,28 @@ import { createActivity } from "./activities.server.ts";
 import { decrypt } from "./crypto.server.ts";
 import { logger } from "./logger.server.ts";
 
-type KomootCreds =
+export type KomootCreds =
   | { mode: "public"; komootUserId: string }
   | { mode: "authenticated"; email: string; encryptedPassword: string; komootUserId: string };
+
+/**
+ * Marks a batch failed unless it already reached a terminal state.
+ * Used by the job handler when credential resolution fails before
+ * runKomootBulkImport (which owns failure-marking for its own errors)
+ * ever runs — otherwise the batch would sit "pending" forever.
+ */
+export async function markBatchFailed(batchId: string, message: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(importBatches)
+    .set({ status: "failed", errorMessage: message, completedAt: new Date() })
+    .where(
+      and(
+        eq(importBatches.id, batchId),
+        notInArray(importBatches.status, ["completed", "failed"]),
+      ),
+    );
+}
 
 function getBasicAuthToken(creds: KomootCreds): string | undefined {
   if (creds.mode !== "authenticated") return undefined;

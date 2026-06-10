@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { ensureUserKeypair, listUsersWithoutKeypair } from "../lib/federation-keys.server.ts";
 import { logger } from "../lib/logger.server.ts";
 
@@ -10,7 +10,7 @@ import { logger } from "../lib/logger.server.ts";
  * only touches users whose public_key IS NULL, so re-runs are no-ops.
  * New users get keys at registration and never appear in this workload.
  */
-export const backfillUserKeypairsJob: JobDefinition = {
+export const backfillUserKeypairsJob = defineJournalJob({
   name: "backfill-user-keypairs",
   retryLimit: 3,
   expireInSeconds: 300,
@@ -23,4 +23,4 @@ export const backfillUserKeypairsJob: JobDefinition = {
     logger.info({ candidates: ids.length, generated }, "backfill-user-keypairs");
     return { candidates: ids.length, generated };
   },
-};
+});

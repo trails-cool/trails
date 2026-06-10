@@ -7,7 +7,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.sync.komoot.import";
 import { requireSessionUser } from "~/lib/auth/session.server";
 import { getService } from "~/lib/connected-services/manager";
-import { getBoss } from "~/lib/boss.server";
+import { enqueue } from "~/lib/boss.server";
 import { getDb } from "~/lib/db";
 import { importBatches } from "@trails-cool/db/schema/journal";
 
@@ -27,11 +27,12 @@ export async function action({ request }: Route.ActionArgs) {
     status: "pending",
   });
 
-  const boss = getBoss();
-  await boss.send("komoot-bulk-import", {
+  // Only the serviceId crosses the queue — the job resolves fresh
+  // credentials through the ConnectedServiceManager at execution time.
+  await enqueue("komoot-bulk-import", {
     batchId,
     userId: user.id,
-    creds: service.credentials,
+    serviceId: service.id,
   });
 
   return data({ batchId });

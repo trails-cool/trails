@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { and, eq } from "drizzle-orm";
 import { activities, users } from "@trails-cool/db/schema/journal";
 import { getDb } from "../lib/db.ts";
@@ -39,12 +39,12 @@ async function paceHost(host: string): Promise<void> {
  * failed and pg-boss retries; exhausting the budget is the permanent
  * failure, logged by the final catch.
  */
-export const deliverActivityJob: JobDefinition = {
+export const deliverActivityJob = defineJournalJob({
   name: "deliver-activity",
   expireInSeconds: 60,
   async handler(jobs) {
     for (const job of jobs) {
-      const p = job.data as DeliveryPayload;
+      const p = job.data;
       try {
         await deliverOne(p);
       } catch (err) {
@@ -56,7 +56,7 @@ export const deliverActivityJob: JobDefinition = {
       }
     }
   },
-};
+});
 
 async function deliverOne(p: DeliveryPayload): Promise<void> {
   const federation = getFederation();

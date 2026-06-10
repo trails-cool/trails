@@ -1,13 +1,9 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { getDb } from "../lib/db.ts";
 import { activities, follows, users } from "@trails-cool/db/schema/journal";
 import { createNotification } from "../lib/notifications.server.ts";
 import { logger } from "../lib/logger.server.ts";
-
-interface FanoutData {
-  activityId: string;
-}
 
 /**
  * Fan out an `activity_published` notification to every accepted
@@ -15,7 +11,7 @@ interface FanoutData {
  * `(recipient_user_id, type, subject_id)` unique partial index — a
  * retry after partial failure won't double-insert.
  */
-export const notificationsFanoutJob: JobDefinition = {
+export const notificationsFanoutJob = defineJournalJob({
   name: "notifications-fanout",
   retryLimit: 3,
   expireInSeconds: 300,
@@ -24,11 +20,10 @@ export const notificationsFanoutJob: JobDefinition = {
     // process whichever shape we get.
     const batch = Array.isArray(job) ? job : [job];
     for (const item of batch) {
-      const data = item.data as FanoutData;
-      await fanout(data.activityId);
+      await fanout(item.data.activityId);
     }
   },
-};
+});
 
 export async function fanout(activityId: string): Promise<void> {
   const db = getDb();

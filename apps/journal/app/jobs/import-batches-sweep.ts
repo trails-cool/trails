@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { and, lt, inArray, count } from "drizzle-orm";
 import { getDb } from "../lib/db.ts";
 import { importBatches, type ImportBatchStatus } from "@trails-cool/db/schema/journal";
@@ -7,7 +7,7 @@ import { logger } from "../lib/logger.server.ts";
 const STALE_MS = 10 * 60 * 1000;
 const STALE_STATUSES: ImportBatchStatus[] = ["pending", "running"];
 
-export const importBatchesSweepJob: JobDefinition = {
+export const importBatchesSweepJob = defineJournalJob({
   name: "import-batches-sweep",
   cron: "* * * * *",
   retryLimit: 0,
@@ -39,4 +39,4 @@ export const importBatchesSweepJob: JobDefinition = {
 
     logger.info({ count: result.length }, "import-batches-sweep: marked stale batches as failed");
   },
-};
+});

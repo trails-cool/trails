@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import { purgeReadOlderThan } from "../lib/notifications.server.ts";
 import { logger } from "../lib/logger.server.ts";
 
@@ -7,7 +7,7 @@ import { logger } from "../lib/logger.server.ts";
  * than 90 days; unread rows are kept indefinitely so users never miss
  * an event.
  */
-export const notificationsPurgeJob: JobDefinition = {
+export const notificationsPurgeJob = defineJournalJob({
   name: "notifications-purge",
   cron: "30 3 * * *", // daily at 03:30 UTC (offset from demo-bot-prune to spread load)
   retryLimit: 1,
@@ -18,4 +18,4 @@ export const notificationsPurgeJob: JobDefinition = {
     logger.info({ days, purged }, "notifications-purge");
     return { days, purged };
   },
-};
+});

@@ -1,4 +1,4 @@
-import type { JobDefinition } from "@trails-cool/jobs";
+import { defineJournalJob } from "./payloads.ts";
 import {
   DEMO_BACKFILL_TARGET,
   DEMO_DAILY_CAP,
@@ -21,7 +21,7 @@ import { logger } from "../lib/logger.server.ts";
  * 3. Otherwise apply the decide-to-walk gate (local hour + p=0.09) and
  *    daily cap; on pass, insert one route+activity via `generateOneWalk`.
  */
-export const demoBotGenerateJob: JobDefinition = {
+export const demoBotGenerateJob = defineJournalJob({
   name: "demo-bot-generate",
   cron: "0,30 * * * *",
   retryLimit: 1,
@@ -57,4 +57,4 @@ export const demoBotGenerateJob: JobDefinition = {
     await refreshDemoBotGauges();
     return { mode: "single", routeId: id };
   },
-};
+});
