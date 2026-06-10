@@ -1,50 +1,5 @@
 import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
-
-// Virtual authenticator helpers
-async function setupVirtualAuthenticator(cdp: CDPSession) {
-  await cdp.send("WebAuthn.enable");
-  const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "internal",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-    },
-  });
-  return authenticatorId;
-}
-
-async function removeVirtualAuthenticator(cdp: CDPSession, authenticatorId: string) {
-  await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
-  await cdp.send("WebAuthn.disable");
-}
-
-async function registerUser(page: Page, email: string, username: string) {
-  await page.goto("/auth/register");
-  await expect(page.getByRole("heading", { name: "Register" })).toBeVisible();
-  await waitForHydration(page);
-  await page.getByLabel("Email").click();
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Username").click();
-  await page.getByLabel("Username").fill(username);
-  // Verify both fields retained values before submitting
-  await expect(page.getByLabel("Email")).toHaveValue(email);
-  await expect(page.getByLabel("Username")).toHaveValue(username);
-  // Accept the Terms of Service (required)
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: /Register with Passkey/ }).click();
-}
-
-async function logout(page: Page, accountLabel: string) {
-  // The account cluster lives inside an avatar dropdown now. Click the
-  // avatar (its aria-label is displayName || username), then click the
-  // Log Out menuitem inside the popup.
-  await waitForHydration(page);
-  await page.getByRole("navigation").getByRole("button", { name: accountLabel }).click();
-  await page.getByRole("menuitem", { name: "Log Out" }).click();
-  await expect(page.getByRole("navigation").getByRole("link", { name: "Sign In" })).toBeVisible({ timeout: 5000 });
-}
+import { setupVirtualAuthenticator, removeVirtualAuthenticator, submitRegistration, logout } from "./helpers/auth";
 
 test.describe("Passkey Authentication", () => {
   test("register with passkey and sign in", async ({ page }) => {
@@ -55,7 +10,7 @@ test.describe("Passkey Authentication", () => {
     const username = `testuser${Date.now()}`;
 
     // Register
-    await registerUser(page, email, username);
+    await submitRegistration(page, email, username);
     await expect(page).toHaveURL("/", { timeout: 10000 });
     // The avatar button's aria-label is the displayName or username;
     // for a freshly-registered user with no displayName set, that's
@@ -95,12 +50,12 @@ test.describe("Passkey Authentication", () => {
     const firstUsername = `first${Date.now()}`;
 
     // Register first user
-    await registerUser(page, email, firstUsername);
+    await submitRegistration(page, email, firstUsername);
     await expect(page).toHaveURL("/", { timeout: 10000 });
     await logout(page, firstUsername);
 
     // Try to register with same email
-    await registerUser(page, email, `second${Date.now()}`);
+    await submitRegistration(page, email, `second${Date.now()}`);
     await expect(page.getByText(/already in use/i)).toBeVisible({ timeout: 10000 });
 
     await removeVirtualAuthenticator(cdp, authenticatorId);
@@ -113,12 +68,12 @@ test.describe("Passkey Authentication", () => {
     const username = `uniq${Date.now()}`;
 
     // Register first user
-    await registerUser(page, `first-${Date.now()}@example.com`, username);
+    await submitRegistration(page, `first-${Date.now()}@example.com`, username);
     await expect(page).toHaveURL("/", { timeout: 10000 });
     await logout(page, username);
 
     // Try to register with same username
-    await registerUser(page, `second-${Date.now()}@example.com`, username);
+    await submitRegistration(page, `second-${Date.now()}@example.com`, username);
     await expect(page.getByText(/already taken/i)).toBeVisible({ timeout: 10000 });
 
     await removeVirtualAuthenticator(cdp, authenticatorId);

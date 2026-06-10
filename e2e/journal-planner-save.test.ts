@@ -17,10 +17,9 @@
 // computes a route and the Save button has GPX to ship.
 
 import { test, expect } from "./fixtures/test";
+import { JOURNAL, PLANNER, seedRoute, routeHasGeom } from "./helpers/journal";
 import { mockBRouter } from "./fixtures/brouter-mock";
 
-const JOURNAL = "http://localhost:3000";
-const PLANNER = "http://localhost:3001";
 
 // Mock BRouter so the in-browser route compute is deterministic and
 // fast — same approach as `planner-coloring.test.ts`. Without this the
@@ -35,9 +34,7 @@ const WAYPOINTS = encodeURIComponent(JSON.stringify([
 ]));
 
 async function seedRouteAndPlannerSession(request: import("@playwright/test").APIRequestContext) {
-  const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-  expect(seedResp.ok()).toBeTruthy();
-  const { routeId, token } = (await seedResp.json()) as { routeId: string; token: string };
+  const { routeId, token } = await seedRoute(request);
 
   // Create a planner session with the journal callback wired up — no
   // GPX seeded into the session itself. We pass waypoints via URL
@@ -85,9 +82,7 @@ test.describe("Journal ↔ Planner save handoff (Phase A + B)", () => {
     expect(observed.some((s) => s.includes(token))).toBe(false);
 
     // Sanity: the journal's route now has geometry.
-    const geomResp = await request.get(`${JOURNAL}/api/e2e/route/${routeId}`);
-    const { hasGeom } = (await geomResp.json()) as { hasGeom: boolean };
-    expect(hasGeom).toBe(true);
+    expect(await routeHasGeom(request, routeId)).toBe(true);
   });
 
   test("token is single-use — second save through the planner UI fails", async ({ page, request }) => {
