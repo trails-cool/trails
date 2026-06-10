@@ -12,6 +12,7 @@ import {
 } from "~/lib/activities.server";
 import { deleteImportByActivity } from "~/lib/sync/imports.server";
 import { listRoutes } from "~/lib/routes.server";
+import { requireOwnedActivity, requireOwnedRoute } from "~/lib/ownership.server";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
 const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
@@ -65,24 +66,27 @@ export async function activityDetailAction(request: Request, id: string | undefi
   const intent = formData.get("intent");
 
   if (intent === "link-route") {
-    const routeId = formData.get("routeId") as string;
-    if (routeId) {
-      await linkActivityToRoute(activityId, routeId, user.id);
+    const activity = await requireOwnedActivity(activityId, user.id);
+    const routeIdRaw = formData.get("routeId") as string;
+    if (routeIdRaw) {
+      const route = await requireOwnedRoute(routeIdRaw, user.id);
+      await linkActivityToRoute(activity, route);
     }
     return redirect(`/activities/${activityId}`);
   }
 
   if (intent === "create-route") {
-    const routeId = await createRouteFromActivity(activityId, user.id);
+    const activity = await requireOwnedActivity(activityId, user.id);
+    const routeId = await createRouteFromActivity(activity);
     if (routeId) return redirect(`/routes/${routeId}`);
     return data({ error: "No GPX data to create route from" }, { status: 400 });
   }
 
   if (intent === "delete") {
+    const activity = await requireOwnedActivity(activityId, user.id);
     await deleteImportByActivity(activityId);
-    const deleted = await deleteActivity(activityId, user.id);
-    if (deleted) return redirect("/activities");
-    return data({ error: "Activity not found" }, { status: 404 });
+    await deleteActivity(activity);
+    return redirect("/activities");
   }
 
   if (intent === "set-visibility") {
@@ -90,8 +94,8 @@ export async function activityDetailAction(request: Request, id: string | undefi
     if (!raw || !VISIBILITY_VALUES.has(raw as Visibility)) {
       return data({ error: "Invalid visibility" }, { status: 400 });
     }
-    const ok = await updateActivityVisibility(activityId, user.id, raw as Visibility);
-    if (!ok) return data({ error: "Activity not found" }, { status: 404 });
+    const activity = await requireOwnedActivity(activityId, user.id);
+    await updateActivityVisibility(activity, raw as Visibility);
     return redirect(`/activities/${activityId}`);
   }
 

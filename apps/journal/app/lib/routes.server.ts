@@ -6,6 +6,7 @@ import type { Visibility } from "@trails-cool/db/schema/journal";
 import { sql } from "drizzle-orm";
 import { validateGpx, writeGeom } from "./gpx-save.server.ts";
 import type { GpxData } from "./gpx-save.server.ts";
+import type { OwnedRef } from "./ownership.server.ts";
 
 export interface RouteInput {
   name: string;
@@ -130,11 +131,8 @@ export async function listPublicRoutesForOwner(ownerId: string, limit: number = 
   return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
 }
 
-export async function updateRoute(
-  id: string,
-  ownerId: string,
-  input: Partial<RouteInput>,
-) {
+export async function updateRoute(route: OwnedRef, input: Partial<RouteInput>) {
+  const { id, ownerId } = route;
   const db = getDb();
 
   let parsed: GpxData | null = null;
@@ -188,11 +186,13 @@ export async function updateRoute(
   });
 }
 
-export async function deleteRoute(id: string, ownerId: string) {
+export async function deleteRoute(route: OwnedRef) {
   const db = getDb();
+  // The WHERE ownerId clause stays as defense in depth even though the
+  // OwnedRef brand already proves ownership.
   const result = await db
     .delete(routes)
-    .where(and(eq(routes.id, id), eq(routes.ownerId, ownerId)))
+    .where(and(eq(routes.id, route.id), eq(routes.ownerId, route.ownerId)))
     .returning({ id: routes.id });
   return result.length > 0;
 }
