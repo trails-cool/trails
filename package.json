@@ -85,10 +85,5 @@
     "vite": "catalog:",
     "vitest": "^4.1.8"
   },
-  "version": "1.0.0",
-  "dependencies": {
-    "expo": "~55.0.24",
-    "react": "19.2.7",
-    "react-native": "0.83.4"
-  }
+  "version": "1.0.0"
 }
