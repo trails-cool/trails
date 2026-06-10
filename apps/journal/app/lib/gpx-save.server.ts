@@ -45,6 +45,51 @@ export async function validateGpx(gpx: string): Promise<GpxData> {
   return parsed;
 }
 
+export interface GpxStats {
+  distance: number | null;
+  elevationGain: number | null;
+  elevationLoss: number | null;
+  /** Indices of waypoints flagged as day breaks. */
+  dayBreaks: number[];
+  /** GPX-level description, when present. */
+  description?: string;
+  /** Timestamp of the first track point, when present. */
+  startTime: Date | null;
+}
+
+export interface ProcessedGpx {
+  parsed: GpxData;
+  /** [lon, lat] pairs in PostGIS axis order, ready for writeGeom. */
+  coords: Array<[number, number]>;
+  stats: GpxStats;
+}
+
+/**
+ * The validate-and-derive step every GPX save starts with: parse +
+ * validate (throws GpxValidationError), extract the geometry
+ * coordinates, and derive the stats rows store. Callers own the
+ * precedence between these derived stats and caller-supplied ones —
+ * routes let explicit input win wholesale, activities prefer the GPX
+ * distance unless it is zero.
+ */
+export async function processGpx(gpx: string): Promise<ProcessedGpx> {
+  const parsed = await validateGpx(gpx);
+  return {
+    parsed,
+    coords: parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]),
+    stats: {
+      distance: parsed.distance ?? null,
+      elevationGain: parsed.elevation.gain ?? null,
+      elevationLoss: parsed.elevation.loss ?? null,
+      dayBreaks: parsed.waypoints
+        .map((w, i) => (w.isDayBreak ? i : -1))
+        .filter((i) => i >= 0),
+      description: parsed.description,
+      startTime: parsed.tracks[0]?.[0]?.time ? new Date(parsed.tracks[0][0].time) : null,
+    },
+  };
+}
+
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /**

@@ -1,11 +1,13 @@
 import type { Route } from "./+types/api.v1.routes._index";
-import { requireApiUser, apiError } from "~/lib/api-guard.server";
+import { requireApiUser, apiError, apiJson } from "~/lib/api-guard.server";
 import { listRoutes, createRoute } from "~/lib/routes.server";
 import {
   PaginationQuerySchema,
   CreateRouteRequestSchema,
   ERROR_CODES,
   zodIssuesToFieldErrors,
+  RouteListResponseSchema,
+  CreateRouteResponseSchema,
 } from "@trails-cool/api";
 
 /** GET /api/v1/routes — paginated route list */
@@ -32,11 +34,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const page = allRoutes.slice(startIdx, startIdx + limit);
   const nextCursor = startIdx + limit < allRoutes.length ? page[page.length - 1]?.id ?? null : null;
 
-  return Response.json({
+  return apiJson(RouteListResponseSchema, {
     routes: page.map((r) => ({
       id: r.id,
       name: r.name,
-      description: r.description,
+      description: r.description ?? "",
       distance: r.distance,
       elevationGain: r.elevationGain,
       elevationLoss: r.elevationLoss,
@@ -63,5 +65,5 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const id = await createRoute(user.id, parsed.data);
-  return Response.json({ id }, { status: 201 });
+  return apiJson(CreateRouteResponseSchema, { id }, { status: 201 });
 }
