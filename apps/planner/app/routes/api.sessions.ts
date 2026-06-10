@@ -4,6 +4,7 @@ import { createSession, listSessions } from "~/lib/sessions";
 import { parseGpxAsync, extractWaypoints } from "@trails-cool/gpx";
 import { withDb } from "@trails-cool/db";
 import type { Waypoint } from "@trails-cool/types";
+import { validateFetchUrl, getCallbackAllowedHosts } from "~/lib/url-validation.server";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -16,6 +17,20 @@ export async function action({ request }: Route.ActionArgs) {
     callbackToken?: string;
     gpx?: string;
   };
+
+  // callbackUrl becomes a server-side fetch target on save-to-journal,
+  // so an unvalidated value here is an SSRF sink. The /new loader
+  // already validates the query-param form; this is the programmatic
+  // JSON entry point and must do the same.
+  if (callbackUrl !== undefined) {
+    if (typeof callbackUrl !== "string") {
+      return data({ error: "callbackUrl must be a string" }, { status: 400 });
+    }
+    const v = validateFetchUrl(callbackUrl, { allowedHosts: getCallbackAllowedHosts() });
+    if (!v.ok) {
+      return data({ error: `Invalid callback URL: ${v.reason}` }, { status: 400 });
+    }
+  }
 
   return withDb(async () => {
     const session = await createSession({ callbackUrl, callbackToken });
