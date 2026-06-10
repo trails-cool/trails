@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { canView } from "~/lib/auth.server";
 import { getSessionUser, requireSessionUser } from "~/lib/auth/session.server";
 import { getRoute, getRouteWithVersions, deleteRoute, updateRoute } from "~/lib/routes.server";
+import { requireOwnedRoute } from "~/lib/ownership.server";
 import { getDb } from "~/lib/db";
 import { syncPushes } from "@trails-cool/db/schema/journal";
 import { getService } from "~/lib/connected-services";
@@ -146,7 +147,8 @@ export async function routeDetailAction(request: Request, id: string | undefined
   const intent = formData.get("intent");
 
   if (intent === "delete") {
-    await deleteRoute(routeId, user.id);
+    const route = await requireOwnedRoute(routeId, user.id);
+    await deleteRoute(route);
     return redirect("/routes");
   }
 
@@ -162,7 +164,8 @@ export async function routeDetailAction(request: Request, id: string | undefined
       input.gpx = await gpxFile.text();
     }
 
-    await updateRoute(routeId, user.id, input as { name?: string; description?: string; gpx?: string });
+    const route = await requireOwnedRoute(routeId, user.id);
+    await updateRoute(route, input as { name?: string; description?: string; gpx?: string });
     return redirect(`/routes/${routeId}`);
   }
 

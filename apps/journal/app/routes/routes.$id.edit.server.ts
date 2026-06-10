@@ -1,8 +1,9 @@
 // Server-only loader/action for /routes/:id/edit. See `home.server.ts`.
 
-import { data, redirect } from "react-router";
+import { redirect } from "react-router";
 import { requireSessionUser } from "~/lib/auth/session.server";
-import { getRoute, updateRoute } from "~/lib/routes.server";
+import { updateRoute } from "~/lib/routes.server";
+import { requireOwnedRoute } from "~/lib/ownership.server";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
 const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
@@ -10,9 +11,7 @@ const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"])
 export async function loadRouteEdit(request: Request, id: string | undefined) {
   const user = await requireSessionUser(request);
 
-  const route = await getRoute(id ?? "");
-  if (!route) throw data({ error: "Route not found" }, { status: 404 });
-  if (route.ownerId !== user.id) throw data({ error: "Not authorized" }, { status: 403 });
+  const route = await requireOwnedRoute(id ?? "", user.id, { notOwnerStatus: 403 });
 
   return {
     route: {
@@ -44,6 +43,7 @@ export async function routeEditAction(request: Request, id: string | undefined) 
     input.visibility = visibilityRaw as Visibility;
   }
 
-  await updateRoute(routeId, user.id, input);
+  const route = await requireOwnedRoute(routeId, user.id, { notOwnerStatus: 403 });
+  await updateRoute(route, input);
   return redirect(`/routes/${routeId}`);
 }

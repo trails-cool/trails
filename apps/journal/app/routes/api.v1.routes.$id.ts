@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.v1.routes.$id";
 import { requireApiUser, apiError } from "~/lib/api-guard.server";
 import { getRouteWithVersions, updateRoute, deleteRoute } from "~/lib/routes.server";
+import { loadOwnedRoute } from "~/lib/ownership.server";
 import { UpdateRouteRequestSchema, ERROR_CODES, zodIssuesToFieldErrors } from "@trails-cool/api";
 
 /** GET /api/v1/routes/:id — full route detail */
@@ -48,15 +49,20 @@ export async function action({ request, params }: Route.ActionArgs) {
         zodIssuesToFieldErrors(parsed.error));
     }
 
-    await updateRoute(params.id, user.id, parsed.data);
+    const result = await loadOwnedRoute(params.id, user.id);
+    if (!result.ok) {
+      return apiError(404, ERROR_CODES.NOT_FOUND, "Route not found");
+    }
+    await updateRoute(result.entity, parsed.data);
     return Response.json({ ok: true });
   }
 
   if (request.method === "DELETE") {
-    const deleted = await deleteRoute(params.id, user.id);
-    if (!deleted) {
+    const result = await loadOwnedRoute(params.id, user.id);
+    if (!result.ok) {
       return apiError(404, ERROR_CODES.NOT_FOUND, "Route not found");
     }
+    await deleteRoute(result.entity);
     return new Response(null, { status: 204 });
   }
 

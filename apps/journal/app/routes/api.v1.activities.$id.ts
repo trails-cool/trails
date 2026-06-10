@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.v1.activities.$id";
 import { requireApiUser, apiError } from "~/lib/api-guard.server";
 import { getActivity, deleteActivity } from "~/lib/activities.server";
+import { loadOwnedActivity } from "~/lib/ownership.server";
 import { ERROR_CODES } from "@trails-cool/api";
 
 /** GET /api/v1/activities/:id — full activity detail */
@@ -33,9 +34,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (request.method !== "DELETE") return new Response(null, { status: 405 });
   const user = await requireApiUser(request);
 
-  const deleted = await deleteActivity(params.id, user.id);
-  if (!deleted) {
+  const result = await loadOwnedActivity(params.id, user.id);
+  if (!result.ok) {
     return apiError(404, ERROR_CODES.NOT_FOUND, "Activity not found");
   }
+  await deleteActivity(result.entity);
   return new Response(null, { status: 204 });
 }

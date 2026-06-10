@@ -7,6 +7,7 @@ const mockGetAuthenticatedUser = vi.fn();
 const mockListRoutes = vi.fn();
 const mockCreateRoute = vi.fn();
 const mockGetRouteWithVersions = vi.fn();
+const mockGetRoute = vi.fn();
 const mockDeleteRoute = vi.fn();
 
 vi.mock("~/lib/db", () => ({ getDb: vi.fn() }));
@@ -19,6 +20,7 @@ vi.mock("~/lib/routes.server", () => ({
   listRoutes: mockListRoutes,
   createRoute: mockCreateRoute,
   getRouteWithVersions: mockGetRouteWithVersions,
+  getRoute: mockGetRoute,
   updateRoute: vi.fn(),
   deleteRoute: mockDeleteRoute,
 }));
@@ -146,6 +148,7 @@ describe("GET /api/v1/routes/:id", () => {
 
 describe("DELETE /api/v1/routes/:id", () => {
   it("returns 204 on success", async () => {
+    mockGetRoute.mockResolvedValue({ id: "r1", ownerId: "user-1" });
     mockDeleteRoute.mockResolvedValue(true);
     const { action } = await import("./api.v1.routes.$id.ts");
     const resp = await action(routeArgs(
@@ -156,7 +159,7 @@ describe("DELETE /api/v1/routes/:id", () => {
   });
 
   it("returns 404 if not found", async () => {
-    mockDeleteRoute.mockResolvedValue(false);
+    mockGetRoute.mockResolvedValue(null);
     const { action } = await import("./api.v1.routes.$id.ts");
     const resp = await action(routeArgs(
       authRequest("/api/v1/routes/missing", { method: "DELETE" }), { id: "missing" }, "api/v1/routes/:id",

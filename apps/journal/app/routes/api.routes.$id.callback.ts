@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/api.routes.$id.callback";
 import { verifyRouteToken } from "~/lib/jwt.server";
 import { updateRoute, getRoute } from "~/lib/routes.server";
+import { vouchOwnership } from "~/lib/ownership.server";
 import { GpxValidationError } from "~/lib/gpx-save.server";
 
 const PLANNER_ORIGIN = process.env.PLANNER_URL ?? "http://localhost:3001";
@@ -61,8 +62,10 @@ export async function action({ params, request }: Route.ActionArgs) {
       return data({ error: "Missing GPX data" }, { status: 400, headers: corsHeaders() });
     }
 
-    // Update route with new GPX (creates new version)
-    await updateRoute(params.id, route.ownerId, { gpx });
+    // Update route with new GPX (creates new version). Authorization
+    // here comes from the verified single-use route token, not a
+    // session — vouchOwnership marks that explicitly.
+    await updateRoute(vouchOwnership(route), { gpx });
 
     return data({ success: true, routeId: params.id }, { headers: corsHeaders() });
   } catch (e) {

@@ -7,6 +7,7 @@ import type { Visibility } from "@trails-cool/db/schema/journal";
 import { validateGpx, writeGeom } from "./gpx-save.server.ts";
 import type { GpxData } from "./gpx-save.server.ts";
 import { enqueueOptional } from "./boss.server.ts";
+import type { OwnedRef } from "./ownership.server.ts";
 import {
   enqueueActivityDeliveries,
   visibilityTransitionAction,
@@ -25,10 +26,10 @@ export interface ActivityInput {
 }
 
 export async function updateActivityVisibility(
-  id: string,
-  ownerId: string,
+  ownedActivity: OwnedRef,
   visibility: Visibility,
 ): Promise<boolean> {
+  const { id, ownerId } = ownedActivity;
   const db = getDb();
   // Read the previous visibility first: the federation action depends on
   // the *transition*, not the new value alone (a gratuitous Delete
@@ -130,8 +131,11 @@ export async function getActivity(id: string) {
   return { ...activity, geojson, importSource };
 }
 
-export async function deleteActivity(id: string, ownerId: string): Promise<boolean> {
+export async function deleteActivity(ownedActivity: OwnedRef): Promise<boolean> {
+  const { id, ownerId } = ownedActivity;
   const db = getDb();
+  // The WHERE ownerId clause stays as defense in depth even though the
+  // OwnedRef brand already proves ownership.
   const [activity] = await db.select({ id: activities.id, visibility: activities.visibility }).from(activities)
     .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)));
   if (!activity) return false;
@@ -311,17 +315,21 @@ export async function listRecentPublicActivities(limit: number = 20) {
   return rows.map((r) => ({ ...r, geojson: geojsonMap.get(r.id) ?? null }));
 }
 
-export async function linkActivityToRoute(activityId: string, routeId: string, _ownerId: string) {
+export async function linkActivityToRoute(ownedActivity: OwnedRef, ownedRoute: OwnedRef) {
   const db = getDb();
   await db
     .update(activities)
-    .set({ routeId })
-    .where(eq(activities.id, activityId));
+    .set({ routeId: ownedRoute.id })
+    .where(and(eq(activities.id, ownedActivity.id), eq(activities.ownerId, ownedActivity.ownerId)));
 }
 
-export async function createRouteFromActivity(activityId: string, ownerId: string): Promise<string | null> {
+export async function createRouteFromActivity(ownedActivity: OwnedRef): Promise<string | null> {
+  const { id: activityId, ownerId } = ownedActivity;
   const db = getDb();
-  const [activity] = await db.select().from(activities).where(eq(activities.id, activityId));
+  const [activity] = await db
+    .select()
+    .from(activities)
+    .where(and(eq(activities.id, activityId), eq(activities.ownerId, ownerId)));
   if (!activity?.gpx) return null;
 
   const parsed = await validateGpx(activity.gpx);

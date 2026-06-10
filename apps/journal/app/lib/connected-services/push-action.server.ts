@@ -10,7 +10,7 @@ import { desc, eq } from "drizzle-orm";
 import { parseGpxAsync } from "@trails-cool/gpx";
 import { routeVersions } from "@trails-cool/db/schema/journal";
 import { getDb } from "../db.ts";
-import { getRoute } from "../routes.server.ts";
+import { loadOwnedRoute } from "../ownership.server.ts";
 import {
   ConnectionNotActiveError,
   NeedsRelinkError,
@@ -49,9 +49,11 @@ export async function pushRouteToProvider(
   if (!manifest) return { status: "not_found" };
   if (!manifest.routePusher) return { status: "unsupported_provider" };
 
-  const route = await getRoute(routeId);
-  if (!route) return { status: "not_found" };
-  if (route.ownerId !== userId) return { status: "not_owner" };
+  const loaded = await loadOwnedRoute(routeId, userId);
+  if (!loaded.ok) {
+    return { status: loaded.reason === "not_found" ? "not_found" : "not_owner" };
+  }
+  const route = loaded.entity;
 
   const service = await getService(userId, providerId);
   if (!service) return { status: "no_connection" };
