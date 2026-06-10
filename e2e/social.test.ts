@@ -1,31 +1,5 @@
 import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
-
-// Inline virtual-authenticator + register helpers, mirroring the pattern
-// in auth.test.ts / public-content.test.ts so this file runs standalone.
-async function setupVirtualAuthenticator(cdp: CDPSession) {
-  await cdp.send("WebAuthn.enable");
-  const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "internal",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-    },
-  });
-  return authenticatorId;
-}
-
-async function registerUser(page: Page, email: string, username: string) {
-  await page.goto("/auth/register");
-  await expect(page.getByRole("heading", { name: "Register" })).toBeVisible();
-  await waitForHydration(page);
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Username").fill(username);
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: /Register with Passkey/ }).click();
-  await expect(page).toHaveURL("/", { timeout: 10000 });
-}
+import { setupVirtualAuthenticator, registerUser } from "./helpers/auth";
 
 async function setProfileVisibility(page: Page, value: "public" | "private") {
   await page.goto("/settings");
