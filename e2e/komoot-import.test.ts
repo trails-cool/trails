@@ -1,8 +1,8 @@
 import { test, expect } from "./fixtures/test";
+import { JOURNAL, seedKomootConnection, seedRoute } from "./helpers/journal";
 
 // Fixed test data — the e2e seed endpoint creates a stable user + Komoot connection
 const KOMOOT_USER_ID = "99999999999";
-const JOURNAL = "http://localhost:3000";
 
 const SAMPLE_GPX = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="komoot" xmlns="http://www.topografix.com/GPX/1/1">
@@ -33,19 +33,6 @@ const MOCK_TOURS_RESPONSE = {
   },
   page: { totalPages: 1, number: 0 },
 };
-
-// Seeds a Komoot connection for the e2e test user and returns a session cookie.
-async function seedKomootConnection(
-  request: import("@playwright/test").APIRequestContext,
-  mode: "public" | "authenticated" = "public",
-) {
-  const resp = await request.post(`${JOURNAL}/api/e2e/komoot`, {
-    data: { mode },
-  });
-  if (!resp.ok()) throw new Error(`komoot seed failed: ${resp.status()}`);
-  const cookie = resp.headers()["set-cookie"];
-  return { cookie };
-}
 
 test.describe("Komoot connection page", () => {
   test("unauthenticated user is redirected to login", async ({ page }) => {
@@ -105,10 +92,8 @@ test.describe("Komoot import page", () => {
   test.setTimeout(60000);
 
   test("redirects to connect page when not connected", async ({ page, request }) => {
-    // Seed user without Komoot connection (use seed endpoint to just get a session)
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    const data = await seedResp.json() as { routeId: string; token: string };
     // We only need the session — navigate to import page unauthenticated redirects to login
+    await seedRoute(request);
     await page.goto("/sync/import/komoot");
     await expect(page).toHaveURL(/\/auth\/login|\/settings\/connections\/komoot/, { timeout: 5000 });
   });
