@@ -1,8 +1,8 @@
 import type { Route } from "./+types/api.v1.routes.$id";
-import { requireApiUser, apiError } from "~/lib/api-guard.server";
+import { requireApiUser, apiError, apiJson } from "~/lib/api-guard.server";
 import { getRouteWithVersions, updateRoute, deleteRoute } from "~/lib/routes.server";
 import { loadOwnedRoute } from "~/lib/ownership.server";
-import { UpdateRouteRequestSchema, ERROR_CODES, zodIssuesToFieldErrors } from "@trails-cool/api";
+import { UpdateRouteRequestSchema, ERROR_CODES, zodIssuesToFieldErrors, RouteDetailSchema } from "@trails-cool/api";
 
 /** GET /api/v1/routes/:id — full route detail */
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -13,10 +13,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return apiError(404, ERROR_CODES.NOT_FOUND, "Route not found");
   }
 
-  return Response.json({
+  return apiJson(RouteDetailSchema, {
     id: route.id,
     name: route.name,
-    description: route.description,
+    description: route.description ?? "",
     distance: route.distance,
     elevationGain: route.elevationGain,
     elevationLoss: route.elevationLoss,

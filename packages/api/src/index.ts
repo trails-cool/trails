@@ -33,10 +33,12 @@ export {
   RouteSummarySchema, RouteDetailSchema, RouteVersionSchema,
   RouteListResponseSchema,
   CreateRouteRequestSchema, UpdateRouteRequestSchema,
+  CreateRouteResponseSchema,
   ComputeRouteRequestSchema,
   type RouteSummary, type RouteDetail, type RouteVersion,
   type RouteListResponse,
   type CreateRouteRequest, type UpdateRouteRequest,
+  type CreateRouteResponse,
   type ComputeRouteRequest,
 } from "./routes.ts";
 
@@ -44,10 +46,10 @@ export {
 export {
   ActivitySummarySchema, ActivityDetailSchema,
   ActivityListResponseSchema,
-  CreateActivityRequestSchema,
+  CreateActivityRequestSchema, CreateActivityResponseSchema,
   type ActivitySummary, type ActivityDetail,
   type ActivityListResponse,
-  type CreateActivityRequest,
+  type CreateActivityRequest, type CreateActivityResponse,
 } from "./activities.ts";
 
 // Uploads

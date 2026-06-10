@@ -1,7 +1,13 @@
 /**
- * Shared TypeScript types for trails.cool
+ * Shared TypeScript types for trails.cool — the Waypoint wire format
+ * used by both the Planner and Journal apps (Yjs document, GPX
+ * extensions, handoff payloads).
  *
- * These types are used by both the Planner and Journal apps.
+ * Not here on purpose: database row types are derived from the Drizzle
+ * schema (@trails-cool/db, e.g. RouteRow), and API response shapes are
+ * the Zod contracts in @trails-cool/api. Earlier hand-written Route /
+ * Activity interfaces in this file drifted from both and had zero
+ * importers when they were removed.
  */
 
 export interface WaypointPoiTags {
@@ -25,49 +31,4 @@ export interface Waypoint {
   isDayBreak?: boolean;
   osmId?: number;
   poiTags?: WaypointPoiTags;
-}
-
-export interface RouteMetadata {
-  created: Date;
-  updated: Date;
-  owner: string;
-  contributors: string[];
-  routingProfile: string;
-  dayBreaks: number[];
-  distance: number;
-  elevation: {
-    gain: number;
-    loss: number;
-  };
-  tags: string[];
-}
-
-export interface Route {
-  id: string;
-  name: string;
-  description: string;
-  gpx: string;
-  metadata: RouteMetadata;
-  plannerState?: Uint8Array;
-  versions: RouteVersion[];
-}
-
-export interface RouteVersion {
-  version: number;
-  gpx: string;
-  createdAt: Date;
-  createdBy: string;
-  changeDescription?: string;
-}
-
-export interface Activity {
-  id: string;
-  routeId?: string;
-  name: string;
-  description: string;
-  gpx: string;
-  startedAt: Date;
-  duration: number;
-  photos: string[];
-  participants: string[];
 }
