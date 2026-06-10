@@ -4,7 +4,7 @@ import L from "leaflet";
 import { useTranslation } from "react-i18next";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
-import { baseLayers, overlayLayers } from "@trails-cool/map";
+import { baseLayers, overlayLayers } from "@trails-cool/map-core";
 import { setOvernight } from "~/lib/overnight";
 import { usePois } from "~/lib/use-pois";
 import { useProfileDefaults } from "~/lib/use-profile-defaults";

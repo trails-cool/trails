@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useMap, useMapEvents, Marker } from "react-leaflet";
 import L from "leaflet";
 import type { YjsState } from "~/lib/use-yjs";
-import { overlayLayers } from "@trails-cool/map";
+import { overlayLayers } from "@trails-cool/map-core";
 import { usePois } from "~/lib/use-pois";
 import { Z_CURSOR } from "@trails-cool/map-core";
 import { getBaseLayer, getOverlays, setBaseLayer, setOverlays } from "~/lib/route-data";

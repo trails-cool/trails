@@ -9,8 +9,6 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/journal/package.json apps/journal/
 COPY packages/types/package.json packages/types/
-COPY packages/ui/package.json packages/ui/
-COPY packages/map/package.json packages/map/
 COPY packages/gpx/package.json packages/gpx/
 COPY packages/i18n/package.json packages/i18n/
 COPY packages/sentry-config/package.json packages/sentry-config/
