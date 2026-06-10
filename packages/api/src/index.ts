@@ -55,5 +55,6 @@ export {
 // Uploads
 export {
   PresignedUploadRequestSchema, PresignedUploadResponseSchema,
+  ALLOWED_UPLOAD_CONTENT_TYPES, sanitizeUploadFilename,
   type PresignedUploadRequest, type PresignedUploadResponse,
 } from "./uploads.ts";
