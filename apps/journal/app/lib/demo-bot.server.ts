@@ -6,7 +6,7 @@ import { getDb } from "./db.ts";
 import { activities, routes, users } from "@trails-cool/db/schema/journal";
 import { createRoute } from "./routes.server.ts";
 import { createActivity } from "./activities.server.ts";
-import { validateGpx } from "./gpx-save.server.ts";
+import { processGpx } from "./gpx-save.server.ts";
 import { TERMS_VERSION } from "./legal.ts";
 import { logger } from "./logger.server.ts";
 import {
@@ -649,10 +649,8 @@ export async function generateOneWalk(
   const name = templateName(now, locale, persona);
   const description = templateDescription(now, locale, persona);
 
-  const parsed = await validateGpx(result.gpx);
-  const distance = parsed.distance;
-  const elevationGain = parsed.elevation.gain;
-  const elevationLoss = parsed.elevation.loss;
+  const { stats } = await processGpx(result.gpx);
+  const { distance, elevationGain, elevationLoss } = stats;
 
   if (!distance || distance < 500) return null;
 

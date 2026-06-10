@@ -4,8 +4,8 @@ import { unionAll } from "drizzle-orm/pg-core";
 import { getDb } from "./db.ts";
 import { activities, routes, syncImports, users, follows, remoteActors } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
-import { validateGpx, writeGeom } from "./gpx-save.server.ts";
-import type { GpxData } from "./gpx-save.server.ts";
+import { processGpx, writeGeom } from "./gpx-save.server.ts";
+import type { ProcessedGpx } from "./gpx-save.server.ts";
 import { enqueueOptional } from "./boss.server.ts";
 import type { OwnedRef } from "./ownership.server.ts";
 import {
@@ -70,7 +70,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   const db = getDb();
   const id = randomUUID();
 
-  let parsed: GpxData | null = null;
+  let processed: ProcessedGpx | null = null;
   let distance: number | null = input.distance ?? null;
   let elevationGain: number | null = null;
   let elevationLoss: number | null = null;
@@ -78,13 +78,12 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
   const duration: number | null = input.duration ?? null;
 
   if (input.gpx) {
-    parsed = await validateGpx(input.gpx);
-    distance = parsed.distance || distance;
-    elevationGain = parsed.elevation.gain;
-    elevationLoss = parsed.elevation.loss;
-    if (!startedAt && parsed.tracks[0]?.[0]?.time) {
-      startedAt = new Date(parsed.tracks[0][0].time);
-    }
+    processed = await processGpx(input.gpx);
+    // GPX-derived distance wins unless it is zero; caller input is the fallback
+    distance = processed.stats.distance || distance;
+    elevationGain = processed.stats.elevationGain;
+    elevationLoss = processed.stats.elevationLoss;
+    startedAt = startedAt ?? processed.stats.startTime;
   }
 
   await db.transaction(async (tx) => {
@@ -104,9 +103,8 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
       ...(input.synthetic ? { synthetic: true } : {}),
     });
 
-    if (input.gpx && parsed) {
-      const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
-      await writeGeom(tx, id, "activities", coords);
+    if (input.gpx && processed) {
+      await writeGeom(tx, id, "activities", processed.coords);
     }
   });
 
@@ -332,8 +330,7 @@ export async function createRouteFromActivity(ownedActivity: OwnedRef): Promise<
     .where(and(eq(activities.id, activityId), eq(activities.ownerId, ownerId)));
   if (!activity?.gpx) return null;
 
-  const parsed = await validateGpx(activity.gpx);
-  const coords = parsed.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
+  const { coords } = await processGpx(activity.gpx);
   const routeId = randomUUID();
 
   await db.transaction(async (tx) => {
