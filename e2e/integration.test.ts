@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures/test";
+import { JOURNAL, PLANNER, seedRoute, routeHasGeom } from "./helpers/journal";
 
 /**
  * Integration tests that require the full dev stack:
@@ -9,8 +10,6 @@ import { test, expect } from "./fixtures/test";
  * Locally, run `pnpm dev:full` first (with E2E=true for the callback tests).
  */
 
-const JOURNAL = "http://localhost:3000";
-const PLANNER = "http://localhost:3001";
 
 const VALID_GPX = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
@@ -30,9 +29,7 @@ const ONE_POINT_GPX = `<?xml version="1.0" encoding="UTF-8"?>
 
 test.describe("Integration: Planner callback → geometry stored", () => {
   test("valid GPX stores geometry atomically", async ({ request }) => {
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    expect(seedResp.ok()).toBeTruthy();
-    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+    const { routeId, token } = await seedRoute(request);
 
     const callbackResp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -40,14 +37,11 @@ test.describe("Integration: Planner callback → geometry stored", () => {
     });
     expect(callbackResp.status()).toBe(200);
 
-    const geomResp = await request.get(`${JOURNAL}/api/e2e/route/${routeId}`);
-    const { hasGeom } = await geomResp.json() as { hasGeom: boolean };
-    expect(hasGeom).toBe(true);
+    expect(await routeHasGeom(request, routeId)).toBe(true);
   });
 
   test("invalid GPX returns 400 and does not store geometry", async ({ request }) => {
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+    const { routeId, token } = await seedRoute(request);
 
     const callbackResp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -57,14 +51,11 @@ test.describe("Integration: Planner callback → geometry stored", () => {
     const body = await callbackResp.json() as { error: string };
     expect(body.error).toMatch(/at least 2 track points/);
 
-    const geomResp = await request.get(`${JOURNAL}/api/e2e/route/${routeId}`);
-    const { hasGeom } = await geomResp.json() as { hasGeom: boolean };
-    expect(hasGeom).toBe(false);
+    expect(await routeHasGeom(request, routeId)).toBe(false);
   });
 
   test("missing token returns 401", async ({ request }) => {
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    const { routeId } = await seedResp.json() as { routeId: string };
+    const { routeId } = await seedRoute(request);
 
     const resp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
       data: { gpx: VALID_GPX },
@@ -73,8 +64,7 @@ test.describe("Integration: Planner callback → geometry stored", () => {
   });
 
   test("token is single-use — second submit is rejected (Phase B replay guard)", async ({ request }) => {
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+    const { routeId, token } = await seedRoute(request);
 
     // First save succeeds.
     const first = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
@@ -163,9 +153,7 @@ test.describe("Integration: POI metadata roundtrip", () => {
   </trkseg></trk>
 </gpx>`;
 
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    expect(seedResp.ok()).toBeTruthy();
-    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+    const { routeId, token } = await seedRoute(request);
 
     const callbackResp = await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -182,8 +170,7 @@ test.describe("Integration: POI metadata roundtrip", () => {
   });
 
   test("GPX without POI extensions shows no waypoints section", async ({ page, request }) => {
-    const seedResp = await request.post(`${JOURNAL}/api/e2e/seed`);
-    const { routeId, token } = await seedResp.json() as { routeId: string; token: string };
+    const { routeId, token } = await seedRoute(request);
     await request.post(`${JOURNAL}/api/routes/${routeId}/callback`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { gpx: VALID_GPX },
