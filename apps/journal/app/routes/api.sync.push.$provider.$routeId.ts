@@ -1,10 +1,9 @@
 import { redirect, data } from "react-router";
-import { getOrigin } from "~/lib/config.server";
 import type { Route } from "./+types/api.sync.push.$provider.$routeId";
 import { requireSessionUser } from "~/lib/auth/session.server";
 import { getManifest } from "~/lib/connected-services";
 import { pushRouteToProvider } from "~/lib/connected-services/push-action.server";
-import { encodeOAuthState } from "~/lib/connected-services/oauth-state.server";
+import { initiateOAuthFlow } from "~/lib/connected-services/oauth-flow.server";
 
 export async function action({ params, request }: Route.ActionArgs) {
   const user = await requireSessionUser(request);
@@ -26,13 +25,12 @@ export async function action({ params, request }: Route.ActionArgs) {
       if (!manifest.buildAuthUrl) {
         return redirect(`${returnTo}?push=needs_permission`);
       }
-      const origin = getOrigin();
-      const redirectUri = `${origin}/api/sync/callback/${manifest.id}`;
-      const state = encodeOAuthState({
+      // Re-authorize with the push intent in the state; the callback
+      // resumes the push once the scope is granted.
+      return initiateOAuthFlow(manifest, {
         pushAfter: { routeId: params.routeId },
         returnTo,
       });
-      return redirect(manifest.buildAuthUrl(redirectUri, state));
     }
     case "needs_relink":
       return redirect(`${returnTo}?push=needs_permission`);
