@@ -14,6 +14,9 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
+  // NOTE: specs only run if a project below matches them — a new
+  // e2e/*.test.ts file MUST be registered here or it silently never
+  // executes (settings/explore/social sat unregistered for months).
   projects: [
     {
       name: "journal",

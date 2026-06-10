@@ -463,3 +463,13 @@ export const consumedJwtJti = journalSchema.table("consumed_jwt_jti", {
   // Sweep runs `DELETE WHERE expires_at < now()` on a daily schedule.
   expiresAtIdx: index("consumed_jwt_jti_expires_at_idx").on(t.expiresAt),
 }));
+
+// ---------------------------------------------------------------------------
+// Canonical row types — derive from the schema, never re-declare by hand.
+// API wire shapes live in @trails-cool/api; these are the database truth.
+// ---------------------------------------------------------------------------
+
+export type RouteRow = typeof routes.$inferSelect;
+export type RouteVersionRow = typeof routeVersions.$inferSelect;
+export type ActivityRow = typeof activities.$inferSelect;
+export type UserRow = typeof users.$inferSelect;

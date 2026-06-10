@@ -1,11 +1,13 @@
 import type { Route } from "./+types/api.v1.activities._index";
-import { requireApiUser, apiError } from "~/lib/api-guard.server";
+import { requireApiUser, apiError, apiJson } from "~/lib/api-guard.server";
 import { listActivities, createActivity } from "~/lib/activities.server";
 import {
   PaginationQuerySchema,
   CreateActivityRequestSchema,
   ERROR_CODES,
   zodIssuesToFieldErrors,
+  ActivityListResponseSchema,
+  CreateActivityResponseSchema,
 } from "@trails-cool/api";
 
 /** GET /api/v1/activities — paginated activity list */
@@ -32,11 +34,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const page = allActivities.slice(startIdx, startIdx + limit);
   const nextCursor = startIdx + limit < allActivities.length ? page[page.length - 1]?.id ?? null : null;
 
-  return Response.json({
+  return apiJson(ActivityListResponseSchema, {
     activities: page.map((a) => ({
       id: a.id,
       name: a.name,
-      description: a.description,
+      description: a.description ?? "",
       routeId: a.routeId,
       routeName: null, // TODO: join route name
       distance: a.distance,
@@ -67,5 +69,5 @@ export async function action({ request }: Route.ActionArgs) {
     ...parsed.data,
     startedAt: parsed.data.startedAt ? new Date(parsed.data.startedAt) : null,
   });
-  return Response.json({ id }, { status: 201 });
+  return apiJson(CreateActivityResponseSchema, { id }, { status: 201 });
 }

@@ -1,36 +1,5 @@
 import { test, expect, type CDPSession, type Page } from "./fixtures/test";
-
-async function setupVirtualAuthenticator(cdp: CDPSession) {
-  await cdp.send("WebAuthn.enable");
-  const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "internal",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-    },
-  });
-  return authenticatorId;
-}
-
-async function removeVirtualAuthenticator(cdp: CDPSession, authenticatorId: string) {
-  await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
-  await cdp.send("WebAuthn.disable");
-}
-
-async function registerAndLogin(page: Page, cdp: CDPSession) {
-  const email = `settings-${Date.now()}@example.com`;
-  const username = `settingsuser${Date.now()}`;
-
-  await page.goto("/auth/register");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Username").fill(username);
-  await page.getByRole("button", { name: /Register with Passkey/ }).click();
-  await expect(page).toHaveURL("/", { timeout: 10000 });
-
-  return { email, username };
-}
+import { setupVirtualAuthenticator, removeVirtualAuthenticator, registerFreshUser } from "./helpers/auth";
 
 test.describe("Account Settings", () => {
   test("unauthenticated user is redirected to login", async ({ page }) => {
@@ -41,7 +10,7 @@ test.describe("Account Settings", () => {
   test("settings page loads for authenticated user", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    await registerAndLogin(page, cdp);
+    await registerFreshUser(page, "settings");
 
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
@@ -55,7 +24,7 @@ test.describe("Account Settings", () => {
   test("update display name and bio", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    const { username } = await registerAndLogin(page, cdp);
+    const { username } = await registerFreshUser(page, "settings");
 
     await page.goto("/settings");
 
@@ -79,7 +48,7 @@ test.describe("Account Settings", () => {
   test("passkey list shows registered passkey", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    await registerAndLogin(page, cdp);
+    await registerFreshUser(page, "settings");
 
     await page.goto("/settings");
     // Should show the passkey registered during registration
@@ -92,7 +61,7 @@ test.describe("Account Settings", () => {
   test("add and delete passkey from settings", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    await registerAndLogin(page, cdp);
+    await registerFreshUser(page, "settings");
 
     await page.goto("/settings");
 
@@ -119,7 +88,7 @@ test.describe("Account Settings", () => {
   test("delete last passkey shows warning", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    await registerAndLogin(page, cdp);
+    await registerFreshUser(page, "settings");
 
     await page.goto("/settings");
 
@@ -142,7 +111,7 @@ test.describe("Account Settings", () => {
   test("settings link reachable from nav when logged in", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    const { username } = await registerAndLogin(page, cdp);
+    const { username } = await registerFreshUser(page, "settings");
 
     // Settings now lives inside the avatar dropdown; opening the
     // dropdown reveals the menuitem.
@@ -161,7 +130,7 @@ test.describe("Account Settings", () => {
   test("account deletion requires correct username", async ({ page }) => {
     const cdp = await page.context().newCDPSession(page);
     const authenticatorId = await setupVirtualAuthenticator(cdp);
-    const { username } = await registerAndLogin(page, cdp);
+    const { username } = await registerFreshUser(page, "settings");
 
     await page.goto("/settings");
 
