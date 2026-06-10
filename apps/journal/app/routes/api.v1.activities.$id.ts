@@ -1,8 +1,8 @@
 import type { Route } from "./+types/api.v1.activities.$id";
-import { requireApiUser, apiError } from "~/lib/api-guard.server";
+import { requireApiUser, apiError, apiJson } from "~/lib/api-guard.server";
 import { getActivity, deleteActivity } from "~/lib/activities.server";
 import { loadOwnedActivity } from "~/lib/ownership.server";
-import { ERROR_CODES } from "@trails-cool/api";
+import { ERROR_CODES, ActivityDetailSchema } from "@trails-cool/api";
 
 /** GET /api/v1/activities/:id — full activity detail */
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -13,11 +13,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return apiError(404, ERROR_CODES.NOT_FOUND, "Activity not found");
   }
 
-  return Response.json({
+  return apiJson(ActivityDetailSchema, {
     id: activity.id,
     name: activity.name,
-    description: activity.description,
+    description: activity.description ?? "",
     routeId: activity.routeId,
+    routeName: null, // TODO: join route name (matches the list endpoint)
+    photos: [], // no photos on this surface yet; contract field
+
     distance: activity.distance,
     duration: activity.duration,
     elevationGain: activity.elevationGain,

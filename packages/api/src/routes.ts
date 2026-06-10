@@ -17,7 +17,9 @@ export const RouteSummarySchema = z.object({
 
 /** Route version info */
 export const RouteVersionSchema = z.object({
+  id: z.uuid(),
   version: z.number(),
+  createdBy: z.string().nullable(),
   changeDescription: z.string().nullable(),
   createdAt: z.iso.datetime(),
 });
@@ -64,7 +66,11 @@ export const ComputeRouteRequestSchema = z.object({
   })).optional(),
 });
 
+/** Response to POST /api/v1/routes */
+export const CreateRouteResponseSchema = z.object({ id: z.uuid() });
+
 export type RouteSummary = z.infer<typeof RouteSummarySchema>;
+export type CreateRouteResponse = z.infer<typeof CreateRouteResponseSchema>;
 export type RouteVersion = z.infer<typeof RouteVersionSchema>;
 export type RouteDetail = z.infer<typeof RouteDetailSchema>;
 export type RouteListResponse = z.infer<typeof RouteListResponseSchema>;

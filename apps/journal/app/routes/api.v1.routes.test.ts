@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TERMS_VERSION } from "~/lib/legal";
 
 const mockUser = { id: "user-1", email: "test@test.com", username: "test", domain: "localhost", displayName: null, bio: null, createdAt: new Date(), termsVersion: TERMS_VERSION };
+const ROUTE_ID = "11111111-1111-4111-8111-111111111111";
+const VERSION_ID = "22222222-2222-4222-8222-222222222222";
+const NEW_ID = "33333333-3333-4333-8333-333333333333";
 const mockGetAuthenticatedUser = vi.fn();
 const mockListRoutes = vi.fn();
 const mockCreateRoute = vi.fn();
@@ -51,7 +54,7 @@ describe("GET /api/v1/routes", () => {
     const now = new Date();
     mockListRoutes.mockResolvedValue([
       {
-        id: "r1", name: "Tour", description: "", distance: 42000,
+        id: ROUTE_ID, name: "Tour", description: "", distance: 42000,
         elevationGain: 340, elevationLoss: 320, routingProfile: "fastbike",
         dayBreaks: [], geojson: null, ownerId: "user-1", gpx: null,
         tags: null, plannerState: null, createdAt: now, updatedAt: now,
@@ -63,7 +66,7 @@ describe("GET /api/v1/routes", () => {
     const data = await resp.json();
 
     expect(data.routes).toHaveLength(1);
-    expect(data.routes[0].id).toBe("r1");
+    expect(data.routes[0].id).toBe(ROUTE_ID);
     expect(data.nextCursor).toBeNull();
   });
 
@@ -83,7 +86,7 @@ describe("GET /api/v1/routes", () => {
 
 describe("POST /api/v1/routes", () => {
   it("creates a route with valid body", async () => {
-    mockCreateRoute.mockResolvedValue("new-id");
+    mockCreateRoute.mockResolvedValue(NEW_ID);
     const { action } = await import("./api.v1.routes._index.ts");
 
     const resp = await action(routeArgs(
@@ -95,7 +98,7 @@ describe("POST /api/v1/routes", () => {
 
     expect(resp.status).toBe(201);
     const data = await resp.json();
-    expect(data.id).toBe("new-id");
+    expect(data.id).toBe(NEW_ID);
   });
 
   it("returns 400 on validation error", async () => {
@@ -117,20 +120,20 @@ describe("GET /api/v1/routes/:id", () => {
   it("returns route detail", async () => {
     const now = new Date();
     mockGetRouteWithVersions.mockResolvedValue({
-      id: "r1", name: "Tour", description: "", distance: 42000,
+      id: ROUTE_ID, name: "Tour", description: "", distance: 42000,
       elevationGain: 340, elevationLoss: 320, routingProfile: "fastbike",
       dayBreaks: [], gpx: "<gpx/>", ownerId: "user-1",
       tags: null, plannerState: null, createdAt: now, updatedAt: now,
-      versions: [{ id: "v1", routeId: "r1", version: 1, gpx: "<gpx/>", createdBy: "user-1", changeDescription: null, createdAt: now }],
+      versions: [{ id: VERSION_ID, routeId: ROUTE_ID, version: 1, gpx: "<gpx/>", createdBy: "user-1", changeDescription: null, createdAt: now }],
     });
 
     const { loader } = await import("./api.v1.routes.$id.ts");
     const resp = await loader(routeArgs(
-      authRequest("/api/v1/routes/r1"), { id: "r1" }, "api/v1/routes/:id",
+      authRequest(`/api/v1/routes/${ROUTE_ID}`), { id: ROUTE_ID }, "api/v1/routes/:id",
     )) as Response;
 
     const data = await resp.json();
-    expect(data.id).toBe("r1");
+    expect(data.id).toBe(ROUTE_ID);
     expect(data.gpx).toBe("<gpx/>");
     expect(data.versions).toHaveLength(1);
   });
