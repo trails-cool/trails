@@ -9,6 +9,7 @@ const {
   isHostBackingOff,
   resetHostBackoff,
   pollRemoteActor,
+  assertRemoteDocSize,
 } = await import("./federation-ingest.server.ts");
 
 function trailsCreate(overrides: Record<string, unknown> = {}, noteOverrides: Record<string, unknown> = {}) {
@@ -127,5 +128,17 @@ describe("429 backoff (7.4)", () => {
     await expect(pollRemoteActor("https://limited.example/users/alice")).resolves.toEqual({
       skipped: "host rate-limited (backing off)",
     });
+  });
+});
+
+describe("assertRemoteDocSize", () => {
+  it("accepts a normal-sized document", () => {
+    expect(() => assertRemoteDocSize({ type: "Person", name: "Alice" })).not.toThrow();
+    expect(() => assertRemoteDocSize(null)).not.toThrow();
+  });
+
+  it("rejects a document over the 4 MB cap", () => {
+    const huge = { type: "OrderedCollection", orderedItems: ["x".repeat(5 * 1024 * 1024)] };
+    expect(() => assertRemoteDocSize(huge)).toThrow(/too large/);
   });
 });
