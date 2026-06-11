@@ -29,6 +29,22 @@ const CONFLICT_STREAK_LIMIT = 5;
 /** Backoff after a 429 without a usable Retry-After (7.4). */
 const DEFAULT_BACKOFF_MS = 15 * 60 * 1000;
 /**
+ * Reject a fetched actor/outbox document larger than this once serialized.
+ * Fedify owns the transfer (and applies its own SSRF + redirect limits),
+ * so this is a downstream guard: it stops us iterating/persisting an
+ * absurdly large document from a hostile remote, on top of the existing
+ * per-poll item cap. A legitimate actor doc or 50-item page is a few KB.
+ */
+const MAX_REMOTE_DOC_BYTES = 4 * 1024 * 1024; // 4 MB
+
+/** Throws if a remote document's serialized size exceeds the cap. */
+export function assertRemoteDocSize(document: unknown): void {
+  const size = JSON.stringify(document ?? null).length;
+  if (size > MAX_REMOTE_DOC_BYTES) {
+    throw new Error(`remote document too large: ${size} bytes (cap ${MAX_REMOTE_DOC_BYTES})`);
+  }
+}
+/**
  * Cap an honored Retry-After at the poll interval — anything longer is
  * equivalent to "skip until a later sweep", and an absurd header from
  * a misbehaving remote shouldn't park a host for days.
@@ -228,6 +244,7 @@ function defaultDeps(): PollDeps {
       const ctx = federation.createContext(new URL(getOrigin()), undefined);
       const loader = await ctx.getDocumentLoader({ identifier: signerUsername });
       const { document } = await loader(url);
+      assertRemoteDocSize(document);
       return document;
     },
     async pace(host) {
