@@ -110,7 +110,13 @@ export async function completeOAuthFlow(
     });
     return { status: "linked", state };
   } catch (e) {
-    console.error(`OAuth callback failed for ${manifest.id}:`, e);
+    // Log only the error message, never the raw exception object — a
+    // provider's thrown error can embed the authorization code or token
+    // exchange response, which would then land in logs / Sentry.
+    console.error(
+      `OAuth callback failed for ${manifest.id}:`,
+      e instanceof Error ? e.message : String(e),
+    );
     const code =
       typeof (e as { code?: string }).code === "string"
         ? (e as { code: string }).code

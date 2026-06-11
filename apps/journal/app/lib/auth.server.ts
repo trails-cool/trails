@@ -277,12 +277,16 @@ function generateLoginCode(): string {
   return String(num).padStart(6, "0");
 }
 
-export async function createMagicToken(email: string): Promise<{ token: string; code: string }> {
+export async function createMagicToken(
+  email: string,
+): Promise<{ token: string; code: string } | null> {
   const db = getDb();
 
-  // Check user exists
+  // Returns null (not an error) when no account matches, so the caller
+  // can respond identically whether or not the email is registered —
+  // closing the account-enumeration oracle on the public login form.
   const [user] = await db.select().from(users).where(eq(users.email, email));
-  if (!user) throw new Error("No account found for this email");
+  if (!user) return null;
 
   const token = randomBytes(32).toString("base64url");
   const code = generateLoginCode();

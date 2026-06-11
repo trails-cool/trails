@@ -69,16 +69,20 @@ export async function action({ request }: Route.ActionArgs) {
       });
       if (!perIp.allowed) return tooManyRequests(perIp.resetMs);
 
-      const { token, code: loginCode } = await createMagicToken(email);
-      const origin = getOrigin();
-      const link = `${origin}/auth/verify?token=${token}`;
-      // In dev, return the link and code directly
-      if (process.env.NODE_ENV !== "production") {
-        console.log(`[Magic Link] ${email}: ${link} (code: ${loginCode})`);
-        return data({ step: "magic-link-sent", devLink: link, code: loginCode });
+      // Always respond "sent" regardless of whether the account exists,
+      // so the response can't probe which emails are registered. A token
+      // is only minted (and mail only sent) for a real account.
+      const minted = await createMagicToken(email);
+      if (minted) {
+        const origin = getOrigin();
+        const link = `${origin}/auth/verify?token=${minted.token}`;
+        // In dev, return the link and code directly for a real account.
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[Magic Link] ${email}: ${link} (code: ${minted.code})`);
+          return data({ step: "magic-link-sent", devLink: link, code: minted.code });
+        }
+        await sendMagicLink(email, link, minted.code);
       }
-
-      await sendMagicLink(email, link, loginCode);
       return data({ step: "magic-link-sent" });
     }
 

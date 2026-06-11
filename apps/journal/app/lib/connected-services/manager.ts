@@ -165,7 +165,10 @@ export async function markNeedsRelink(
     .set({ status: "needs_relink" })
     .where(eq(connectedServices.id, serviceId));
   // Reason is logged but not persisted yet — add a column if/when we surface it in UI.
-  console.warn(`[connected-services] ${serviceId} flipped to needs_relink: ${reason}`);
+  // Bounded: `reason` can carry provider-side error text, so cap its length
+  // to avoid dumping a large/sensitive blob into logs.
+  const safeReason = reason.length > 200 ? `${reason.slice(0, 200)}…` : reason;
+  console.warn(`[connected-services] ${serviceId} flipped to needs_relink: ${safeReason}`);
 }
 
 // Provider-side revocation (e.g. a Garmin deregistration notification):
