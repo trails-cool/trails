@@ -1,15 +1,6 @@
-import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
+import { test, expect, type CDPSession } from "./fixtures/test";
 import { setupVirtualAuthenticator, registerUser } from "./helpers/auth";
-
-async function setProfileVisibility(page: Page, value: "public" | "private") {
-  await page.goto("/settings/profile");
-  // Wait for hydration so the visibility form submits via the fetcher
-  // (and shows the "Profile saved." toast) instead of native-navigating.
-  await waitForHydration(page);
-  await page.locator(`input[type=radio][name=profileVisibility][value=${value}]`).check();
-  await page.getByRole("button", { name: /^Save$/ }).first().click();
-  await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 10000 });
-}
+import { setProfileVisibility } from "./helpers/profile";
 
 test.describe.configure({ mode: "serial" });
 
