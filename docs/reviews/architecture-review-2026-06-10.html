@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>trails.cool — Architecture Review (2026-06-10)</title>
+<style>
+  :root {
+    --bg: #11151c;
+    --slide-bg: #181e28;
+    --text: #e8ecf2;
+    --muted: #9aa7b8;
+    --accent: #5fb88a;
+    --accent2: #6ea8d8;
+    --warn: #e0a85c;
+    --danger: #d87a6e;
+    --code-bg: #232b38;
+    --border: #2c3645;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden; }
+  .slide {
+    display: none; position: absolute; inset: 0;
+    padding: 56px 80px 80px;
+    background: var(--slide-bg);
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .slide.active { display: flex; }
+  .kicker {
+    font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 14px;
+  }
+  .kicker .num { color: var(--muted); font-weight: 400; }
+  h1 { font-size: 52px; font-weight: 750; line-height: 1.1; margin-bottom: 18px; letter-spacing: -0.01em; }
+  h2 { font-size: 36px; font-weight: 700; line-height: 1.15; margin-bottom: 24px; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+       margin: 18px 0 6px; }
+  p, li { font-size: 19px; line-height: 1.55; color: var(--text); }
+  .sub { color: var(--muted); font-size: 22px; max-width: 900px; }
+  ul { padding-left: 24px; margin: 6px 0 8px; }
+  li { margin-bottom: 7px; }
+  code {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.86em; background: var(--code-bg); padding: 2px 7px;
+    border-radius: 5px; color: #c9d6e8; white-space: nowrap;
+  }
+  .files { margin: 4px 0 4px; }
+  .files code { display: inline-block; margin: 2px 6px 2px 0; white-space: normal; }
+  .problem h3 { color: var(--danger); }
+  .solution h3 { color: var(--accent); }
+  .benefits h3 { color: var(--accent2); }
+  .filesblock h3 { color: var(--warn); }
+  .tag {
+    display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 4px 12px; border-radius: 999px;
+    margin-left: 14px; vertical-align: middle;
+  }
+  .tag.defect { background: rgba(216,122,110,.16); color: var(--danger); border: 1px solid rgba(216,122,110,.4); }
+  .tag.leverage { background: rgba(95,184,138,.14); color: var(--accent); border: 1px solid rgba(95,184,138,.4); }
+  .tag.testability { background: rgba(110,168,216,.14); color: var(--accent2); border: 1px solid rgba(110,168,216,.4); }
+  .tag.cleanup { background: rgba(224,168,92,.14); color: var(--warn); border: 1px solid rgba(224,168,92,.4); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 48px; flex: 1; align-content: start; }
+  .cols .full { grid-column: 1 / -1; }
+  table { border-collapse: collapse; margin-top: 18px; width: 100%; }
+  th, td { text-align: left; padding: 9px 16px; font-size: 17px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 0.07em; }
+  td.n { color: var(--accent); font-weight: 700; }
+  .footer {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 44px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; font-size: 13px; color: var(--muted);
+    background: var(--bg); border-top: 1px solid var(--border); z-index: 10;
+  }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent);
+    transition: width .25s ease; z-index: 11; }
+  .hint kbd {
+    font-family: inherit; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 7px; font-size: 12px; margin: 0 2px;
+  }
+  .titleslide { justify-content: center; }
+  .titleslide h1 { font-size: 64px; }
+  .toc li { margin-bottom: 4px; font-size: 18px; }
+  .toc .sec { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: .08em;
+    margin: 14px 0 6px; list-style: none; margin-left: -24px; font-weight: 700; }
+  blockquote {
+    border-left: 3px solid var(--border); padding: 6px 0 6px 18px; margin: 12px 0;
+    color: var(--muted); font-size: 18px; line-height: 1.5;
+  }
+  .verified { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- 1: Title -->
+<section class="slide titleslide active">
+  <div class="kicker">trails.cool · architecture review</div>
+  <h1>Deepening opportunities</h1>
+  <p class="sub">A broad repo scan for architectural friction — shallow modules, implicit interfaces, duplicated choreography — with sketches for turning them into deep modules.</p>
+  <p class="sub" style="margin-top:28px; font-size:17px;">2026-06-10 · four parallel codebase surveys (Journal, Planner, packages, cross-cutting) · key claims verified against source · checked against CONTEXT.md and ADR-0001…0006</p>
+</section>
+
+<!-- 2: Method / vocabulary -->
+<section class="slide">
+  <div class="kicker">Method</div>
+  <h2>How to read these slides</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent2)">Vocabulary</h3>
+      <ul>
+        <li><strong>Module</strong> — anything with an interface and an implementation.</li>
+        <li><strong>Deep module</strong> — a lot of behaviour behind a small interface.</li>
+        <li><strong>Shallow module</strong> — interface nearly as complex as the implementation.</li>
+        <li><strong>Seam</strong> — where an interface lives; behaviour can change without editing in place.</li>
+        <li><strong>Locality</strong> — change, bugs, and knowledge concentrated in one place.</li>
+        <li><strong>Leverage</strong> — what callers get from depth.</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--accent)">The deletion test</h3>
+      <p>Imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.</p>
+      <h3 style="color:var(--warn)">Already settled (not re-proposed)</h3>
+      <ul>
+        <li>No unified <code>SyncProvider</code> (ADR-0002)</li>
+        <li>No <code>AuthMethod</code> polymorphism (ADR-0005)</li>
+        <li>gpx-save owns geometry atomically (ADR-0006)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3: Overall map -->
+<section class="slide">
+  <div class="kicker">Overall map</div>
+  <h2>Where the codebase is deep — and where it isn't</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent)">Deep, earning their keep</h3>
+      <ul>
+        <li><strong>Journal core seams</strong> — gpx-save, <code>completeAuth</code>, ConnectedServiceManager, capability seams (Importer / RoutePusher / WebhookReceiver).</li>
+        <li><strong>Planner pure modules</strong> — BRouter client, route-merge, segment-cache, host election. Well tested.</li>
+        <li><strong>packages/gpx &amp; packages/db</strong> — load-bearing, most-imported, best-tested.</li>
+        <li><strong>Federation</strong> — ~3,200 lines of deliberate Fedify isolation.</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--danger)">Shallow, causing friction</h3>
+      <ul>
+        <li><strong>Journal route-handler layer</strong> — 110 handlers, ~5 tests; scattered ownership checks, hand-rolled form parsing.</li>
+        <li><strong>Planner Yjs document schema</strong> — the app's most important interface, enforced by convention only (~30 raw call sites).</li>
+        <li><strong>Domain types</strong> — three drifting sources of truth (types / api / db).</li>
+        <li><strong>Jobs, SSE, notifications</strong> — interfaces discovered by grep, not by type.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4: TOC -->
+<section class="slide">
+  <div class="kicker">Agenda</div>
+  <h2>Ten candidates</h2>
+  <div class="cols">
+    <ul class="toc">
+      <li class="sec">Closest to a real defect</li>
+      <li><strong>1.</strong> Komoot bulk import smuggles credentials past the manager</li>
+      <li class="sec">Highest-leverage refactors</li>
+      <li><strong>2.</strong> A typed job seam — payloads are <code>unknown</code> end-to-end</li>
+      <li><strong>3.</strong> Planner: the Yjs routeData schema is an implicit interface</li>
+      <li><strong>5.</strong> Journal: route/activity saves duplicate GPX choreography</li>
+      <li><strong>6.</strong> Three drifting sources of truth for Route/Activity</li>
+    </ul>
+    <ul class="toc">
+      <li class="sec">Testability &amp; safety</li>
+      <li><strong>7.</strong> Ownership checks scattered across handlers and lib</li>
+      <li><strong>8.</strong> OAuth connect→callback→resume spread over three routes</li>
+      <li class="sec">Smaller wins</li>
+      <li><strong>4.</strong> Planner GPX assembly duplicated (Save vs Export)</li>
+      <li><strong>9.</strong> Shim &amp; dead-weight packages: <code>map</code>, <code>ui</code></li>
+      <li><strong>10.</strong> E2E suite: 23 spec files re-derive their own setup</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5: Candidate 1 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 1 / 10</span></div>
+  <h2>Komoot bulk import smuggles credentials past the&nbsp;manager <span class="tag defect">defect-adjacent</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>apps/journal/app/routes/api.sync.komoot.import.ts:34</code> <code>apps/journal/app/jobs/komoot-bulk-import.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> the route enqueues <code>creds: service.credentials</code> — the raw JSONB — in the pg-boss payload. This bypasses <code>withFreshCredentials</code>, the ConnectedServiceManager's whole reason to exist:</p>
+      <ul>
+        <li>Credentials sit at rest in the jobs table.</li>
+        <li>No refresh if they go stale between enqueue and execution.</li>
+        <li><code>markNeedsRelink</code> never fires on failure.</li>
+      </ul>
+      <p>The Wahoo path goes through the manager correctly; Komoot is the one defector from the seam.</p>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>Jobs carry only the <code>serviceId</code>. The handler resolves fresh credentials through ConnectedServiceManager at execution time — identical to every other capability caller.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li><strong>Locality:</strong> all credential-lifecycle bugs live in one module again.</li>
+          <li>No credentials-at-rest in the jobs table.</li>
+          <li>Handler becomes testable with a fake manager instead of fixture credential blobs.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6: Candidate 2 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 2 / 10</span></div>
+  <h2>A typed job seam — payloads are <code>unknown</code> end-to-end <span class="tag leverage">high leverage</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>packages/jobs/src/types.ts</code> <code>apps/journal/app/jobs/</code> (~14 handlers) · ~7 enqueue sites</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> <code>JobDefinition.handler</code> is <code>(jobs: Job&lt;unknown&gt;[]) =&gt; Promise&lt;unknown&gt;</code>.</p>
+      <ul>
+        <li>Every handler opens with <code>item.data as SomePayload</code>; every enqueue passes a bare string queue name + unchecked object.</li>
+        <li>A typo or payload-shape change is a runtime failure in a background worker.</li>
+        <li><code>unknown</code> exists for a documented contravariance reason — but that's an implementation constraint leaking into the interface.</li>
+        <li><code>enqueueOptional</code> swallows queue failures: "saved but fan-out never queued" looks like success.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>A <code>JobPayloads</code> map type (<code>'notifications-fanout': { activityId: string }</code>, …) with typed <code>enqueue&lt;K&gt;</code> and typed handler registration. The contravariance cast happens <em>once, inside the package</em> — not fourteen times at the edges.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li><strong>Leverage:</strong> enqueue call sites can't drift from handlers.</li>
+          <li><strong>Locality:</strong> retry/backoff policy and queue-name validity in one registry.</li>
+          <li>Handlers become unit-testable with typed fixtures.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7: Candidate 3 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 3 / 10</span></div>
+  <h2>Planner: the Yjs routeData schema is an implicit interface <span class="tag leverage">high leverage</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>apps/planner/app/lib/use-yjs.ts</code> <code>use-routing.ts</code> <code>use-waypoint-manager.ts</code> <code>use-elevation-data.ts</code> + components (<code>SessionView</code>, <code>ProfileSelector</code>, <code>ElevationChart</code>, …)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> ~15 string-keyed entries (<code>geojson</code>, <code>coordinates</code>, <code>segmentBoundaries</code>, <code>surfaces</code>, <code>highways</code>, <code>maxspeeds</code>, …) read at ~30 raw call sites.</p>
+      <ul>
+        <li>No module owns the schema — consumers do <code>routeData.get("surfaces") as string | undefined</code> and re-parse JSON.</li>
+        <li><code>parseJsonArray</code> copy-pasted in two hooks with different signatures; waypoint extraction written four times.</li>
+        <li>Adding one road attribute touches ~7 files (enrichment → storage → parsing → rendering).</li>
+      </ul>
+      <p>The document schema is the Planner's most important interface — enforced by convention only.</p>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>A routeData schema module: typed read/write of the whole document state, JSON encoding internal — analogous to what <code>waypoint-ymap.ts</code> already does well for waypoints. Hooks and components consume a <code>RouteDataState</code>, never raw <code>Y.Map</code> keys.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li><strong>Locality:</strong> schema changes become one-file edits.</li>
+          <li>Hooks testable against a plain object instead of a live Yjs doc.</li>
+          <li>Deletion test passes clearly: delete it and key-string knowledge reappears at 30 call sites.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8: Candidate 4 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 4 / 10</span></div>
+  <h2>Planner GPX assembly duplicated between Save and&nbsp;Export <span class="tag cleanup">small win</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>apps/planner/app/components/SaveToJournalButton.tsx</code> <code>apps/planner/app/components/ExportButton.tsx</code></p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li>Both buttons independently extract geojson / waypoints / no-go areas / notes from Yjs and build GPX.</li>
+        <li>ExportButton additionally handles multi-day splitting.</li>
+        <li>Same extraction, two implementations — a change to what gets persisted (e.g. waypoint notes in GPX extensions) needs two synchronized edits.</li>
+        <li>Currently zero tests on either path.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>One <code>buildGpxData(yjs)</code> module — naturally layered on candidate&nbsp;3 — consumed by both buttons and any future export path.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li>The Planner→Journal handoff payload and the file export can no longer diverge.</li>
+          <li>The assembly becomes a pure, testable function.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9: Candidate 5 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 5 / 10</span></div>
+  <h2>Journal: <code>createRoute</code> / <code>createActivity</code> duplicate the GPX choreography <span class="tag leverage">high leverage</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>apps/journal/app/lib/routes.server.ts</code> (~24–78) <code>apps/journal/app/lib/activities.server.ts</code> (~68–122) <code>apps/journal/app/lib/gpx-save.server.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li>Both callers independently run validateGpx → extract distance/elevation stats → transaction → writeGeom, in near-identical ~45-line blocks.</li>
+        <li>Includes the "stats may be pre-supplied" handling the demo bot relies on — duplicated too.</li>
+        <li>The gpx-save module owns validation and geometry but <em>not</em> the stat extraction between them, so the choreography is copied at every save entry point. A third entity type would copy it again.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>Deepen the gpx-save module to own the full validate-and-derive step: one function returning parsed GPX + stats (accepting precomputed stats), leaving callers with only entity-specific row shapes. <strong>Extends ADR-0006 rather than contradicting it.</strong></p>
+        <blockquote>Worth grilling: should basic validation move down into <code>packages/gpx</code>, which already owns parsing and stat computation?</blockquote>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li>New validation rules or stat definitions become one edit.</li>
+          <li>"Every saved GPX has consistent stats" gets a single testable home.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10: Candidate 6 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 6 / 10</span></div>
+  <h2>Three drifting sources of truth for Route/Activity shapes <span class="tag leverage">high leverage</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>packages/types/src/index.ts</code> <code>packages/api/src/routes.ts</code> (Zod) <code>packages/db/src/schema/journal.ts</code> (Drizzle)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li><code>Route</code> exists three times: hand-written interface (types), Zod <code>RouteSummary</code>/<code>RouteDetail</code> (api), Drizzle columns (db) — each with different fields and nullability.</li>
+        <li>Route handlers hand-roll the mapping (e.g. <code>api.v1.routes._index.ts</code> constructs response JSON manually, not through the schema).</li>
+        <li>The api package's contracts are <em>advisory</em>: nothing fails if a handler's response drifts from <code>RouteListResponse</code>.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>Pick one canonical source — likely derive TS types from the Drizzle schema, have the api Zod schemas reference them — and validate responses against the contract at the seam (typed response helpers, or validation in the v1 handlers).</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li><strong>Leverage</strong> for both apps and mobile: one definition of Route.</li>
+          <li>The 312 schema tests in <code>packages/api</code> start guarding real traffic instead of just the schemas themselves.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11: Candidate 7 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 7 / 10</span></div>
+  <h2>Ownership checks scattered across handlers and lib modules <span class="tag testability">testability</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>routes.$id.edit.server.ts</code> <code>push-action.server.ts:54</code> <code>activities.server.ts</code> (mutators that <em>assume</em> the caller checked) · others</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li><code>route.ownerId !== user.id</code> is re-checked in some loaders, re-checked in some lib functions, absent in others where the precondition is implicit.</li>
+        <li>Nothing in the types distinguishes "a Route" from "a Route this user may mutate" — every new call site re-derives, or forgets, the check.</li>
+        <li>Contrast: the Terms gate <em>is</em> properly centralized. Ownership deserves the same treatment.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>A <code>loadOwnedRoute(routeId, userId)</code> (and activity twin) as the single enforcement point, returning a branded type that mutators require — making bypass a compile error rather than a code-review catch.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li>Authorization gets the locality that <code>completeAuth</code> gave session minting.</li>
+          <li>The 403 behavior becomes testable once, instead of per-handler.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12: Candidate 8 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 8 / 10</span></div>
+  <h2>OAuth connect → callback → resume spread over three routes <span class="tag testability">testability</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>api.sync.connect.$provider.ts</code> <code>api.sync.callback.$provider.ts</code> <code>api.sync.push.$provider.$routeId.ts</code> <code>oauth-state.server.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li>PKCE verifier cookies, state encoding, and push-resumption are coordinated across three route handlers, each knowing part of the protocol (which cookie, when it's set, what's in the state blob).</li>
+        <li>State encode/decode is extracted — but the <em>lifecycle</em> isn't.</li>
+        <li>Adding Garmin or Strava OAuth means re-learning the choreography from the existing routes. CONTEXT.md forecasts three more OAuth providers.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>An OAuth flow module owning <strong>initiate</strong> (returns redirect with cookies set) and <strong>complete</strong> (consumes request, returns exchange result + decoded state). Routes shrink to thin adapters.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li>Each future provider reuses the flow, not the pattern.</li>
+          <li>The PKCE handshake becomes testable without a browser.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13: Candidate 9 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 9 / 10</span></div>
+  <h2>Shim &amp; dead-weight packages: <code>map</code> and <code>ui</code> <span class="tag cleanup">cleanup</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>packages/map</code> (79 lines: re-exports + a 35-line MapView) <code>packages/ui</code> (162 lines)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p>Both fail the deletion test in the telling direction — deleting them moves almost nothing:</p>
+      <ul>
+        <li><code>map</code> adds an import-ambiguity tax: apps import from <code>map</code> and <code>map-core</code> inconsistently (~21 vs ~19 sites).</li>
+        <li><span class="verified">Verified:</span> <code>@trails-cool/ui</code> is imported <strong>only</strong> by the two apps' <code>root.tsx</code> — for the stylesheet. Button/Input/Card have zero consumers; both apps roll their own buttons inline.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <ul>
+          <li>Fold MapView into a clearly-React entry of map-core, <em>or</em> make <code>map</code> the only import surface for apps.</li>
+          <li>Either delete <code>ui</code> or commit to it as a real design system — the half-state is the worst option.</li>
+        </ul>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li>Less code falsely suggesting reuse.</li>
+          <li>One obvious import path for map code.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 14: Candidate 10 -->
+<section class="slide">
+  <div class="kicker"><span class="num">candidate 10 / 10</span></div>
+  <h2>E2E suite: 23 spec files re-derive their own setup <span class="tag testability">testability</span></h2>
+  <div class="cols">
+    <div class="full filesblock">
+      <h3>Files</h3>
+      <p class="files"><code>e2e/</code> — seed-route boilerplate in 5+ files · auth helpers defined inside <code>auth.test.ts</code> · <code>http://localhost:3000/3001</code> hardcoded in 10+ files</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li>The helpers module is nearly empty, so each spec carries its own fixtures.</li>
+        <li>Virtual-authenticator and register/login utilities live in a test file other specs can't cleanly import.</li>
+        <li>The stated e2e strategy (shared setup helpers, BRouter mocked by default) is documented — but not embodied in a module.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="solution">
+        <h3>Solution</h3>
+        <p>A real <code>e2e/lib/</code> fixtures module: <code>seedRoute()</code>, <code>registerAndLogin()</code>, base-URL constants, authenticator setup — imported by every spec.</p>
+      </div>
+      <div class="benefits">
+        <h3>Benefits</h3>
+        <ul>
+          <li>New specs start at the interesting assertion, not at boilerplate.</li>
+          <li>URL/port changes become one edit.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15: Dropped -->
+<section class="slide">
+  <div class="kicker">Scope discipline</div>
+  <h2>Noted but deliberately dropped</h2>
+  <ul style="max-width:980px">
+    <li style="margin-bottom:18px"><strong>A <code>Result&lt;T,E&gt;</code>-everywhere error-handling rewrite</strong> — too sweeping; the narrower wins live inside candidates 5 and 7.</li>
+    <li style="margin-bottom:18px"><strong>An event-driven capability plugin system for providers</strong> — this re-litigates ADR-0002's "capabilities are separate seams" without new friction to justify reopening it.</li>
+    <li style="margin-bottom:18px"><strong>ADR check:</strong> nothing in this deck conflicts with ADR-0001…0006. Candidate 5 deepens ADR-0006's module in place.</li>
+  </ul>
+</section>
+
+<!-- 16: Summary -->
+<section class="slide">
+  <div class="kicker">Summary</div>
+  <h2>Where to start</h2>
+  <table>
+    <tr><th>#</th><th>Candidate</th><th>Why it's first-tier</th></tr>
+    <tr><td class="n">1</td><td>Komoot credentials bypass</td><td>Closest to a real defect — credentials at rest, no refresh, seam violated</td></tr>
+    <tr><td class="n">3</td><td>Planner routeData schema module</td><td>Highest-leverage refactor — 30 call sites, ~7-file blast radius per attribute</td></tr>
+    <tr><td class="n">2</td><td>Typed job seam</td><td>Best testability-per-effort — one registry, fourteen handlers gain types</td></tr>
+    <tr><td class="n">7</td><td>Branded ownership loading</td><td>Best safety-per-effort — bypass becomes a compile error</td></tr>
+  </table>
+  <p style="margin-top:32px; color:var(--muted)">Then: 5 &amp; 6 (one source of truth for GPX stats and domain types), 8 (before the next OAuth provider lands), 4 / 9 / 10 as opportunistic cleanups.</p>
+</section>
+
+<div class="footer">
+  <span>trails.cool architecture review · 2026-06-10</span>
+  <span id="counter"></span>
+  <span class="hint"><kbd>←</kbd><kbd>→</kbd> or click · <kbd>Home</kbd>/<kbd>End</kbd></span>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, j) => s.classList.toggle('active', j === i));
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+    document.getElementById('progress').style.width = ((i + 1) / slides.length * 100) + '%';
+    location.hash = i + 1;
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') show(i + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(i - 1);
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+  });
+  document.addEventListener('click', (e) => {
+    if (window.getSelection().toString()) return;
+    show(e.clientX > window.innerWidth / 2 ? i + 1 : i - 1);
+  });
+  show(parseInt(location.hash.slice(1), 10) - 1 || 0);
+</script>
+</body>
+</html>

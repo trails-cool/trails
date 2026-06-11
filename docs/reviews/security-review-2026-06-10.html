@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>trails.cool — Security Review (2026-06-10)</title>
+<style>
+  :root {
+    --bg: #11151c;
+    --slide-bg: #181e28;
+    --text: #e8ecf2;
+    --muted: #9aa7b8;
+    --accent: #5fb88a;
+    --accent2: #6ea8d8;
+    --warn: #e0a85c;
+    --danger: #d87a6e;
+    --code-bg: #232b38;
+    --border: #2c3645;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden; }
+  .slide {
+    display: none; position: absolute; inset: 0;
+    padding: 52px 76px 76px;
+    background: var(--slide-bg);
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .slide.active { display: flex; }
+  .kicker {
+    font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent2); font-weight: 600; margin-bottom: 14px;
+  }
+  .kicker .num { color: var(--muted); font-weight: 400; }
+  h1 { font-size: 52px; font-weight: 750; line-height: 1.1; margin-bottom: 18px; letter-spacing: -0.01em; }
+  h2 { font-size: 33px; font-weight: 700; line-height: 1.15; margin-bottom: 20px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 6px; }
+  p, li { font-size: 18px; line-height: 1.55; color: var(--text); }
+  .sub { color: var(--muted); font-size: 22px; max-width: 920px; }
+  ul { padding-left: 24px; margin: 6px 0 8px; }
+  li { margin-bottom: 6px; }
+  code {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.85em; background: var(--code-bg); padding: 2px 7px;
+    border-radius: 5px; color: #c9d6e8; white-space: nowrap;
+  }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin: 8px 0; overflow-x: auto; }
+  pre code { background: none; padding: 0; white-space: pre; font-size: 14px; line-height: 1.5; }
+  .files { margin: 4px 0; }
+  .files code { white-space: normal; }
+  .problem h3 { color: var(--danger); }
+  .solution h3 { color: var(--accent); }
+  .why h3 { color: var(--warn); }
+  .tag {
+    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; padding: 4px 11px; border-radius: 999px;
+    margin-left: 12px; vertical-align: middle;
+  }
+  .sev-high { background: rgba(216,122,110,.16); color: var(--danger); border: 1px solid rgba(216,122,110,.45); }
+  .sev-med { background: rgba(224,168,92,.15); color: var(--warn); border: 1px solid rgba(224,168,92,.45); }
+  .sev-low { background: rgba(110,168,216,.14); color: var(--accent2); border: 1px solid rgba(110,168,216,.4); }
+  .sev-info { background: rgba(154,167,184,.12); color: var(--muted); border: 1px solid rgba(154,167,184,.35); }
+  .sev-good { background: rgba(95,184,138,.14); color: var(--accent); border: 1px solid rgba(95,184,138,.4); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 48px; flex: 1; align-content: start; }
+  .cols .full { grid-column: 1 / -1; }
+  table { border-collapse: collapse; margin-top: 14px; width: 100%; }
+  th, td { text-align: left; padding: 8px 14px; font-size: 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.07em; }
+  td.sev { font-weight: 700; white-space: nowrap; }
+  .s-high { color: var(--danger); } .s-med { color: var(--warn); } .s-low { color: var(--accent2); } .s-info { color: var(--muted); } .s-good { color: var(--accent); }
+  .footer {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 42px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 26px; font-size: 13px; color: var(--muted);
+    background: var(--bg); border-top: 1px solid var(--border); z-index: 10;
+  }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent2); transition: width .25s ease; z-index: 11; }
+  .hint kbd { font-family: inherit; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; font-size: 12px; margin: 0 2px; }
+  .titleslide { justify-content: center; }
+  .titleslide h1 { font-size: 60px; }
+  .toc li { margin-bottom: 5px; font-size: 17px; }
+  .toc .sec { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; margin: 14px 0 5px; list-style: none; margin-left: -24px; font-weight: 700; }
+  blockquote { border-left: 3px solid var(--border); padding: 6px 0 6px 18px; margin: 10px 0; color: var(--muted); font-size: 17px; line-height: 1.5; }
+  .verified { color: var(--accent); font-weight: 600; }
+  .recal { color: var(--warn); font-weight: 600; }
+  .lead { font-size: 20px; max-width: 940px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- 1: Title -->
+<section class="slide titleslide active">
+  <div class="kicker">trails.cool · security review</div>
+  <h1>Security review</h1>
+  <p class="sub">Defensive review of the auth, federation, secret-management, and injection surfaces across both apps and the infrastructure — findings verified against source and severity-calibrated.</p>
+  <p class="sub" style="margin-top:26px; font-size:17px;">2026-06-10 · four parallel review sweeps (auth/session/JWT · federation/SSRF · secrets/crypto · injection/uploads/infra) · every load-bearing claim re-checked against the code before inclusion</p>
+</section>
+
+<!-- 2: Method & honesty -->
+<section class="slide">
+  <div class="kicker">Method &amp; calibration</div>
+  <h2>How to read this — and what I threw out</h2>
+  <p class="lead">The automated sweeps over-flagged. I verified each high-severity claim against the source and <span class="recal">downgraded or dropped</span> the ones that didn't hold up. That recalibration is itself a finding: don't action the raw scanner output.</p>
+  <div class="cols" style="margin-top:8px">
+    <div class="problem">
+      <h3>Dropped / downgraded after verification</h3>
+      <ul>
+        <li><strong>"Critical: inbox signatures not verified"</strong> → Fedify verifies HTTP Signatures on inbox listeners <em>by default</em>. Real item is only a missing regression test. <span class="sev sev-info" style="margin:0">downgraded → Info</span></li>
+        <li><strong>"JWT alg-confusion / none"</strong> → <code>jose</code> with a symmetric key already rejects <code>alg:none</code> and asymmetric algs. Explicit allow-list is hardening only. <span class="sev sev-info" style="margin:0">→ Info</span></li>
+        <li><strong>"Magic-link 6-digit brute-force"</strong> → bounded by a per-IP catch-all (30/min) <em>and</em> per-email verify cap (10/15min) against a 15-min-rotating code. <span class="sev sev-info" style="margin:0">→ Info</span></li>
+        <li><strong>".env secrets committed"</strong> → <code>.env</code> is gitignored and never appears in history; values are dev creds. <span class="sev sev-info" style="margin:0">→ Info</span></li>
+      </ul>
+    </div>
+    <div class="solution">
+      <h3>What held up</h3>
+      <ul>
+        <li>One <strong>High</strong>: unauthenticated SSRF via the Planner session callback URL.</li>
+        <li>A handful of <strong>Medium/Low</strong> hardening gaps (upload validation, log redaction, Caddy admin bind, user enumeration).</li>
+        <li>A broad base of <strong>genuinely strong</strong> fundamentals (next-to-last slide).</li>
+      </ul>
+      <h3 style="color:var(--muted)">Severity legend</h3>
+      <p><span class="tag sev-high" style="margin:0">High</span> <span class="tag sev-med" style="margin:0">Medium</span> <span class="tag sev-low" style="margin:0">Low</span> <span class="tag sev-info" style="margin:0">Info</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- 3: TOC -->
+<section class="slide">
+  <div class="kicker">Findings</div>
+  <h2>What to fix, in order</h2>
+  <div class="cols">
+    <ul class="toc">
+      <li class="sec">Act on these</li>
+      <li><strong>1.</strong> SSRF — Planner session callback URL <span class="tag sev-high" style="margin-left:6px">High</span></li>
+      <li><strong>2.</strong> Upload validation — content-type &amp; key <span class="tag sev-med" style="margin-left:6px">Medium</span></li>
+      <li><strong>3.</strong> OAuth callback logs the raw exception <span class="tag sev-low" style="margin-left:6px">Low</span></li>
+      <li><strong>4.</strong> Caddy admin API on <code>0.0.0.0</code> <span class="tag sev-low" style="margin-left:6px">Low</span></li>
+      <li><strong>5.</strong> User enumeration via auth errors <span class="tag sev-low" style="margin-left:6px">Low</span></li>
+    </ul>
+    <ul class="toc">
+      <li class="sec">Know about / track</li>
+      <li><strong>6.</strong> Federation hardening (tests, fetch caps) <span class="tag sev-low" style="margin-left:6px">Low</span></li>
+      <li><strong>7.</strong> Rate limiting is in-process / XFF-trusting <span class="tag sev-low" style="margin-left:6px">Low</span></li>
+      <li><strong>8.</strong> Komoot credential storage <span class="tag sev-info" style="margin-left:6px">Info</span></li>
+      <li class="sec">Calibration</li>
+      <li><strong>9.</strong> Strong fundamentals (the good news)</li>
+      <li><strong>10.</strong> Summary &amp; priorities</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 4: Finding 1 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 1 / 8</span></div>
+  <h2>SSRF — unauthenticated Planner session callback URL <span class="tag sev-high">High</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/planner/app/routes/api.sessions.ts</code> · <code>apps/planner/app/routes/api.save-to-journal.ts</code> · helper <code>apps/planner/app/lib/url-validation.server.ts</code> (exists, unused here)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> <code>POST /api/sessions</code> is anonymous (the Planner is stateless) and stores the caller-supplied <code>callbackUrl</code> with no validation. On save, the Planner server fetches it:</p>
+      <pre><code>resp = await fetchWithTimeout(session.callbackUrl, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${session.callbackToken}` },
+  ...</code></pre>
+      <p>Anyone can make the Planner backend issue POSTs to arbitrary hosts — internal services, <code>169.254.169.254</code>, localhost. A SAFE-scheme/host validator (<code>validateFetchUrl</code>) already exists in the repo but is not applied on this path.</p>
+    </div>
+    <div class="solution">
+      <h3>Fix</h3>
+      <p>Validate <code>callbackUrl</code> at session-create against the existing allowlist helper, rejecting non-HTTP(S) schemes and private/loopback/link-local resolutions:</p>
+      <pre><code>const v = validateFetchUrl(callbackUrl, {
+  allowedHosts: getCallbackAllowedHosts(),
+});
+if (!v.ok) return data(
+  { error: "Invalid callback URL" },
+  { status: 400 },
+);</code></pre>
+      <p>Re-validate at fetch time too (defends against DNS rebinding between create and save).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5: Finding 2 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 2 / 8</span></div>
+  <h2>Upload validation — no content-type allowlist, raw filename in key <span class="tag sev-med">Medium</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/journal/app/routes/api.v1.uploads.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> the presigned-upload endpoint builds the S3 key from the raw client filename and accepts any content-type:</p>
+      <pre><code>const key =
+  `${resourceType}/${resourceId}/${randomUUID()}-${filename}`;</code></pre>
+      <ul>
+        <li>No content-type allowlist — a user can store HTML/SVG under an image resource; <strong>stored XSS</strong> if those bytes are ever served inline rather than as attachments.</li>
+        <li>Raw <code>filename</code> in the key lets a caller shape arbitrary key prefixes (the UUID prevents collision/overwrite, and S3 keys aren't a filesystem, so this is shaping not traversal).</li>
+        <li>Confirm <code>resourceId</code> ownership is checked so a user can't mint upload URLs under another user's resource path.</li>
+      </ul>
+    </div>
+    <div class="solution">
+      <h3>Fix</h3>
+      <ul>
+        <li>Allowlist <code>contentType</code> (e.g. <code>image/jpeg</code>, <code>image/png</code>, <code>application/gpx+xml</code>) and bind it into the presign so the upload can't differ.</li>
+        <li>Sanitize <code>filename</code> to <code>[A-Za-z0-9._-]</code> or drop it from the key entirely (the UUID is enough).</li>
+        <li>Serve user content with <code>Content-Disposition: attachment</code> / from a separate origin, and verify <code>resourceId</code> belongs to the caller.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 6: Finding 3 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 3 / 8</span></div>
+  <h2>OAuth callback logs the raw exception <span class="tag sev-low">Low</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/journal/app/lib/connected-services/oauth-flow.server.ts</code> (~line 113) · pattern also in <code>manager.ts</code> (<code>markNeedsRelink</code> reason)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> the code-exchange failure path logs the whole error object:</p>
+      <pre><code>} catch (e) {
+  console.error(
+    `OAuth callback failed for ${manifest.id}:`, e);</code></pre>
+      <p>If a provider's error response embeds the authorization code, a token, or other sensitive context in the thrown error, it lands in server logs and Sentry. The blast radius is small (only the failure branch, and the affected user is the token's owner), hence Low — but credentials in logs are worth closing.</p>
+    </div>
+    <div class="solution">
+      <h3>Fix</h3>
+      <pre><code>console.error(
+  `OAuth callback failed for ${manifest.id}:`,
+  e instanceof Error ? e.message : String(e),
+);</code></pre>
+      <p>Log a redacted shape (name + truncated message), never the raw object. Apply the same to <code>markNeedsRelink</code>'s provider-supplied <code>reason</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7: Finding 4 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 4 / 8</span></div>
+  <h2>Caddy admin API bound to <code>0.0.0.0:2019</code> <span class="tag sev-low">Low</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>infrastructure/Caddyfile</code> (line 3)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> <code>admin 0.0.0.0:2019</code>. The port isn't published to the host, so it's not internet-reachable — but it <em>is</em> reachable by every container on the Docker network. The Caddy admin API can rewrite routes and reverse-proxy targets, so an RCE in the journal or planner container becomes "redirect all traffic" with no extra auth.</p>
+    </div>
+    <div class="solution">
+      <h3>Fix</h3>
+      <pre><code>admin localhost:2019</code></pre>
+      <p>Bind admin to loopback inside the Caddy container (or disable it with <code>admin off</code> if no live-reload is needed). Turns a one-step lateral move into a non-path.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8: Finding 5 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 5 / 8</span></div>
+  <h2>User enumeration via distinct auth error messages <span class="tag sev-low">Low</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/journal/app/lib/auth.server.ts</code> (register + magic-link create paths)</p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <p><span class="verified">Verified:</span> the API returns distinguishable messages — <code>"Email already in use"</code> vs <code>"Username already taken"</code>, and magic-link create throws <code>"No account found for this email"</code>. An attacker can probe which emails/usernames are registered.</p>
+      <p>Calibrated to Low: username availability is intentionally visible at registration anyway, and this is a privacy/info-leak issue, not an account-takeover one.</p>
+    </div>
+    <div class="solution">
+      <h3>Fix</h3>
+      <ul>
+        <li>Magic-link request: return the same "if an account exists, we've sent a link" response whether or not the email matches; only send mail when it does.</li>
+        <li>Registration: keep username-availability UX, but make the email-taken path return a generic message (or fold into the same response and notify the existing owner by email instead).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 9: Finding 6 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 6 / 8</span></div>
+  <h2>Federation — hardening &amp; missing regression tests <span class="tag sev-low">Low</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/journal/app/lib/federation*.server.ts</code> · <code>apps/journal/app/jobs/poll-remote-*.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>What's actually fine</h3>
+      <p><span class="verified">Verified:</span> Fedify verifies HTTP Signatures on inbox listeners by default; <code>allowPrivateAddress</code> is gated behind an env flag used only in e2e; private profiles don't federate (checked in every dispatcher); inbox replay is guarded via the Postgres KV store. The "unsigned activities accepted" alarm does not hold.</p>
+    </div>
+    <div class="why">
+      <h3>Worth doing anyway</h3>
+      <ul>
+        <li><strong>Regression test</strong> asserting an unsigned / wrongly-signed POST to <code>/users/:u/inbox</code> is rejected — so a future config change can't silently disable verification.</li>
+        <li><strong>Response-size cap</strong> on remote actor/outbox fetches (BRouter already caps at 10&nbsp;MB; federation fetches don't) — prevents an OOM from a hostile instance.</li>
+        <li>Treat <strong>DNS-rebinding</strong> on remote dereferences as an upstream Fedify concern to track; add resolve-then-connect guarding if it surfaces.</li>
+        <li>Range-check remote-supplied activity stats before storing.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10: Finding 7 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 7 / 8</span></div>
+  <h2>Rate limiting is in-process and trusts <code>X-Forwarded-For</code> <span class="tag sev-low">Low</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/journal/app/lib/rate-limit.server.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>Problem</h3>
+      <ul>
+        <li><span class="verified">Verified:</span> buckets live in a per-process <code>Map</code>. Correct and safe for the single-instance flagship; <strong>horizontal scaling silently weakens every limit</strong> (each instance has its own counters).</li>
+        <li><code>clientIp()</code> trusts the first <code>X-Forwarded-For</code> hop. Safe behind Caddy today (the app ports aren't published); becomes spoofable the moment the container is exposed directly.</li>
+      </ul>
+      <p>Both are documented assumptions in the code, not oversights — recorded here so the assumption stays visible when the topology changes.</p>
+    </div>
+    <div class="solution">
+      <h3>Fix (when scaling)</h3>
+      <ul>
+        <li>Move buckets to Postgres/Redis before running a second journal instance.</li>
+        <li>Pin the trusted-proxy hop count (or read a Caddy-set, non-spoofable header) rather than blindly taking <code>XFF[0]</code>.</li>
+        <li>Keep the app containers unpublished — never expose them without Caddy in front.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 11: Finding 8 -->
+<section class="slide">
+  <div class="kicker"><span class="num">finding 8 / 8</span></div>
+  <h2>Komoot credential storage — by-design, minor edges <span class="tag sev-info">Info</span></h2>
+  <div class="cols">
+    <div class="full files">
+      <h3 style="color:var(--warn)">Files</h3>
+      <p><code>apps/journal/app/lib/crypto.server.ts</code> · <code>connected-services/providers/komoot/*</code> · <code>api.sync.komoot.connect.ts</code></p>
+    </div>
+    <div class="problem">
+      <h3>What's fine</h3>
+      <p><span class="verified">Verified:</span> the Komoot web-login password is encrypted at rest with <strong>AES-256-GCM</strong>, random 12-byte IV per encryption, scrypt-derived key. It must be reversibly stored because re-login replays it — that's inherent to web-login providers (ADR-recorded), not a flaw. The cipher usage is correct.</p>
+    </div>
+    <div class="why">
+      <h3>Minor edges</h3>
+      <ul>
+        <li>The account <strong>email is stored plaintext</strong> in the credentials JSONB next to the encrypted password — minor PII at rest; consider encrypting it too.</li>
+        <li>The decrypted password lives briefly as a JS string during basic-auth construction — only matters under memory-dump threat models; low priority.</li>
+        <li>Pin explicit <code>scrypt</code> cost params (N, r, p) so a future Node default change can't alter derivation.</li>
+        <li>Tighten the <code>Credentials</code> type off the <code>Record&lt;string, unknown&gt;</code> catch-all so a future kind can't accidentally store a secret in the clear.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 12: Good practices -->
+<section class="slide">
+  <div class="kicker">Calibration</div>
+  <h2>Strong fundamentals (verified) <span class="tag sev-good">Good</span></h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent)">Injection &amp; input</h3>
+      <ul>
+        <li>All raw SQL is parameterized — including PostGIS: the GeoJSON is bound, table names go through <code>sql.identifier()</code>.</li>
+        <li>GPX/XML parsing is XXE-safe (DOMParser / linkedom, no external-entity or DTD expansion).</li>
+        <li><code>safeReturnTo()</code> blocks open redirects (local paths only, no <code>//</code>).</li>
+      </ul>
+      <h3 style="color:var(--accent)">Secrets</h3>
+      <ul>
+        <li><code>requireSecret()</code> refuses to boot prod on a dev-fallback secret.</li>
+        <li>AES-256-GCM + random IV; SOPS/age for secrets at rest; <code>.env</code> gitignored and never in history.</li>
+        <li>Sentry: <code>sendDefaultPii: false</code>, no session replay.</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--accent)">Auth &amp; authz</h3>
+      <ul>
+        <li>Single-use JWT (<code>consumed_jwt_jti</code>, atomic <code>ON CONFLICT</code>) and single-use magic tokens (atomic <code>UPDATE … RETURNING</code>) — both race-proof.</li>
+        <li>Session cookies: HttpOnly, Secure in prod, SameSite=Lax, signed.</li>
+        <li>Branded ownership loader makes IDOR a compile error (from the prior refactor).</li>
+        <li>Terms gate enforced on both web and bearer-token API.</li>
+      </ul>
+      <h3 style="color:var(--accent)">Boundary &amp; infra</h3>
+      <ul>
+        <li>E2E backdoor endpoints gated on <code>E2E</code> env, never set in prod compose.</li>
+        <li>Strong headers + CSP (HSTS, nosniff, frame-deny, no <code>unsafe-eval</code>); Garmin webhook host allowlist; app ports unpublished behind Caddy; deploy secrets SOPS-encrypted, not echoed.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 13: Summary -->
+<section class="slide">
+  <div class="kicker">Summary</div>
+  <h2>Priorities</h2>
+  <table>
+    <tr><th>#</th><th>Finding</th><th>Sev</th><th>Do</th></tr>
+    <tr><td>1</td><td>SSRF via Planner session callback URL</td><td class="sev s-high">High</td><td>Apply <code>validateFetchUrl</code> at create + fetch</td></tr>
+    <tr><td>2</td><td>Upload content-type / filename / ownership</td><td class="sev s-med">Medium</td><td>Allowlist type, sanitize key, check owner</td></tr>
+    <tr><td>3</td><td>OAuth callback logs raw exception</td><td class="sev s-low">Low</td><td>Log redacted message only</td></tr>
+    <tr><td>4</td><td>Caddy admin on <code>0.0.0.0:2019</code></td><td class="sev s-low">Low</td><td>Bind to localhost / <code>admin off</code></td></tr>
+    <tr><td>5</td><td>User enumeration via auth errors</td><td class="sev s-low">Low</td><td>Generic responses on the email paths</td></tr>
+    <tr><td>6</td><td>Federation tests + fetch caps</td><td class="sev s-low">Low</td><td>Add signature-rejection test, size cap</td></tr>
+    <tr><td>7</td><td>In-process rate limit / XFF trust</td><td class="sev s-low">Low</td><td>Shared store before scaling out</td></tr>
+    <tr><td>8</td><td>Komoot credential edges</td><td class="sev s-info">Info</td><td>Encrypt email, pin scrypt params</td></tr>
+  </table>
+  <p style="margin-top:22px; color:var(--muted)">No Critical issues. One High, externally-reachable and unauthenticated — fix first. Everything else is hardening on an already-solid base. Four scanner "Critical/High/Medium" alarms were verified false and dropped; trust the code, not the raw sweep.</p>
+</section>
+
+<div class="footer">
+  <span>trails.cool security review · 2026-06-10 · defensive, authorized</span>
+  <span id="counter"></span>
+  <span class="hint"><kbd>←</kbd><kbd>→</kbd> or click · <kbd>Home</kbd>/<kbd>End</kbd></span>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, j) => s.classList.toggle('active', j === i));
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+    document.getElementById('progress').style.width = ((i + 1) / slides.length * 100) + '%';
+    location.hash = i + 1;
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') show(i + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(i - 1);
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+  });
+  document.addEventListener('click', (e) => {
+    if (window.getSelection().toString()) return;
+    show(e.clientX > window.innerWidth / 2 ? i + 1 : i - 1);
+  });
+  show(parseInt(location.hash.slice(1), 10) - 1 || 0);
+</script>
+</body>
+</html>
