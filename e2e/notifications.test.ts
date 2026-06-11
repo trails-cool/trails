@@ -1,15 +1,6 @@
-import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
+import { test, expect, gotoHydrated, type CDPSession } from "./fixtures/test";
 import { setupVirtualAuthenticator, registerUser } from "./helpers/auth";
-
-async function setProfileVisibility(page: Page, value: "public" | "private") {
-  await page.goto("/settings");
-  await page.locator(`input[type=radio][name=profileVisibility][value=${value}]`).check();
-  await page.getByRole("button", { name: /^Save$/ }).first().click();
-  // Don't use waitForLoadState("networkidle") — the SSE connection to
-  // /api/events keeps the network busy indefinitely. Wait for the
-  // explicit save confirmation instead.
-  await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 10000 });
-}
+import { setProfileVisibility } from "./helpers/profile";
 
 test.describe.configure({ mode: "serial" });
 
@@ -39,8 +30,7 @@ test.describe("Notifications", () => {
     await setProfileVisibility(bPage, "public");
 
     // A follows B (auto-accept).
-    await page.goto(`/users/${bUsername}`);
-    await waitForHydration(page);
+    await gotoHydrated(page, `/users/${bUsername}`);
     await page.getByRole("button", { name: "Follow" }).click();
     await expect(page.getByRole("button", { name: "Unfollow" })).toBeVisible({ timeout: 5000 });
 
@@ -76,7 +66,7 @@ test.describe("Notifications", () => {
     // B stays private (default).
 
     // A requests to follow B.
-    await page.goto(`/users/${bUsername}`);
+    await gotoHydrated(page, `/users/${bUsername}`);
     await page.getByRole("button", { name: /Request to follow/i }).click();
     await expect(page.getByRole("button", { name: /Requested/i })).toBeVisible({ timeout: 5000 });
 

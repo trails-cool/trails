@@ -1,16 +1,6 @@
-import { test, expect, waitForHydration, type CDPSession, type Page } from "./fixtures/test";
+import { test, expect, gotoHydrated, type CDPSession } from "./fixtures/test";
 import { setupVirtualAuthenticator, registerUser } from "./helpers/auth";
-
-async function setProfileVisibility(page: Page, value: "public" | "private") {
-  await page.goto("/settings");
-  // Target the radio by name+value; getByLabel collides because the
-  // help text of one radio mentions the other's word ("public" appears
-  // in the Private radio's helper sentence).
-  await page.locator(`input[type=radio][name=profileVisibility][value=${value}]`).check();
-  await page.getByRole("button", { name: /^Save$/ }).first().click();
-  // SSE keeps the network busy; wait for the save confirmation instead.
-  await expect(page.getByText("Profile saved.")).toBeVisible({ timeout: 10000 });
-}
+import { setProfileVisibility } from "./helpers/profile";
 
 // WebAuthn + parallel workers + shared local Postgres race; serialize.
 test.describe.configure({ mode: "serial" });
@@ -71,7 +61,7 @@ test.describe("Social follows + /feed", () => {
     await setProfileVisibility(bPage, "public");
 
     // A visits B's profile and follows.
-    await page.goto(`/users/${bUsername}`);
+    await gotoHydrated(page, `/users/${bUsername}`);
     await expect(page.getByRole("button", { name: "Follow" })).toBeVisible();
     await page.getByRole("button", { name: "Follow" }).click();
     await expect(page.getByRole("button", { name: "Unfollow" })).toBeVisible({ timeout: 5000 });

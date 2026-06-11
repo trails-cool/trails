@@ -98,5 +98,23 @@ export async function waitForHydration(page: import("@playwright/test").Page) {
   );
 }
 
+/**
+ * Navigate and wait for the page to be hydrated before returning.
+ *
+ * Use this (instead of bare `page.goto`) whenever the very next step
+ * interacts with a control whose behaviour lives in a React handler —
+ * notably the onClick-driven FollowButton and the profile-settings
+ * fetcher form. A button is "visible and enabled" per Playwright's
+ * actionability check before React has attached its onClick, so a click
+ * in that window is silently dropped (or triggers a native form submit),
+ * which is the dominant source of the cold-server e2e flake. Waiting for
+ * hydration at the navigation closes that race so individual tests can't
+ * forget it per interaction.
+ */
+export async function gotoHydrated(page: import("@playwright/test").Page, url: string) {
+  await page.goto(url);
+  await waitForHydration(page);
+}
+
 export { expect };
 export type { CDPSession, Page } from "@playwright/test";
