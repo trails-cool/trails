@@ -79,17 +79,32 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Decrypt Sentry auth token
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
         run: |
+          # Dependabot / fork PRs don't receive repo secrets, so there's
+          # no AGE key to decrypt with. The Sentry Vite plugin disables
+          # itself when SENTRY_AUTH_TOKEN is empty (see vite.config.ts),
+          # so an empty token file still lets the image build for
+          # validation — just without sourcemap upload.
+          if [ -z "$AGE_SECRET_KEY" ]; then
+            echo "AGE_SECRET_KEY unavailable — building without Sentry sourcemap upload."
+            : > /tmp/sentry_token
+            exit 0
+          fi
           curl -sLO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
           chmod +x sops-v3.9.4.linux.amd64
-          SOPS_AGE_KEY="${{ secrets.AGE_SECRET_KEY }}" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
+          SOPS_AGE_KEY="$AGE_SECRET_KEY" ./sops-v3.9.4.linux.amd64 -d infrastructure/secrets.app.env > /tmp/secrets.env
           grep SENTRY_AUTH_TOKEN /tmp/secrets.env | cut -d= -f2- | tr -d '\n' > /tmp/sentry_token
 
       - uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
-          push: true
+          # Push only on trusted runs that carry registry-write secrets
+          # (main push / maintainer). Dependabot & fork PRs get a
+          # read-only token, so they build for validation but don't push.
+          push: ${{ secrets.AGE_SECRET_KEY != '' }}
           tags: |
             ghcr.io/trails-cool/${{ matrix.app }}:${{ steps.tags.outputs.primary }}
             ghcr.io/trails-cool/${{ matrix.app }}:${{ steps.tags.outputs.sha }}
@@ -207,11 +222,13 @@ jobs:
   # ── PR preview deploy ────────────────────────────────────────────────
   deploy-preview:
     name: Deploy PR Preview
-    # Skip GH-Actions-only Dependabot PRs — there is no app image to preview.
+    # Skip all Dependabot PRs. They build images for validation but don't
+    # push them (Dependabot gets a read-only token), and lack the deploy
+    # secrets anyway — so there's no image to preview.
     if: >
       github.event_name == 'pull_request' &&
       github.event.action != 'closed' &&
-      !startsWith(github.head_ref, 'dependabot/github_actions/')
+      !startsWith(github.head_ref, 'dependabot/')
     needs: [build-images]
     runs-on: ubuntu-latest
     environment: production
