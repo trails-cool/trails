@@ -16,7 +16,7 @@ export default defineConfig({
   },
   // NOTE: specs only run if a project below matches them — a new
   // e2e/*.test.ts file MUST be registered here or it silently never
-  // executes (settings/explore/social sat unregistered for months).
+  // executes.
   projects: [
     {
       name: "journal",
@@ -85,6 +85,30 @@ export default defineConfig({
     {
       name: "komoot-import",
       testMatch: "komoot-import.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
+    {
+      name: "settings",
+      testMatch: "settings.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
+    {
+      name: "explore",
+      testMatch: "explore.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
+    {
+      name: "social",
+      testMatch: "social.test.ts",
       use: {
         ...devices["Desktop Chrome"],
         baseURL: "http://localhost:3000",
