@@ -23,5 +23,8 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: "Passkey not found" }, { status: 404 });
   }
 
-  return redirect("/settings#security");
+  // Settings is split into sections now; the bare /settings#security
+  // anchor resolves to /settings/profile. Send the user back to the
+  // security section they were on.
+  return redirect("/settings/security");
 }
