@@ -1,6 +1,17 @@
 {
-	metrics
-	admin 0.0.0.0:2019
+	# Admin API on loopback only. It can reconfigure the proxy, so it must
+	# not be reachable by other containers on the Docker network (a journal
+	# / planner RCE could otherwise rewrite routes). Reloads run in-container
+	# (`docker compose exec caddy caddy reload`) over this loopback endpoint,
+	# matching infrastructure/brouter-host/Caddyfile.
+	admin localhost:2019
+}
+
+# Read-only Prometheus metrics on a dedicated network-reachable port,
+# split off the admin endpoint above so scraping doesn't require exposing
+# the admin API. Prometheus scrapes caddy:2020 (see prometheus.yml).
+:2020 {
+	metrics /metrics
 }
 
 (security_headers) {
