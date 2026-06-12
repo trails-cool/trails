@@ -89,7 +89,11 @@ export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks, 
     <MapContainer
       center={[50, 10]}
       zoom={6}
-      className={className ?? "h-36 w-full rounded"}
+      // `isolate` gives the Leaflet container its own stacking context so its
+      // internal high z-indexes (panes ~200–700, zoom controls ~1000) stay
+      // contained and can't paint over page overlays like the mobile nav
+      // drawer's backdrop.
+      className={`${className ?? "h-36 w-full rounded"} isolate`}
       zoomControl={interactive ?? false}
       attributionControl={interactive ?? false}
       dragging={interactive ?? false}
