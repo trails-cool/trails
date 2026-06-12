@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/home";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { SportBadge } from "~/components/SportBadge";
+import { StatRow } from "~/components/StatRow";
+import { activityStatItems } from "~/lib/stats";
 import { loadHomeData } from "./home.server";
 
 export function meta(_args: Route.MetaArgs) {
@@ -146,15 +149,18 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     </div>
                     <div className="flex flex-1 flex-col justify-between">
                       <div>
-                        <h2 className="text-lg font-medium text-gray-900">{a.name}</h2>
-                        <div className="mt-1 flex gap-4 text-sm text-gray-500">
-                          {a.distance != null && (
-                            <span>{(a.distance / 1000).toFixed(1)} km</span>
-                          )}
-                          {a.elevationGain != null && (
-                            <span>↑ {Math.round(a.elevationGain)} m</span>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-medium text-gray-900">{a.name}</h2>
+                          <SportBadge sportType={a.sportType} />
                         </div>
+                        <StatRow
+                          className="mt-1"
+                          items={activityStatItems(
+                            { distance: a.distance, durationSec: a.duration, sportType: a.sportType },
+                            t,
+                            { compact: true },
+                          )}
+                        />
                       </div>
                       <span className="text-sm text-gray-400">
                         <ClientDate iso={a.startedAt ?? a.createdAt} />
@@ -266,7 +272,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     </div>
                     <div className="flex flex-1 flex-col justify-between">
                       <div>
-                        <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
+                          <SportBadge sportType={a.sportType} />
+                        </div>
                         <div className="mt-1 text-sm text-gray-500">
                           {a.ownerUsername && (
                             <>
@@ -282,14 +291,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                           )}
                           <ClientDate iso={a.startedAt ?? a.createdAt} />
                         </div>
-                        <div className="mt-1 flex gap-4 text-sm text-gray-500">
-                          {a.distance != null && (
-                            <span>{(a.distance / 1000).toFixed(1)} km</span>
+                        <StatRow
+                          className="mt-1"
+                          items={activityStatItems(
+                            { distance: a.distance, durationSec: a.duration, sportType: a.sportType },
+                            t,
+                            { compact: true },
                           )}
-                          {a.elevationGain != null && (
-                            <span>↑ {Math.round(a.elevationGain)} m</span>
-                          )}
-                        </div>
+                        />
                       </div>
                     </div>
                   </div>
