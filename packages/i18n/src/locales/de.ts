@@ -405,6 +405,10 @@ export default {
       ascent: "Anstieg",
       descent: "Abstieg",
     },
+    elevation: {
+      highest: "Höchster Punkt",
+      lowest: "Tiefster Punkt",
+    },
     settings: {
       title: "Einstellungen",
       nav: {

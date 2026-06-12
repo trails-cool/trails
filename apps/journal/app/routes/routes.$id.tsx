@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 import { StatRow } from "~/components/StatRow";
+import { ElevationProfile } from "~/components/ElevationProfile";
 import { activityStatItems } from "~/lib/stats";
 import { loadRouteDetail, routeDetailAction } from "./routes.$id.server";
 
@@ -47,6 +48,24 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const { t, i18n } = useTranslation("journal");
   const [editLoading, setEditLoading] = useState(false);
   const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
+
+  // Elevation profile ↔ map sync via a shared "active" sample index.
+  const elevation = route.elevation;
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [centerOn, setCenterOn] = useState<{ lat: number; lng: number; v: number } | null>(null);
+  const hoverSeries = useMemo(
+    () => elevation.map((s) => [s.lat, s.lng] as [number, number]),
+    [elevation],
+  );
+  const activePoint =
+    activeIndex != null && elevation[activeIndex]
+      ? { lat: elevation[activeIndex]!.lat, lng: elevation[activeIndex]!.lng }
+      : null;
+  const seekElevation = (i: number) => {
+    const s = elevation[i];
+    if (s) setCenterOn((prev) => ({ lat: s.lat, lng: s.lng, v: (prev?.v ?? 0) + 1 }));
+    setActiveIndex(i);
+  };
 
   const pushStatus = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("push")
@@ -288,8 +307,29 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
 
       {route.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
-          <ClientMap geojson={route.geojson} interactive className="h-full w-full" dayBreaks={route.dayBreaks.length > 0 ? route.dayBreaks : undefined} highlightedDay={highlightedDay} />
+          <ClientMap
+            geojson={route.geojson}
+            interactive
+            className="h-full w-full"
+            dayBreaks={route.dayBreaks.length > 0 ? route.dayBreaks : undefined}
+            highlightedDay={highlightedDay}
+            activePoint={activePoint}
+            hoverSeries={hoverSeries}
+            onHoverIndex={setActiveIndex}
+            centerOn={centerOn}
+          />
         </div>
+      )}
+
+      {elevation.length > 1 && (
+        <ElevationProfile
+          className="mt-4"
+          series={elevation}
+          activeIndex={activeIndex}
+          onActive={setActiveIndex}
+          onSeek={seekElevation}
+          labels={{ highest: t("elevation.highest"), lowest: t("elevation.lowest") }}
+        />
       )}
 
       {isEmpty && (

@@ -9,7 +9,8 @@ import { requireOwnedRoute } from "~/lib/ownership.server";
 import { getDb } from "~/lib/db";
 import { syncPushes } from "@trails-cool/db/schema/journal";
 import { getService } from "~/lib/connected-services";
-import { computeDays, parseGpxAsync } from "@trails-cool/gpx";
+import { computeDays, parseGpxAsync, elevationSeries } from "@trails-cool/gpx";
+import type { ElevationSample } from "@trails-cool/gpx";
 
 export async function loadRouteDetail(request: Request, id: string | undefined) {
   const routeId = id ?? "";
@@ -32,9 +33,11 @@ export async function loadRouteDetail(request: Request, id: string | undefined) 
   // Parse GPX once for day stats and waypoint POI data
   let dayStats: Array<{ dayNumber: number; startName?: string; endName?: string; distance: number; ascent: number; descent: number }> = [];
   let waypoints: Array<{ lat: number; lon: number; name?: string; isDayBreak?: boolean; note?: string; osmId?: number; poiTags?: Record<string, string> }> = [];
+  let elevation: ElevationSample[] = [];
   if (route.gpx) {
     try {
       const gpxData = await parseGpxAsync(route.gpx);
+      elevation = elevationSeries(gpxData.tracks);
       waypoints = gpxData.waypoints.map((w) => ({
         lat: w.lat,
         lon: w.lon,
@@ -122,6 +125,7 @@ export async function loadRouteDetail(request: Request, id: string | undefined) 
       routingProfile: route.routingProfile,
       hasGpx: !!route.gpx,
       dayBreaks: route.dayBreaks ?? [],
+      elevation,
       geojson: routeWithGeojson?.geojson ?? null,
       visibility: route.visibility,
       createdAt: route.createdAt.toISOString(),

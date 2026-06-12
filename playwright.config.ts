@@ -122,6 +122,14 @@ export default defineConfig({
         baseURL: "http://localhost:3000",
       },
     },
+    {
+      name: "elevation-profile",
+      testMatch: "elevation-profile.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
   ],
   webServer: process.env.CI
     ? [
