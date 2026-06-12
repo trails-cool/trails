@@ -3,6 +3,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { getDb } from "../db.ts";
 import { syncImports } from "@trails-cool/db/schema/journal";
 import { createActivity } from "../activities.server.ts";
+import type { SportType } from "@trails-cool/db/schema/journal";
 
 export async function recordImport(
   userId: string,
@@ -59,6 +60,9 @@ export async function importActivity(
     distance?: number | null;
     duration?: number | null;
     startedAt?: Date | null;
+    // Already normalized to our enum by the caller (see mapSportType);
+    // undefined when the provider supplied no sport.
+    sportType?: SportType;
   },
 ): Promise<{ activityId: string }> {
   const activityId = await createActivity(userId, {
@@ -67,6 +71,7 @@ export async function importActivity(
     distance: input.distance,
     duration: input.duration,
     startedAt: input.startedAt,
+    sportType: input.sportType,
   });
   await recordImport(userId, provider, externalWorkoutId, activityId);
   return { activityId };

@@ -11,6 +11,7 @@ const ACTIVITY: FederatableActivity = {
   id: "act-1",
   name: "Morning ride <3",
   description: 'Through the "forest" & hills',
+  sportType: "ride",
   distance: 42_195,
   elevationGain: 512.4,
   duration: 2 * 3600 + 30 * 60,
@@ -50,6 +51,14 @@ describe("activityToNote", () => {
     expect(byName.get("distance-m")).toBe("42195");
     expect(byName.get("elevation-gain-m")).toBe("512");
     expect(byName.get("duration-s")).toBe("9000");
+    expect(byName.get("sport")).toBe("ride");
+  });
+
+  it("omits the sport attachment when sport is unset", async () => {
+    const note = activityToNote({ ...ACTIVITY, sportType: null }, "bruno");
+    const names = [];
+    for await (const a of note.getAttachments()) names.push(String((a as { name: unknown }).name));
+    expect(names).not.toContain("sport");
   });
 
   it("omits stats it doesn't have", () => {

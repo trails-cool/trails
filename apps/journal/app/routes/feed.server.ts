@@ -23,6 +23,7 @@ export async function loadFeed(request: Request) {
     activities: rows.map((a) => ({
       id: a.id,
       name: a.name,
+      sportType: a.sportType,
       distance: a.distance,
       elevationGain: a.elevationGain,
       duration: a.duration,

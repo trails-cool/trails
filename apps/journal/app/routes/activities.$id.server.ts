@@ -41,6 +41,7 @@ export async function loadActivityDetail(request: Request, id: string | undefine
       id: activity.id,
       name: activity.name,
       description: activity.description,
+      sportType: activity.sportType,
       distance: activity.distance,
       elevationGain: activity.elevationGain,
       elevationLoss: activity.elevationLoss,

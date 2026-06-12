@@ -21,6 +21,7 @@ export async function listPublicActivitiesPage(
       id: activities.id,
       name: activities.name,
       description: activities.description,
+      sportType: activities.sportType,
       distance: activities.distance,
       elevationGain: activities.elevationGain,
       duration: activities.duration,

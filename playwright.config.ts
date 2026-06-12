@@ -114,6 +114,14 @@ export default defineConfig({
         baseURL: "http://localhost:3000",
       },
     },
+    {
+      name: "activity-sport-type",
+      testMatch: "activity-sport-type.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
   ],
   webServer: process.env.CI
     ? [

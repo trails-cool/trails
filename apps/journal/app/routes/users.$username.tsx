@@ -3,6 +3,7 @@ import type { Route } from "./+types/users.$username";
 import { useTranslation } from "react-i18next";
 import { ClientDate } from "~/components/ClientDate";
 import { FollowButton } from "~/components/FollowButton";
+import { SportBadge } from "~/components/SportBadge";
 import { loadUserProfile } from "./users.$username.server";
 import {
   federationEnabled,
@@ -224,7 +225,10 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
               <li key={a.id} className="px-4 py-3">
                 <a href={`/activities/${a.id}`} className="block hover:bg-gray-50">
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="font-medium text-gray-900">{a.name}</span>
+                    <span className="flex items-baseline gap-2">
+                      <span className="font-medium text-gray-900">{a.name}</span>
+                      <SportBadge sportType={a.sportType} />
+                    </span>
                     {a.distance != null && (
                       <span className="shrink-0 text-sm tabular-nums text-gray-600">
                         {(a.distance / 1000).toFixed(1)} km

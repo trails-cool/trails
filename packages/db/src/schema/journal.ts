@@ -142,6 +142,24 @@ export const routeVersions = journalSchema.table("route_versions", {
  */
 export type Audience = "public" | "followers-only";
 
+/**
+ * Sport / activity type. Nullable on activities (NULL = unspecified, which
+ * is always valid). Stored as a plain text() column with a `.$type<>` guard,
+ * matching the visibility/audience convention (no pgEnum). `SPORT_TYPES` is
+ * the runtime source of truth for validation and iteration.
+ */
+export const SPORT_TYPES = [
+  "hike",
+  "walk",
+  "run",
+  "ride",
+  "gravel",
+  "mtb",
+  "ski",
+  "other",
+] as const;
+export type SportType = (typeof SPORT_TYPES)[number];
+
 export const activities = journalSchema.table("activities", {
   id: text("id").primaryKey(),
   // Local author. NULL for activities ingested from a remote trails
@@ -153,6 +171,8 @@ export const activities = journalSchema.table("activities", {
   routeId: text("route_id").references(() => routes.id),
   name: text("name").notNull(),
   description: text("description").default(""),
+  // Sport / activity type (NULL = unspecified). See SPORT_TYPES above.
+  sportType: text("sport_type").$type<SportType>(),
   gpx: text("gpx"),
   geom: lineString("geom"),
   startedAt: timestamp("started_at", { withTimezone: true }),

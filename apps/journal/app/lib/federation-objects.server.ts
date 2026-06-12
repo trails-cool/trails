@@ -14,11 +14,13 @@ import { Temporal as TemporalPolyfill } from "@js-temporal/polyfill";
 import { Create, Delete, Note, PropertyValue, Tombstone, PUBLIC_COLLECTION } from "@fedify/fedify/vocab";
 import { getOrigin } from "./config.server.ts";
 import { localActorIri } from "./actor-iri.ts";
+import type { SportType } from "@trails-cool/db/schema/journal";
 
 export interface FederatableActivity {
   id: string;
   name: string;
   description: string | null;
+  sportType: SportType | null;
   distance: number | null;
   elevationGain: number | null;
   duration: number | null;
@@ -80,6 +82,9 @@ export function activityToNote(a: FederatableActivity, ownerUsername: string): N
   }
   if (a.duration != null) {
     attachments.push(new PropertyValue({ name: "duration-s", value: String(a.duration) }));
+  }
+  if (a.sportType != null) {
+    attachments.push(new PropertyValue({ name: "sport", value: a.sportType }));
   }
 
   return new Note({

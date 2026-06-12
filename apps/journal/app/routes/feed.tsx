@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/feed";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { SportBadge } from "~/components/SportBadge";
 import { loadFeed } from "./feed.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -114,7 +115,10 @@ export default function Feed({ loaderData }: Route.ComponentProps) {
                   </div>
                   <div className="flex flex-1 flex-col justify-between">
                     <div>
-                      <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-medium text-gray-900">{a.name}</h3>
+                        <SportBadge sportType={a.sportType} />
+                      </div>
                       <div className="mt-1 text-sm text-gray-500">
                         {a.remote ? (
                           <span>
@@ -131,6 +135,9 @@ export default function Feed({ loaderData }: Route.ComponentProps) {
                           >
                             {a.ownerDisplayName ?? a.ownerUsername}
                           </a>
+                        )}
+                        {a.sportType && (
+                          <span> {t(`activities.sport.verb.${a.sportType}`)}</span>
                         )}
                         {" · "}
                         <ClientDate iso={a.startedAt ?? a.createdAt} />
