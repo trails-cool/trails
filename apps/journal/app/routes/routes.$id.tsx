@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/routes.$id";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { StatRow } from "~/components/StatRow";
+import { activityStatItems } from "~/lib/stats";
 import { loadRouteDetail, routeDetailAction } from "./routes.$id.server";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -174,28 +176,18 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {route.distance != null && (
-          <div className="rounded-md bg-gray-50 p-4">
-            <p className="text-2xl font-bold text-gray-900">
-              {(route.distance / 1000).toFixed(1)} km
-            </p>
-            <p className="text-sm text-gray-500">{t("routes.distance")}</p>
-          </div>
+      <StatRow
+        size="lg"
+        className="mt-6"
+        items={activityStatItems(
+          {
+            distance: route.distance,
+            elevationGain: route.elevationGain,
+            elevationLoss: route.elevationLoss,
+          },
+          t,
         )}
-        {route.elevationGain != null && (
-          <div className="rounded-md bg-gray-50 p-4">
-            <p className="text-2xl font-bold text-gray-900">↑ {route.elevationGain} m</p>
-            <p className="text-sm text-gray-500">Ascent</p>
-          </div>
-        )}
-        {route.elevationLoss != null && (
-          <div className="rounded-md bg-gray-50 p-4">
-            <p className="text-2xl font-bold text-gray-900">↓ {route.elevationLoss} m</p>
-            <p className="text-sm text-gray-500">Descent</p>
-          </div>
-        )}
-      </div>
+      />
 
       {dayStats.length > 1 && (
         <div className="mt-6">
