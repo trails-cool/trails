@@ -405,6 +405,10 @@ export default {
       ascent: "Ascent",
       descent: "Descent",
     },
+    elevation: {
+      highest: "Highest",
+      lowest: "Lowest",
+    },
     settings: {
       title: "Settings",
       nav: {

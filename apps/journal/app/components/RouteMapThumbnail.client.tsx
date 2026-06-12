@@ -1,8 +1,62 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { GeoJsonObject } from "geojson";
 import "leaflet/dist/leaflet.css";
+
+/** Marker shown at the position the elevation chart is pointing at. */
+function ActiveMarker({ point }: { point: { lat: number; lng: number } | null | undefined }) {
+  if (!point) return null;
+  return (
+    <CircleMarker
+      center={[point.lat, point.lng]}
+      radius={6}
+      pathOptions={{ color: "#fff", weight: 2, fillColor: "#2563eb", fillOpacity: 1 }}
+    />
+  );
+}
+
+/** Reports the route sample nearest the cursor so the chart can highlight it. */
+function HoverTracker({
+  series,
+  onHoverIndex,
+}: {
+  series: Array<[number, number]>;
+  onHoverIndex: (index: number | null) => void;
+}) {
+  useMapEvents({
+    mousemove(e) {
+      const { lat, lng } = e.latlng;
+      let best = -1;
+      let bestDelta = Infinity;
+      for (let i = 0; i < series.length; i++) {
+        const [slat, slng] = series[i]!;
+        const delta = (slat - lat) ** 2 + (slng - lng) ** 2;
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          best = i;
+        }
+      }
+      onHoverIndex(best >= 0 ? best : null);
+    },
+    mouseout() {
+      onHoverIndex(null);
+    },
+  });
+  return null;
+}
+
+/** Pans the map when the chart is clicked (centerOn.v bumps per click). */
+function Recenter({ centerOn }: { centerOn: { lat: number; lng: number; v: number } | null | undefined }) {
+  const map = useMap();
+  const lastV = useRef<number | null>(null);
+  useEffect(() => {
+    if (!centerOn || centerOn.v === lastV.current) return;
+    lastV.current = centerOn.v;
+    map.panTo([centerOn.lat, centerOn.lng], { animate: true });
+  }, [centerOn, map]);
+  return null;
+}
 
 function FitBounds({ data }: { data: GeoJsonObject }) {
   const map = useMap();
@@ -80,9 +134,24 @@ interface RouteMapProps {
   dayBreaks?: number[];
   /** 1-based day number to highlight, or null for no highlight */
   highlightedDay?: number | null;
+  /** Elevation-profile sync: marker position, route samples to hover-match, callbacks. */
+  activePoint?: { lat: number; lng: number } | null;
+  hoverSeries?: Array<[number, number]>;
+  onHoverIndex?: (index: number | null) => void;
+  centerOn?: { lat: number; lng: number; v: number } | null;
 }
 
-export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks, highlightedDay }: RouteMapProps) {
+export function RouteMapThumbnail({
+  geojson,
+  interactive,
+  className,
+  dayBreaks,
+  highlightedDay,
+  activePoint,
+  hoverSeries,
+  onHoverIndex,
+  centerOn,
+}: RouteMapProps) {
   const data: GeoJsonObject = JSON.parse(geojson);
 
   return (
@@ -114,6 +183,11 @@ export function RouteMapThumbnail({ geojson, interactive, className, dayBreaks, 
           fullData={data}
         />
       )}
+      <ActiveMarker point={activePoint} />
+      {hoverSeries && hoverSeries.length > 0 && onHoverIndex && (
+        <HoverTracker series={hoverSeries} onHoverIndex={onHoverIndex} />
+      )}
+      <Recenter centerOn={centerOn} />
     </MapContainer>
   );
 }

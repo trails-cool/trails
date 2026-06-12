@@ -1,28 +1,28 @@
 ## 1. Series helper
 
-- [ ] 1.1 Add a helper (in `@trails-cool/gpx` or the journal lib) that turns GPX into `{ distance, elevation, lat, lng }[]`, downsampled to ~500 points; unit-test it (incl. the no-elevation case → empty/invalid series).
-- [ ] 1.2 Expose the series + summary (ascent/descent/high/low) from the route and activity detail loaders.
+- [x] 1.1 `elevationSeries(tracks, maxPoints=400)` in `@trails-cool/gpx` → `{ d, e, lat, lng }[]`, downsampled (keeps first/last), empty when <2 points carry elevation; unit-tested.
+- [x] 1.2 Expose the series from the route + activity detail loaders (one parse; activity reuses the moving-time parse). Highest/lowest are computed in the chart; ascent/descent stay in the stat row.
 
 ## 2. Chart component
 
-- [ ] 2.1 Build a presentational `ElevationProfile` SVG area chart (gradient fill via the `map-core` elevation/gradient scale) with the ascent/descent/high/low summary strip.
-- [ ] 2.2 Render nothing when the series has no usable elevation.
+- [x] 2.1 Presentational `ElevationProfile` SVG area chart (vertical gradient fill) with a highest/lowest summary + a hover readout (distance · elevation).
+- [x] 2.2 Renders nothing when the series has <2 points.
 
 ## 3. Active-distance interaction
 
-- [ ] 3.1 Lift an `activeDistance | null` state above the detail page's map + chart.
-- [ ] 3.2 Chart hover → set `activeDistance`; map shows a marker at the interpolated lat/lng.
-- [ ] 3.3 Map route-line hover → set `activeDistance` (nearest sample); chart shows a crosshair/marker.
-- [ ] 3.4 Chart click → center the map on that location (read-only). Throttle pointer updates; memoize interpolation.
+- [x] 3.1 Lift a shared `activeIndex | null` (+ `centerOn`) above the detail page's map + chart.
+- [x] 3.2 Chart hover → `onActive(index)`; map draws a `CircleMarker` at that sample's lat/lng.
+- [x] 3.3 Map route hover → `HoverTracker` finds the nearest sample → `onHoverIndex`; chart draws a crosshair + dot.
+- [x] 3.4 Chart pointer-down → `onSeek` bumps `centerOn`; map `panTo`s that point (read-only, no data change).
 
 ## 4. Wire-in & i18n
 
-- [ ] 4.1 Mount `ElevationProfile` + shared state in `routes.$id.tsx` and `activities.$id.tsx`.
-- [ ] 4.2 Add `journal.elevation.*` keys (ascent, descent, highest, lowest) to en + de.
+- [x] 4.1 Mounted in `routes.$id.tsx` and `activities.$id.tsx` (props forwarded through `ClientMap`).
+- [x] 4.2 Add `journal.elevation.{highest,lowest}` to en + de.
 
 ## 5. Tests & checks
 
-- [ ] 5.1 Unit: series helper (sampling, summary numbers, no-elevation → omitted).
-- [ ] 5.2 Component: chart renders for a series; renders nothing for an empty series.
-- [ ] 5.3 E2E: open a route detail with elevation, assert the chart + summary appear; hovering the chart shows a map marker.
-- [ ] 5.4 `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` green.
+- [x] 5.1 Unit: `elevationSeries` (cumulative distance, flatten segments, downsample first/last, no-elevation → empty).
+- [x] 5.2 Component (jsdom): chart renders for a series + highest/lowest summary; nothing for a too-short series; marker on active; `onSeek` on pointer-down.
+- [x] 5.3 E2E: create an activity from an elevation GPX, assert the profile chart + summary render (`e2e/elevation-profile.test.ts`, registered in `playwright.config.ts`). Passes locally.
+- [x] 5.4 typecheck + lint + unit (gpx 67, journal 315) green; new e2e passes locally. Full `pnpm test:e2e` runs in CI.

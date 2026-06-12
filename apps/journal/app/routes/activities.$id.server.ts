@@ -13,7 +13,8 @@ import {
 import { deleteImportByActivity } from "~/lib/sync/imports.server";
 import { listRoutes } from "~/lib/routes.server";
 import { requireOwnedActivity, requireOwnedRoute } from "~/lib/ownership.server";
-import { parseGpxAsync, movingTime } from "@trails-cool/gpx";
+import { parseGpxAsync, movingTime, elevationSeries } from "@trails-cool/gpx";
+import type { ElevationSample } from "@trails-cool/gpx";
 import { logger } from "~/lib/logger.server";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
@@ -38,15 +39,17 @@ export async function loadActivityDetail(request: Request, id: string | undefine
 
   const userRoutes = isOwner && user ? await listRoutes(user.id) : [];
 
-  // Moving time is derived from trackpoint timestamps (null when the GPX has
-  // none). Detail-page only — too costly to parse per row in list views.
+  // Moving time + the elevation series are both derived from the GPX (one
+  // parse). Detail-page only — too costly to parse per row in list views.
   let movingTimeSec: number | null = null;
+  let elevation: ElevationSample[] = [];
   if (activity.gpx) {
     try {
       const parsed = await parseGpxAsync(activity.gpx);
       movingTimeSec = movingTime(parsed.tracks);
+      elevation = elevationSeries(parsed.tracks);
     } catch (err) {
-      logger.warn({ activityId: activity.id, err }, "moving-time: failed to parse gpx");
+      logger.warn({ activityId: activity.id, err }, "activity detail: failed to parse gpx");
     }
   }
 
@@ -61,6 +64,7 @@ export async function loadActivityDetail(request: Request, id: string | undefine
       elevationLoss: activity.elevationLoss,
       duration: activity.duration,
       movingTimeSec,
+      elevation,
       routeId: activity.routeId,
       hasGpx: !!activity.gpx,
       geojson: activity.geojson ?? null,

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { data } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities.$id";
@@ -5,6 +6,7 @@ import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 import { SportBadge } from "~/components/SportBadge";
 import { StatRow } from "~/components/StatRow";
+import { ElevationProfile } from "~/components/ElevationProfile";
 import { activityStatItems } from "~/lib/stats";
 import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
 import {
@@ -62,6 +64,24 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
   const { activity, isOwner, routes } = loaderData;
   const { t } = useTranslation("journal");
 
+  // Elevation profile ↔ map sync via a shared "active" sample index.
+  const elevation = activity.elevation;
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [centerOn, setCenterOn] = useState<{ lat: number; lng: number; v: number } | null>(null);
+  const hoverSeries = useMemo(
+    () => elevation.map((s) => [s.lat, s.lng] as [number, number]),
+    [elevation],
+  );
+  const activePoint =
+    activeIndex != null && elevation[activeIndex]
+      ? { lat: elevation[activeIndex]!.lat, lng: elevation[activeIndex]!.lng }
+      : null;
+  const seek = (i: number) => {
+    const s = elevation[i];
+    if (s) setCenterOn((prev) => ({ lat: s.lat, lng: s.lng, v: (prev?.v ?? 0) + 1 }));
+    setActiveIndex(i);
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center gap-3">
@@ -99,8 +119,27 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
 
       {activity.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>
-          <ClientMap geojson={activity.geojson} interactive className="h-full w-full" />
+          <ClientMap
+            geojson={activity.geojson}
+            interactive
+            className="h-full w-full"
+            activePoint={activePoint}
+            hoverSeries={hoverSeries}
+            onHoverIndex={setActiveIndex}
+            centerOn={centerOn}
+          />
         </div>
+      )}
+
+      {elevation.length > 1 && (
+        <ElevationProfile
+          className="mt-4"
+          series={elevation}
+          activeIndex={activeIndex}
+          onActive={setActiveIndex}
+          onSeek={seek}
+          labels={{ highest: t("elevation.highest"), lowest: t("elevation.lowest") }}
+        />
       )}
 
       {activity.routeId && (

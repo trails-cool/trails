@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
 ### Requirement: Elevation profile chart on detail pages
-The route and activity detail pages SHALL render an elevation profile chart (distance on the x-axis, elevation on the y-axis) with a gradient fill and a summary strip showing ascent, descent, highest point, and lowest point, whenever the activity or route has a usable elevation series.
+The route and activity detail pages SHALL render an elevation profile chart (distance on the x-axis, elevation on the y-axis) with a gradient area fill and a summary showing the highest and lowest points, whenever the activity or route has a usable elevation series. (Ascent and descent are shown in the headline stat row above the chart.)
 
 #### Scenario: Chart shown for a route with elevation
 - **WHEN** a user views a route whose GPX contains an elevation series
-- **THEN** an elevation profile chart is shown with a summary strip (ascent, descent, highest, lowest)
+- **THEN** an elevation profile chart is shown with a highest/lowest summary
 
 #### Scenario: Chart omitted without elevation
 - **WHEN** an activity's GPX has no usable elevation data
@@ -38,4 +38,4 @@ The elevation summary strip SHALL render its labels and units through localized 
 
 #### Scenario: German summary labels
 - **WHEN** the UI locale is German
-- **THEN** the ascent, descent, highest, and lowest labels render in German
+- **THEN** the highest and lowest labels render in German
