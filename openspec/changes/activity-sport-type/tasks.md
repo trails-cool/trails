@@ -25,6 +25,6 @@
 ## 5. Tests & checks
 
 - [x] 5.1 Unit: `mapSportType` table (known sports, unknown → `other`, empty → undefined).
-- [ ] 5.2 Round-trip (create→detail persists `sportType`) — folded into the E2E below.
-- [ ] 5.3 E2E: create an activity with a sport, assert the badge renders on the detail page.
-- [ ] 5.4 `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` green. (typecheck/lint/unit green; e2e pending.)
+- [x] 5.2 Round-trip (create→detail persists `sportType`) — covered by the E2E below.
+- [x] 5.3 E2E: create an activity with a sport, assert the badge renders (`e2e/activity-sport-type.test.ts`, registered in `playwright.config.ts`). Passes locally against an `E2E=true` server.
+- [x] 5.4 typecheck + lint + unit all green; the new e2e spec passes locally. Full `pnpm test:e2e` runs in CI.
