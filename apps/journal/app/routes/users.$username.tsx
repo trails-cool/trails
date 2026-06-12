@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { ClientDate } from "~/components/ClientDate";
 import { FollowButton } from "~/components/FollowButton";
 import { SportBadge } from "~/components/SportBadge";
+import { StatRow } from "~/components/StatRow";
+import { activityStatItems } from "~/lib/stats";
 import { loadUserProfile } from "./users.$username.server";
 import {
   federationEnabled,
@@ -229,11 +231,18 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
                       <span className="font-medium text-gray-900">{a.name}</span>
                       <SportBadge sportType={a.sportType} />
                     </span>
-                    {a.distance != null && (
-                      <span className="shrink-0 text-sm tabular-nums text-gray-600">
-                        {(a.distance / 1000).toFixed(1)} km
-                      </span>
-                    )}
+                    <StatRow
+                      className="shrink-0 justify-end"
+                      items={activityStatItems(
+                        {
+                          distance: a.distance,
+                          durationSec: a.duration,
+                          sportType: a.sportType,
+                        },
+                        t,
+                        { compact: true },
+                      )}
+                    />
                   </div>
                   {a.description && (
                     <p className="mt-1 line-clamp-1 text-sm text-gray-500">{a.description}</p>

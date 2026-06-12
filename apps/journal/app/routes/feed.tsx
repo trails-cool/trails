@@ -5,6 +5,8 @@ import type { Route } from "./+types/feed";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 import { SportBadge } from "~/components/SportBadge";
+import { StatRow } from "~/components/StatRow";
+import { activityStatItems } from "~/lib/stats";
 import { loadFeed } from "./feed.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -142,14 +144,18 @@ export default function Feed({ loaderData }: Route.ComponentProps) {
                         {" · "}
                         <ClientDate iso={a.startedAt ?? a.createdAt} />
                       </div>
-                      <div className="mt-1 flex gap-4 text-sm text-gray-500">
-                        {a.distance != null && (
-                          <span>{(a.distance / 1000).toFixed(1)} km</span>
+                      <StatRow
+                        className="mt-1"
+                        items={activityStatItems(
+                          {
+                            distance: a.distance,
+                            durationSec: a.duration,
+                            sportType: a.sportType,
+                          },
+                          t,
+                          { compact: true },
                         )}
-                        {a.elevationGain != null && (
-                          <span>↑ {Math.round(a.elevationGain)} m</span>
-                        )}
-                      </div>
+                      />
                     </div>
                   </div>
                 </div>

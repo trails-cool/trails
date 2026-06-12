@@ -4,6 +4,8 @@ import type { Route } from "./+types/activities.$id";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 import { SportBadge } from "~/components/SportBadge";
+import { StatRow } from "~/components/StatRow";
+import { activityStatItems } from "~/lib/stats";
 import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
 import {
   federationEnabled,
@@ -79,28 +81,21 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
         <ClientDate iso={activity.startedAt ?? activity.createdAt} />
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-4">
-        {activity.distance != null && (
-          <div className="rounded-md bg-gray-50 p-4">
-            <p className="text-2xl font-bold text-gray-900">
-              {(activity.distance / 1000).toFixed(1)} km
-            </p>
-            <p className="text-sm text-gray-500">Distance</p>
-          </div>
+      <StatRow
+        size="lg"
+        className="mt-6"
+        items={activityStatItems(
+          {
+            distance: activity.distance,
+            durationSec: activity.duration,
+            movingTimeSec: activity.movingTimeSec,
+            elevationGain: activity.elevationGain,
+            elevationLoss: activity.elevationLoss,
+            sportType: activity.sportType,
+          },
+          t,
         )}
-        {activity.elevationGain != null && (
-          <div className="rounded-md bg-gray-50 p-4">
-            <p className="text-2xl font-bold text-gray-900">↑ {activity.elevationGain} m</p>
-            <p className="text-sm text-gray-500">Ascent</p>
-          </div>
-        )}
-        {activity.elevationLoss != null && (
-          <div className="rounded-md bg-gray-50 p-4">
-            <p className="text-2xl font-bold text-gray-900">↓ {activity.elevationLoss} m</p>
-            <p className="text-sm text-gray-500">Descent</p>
-          </div>
-        )}
-      </div>
+      />
 
       {activity.geojson && (
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-200" style={{ height: 400 }}>

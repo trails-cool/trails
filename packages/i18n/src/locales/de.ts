@@ -396,6 +396,15 @@ export default {
         public: "Öffentlich (für alle sichtbar)",
       },
     },
+    stats: {
+      distance: "Distanz",
+      duration: "Zeit",
+      movingTime: "Bewegungszeit",
+      avgSpeed: "⌀ Geschwindigkeit",
+      avgPace: "⌀ Pace",
+      ascent: "Anstieg",
+      descent: "Abstieg",
+    },
     settings: {
       title: "Einstellungen",
       nav: {
