@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { routes, routeVersions } from "@trails-cool/db/schema/journal";
 import type { Visibility } from "@trails-cool/db/schema/journal";
@@ -209,12 +209,17 @@ async function getSimplifiedGeojsonBatch(ids: string[]): Promise<Map<string, str
   if (ids.length === 0) return map;
   try {
     const db = getDb();
-    const result = await db.execute(
-      sql`SELECT id, ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson
-          FROM journal.routes
-          WHERE id = ANY(${ids}::text[]) AND geom IS NOT NULL`,
-    );
-    for (const row of result as unknown as Array<{ id: string; geojson: string }>) {
+    // Query-builder id list: a raw `ANY(${ids}::text[])` makes drizzle expand
+    // the array to `($1,$2,...)`, yielding the invalid `ANY((...)::text[])`
+    // — it throws and silently drops every route preview.
+    const rows = await db
+      .select({
+        id: routes.id,
+        geojson: sql<string | null>`ST_AsGeoJSON(ST_Simplify(${routes.geom}, 0.001))`,
+      })
+      .from(routes)
+      .where(and(inArray(routes.id, ids), isNotNull(routes.geom)));
+    for (const row of rows) {
       if (row.geojson) map.set(row.id, row.geojson);
     }
   } catch {
