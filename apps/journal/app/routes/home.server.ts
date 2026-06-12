@@ -8,10 +8,12 @@ import { getSessionUser } from "~/lib/auth/session.server";
 import { getDb } from "~/lib/db";
 import { credentials } from "@trails-cool/db/schema/journal";
 import { listActivities, listRecentPublicActivities } from "~/lib/activities.server";
+import type { SportType } from "@trails-cool/db/schema/journal";
 
 export interface HomeActivityCard {
   id: string;
   name: string;
+  sportType: SportType | null;
   distance: number | null;
   elevationGain: number | null;
   duration: number | null;
@@ -57,6 +59,7 @@ export async function loadHomeData(request: Request): Promise<HomeLoaderData> {
     activities = rows.slice(0, 20).map((a) => ({
       id: a.id,
       name: a.name,
+      sportType: a.sportType,
       distance: a.distance,
       elevationGain: a.elevationGain,
       duration: a.duration,
@@ -71,6 +74,7 @@ export async function loadHomeData(request: Request): Promise<HomeLoaderData> {
     activities = rows.map((a) => ({
       id: a.id,
       name: a.name,
+      sportType: a.sportType,
       distance: a.distance,
       elevationGain: a.elevationGain,
       duration: a.duration,
