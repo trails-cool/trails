@@ -47,9 +47,11 @@ export {
   ActivitySummarySchema, ActivityDetailSchema,
   ActivityListResponseSchema,
   CreateActivityRequestSchema, CreateActivityResponseSchema,
+  SPORT_TYPES, SportTypeSchema,
   type ActivitySummary, type ActivityDetail,
   type ActivityListResponse,
   type CreateActivityRequest, type CreateActivityResponse,
+  type SportType,
 } from "./activities.ts";
 
 // Uploads

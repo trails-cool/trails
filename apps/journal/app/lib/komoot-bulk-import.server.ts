@@ -4,6 +4,7 @@ import { importBatches } from "@trails-cool/db/schema/journal";
 import { fetchKomootTours, fetchKomootTourGpx } from "./komoot.server.ts";
 import { isAlreadyImported, recordImport } from "./sync/imports.server.ts";
 import { createActivity } from "./activities.server.ts";
+import { mapSportType } from "./sport-type.ts";
 import { decrypt } from "./crypto.server.ts";
 import { logger } from "./logger.server.ts";
 
@@ -96,6 +97,7 @@ export async function runKomootBulkImport(
           const activityId = await createActivity(userId, {
             name: tour.name,
             gpx,
+            sportType: mapSportType(tour.sport),
             distance: tour.distance > 0 ? tour.distance : null,
             duration: tour.duration > 0 ? tour.duration : null,
             startedAt: tour.date ? new Date(tour.date) : null,

@@ -1,10 +1,29 @@
 import { z } from "zod";
 
+/**
+ * Sport / activity type. Must stay in sync with `SPORT_TYPES` in
+ * `@trails-cool/db` (schema/journal.ts) — this package is intentionally
+ * standalone (zod only), so the wire enum is mirrored here.
+ */
+export const SPORT_TYPES = [
+  "hike",
+  "walk",
+  "run",
+  "ride",
+  "gravel",
+  "mtb",
+  "ski",
+  "other",
+] as const;
+export const SportTypeSchema = z.enum(SPORT_TYPES);
+export type SportType = z.infer<typeof SportTypeSchema>;
+
 /** Activity summary for list views */
 export const ActivitySummarySchema = z.object({
   id: z.uuid(),
   name: z.string(),
   description: z.string(),
+  sportType: SportTypeSchema.nullable(),
   routeId: z.uuid().nullable(),
   routeName: z.string().nullable(),
   distance: z.number().nullable(),
@@ -32,6 +51,7 @@ export const ActivityListResponseSchema = z.object({
 export const CreateActivityRequestSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(5000).default(""),
+  sportType: SportTypeSchema.optional(),
   gpx: z.string().optional(),
   routeId: z.uuid().optional(),
   startedAt: z.iso.datetime().optional(),

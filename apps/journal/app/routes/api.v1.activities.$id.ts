@@ -17,6 +17,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     id: activity.id,
     name: activity.name,
     description: activity.description ?? "",
+    sportType: activity.sportType,
     routeId: activity.routeId,
     routeName: null, // TODO: join route name (matches the list endpoint)
     photos: [], // no photos on this surface yet; contract field

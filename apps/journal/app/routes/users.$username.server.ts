@@ -79,6 +79,7 @@ export async function loadUserProfile(request: Request, username: string) {
       id: a.id,
       name: a.name,
       description: a.description,
+      sportType: a.sportType,
       distance: a.distance,
       duration: a.duration,
       startedAt: a.startedAt?.toISOString() ?? null,

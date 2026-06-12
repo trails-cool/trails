@@ -1,4 +1,6 @@
 import { data } from "react-router";
+import { useTranslation } from "react-i18next";
+import { SPORT_TYPES } from "@trails-cool/api";
 import type { Route } from "./+types/activities.new";
 import { loadActivitiesNew, activitiesNewAction } from "./activities.new.server";
 
@@ -16,6 +18,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function NewActivityPage({ loaderData }: Route.ComponentProps) {
   const { routes } = loaderData;
+  const { t } = useTranslation("journal");
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -46,6 +49,25 @@ export default function NewActivityPage({ loaderData }: Route.ComponentProps) {
             rows={3}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
+        </div>
+
+        <div>
+          <label htmlFor="sportType" className="block text-sm font-medium text-gray-700">
+            {t("activities.sport.label")}
+          </label>
+          <select
+            id="sportType"
+            name="sportType"
+            defaultValue=""
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">{t("activities.sport.unspecified")}</option>
+            {SPORT_TYPES.map((s) => (
+              <option key={s} value={s}>
+                {t(`activities.sport.${s}`)}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

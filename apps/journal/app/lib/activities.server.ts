@@ -3,7 +3,7 @@ import { eq, desc, and, isNotNull, sql } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 import { getDb } from "./db.ts";
 import { activities, routes, syncImports, users, follows, remoteActors } from "@trails-cool/db/schema/journal";
-import type { Visibility } from "@trails-cool/db/schema/journal";
+import type { Visibility, SportType } from "@trails-cool/db/schema/journal";
 import { processGpx, writeGeom } from "./gpx-save.server.ts";
 import type { ProcessedGpx } from "./gpx-save.server.ts";
 import { enqueueOptional } from "./boss.server.ts";
@@ -16,6 +16,7 @@ import {
 export interface ActivityInput {
   name: string;
   description?: string;
+  sportType?: SportType | null;
   gpx?: string;
   routeId?: string;
   distance?: number | null;
@@ -93,6 +94,7 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
       routeId: input.routeId ?? null,
       name: input.name,
       description: input.description ?? "",
+      sportType: input.sportType ?? null,
       gpx: input.gpx,
       distance,
       duration,
@@ -220,6 +222,7 @@ export async function listSocialFeed(followerId: string, limit: number = 50) {
     .select({
       id: activities.id,
       name: activities.name,
+      sportType: activities.sportType,
       distance: activities.distance,
       elevationGain: activities.elevationGain,
       duration: activities.duration,
@@ -247,6 +250,7 @@ export async function listSocialFeed(followerId: string, limit: number = 50) {
     .select({
       id: activities.id,
       name: activities.name,
+      sportType: activities.sportType,
       distance: activities.distance,
       elevationGain: activities.elevationGain,
       duration: activities.duration,
@@ -294,6 +298,7 @@ export async function listRecentPublicActivities(limit: number = 20) {
     .select({
       id: activities.id,
       name: activities.name,
+      sportType: activities.sportType,
       distance: activities.distance,
       elevationGain: activities.elevationGain,
       duration: activities.duration,

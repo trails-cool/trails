@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/activities.$id";
 import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
+import { SportBadge } from "~/components/SportBadge";
 import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
 import {
   federationEnabled,
@@ -63,6 +64,7 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold text-gray-900">{activity.name}</h1>
+        <SportBadge sportType={activity.sportType} />
         {activity.importSource && (
           <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
             {t("activities.importedFrom", { provider: activity.importSource.provider })}

@@ -39,6 +39,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       id: a.id,
       name: a.name,
       description: a.description ?? "",
+      sportType: a.sportType,
       routeId: a.routeId,
       routeName: null, // TODO: join route name
       distance: a.distance,
