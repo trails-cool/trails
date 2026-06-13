@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, desc, and, isNotNull, sql } from "drizzle-orm";
+import { eq, desc, and, isNotNull, inArray, sql } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 import { getDb } from "./db.ts";
 import { activities, routes, syncImports, users, follows, remoteActors } from "@trails-cool/db/schema/journal";
@@ -376,12 +376,17 @@ async function getSimplifiedActivityGeojsonBatch(ids: string[]): Promise<Map<str
   if (ids.length === 0) return map;
   try {
     const db = getDb();
-    const result = await db.execute(
-      sql`SELECT id, ST_AsGeoJSON(ST_Simplify(geom, 0.001)) as geojson
-          FROM journal.activities
-          WHERE id = ANY(${ids}::text[]) AND geom IS NOT NULL`,
-    );
-    for (const row of result as unknown as Array<{ id: string; geojson: string }>) {
+    // Use the query builder for the id list: a raw `ANY(${ids}::text[])`
+    // makes drizzle expand the array to `($1,$2,...)`, yielding the invalid
+    // `ANY((...)::text[])` — which throws and silently drops every preview.
+    const rows = await db
+      .select({
+        id: activities.id,
+        geojson: sql<string | null>`ST_AsGeoJSON(ST_Simplify(${activities.geom}, 0.001))`,
+      })
+      .from(activities)
+      .where(and(inArray(activities.id, ids), isNotNull(activities.geom)));
+    for (const row of rows) {
       if (row.geojson) map.set(row.id, row.geojson);
     }
   } catch {

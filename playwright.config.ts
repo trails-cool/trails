@@ -130,6 +130,14 @@ export default defineConfig({
         baseURL: "http://localhost:3000",
       },
     },
+    {
+      name: "list-map-previews",
+      testMatch: "list-map-previews.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
   ],
   webServer: process.env.CI
     ? [
