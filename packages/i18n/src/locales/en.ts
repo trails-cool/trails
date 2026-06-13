@@ -409,6 +409,13 @@ export default {
       highest: "Highest",
       lowest: "Lowest",
     },
+    profileStats: {
+      activities: "Activities",
+      distance: "Distance",
+      ascent: "Ascent",
+      time: "Time",
+      last4Weeks: "{{count}} in the last 4 weeks",
+    },
     settings: {
       title: "Settings",
       nav: {

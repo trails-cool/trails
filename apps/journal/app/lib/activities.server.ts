@@ -158,6 +158,53 @@ async function getImportSource(activityId: string): Promise<{ provider: string; 
   return row ?? null;
 }
 
+export interface ActivityStats {
+  count: number;
+  /** metres */
+  distance: number;
+  /** metres */
+  elevationGain: number;
+  /** seconds, elapsed */
+  duration: number;
+  /** activities started in the last 28 days */
+  last4Weeks: number;
+}
+
+/**
+ * Aggregate roll-up for a profile. One indexed aggregate over stored columns
+ * (no GPX parsing) — `owner_id` leads two existing indexes, so this is cheap
+ * even for power users (see profile-stats design §D1). `publicOnly` scopes the
+ * roll-up to what a visitor may see; the owner passes `false` for full totals.
+ */
+export async function getActivityStats(
+  ownerId: string,
+  opts: { publicOnly: boolean },
+): Promise<ActivityStats> {
+  const db = getDb();
+  const conditions = [eq(activities.ownerId, ownerId)];
+  if (opts.publicOnly) conditions.push(eq(activities.visibility, "public"));
+
+  const [row] = await db
+    .select({
+      count: sql<string>`count(*)`,
+      distance: sql<string>`coalesce(sum(${activities.distance}), 0)`,
+      elevationGain: sql<string>`coalesce(sum(${activities.elevationGain}), 0)`,
+      duration: sql<string>`coalesce(sum(${activities.duration}), 0)`,
+      last4Weeks: sql<string>`count(*) filter (where coalesce(${activities.startedAt}, ${activities.createdAt}) >= now() - interval '28 days')`,
+    })
+    .from(activities)
+    .where(and(...conditions));
+
+  // Postgres returns count/sum as strings via the driver; coerce to numbers.
+  return {
+    count: Number(row?.count ?? 0),
+    distance: Number(row?.distance ?? 0),
+    elevationGain: Number(row?.elevationGain ?? 0),
+    duration: Number(row?.duration ?? 0),
+    last4Weeks: Number(row?.last4Weeks ?? 0),
+  };
+}
+
 export async function listActivities(
   ownerId: string,
   sort: "startedAt" | "addedAt" = "startedAt",
