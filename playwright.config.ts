@@ -138,6 +138,14 @@ export default defineConfig({
         baseURL: "http://localhost:3000",
       },
     },
+    {
+      name: "profile-stats",
+      testMatch: "profile-stats.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
   ],
   webServer: process.env.CI
     ? [

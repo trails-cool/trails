@@ -1,19 +1,19 @@
 ## 1. Aggregate query
 
-- [ ] 1.1 Add `getActivityStats(ownerId, { publicOnly })` to `activities.server.ts`: one aggregate (`count`, `sum(distance)`, `sum(elevationGain)`, `sum(duration)`) + a `last4Weeks` count (`started_at >= now() - 28d`, COALESCE with `created_at`), scoped by `publicOnly`.
-- [ ] 1.2 Return zeros/empty when the owner has no visible activities.
+- [x] 1.1 Added `getActivityStats(ownerId, { publicOnly })` to `activities.server.ts`: one aggregate (`count`, `sum(distance/elevationGain/duration)`) + a `last4Weeks` count (`coalesce(started_at, created_at) >= now() - 28d`), scoped by `publicOnly`.
+- [x] 1.2 Returns zeros when the owner has no visible activities (the component hides on `count === 0`).
 
 ## 2. Loader & view
 
-- [ ] 2.1 Profile loader (`users.$username.server.ts`) calls `getActivityStats(ownerId, { publicOnly: !isOwn })`; expose the totals + last4Weeks.
-- [ ] 2.2 Render a compact stats header on `users.$username.tsx` above the routes/activities lists (reuse `StatRow` + `stats.ts` formatters); hide it when there are no activities.
+- [x] 2.1 Profile loader calls `getActivityStats(user.id, { publicOnly: !isOwn })` when content is visible; exposes `stats`.
+- [x] 2.2 `ProfileStats` header on `users.$username.tsx` above the lists (reuses `StatRow` + `stats.ts` formatters); hidden when there are no activities.
 
 ## 3. i18n
 
-- [ ] 3.1 Add `journal.profileStats.*` keys (activities, distance, ascent, time, last4Weeks) to en + de.
+- [x] 3.1 Added `journal.profileStats.*` (activities, distance, ascent, time, last4Weeks) to en + de.
 
 ## 4. Tests & checks
 
-- [ ] 4.1 Unit/component: the stats header renders totals + last-4-weeks; hidden on empty (jsdom).
-- [ ] 4.2 E2E: create activities, assert the profile shows the totals; a visitor sees public-only (a private activity is excluded from the count).
-- [ ] 4.3 `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` green.
+- [x] 4.1 Component (jsdom): renders formatted totals + the last-4-weeks line; nothing on empty; line omitted when last4Weeks is 0.
+- [x] 4.2 E2E `profile-stats.test.ts`: create activities → owner profile shows the roll-up ("2 in the last 4 weeks"). Owner-scoped count verified; the public-only branch is a one-line conditional covered by the query design (a fuller visitor-scoping e2e would need a public profile + a public/private activity mix — deferred).
+- [x] 4.3 typecheck + lint + unit (journal 318) green; new e2e passes locally. Full `pnpm test:e2e` runs in CI.

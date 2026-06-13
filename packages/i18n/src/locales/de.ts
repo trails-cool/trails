@@ -409,6 +409,13 @@ export default {
       highest: "Höchster Punkt",
       lowest: "Tiefster Punkt",
     },
+    profileStats: {
+      activities: "Aktivitäten",
+      distance: "Distanz",
+      ascent: "Anstieg",
+      time: "Zeit",
+      last4Weeks: "{{count}} in den letzten 4 Wochen",
+    },
     settings: {
       title: "Einstellungen",
       nav: {
