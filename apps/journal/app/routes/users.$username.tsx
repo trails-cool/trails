@@ -6,6 +6,7 @@ import { FollowButton } from "~/components/FollowButton";
 import { SportBadge } from "~/components/SportBadge";
 import { StatRow } from "~/components/StatRow";
 import { ProfileStats } from "~/components/ProfileStats";
+import { WeeklyDistanceChart } from "~/components/WeeklyDistanceChart";
 import { activityStatItems } from "~/lib/stats";
 import { loadUserProfile } from "./users.$username.server";
 import {
@@ -53,7 +54,7 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 }
 
 export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, routes, activities, stats, activitySort, isOwn, isDemoUser, followers, following, followState, isLoggedIn, canSeeContent } = loaderData;
+  const { user, routes, activities, stats, weeklyDistance, activitySort, isOwn, isDemoUser, followers, following, followState, isLoggedIn, canSeeContent } = loaderData;
   const { t } = useTranslation("journal");
 
   return (
@@ -126,6 +127,9 @@ export default function UserProfilePage({ loaderData }: Route.ComponentProps) {
       </div>
 
       {stats && <ProfileStats stats={stats} className="mt-6" />}
+      {weeklyDistance && weeklyDistance.length > 0 && (
+        <WeeklyDistanceChart weeks={weeklyDistance} className="mt-4" />
+      )}
 
       {!canSeeContent && (
         <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">

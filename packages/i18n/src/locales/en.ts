@@ -415,6 +415,7 @@ export default {
       ascent: "Ascent",
       time: "Time",
       last4Weeks: "{{count}} in the last 4 weeks",
+      weeklyDistance: "Weekly distance (last 12 weeks)",
     },
     settings: {
       title: "Settings",
