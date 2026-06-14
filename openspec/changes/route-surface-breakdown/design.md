@@ -1,73 +1,90 @@
 ## Context
 
 The Planner computes accurate per-coordinate surface/highway from BRouter's
-`messages`/`WayTags` (`apps/planner/.../route-merge.ts` → `EnrichedRoute`), and
-`ColoredRoute` already renders the route coloured by surface. But this metadata
-is **session-only**: the planner→journal handoff (`api.save-to-journal`) POSTs
-only `{ gpx }` to the Journal callback (`api.routes.$id.callback`), the `routes`
-table has no surface column, and GPX carries no surface extensions. So today no
-saved route has surface data.
+`WayTags` (`apps/planner/.../route-merge.ts` → `EnrichedRoute`) and colours the
+line with it, but it's session-only: `api.save-to-journal` POSTs only `{ gpx }`,
+`routes` has no surface column, GPX carries no surface tags. The repo already
+has a typed pg-boss job system (`apps/journal/app/jobs/payloads.ts`,
+`@trails-cool/jobs`), an SSE broker (`/api/events` + EventSource hooks, e.g.
+`useUnreadNotifications`), and an Overpass proxy used for Planner POIs
+(`apps/planner/.../overpass.ts`, `/api/overpass`).
 
 ## Goals / Non-Goals
 
 **Goals**
-- Surface + waytype proportion bars on route detail, using data we already
-  compute, with no new external dependency.
+- Surface + waytype bars on route **and** activity detail.
+- Two derivation paths: free/accurate for Planner routes; async backfill for
+  everything else, with a live SSE update.
 
 **Non-Goals (v1)**
-- **Activities / imported / manually-uploaded GPX** — they have no waytags
-  (bare GPX). They show no breakdown for now (see "Data source" → future
-  Overpass).
-- **Colouring the Journal map line by surface** — needs per-segment data, not
-  just the summary; a clean follow-up once the bars land.
-- Selectable surface-vs-waytype toggle UI beyond showing both bars.
+- Colouring the Journal **map line** by surface (needs per-segment data, not the
+  summary; a clean follow-up).
+- Re-backfilling on every geometry edit (backfill is one-shot per row unless
+  re-triggered).
 
 ## Decisions
 
-### D1: Data source — persist BRouter waytags at save (Planner routes only)
-Two ways to get a breakdown onto the Journal detail page:
+### D1: Two derivation paths into one stored summary
+Both paths produce the same compact, distance-weighted summary —
+`{ surface: { asphalt: <m>, gravel: <m>, … }, highway: { … } }` (metres per
+category) — stored as nullable `surface_breakdown` jsonb on `routes` and
+`activities`. The bars need proportions, not geometry, so we store a summary,
+not per-segment data (per-segment is a future map-colouring concern).
 
-- **(A, chosen) BRouter-at-save** — the Planner already has 100%-accurate
-  per-segment surface/highway; compute the distribution there at save and
-  persist it. Accurate, cheap, no external call. **Limitation:** only
-  Planner-created routes (activities/uploads have no waytags).
-- **(B, future) Overpass map-matching** — snap arbitrary route geometry to OSM
-  ways and read `surface`/`highway` server-side. Covers imports/uploads, but
-  it's expensive, approximate, rate-limited, and an external dependency. Parked
-  for when we want imports covered (the repo already proxies Overpass for POIs).
+- **Path 1 — synchronous, Planner routes (accurate, free).** The Planner has
+  100%-accurate per-segment tags; compute the summary at save and persist via an
+  extra optional `surfaceBreakdown` field in the handoff. No external call.
+- **Path 2 — async backfill, everything else (best-effort).** For a row with
+  geometry but no summary, a job map-matches to OSM and computes it (D2).
 
-v1 ships (A). Routes without the data degrade to no bars.
+### D2: The async backfill job
+A typed `surface-backfill` pg-boss job keyed by `{ kind: "route" | "activity",
+id }`:
+1. Load the geometry; bail if absent or already has a summary.
+2. Query Overpass for `way[highway]` within the route bbox (a journal-side
+   client mirroring the Planner's `buildQuery`/`parseResponse` + rate-limit
+   handling).
+3. **Map-match**: for each route segment, find the nearest OSM way and read its
+   `surface`/`highway`; bucket the segment's length. Unmatched/untagged →
+   `unknown`.
+4. Store the summary; emit the SSE event (D3).
+- **Triggers:** enqueued after a GPX import (Komoot/Garmin) and after a manual
+  upload; plus a one-off sweep job to backfill pre-existing rows. Optionally
+  enqueued on-demand when a detail page without a summary is opened.
+- **Resilience:** pg-boss retries cover Overpass rate-limits/outages; the job is
+  idempotent (skips if a summary already exists) and best-effort (failure leaves
+  the row with no bars, not an error).
 
-### D2: Store a compact distance-weighted summary, not per-segment data
-The bars need **proportions**, not geometry. At save, sum the haversine length
-of each coordinate segment into its surface bucket (and highway bucket),
-yielding `{ surface: { asphalt: <m>, gravel: <m>, … }, highway: { … } }`
-(metres per category). This is tiny (a handful of keys), stored as a nullable
-`surface_breakdown` jsonb on `routes`. Per-segment data (for future map line
-colouring) is deliberately *not* persisted in v1 — that's a bigger payload and
-a separate feature.
-
-### D3: Handoff carries it
-`api.save-to-journal` adds `surfaceBreakdown` to the POST body alongside `gpx`;
-the Journal callback validates (Zod, all values ≥ 0) and stores it. The field
-is optional, so the handoff stays backward-compatible and non-Planner callers
-(if any) are unaffected. Re-saving a route recomputes/overwrites it.
+### D3: SSE live update
+On backfill completion the job publishes a `surface_breakdown` SSE event
+(payload: `{ kind, id }`) via the existing broker. The detail page subscribes
+(EventSource hook) and, when the event matches the row it's showing, re-fetches
+the breakdown and fills the bars — so a user who opened the page before the job
+finished sees it appear without reloading. While a backfill is known to be
+in-flight, the page may show a small "computing…" affordance.
 
 ### D4: Rendering
-A `SurfaceBreakdown` component renders one horizontal stacked bar per dimension
-(surface, then waytype): segments sized by percentage, coloured via
-`SURFACE_COLORS` / `HIGHWAY_COLORS` (`DEFAULT_*` for unknown), with a legend
-listing each category + km + percent (largest first). Unknown/unmapped tags
-collapse into an "other" segment. Hidden entirely when `surface_breakdown` is
-null or empty. Labels via i18n; distances via `stats.ts`.
+A `SurfaceBreakdown` component: one horizontal stacked bar per dimension
+(surface, then waytype), segments sized by percentage and coloured via
+`SURFACE_COLORS`/`HIGHWAY_COLORS` (`DEFAULT_*` for unknown), with a legend
+(category · km · %, largest first). Unknown/unmapped tags collapse into "other".
+Hidden when the summary is null/empty. Labels via i18n; distances via `stats.ts`.
+
+### D5: Privacy (backfill sends geometry to Overpass)
+Path 1 sends nothing externally. Path 2's Overpass query exposes a route's
+bounding box to the Overpass endpoint — a real consideration for a privacy-first
+app. Mitigations: route the backfill through the **proxied / self-hostable**
+Overpass (the parked `self-host-overpass` idea removes the third-party entirely),
+and only the bbox + geometry needed for matching is sent. We document the
+backfill's external lookup in the privacy manifest; a self-hosted Overpass is the
+clean long-term answer.
 
 ## Risks / Trade-offs
 
-- **Coverage gap** — only Planner routes get bars in v1. Acceptable: routes are
-  *designed* in the Planner, which is exactly where "how much gravel" matters.
-  Imports get bars later via (B).
-- **Tag sparsity** — OSM `surface` is often missing; those segments bucket as
-  `unknown`/"other". We show it honestly rather than guessing.
-- **Stale on edit** — editing a route's geometry elsewhere without re-routing
-  could leave the breakdown stale; recomputing on every Planner save keeps it
-  fresh for the normal flow.
+- **Map-matching is approximate** — nearest-way snapping mismatches at junctions
+  / parallel ways; acceptable for a proportional overview, and Path 1 (exact) is
+  preferred whenever available.
+- **Overpass cost/limits** — bounded by the async queue + retries; the sweep
+  should throttle. A self-hosted Overpass removes the ceiling.
+- **Two code paths** — both converge on one stored summary + one renderer, so
+  only the *derivation* differs.
