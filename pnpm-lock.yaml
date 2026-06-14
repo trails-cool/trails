@@ -241,6 +241,9 @@ importers:
       '@trails-cool/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
+      '@trails-cool/map-core':
+        specifier: workspace:*
+        version: link:../../packages/map-core
       '@trails-cool/sentry-config':
         specifier: workspace:*
         version: link:../../packages/sentry-config

@@ -7,6 +7,7 @@ import { ClientMap } from "~/components/ClientMap";
 import { SportBadge } from "~/components/SportBadge";
 import { StatRow } from "~/components/StatRow";
 import { ElevationProfile } from "~/components/ElevationProfile";
+import { SurfaceBreakdown } from "~/components/SurfaceBreakdown";
 import { activityStatItems } from "~/lib/stats";
 import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
 import {
@@ -141,6 +142,8 @@ export default function ActivityDetailPage({ loaderData }: Route.ComponentProps)
           labels={{ highest: t("elevation.highest"), lowest: t("elevation.lowest") }}
         />
       )}
+
+      <SurfaceBreakdown breakdown={activity.surfaceBreakdown} className="mt-6" />
 
       {activity.routeId && (
         <div className="mt-6">

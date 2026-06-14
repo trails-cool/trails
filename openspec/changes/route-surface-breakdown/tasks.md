@@ -1,24 +1,27 @@
+<!-- PHASE 1 (this PR): synchronous Planner path + bars. PHASE 2 (follow-up):
+     async Overpass backfill + SSE (sections 5–6, e2e in 7.3). -->
+
 ## 1. Shared derivation + shape
 
-- [ ] 1.1 Pure `surfaceBreakdown(coordinates, surfaces, highways)` helper: haversine-weight each segment into per-surface + per-waytype buckets → `{ surface: Record<string, number>, highway: Record<string, number> }` (metres). Unit-test.
-- [ ] 1.2 `SurfaceBreakdownSchema` (Zod) in `@trails-cool/api` (record of category → metres ≥ 0, surface + highway).
+- [x] 1.1 `computeSurfaceBreakdown(coordinates, surfaces, highways)` in `@trails-cool/map-core` → `{ surface, highway }` metres; unit-tested.
+- [x] 1.2 `SurfaceBreakdownSchema` (Zod) in `@trails-cool/api`.
 
 ## 2. Schema
 
-- [ ] 2.1 Nullable `surfaceBreakdown` jsonb on `journal.routes` **and** `journal.activities`; `pnpm db:push`.
+- [x] 2.1 Nullable `surfaceBreakdown` jsonb on `journal.routes` **and** `journal.activities`; pushed to dev + e2e DBs.
 
 ## 3. Path 1 — synchronous (Planner routes)
 
-- [ ] 3.1 `apps/planner/.../api.save-to-journal`: compute the breakdown from the session `EnrichedRoute` (coords + surfaces + highways) and add `surfaceBreakdown` to the POST body.
-- [ ] 3.2 Journal route callback validates the optional field and persists it (overwrite on re-save).
+- [x] 3.1 `SaveToJournalButton` computes the breakdown from `readComputedRoute` and sends it; `api.save-to-journal` forwards it (journal is the authoritative validator — planner has no `@trails-cool/api` dep).
+- [x] 3.2 Journal route callback validates the optional field with `SurfaceBreakdownSchema` and persists via `updateRoute` (overwrite on re-save).
 
 ## 4. Render
 
-- [ ] 4.1 Route + activity detail loaders expose `surfaceBreakdown`.
-- [ ] 4.2 `SurfaceBreakdown` component: stacked bar per dimension (surface, waytype), `map-core` `SURFACE_COLORS`/`HIGHWAY_COLORS` (DEFAULT → "other"), legend category · km · % (largest first), hidden when empty. Mount on `routes.$id.tsx` and `activities.$id.tsx`.
-- [ ] 4.3 i18n `journal.surface.*` (label + category names + "other") en + de.
+- [x] 4.1 Route + activity detail loaders expose `surfaceBreakdown`.
+- [x] 4.2 `SurfaceBreakdown` component (stacked bar per dimension, `map-core` palettes, legend category · % · km largest-first, unknown → "other", hidden when empty); mounted on `routes.$id.tsx` and `activities.$id.tsx`.
+- [x] 4.3 i18n `journal.surface.*` (surface/waytype labels, common categories, "other") en + de.
 
-## 5. Path 2 — async backfill + SSE
+## 5. Path 2 — async backfill + SSE  (PHASE 2 — follow-up PR)
 
 - [ ] 5.1 Journal-side Overpass client: `way[highway]` in bbox + parse (mirror the planner's `buildQuery`/`parseResponse` + rate-limit handling; route via the `/api/overpass` proxy).
 - [ ] 5.2 Map-match helper: nearest OSM way per route segment → surface/highway; unmatched → unknown. Unit-test the matcher on a small fixture.
@@ -32,7 +35,7 @@
 
 ## 7. Tests & checks
 
-- [ ] 7.1 Unit: `surfaceBreakdown` weighting; map-matcher nearest-way + unknown bucket.
-- [ ] 7.2 Component (jsdom): bars/proportions, "other" bucket, hidden when empty.
-- [ ] 7.3 E2E: a route/activity with a stored breakdown shows the bars (seed the breakdown to avoid a live Overpass call in CI).
-- [ ] 7.4 `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` green.
+- [x] 7.1 Unit: `computeSurfaceBreakdown` weighting + unknown bucket (map-matcher unit is Phase 2).
+- [x] 7.2 Component (jsdom): bars/proportions, largest-first, hidden when empty/null.
+- [ ] 7.3 E2E: a route/activity with a stored breakdown shows the bars — **Phase 2** (needs a seed path; deferred to land with the backfill that creates the data). Phase 1 render verified in the browser + component test.
+- [x] 7.4 Phase 1: typecheck + lint + unit (map-core 36, journal 326) green; verified in the browser.

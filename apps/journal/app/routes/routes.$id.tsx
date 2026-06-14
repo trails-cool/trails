@@ -6,6 +6,7 @@ import { ClientDate } from "~/components/ClientDate";
 import { ClientMap } from "~/components/ClientMap";
 import { StatRow } from "~/components/StatRow";
 import { ElevationProfile } from "~/components/ElevationProfile";
+import { SurfaceBreakdown } from "~/components/SurfaceBreakdown";
 import { activityStatItems } from "~/lib/stats";
 import { loadRouteDetail, routeDetailAction } from "./routes.$id.server";
 
@@ -331,6 +332,8 @@ export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
           labels={{ highest: t("elevation.highest"), lowest: t("elevation.lowest") }}
         />
       )}
+
+      <SurfaceBreakdown breakdown={route.surfaceBreakdown} className="mt-6" />
 
       {isEmpty && (
         <div className="mt-6 flex flex-col items-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">

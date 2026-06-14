@@ -65,6 +65,7 @@ export async function loadActivityDetail(request: Request, id: string | undefine
       duration: activity.duration,
       movingTimeSec,
       elevation,
+      surfaceBreakdown: activity.surfaceBreakdown ?? null,
       routeId: activity.routeId,
       hasGpx: !!activity.gpx,
       geojson: activity.geojson ?? null,
