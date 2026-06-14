@@ -8,7 +8,7 @@ import { getDb } from "~/lib/db";
 import { users } from "@trails-cool/db/schema/journal";
 import { getSessionUser } from "~/lib/auth/session.server";
 import { listPublicRoutesForOwner } from "~/lib/routes.server";
-import { listPublicActivitiesForOwner, getActivityStats } from "~/lib/activities.server";
+import { listPublicActivitiesForOwner, getActivityStats, getWeeklyDistance } from "~/lib/activities.server";
 import { loadPersona } from "~/lib/demo-bot.server";
 import { countFollowers, countFollowing, getFollowState } from "~/lib/follow.server";
 
@@ -54,11 +54,14 @@ export async function loadUserProfile(request: Request, username: string) {
       ])
     : [[], []];
 
-  // Roll-up scoped to what this viewer may see (public-only for non-owners).
-  // Skipped for the locked stub, which shows no content.
-  const stats = canSeeContent
-    ? await getActivityStats(user.id, { publicOnly: !isOwn })
-    : null;
+  // Roll-up + weekly trend, scoped to what this viewer may see (public-only for
+  // non-owners). Skipped for the locked stub, which shows no content.
+  const [stats, weeklyDistance] = canSeeContent
+    ? await Promise.all([
+        getActivityStats(user.id, { publicOnly: !isOwn }),
+        getWeeklyDistance(user.id, { publicOnly: !isOwn }),
+      ])
+    : [null, null];
 
   // Demo-account badge: true when this profile matches the instance's
   // configured demo persona username. Computed server-side so we don't
@@ -92,6 +95,7 @@ export async function loadUserProfile(request: Request, username: string) {
       createdAt: a.createdAt.toISOString(),
     })),
     stats,
+    weeklyDistance,
     activitySort,
     isOwn,
     isDemoUser,

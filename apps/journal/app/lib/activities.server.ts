@@ -205,6 +205,51 @@ export async function getActivityStats(
   };
 }
 
+export interface WeeklyDistanceBucket {
+  /** ISO date (YYYY-MM-DD) of the week's Monday */
+  weekStart: string;
+  /** metres */
+  distance: number;
+}
+
+/**
+ * Distance per week for the last `weeks` weeks (oldest → newest), gap-filled so
+ * every week is present (zero when no activity). The contiguous axis is built
+ * in SQL via `generate_series` + a LEFT JOIN — that guarantees the week
+ * boundaries match Postgres `date_trunc('week', …)` exactly (no JS/Postgres
+ * boundary drift) and keeps it one cheap query over the owner_id index
+ * (profile-weekly-distance design §D1–D2). `publicOnly` scopes it like
+ * `getActivityStats`.
+ */
+export async function getWeeklyDistance(
+  ownerId: string,
+  opts: { publicOnly: boolean; weeks?: number },
+): Promise<WeeklyDistanceBucket[]> {
+  const weeks = opts.weeks ?? 12;
+  const db = getDb();
+  // Filter conditions live in the LEFT JOIN's ON clause so empty weeks survive.
+  const visibility = opts.publicOnly ? sql` AND a.visibility = 'public'` : sql``;
+  const result = await db.execute(sql`
+    WITH weeks AS (
+      SELECT generate_series(
+        date_trunc('week', now()) - (${weeks - 1} * interval '1 week'),
+        date_trunc('week', now()),
+        interval '1 week'
+      ) AS wk
+    )
+    SELECT to_char(w.wk, 'YYYY-MM-DD') AS week_start,
+           coalesce(sum(a.distance), 0) AS distance
+    FROM weeks w
+    LEFT JOIN journal.activities a
+      ON date_trunc('week', coalesce(a.started_at, a.created_at)) = w.wk
+      AND a.owner_id = ${ownerId}${visibility}
+    GROUP BY w.wk
+    ORDER BY w.wk
+  `);
+  const rows = result as unknown as Array<{ week_start: string; distance: string | number }>;
+  return rows.map((r) => ({ weekStart: r.week_start, distance: Number(r.distance) }));
+}
+
 export async function listActivities(
   ownerId: string,
   sort: "startedAt" | "addedAt" = "startedAt",

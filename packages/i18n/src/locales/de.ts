@@ -415,6 +415,8 @@ export default {
       ascent: "Anstieg",
       time: "Zeit",
       last4Weeks: "{{count}} in den letzten 4 Wochen",
+      weeklyDistance: "Wochendistanz (letzte 12 Wochen)",
+      weekOf: "Woche vom {{date}}",
     },
     settings: {
       title: "Einstellungen",
