@@ -16,6 +16,7 @@ import { requireOwnedActivity, requireOwnedRoute } from "~/lib/ownership.server"
 import { parseGpxAsync, movingTime, elevationSeries } from "@trails-cool/gpx";
 import type { ElevationSample } from "@trails-cool/gpx";
 import { logger } from "~/lib/logger.server";
+import { enqueueOptional } from "~/lib/boss.server";
 import type { Visibility } from "@trails-cool/db/schema/journal";
 
 const VISIBILITY_VALUES = new Set<Visibility>(["private", "unlisted", "public"]);
@@ -38,6 +39,19 @@ export async function loadActivityDetail(request: Request, id: string | undefine
   }
 
   const userRoutes = isOwner && user ? await listRoutes(user.id) : [];
+
+  // Lazily backfill the surface breakdown for the owner's own activities that
+  // have geometry but no breakdown yet (route-surface-breakdown Path 2). The
+  // SSE event from the job fills the bars in live. Owner-gated so a random
+  // viewer can't trigger an Overpass lookup; idempotent via singletonKey.
+  if (isOwner && activity.geojson && !activity.surfaceBreakdown) {
+    await enqueueOptional(
+      "surface-backfill",
+      { kind: "activity", id: activity.id },
+      { source: "activity-detail" },
+      { singletonKey: `surface:activity:${activity.id}` },
+    );
+  }
 
   // Moving time + the elevation series are both derived from the GPX (one
   // parse). Detail-page only — too costly to parse per row in list views.

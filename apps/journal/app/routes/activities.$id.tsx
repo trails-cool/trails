@@ -8,6 +8,7 @@ import { SportBadge } from "~/components/SportBadge";
 import { StatRow } from "~/components/StatRow";
 import { ElevationProfile } from "~/components/ElevationProfile";
 import { SurfaceBreakdown } from "~/components/SurfaceBreakdown";
+import { useSurfaceBackfillUpdates } from "~/hooks/useSurfaceBackfill";
 import { activityStatItems } from "~/lib/stats";
 import { loadActivityDetail, activityDetailAction } from "./activities.$id.server";
 import {
@@ -64,6 +65,9 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 export default function ActivityDetailPage({ loaderData }: Route.ComponentProps) {
   const { activity, isOwner, routes } = loaderData;
   const { t } = useTranslation("journal");
+
+  // Live-update when the async surface backfill lands (owner-only).
+  useSurfaceBackfillUpdates("activity", activity.id, isOwner && !activity.surfaceBreakdown);
 
   // Elevation profile ↔ map sync via a shared "active" sample index.
   const elevation = activity.elevation;

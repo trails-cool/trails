@@ -7,6 +7,7 @@ import { ClientMap } from "~/components/ClientMap";
 import { StatRow } from "~/components/StatRow";
 import { ElevationProfile } from "~/components/ElevationProfile";
 import { SurfaceBreakdown } from "~/components/SurfaceBreakdown";
+import { useSurfaceBackfillUpdates } from "~/hooks/useSurfaceBackfill";
 import { activityStatItems } from "~/lib/stats";
 import { loadRouteDetail, routeDetailAction } from "./routes.$id.server";
 
@@ -47,6 +48,10 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
 export default function RouteDetailPage({ loaderData }: Route.ComponentProps) {
   const { route, dayStats, waypoints, versions, isOwner, wahooPush } = loaderData;
   const { t, i18n } = useTranslation("journal");
+
+  // Live-update when the async surface backfill lands (owner-only).
+  useSurfaceBackfillUpdates("route", route.id, isOwner && !route.surfaceBreakdown);
+
   const [editLoading, setEditLoading] = useState(false);
   const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
 

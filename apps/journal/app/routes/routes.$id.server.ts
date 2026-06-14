@@ -11,6 +11,7 @@ import { syncPushes } from "@trails-cool/db/schema/journal";
 import { getService } from "~/lib/connected-services";
 import { computeDays, parseGpxAsync, elevationSeries } from "@trails-cool/gpx";
 import type { ElevationSample } from "@trails-cool/gpx";
+import { enqueueOptional } from "~/lib/boss.server";
 
 export async function loadRouteDetail(request: Request, id: string | undefined) {
   const routeId = id ?? "";
@@ -28,6 +29,18 @@ export async function loadRouteDetail(request: Request, id: string | undefined) 
   // private requires ownership. Return 404 (not 403) to avoid leaking existence.
   if (!canView(route, user, { asDirectLink: true })) {
     throw data({ error: "Route not found" }, { status: 404 });
+  }
+
+  // Lazy surface backfill for the owner's own routes that lack a breakdown
+  // (non-Planner routes — Planner saves provide it synchronously). Owner-gated;
+  // idempotent via singletonKey. The SSE event fills the bars in live.
+  if (isOwner && routeWithGeojson?.geojson && !route.surfaceBreakdown) {
+    await enqueueOptional(
+      "surface-backfill",
+      { kind: "route", id: route.id },
+      { source: "route-detail" },
+      { singletonKey: `surface:route:${route.id}` },
+    );
   }
 
   // Parse GPX once for day stats and waypoint POI data

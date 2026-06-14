@@ -253,12 +253,16 @@ export default function PrivacyPage() {
             .
           </li>
           <li>
-            <strong>Overpass API</strong> (POI-Daten) – POI-Abfragen laufen
-            serverseitig über unsere eigene Route <code>/api/overpass</code>.
-            Der Upstream-Dienst sieht nur unsere Server-IP, nicht die Ihrer
-            Nutzer:innen. Aktueller Upstream: <code>overpass.private.coffee</code>
-            , der ohne Query-Logs arbeitet. Eine selbst gehostete Instanz ist
-            geplant.
+            <strong>Overpass API</strong> (POI- und Wegbelag-Daten) –
+            POI-Abfragen laufen serverseitig über unsere eigene Route{" "}
+            <code>/api/overpass</code>. Für die Oberflächen-/Wegtyp-Auswertung
+            importierter Aktivitäten und Routen fragt ein Hintergrund-Job das
+            Begrenzungsrechteck (Bounding Box) der Route bei Overpass ab, um sie
+            den OpenStreetMap-Wegen zuzuordnen. In beiden Fällen sieht der
+            Upstream nur unsere Server-IP, nicht die Ihrer Nutzer:innen.
+            Aktueller Upstream: <code>overpass.private.coffee</code> bzw. die
+            öffentlichen Overpass-Instanzen, die ohne Query-Logs arbeiten. Eine
+            selbst gehostete Instanz ist geplant.
           </li>
           <li>
             <strong>Föderation (ActivityPub)</strong> – Wenn Ihr Profil auf{" "}
@@ -334,8 +338,11 @@ export default function PrivacyPage() {
           <em>English.</em> Third parties and what they receive: Sentry (error
           details, no IPs/cookies); OpenStreetMap tile servers
           (your IP and user-agent, directly from your browser, to load map
-          tiles); Overpass (via our server-side proxy, so upstream only sees
-          our server); BRouter (self-hosted, no third party involved); SMTP
+          tiles); Overpass (via our server, so upstream only sees our server —
+          for POI lookups and, for the surface/waytype breakdown of imported
+          activities and routes, a background job that sends the route&rsquo;s
+          bounding box to match it against OpenStreetMap ways); BRouter
+          (self-hosted, no third party involved); SMTP
           provider (your email address for magic link / welcome mail);
           Wahoo (only when you opt in: OAuth tokens for sync, plus route
           geometry/name/description when you click &ldquo;Send to
