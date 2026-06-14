@@ -21,6 +21,7 @@ import { validateFetchUrl, getCallbackAllowedHosts } from "~/lib/url-validation.
 interface SaveRequestBody {
   sessionId?: unknown;
   gpx?: unknown;
+  surfaceBreakdown?: unknown;
 }
 
 const MAX_GPX_BYTES = 5 * 1024 * 1024; // 5 MB — same ceiling as the Yjs doc cap
@@ -39,6 +40,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
   const gpx = typeof body.gpx === "string" ? body.gpx : "";
+  // Optional, best-effort decoration — forwarded as-is; the journal callback is
+  // the authoritative validator (planner doesn't depend on @trails-cool/api).
+  const surfaceBreakdown =
+    body.surfaceBreakdown && typeof body.surfaceBreakdown === "object"
+      ? body.surfaceBreakdown
+      : undefined;
 
   if (!sessionId) return data({ error: "sessionId required" }, { status: 400 });
   if (!gpx) return data({ error: "gpx required" }, { status: 400 });
@@ -69,7 +76,7 @@ export async function action({ request }: Route.ActionArgs) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.callbackToken}`,
       },
-      body: JSON.stringify({ gpx }),
+      body: JSON.stringify({ gpx, ...(surfaceBreakdown ? { surfaceBreakdown } : {}) }),
     });
   } catch {
     return data({ error: "journal unreachable" }, { status: 502 });

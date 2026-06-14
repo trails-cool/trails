@@ -126,6 +126,7 @@ export async function loadRouteDetail(request: Request, id: string | undefined) 
       hasGpx: !!route.gpx,
       dayBreaks: route.dayBreaks ?? [],
       elevation,
+      surfaceBreakdown: route.surfaceBreakdown ?? null,
       geojson: routeWithGeojson?.geojson ?? null,
       visibility: route.visibility,
       createdAt: route.createdAt.toISOString(),

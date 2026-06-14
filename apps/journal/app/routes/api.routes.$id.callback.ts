@@ -1,4 +1,5 @@
 import { data } from "react-router";
+import { SurfaceBreakdownSchema } from "@trails-cool/api";
 import type { Route } from "./+types/api.routes.$id.callback";
 import { verifyRouteToken } from "~/lib/jwt.server";
 import { updateRoute, getRoute } from "~/lib/routes.server";
@@ -56,16 +57,23 @@ export async function action({ params, request }: Route.ActionArgs) {
 
     // Parse GPX from request body
     const body = await request.json();
-    const { gpx } = body as { gpx: string };
+    const { gpx, surfaceBreakdown } = body as { gpx: string; surfaceBreakdown?: unknown };
 
     if (!gpx) {
       return data({ error: "Missing GPX data" }, { status: 400, headers: corsHeaders() });
     }
 
+    // Optional, best-effort surface/waytype breakdown from the Planner's BRouter
+    // waytags (route-surface-breakdown, Path 1) — stored if well-formed, ignored otherwise.
+    const sb = SurfaceBreakdownSchema.safeParse(surfaceBreakdown);
+
     // Update route with new GPX (creates new version). Authorization
     // here comes from the verified single-use route token, not a
     // session — vouchOwnership marks that explicitly.
-    await updateRoute(vouchOwnership(route), { gpx });
+    await updateRoute(vouchOwnership(route), {
+      gpx,
+      ...(sb.success ? { surfaceBreakdown: sb.data } : {}),
+    });
 
     return data({ success: true, routeId: params.id }, { headers: corsHeaders() });
   } catch (e) {

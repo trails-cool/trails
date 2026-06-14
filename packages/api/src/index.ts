@@ -42,6 +42,9 @@ export {
   type ComputeRouteRequest,
 } from "./routes.ts";
 
+// Surface / waytype breakdown
+export { SurfaceBreakdownSchema, type SurfaceBreakdown } from "./surface-breakdown.ts";
+
 // Activities
 export {
   ActivitySummarySchema, ActivityDetailSchema,

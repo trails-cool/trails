@@ -21,3 +21,6 @@ export {
 } from "./z-index.ts";
 
 export { SNAP_DISTANCE_METERS } from "./snap.ts";
+
+export { computeSurfaceBreakdown } from "./surface-breakdown.ts";
+export type { SurfaceBreakdown } from "./surface-breakdown.ts";

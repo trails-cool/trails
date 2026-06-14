@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { computeSurfaceBreakdown } from "@trails-cool/map-core";
 import type { YjsState } from "~/lib/use-yjs";
 import { buildPlanGpx } from "~/lib/gpx-export";
+import { readComputedRoute } from "~/lib/route-data";
 
 interface SaveToJournalButtonProps {
   yjs: YjsState;
@@ -24,6 +26,19 @@ export function SaveToJournalButton({ yjs, sessionId, returnUrl }: SaveToJournal
       // route round-trips correctly through the journal.
       const gpx = buildPlanGpx(yjs);
 
+      // Distance-weighted surface/waytype breakdown from the BRouter waytags
+      // already in routeData — sent alongside the GPX so the journal can show
+      // it without re-deriving (route-surface-breakdown, Path 1).
+      const route = readComputedRoute(yjs.routeData);
+      const breakdown =
+        route.coordinates && route.coordinates.length > 1
+          ? computeSurfaceBreakdown(route.coordinates, route.surfaces, route.highways)
+          : null;
+      const surfaceBreakdown =
+        breakdown && (Object.keys(breakdown.surface).length > 0 || Object.keys(breakdown.highway).length > 0)
+          ? breakdown
+          : undefined;
+
       // POST to the planner's server-side proxy. The proxy attaches the
       // journal Bearer token (stored on the session row) and forwards
       // the GPX. Token never leaves the planner server — see
@@ -31,7 +46,7 @@ export function SaveToJournalButton({ yjs, sessionId, returnUrl }: SaveToJournal
       const response = await fetch("/api/save-to-journal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, gpx }),
+        body: JSON.stringify({ sessionId, gpx, ...(surfaceBreakdown ? { surfaceBreakdown } : {}) }),
       });
 
       if (!response.ok) {

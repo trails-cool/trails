@@ -91,6 +91,15 @@ export const magicTokens = journalSchema.table("magic_tokens", {
  */
 export type Visibility = "private" | "unlisted" | "public";
 
+/**
+ * Distance-weighted surface/waytype breakdown (metres per category), derived
+ * from BRouter waytags at Planner save or backfilled via Overpass.
+ */
+export type SurfaceBreakdown = {
+  surface: Record<string, number>;
+  highway: Record<string, number>;
+};
+
 export const routes = journalSchema.table("routes", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id")
@@ -106,6 +115,7 @@ export const routes = journalSchema.table("routes", {
   elevationLoss: real("elevation_loss"),
   dayBreaks: jsonb("day_breaks").$type<number[]>(),
   tags: jsonb("tags").$type<string[]>(),
+  surfaceBreakdown: jsonb("surface_breakdown").$type<SurfaceBreakdown>(),
   plannerState: bytea("planner_state"),
   visibility: text("visibility").$type<Visibility>().notNull().default("private"),
   /**
@@ -173,6 +183,9 @@ export const activities = journalSchema.table("activities", {
   description: text("description").default(""),
   // Sport / activity type (NULL = unspecified). See SPORT_TYPES above.
   sportType: text("sport_type").$type<SportType>(),
+  // Distance-weighted surface/waytype breakdown (backfilled via Overpass for
+  // imported/uploaded activities). NULL until derived.
+  surfaceBreakdown: jsonb("surface_breakdown").$type<SurfaceBreakdown>(),
   gpx: text("gpx"),
   geom: lineString("geom"),
   startedAt: timestamp("started_at", { withTimezone: true }),

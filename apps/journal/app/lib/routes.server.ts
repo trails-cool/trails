@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq, desc, and, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "./db.ts";
 import { routes, routeVersions } from "@trails-cool/db/schema/journal";
-import type { Visibility } from "@trails-cool/db/schema/journal";
+import type { Visibility, SurfaceBreakdown } from "@trails-cool/db/schema/journal";
 import { sql } from "drizzle-orm";
 import { processGpx, writeGeom } from "./gpx-save.server.ts";
 import type { ProcessedGpx } from "./gpx-save.server.ts";
@@ -20,6 +20,7 @@ export interface RouteInput {
   elevationLoss?: number | null;
   dayBreaks?: number[];
   synthetic?: boolean;
+  surfaceBreakdown?: SurfaceBreakdown;
 }
 
 export async function createRoute(ownerId: string, input: RouteInput) {
@@ -139,6 +140,7 @@ export async function updateRoute(route: OwnedRef, input: Partial<RouteInput>) {
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
   if (input.visibility !== undefined) updateData.visibility = input.visibility;
+  if (input.surfaceBreakdown !== undefined) updateData.surfaceBreakdown = input.surfaceBreakdown;
 
   if (input.gpx && processed) {
     const { stats } = processed;
