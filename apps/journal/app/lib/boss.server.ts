@@ -24,6 +24,8 @@ export interface BossSendOptions {
   retryLimit?: number;
   retryBackoff?: boolean;
   retryDelay?: number;
+  /** pg-boss dedup: collapses enqueues sharing a key into one active job. */
+  singletonKey?: string;
 }
 
 interface BossLike {

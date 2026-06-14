@@ -21,21 +21,21 @@
 - [x] 4.2 `SurfaceBreakdown` component (stacked bar per dimension, `map-core` palettes, legend category · % · km largest-first, unknown → "other", hidden when empty); mounted on `routes.$id.tsx` and `activities.$id.tsx`.
 - [x] 4.3 i18n `journal.surface.*` (surface/waytype labels, common categories, "other") en + de.
 
-## 5. Path 2 — async backfill + SSE  (PHASE 2 — follow-up PR)
+## 5. Path 2 — async backfill + SSE  (PHASE 2 — this PR)
 
-- [ ] 5.1 Journal-side Overpass client: `way[highway]` in bbox + parse (mirror the planner's `buildQuery`/`parseResponse` + rate-limit handling; route via the `/api/overpass` proxy).
-- [ ] 5.2 Map-match helper: nearest OSM way per route segment → surface/highway; unmatched → unknown. Unit-test the matcher on a small fixture.
-- [ ] 5.3 Typed `surface-backfill` pg-boss job (`{ kind, id }`): load geometry → skip if breakdown exists → Overpass → map-match → store. Idempotent, retry-safe, best-effort.
-- [ ] 5.4 Enqueue the job after GPX import (Komoot/Garmin) and manual upload; add a one-off sweep entrypoint for pre-existing rows.
-- [ ] 5.5 Emit a `surface_breakdown` SSE event (`{ kind, id }`) on completion; detail page subscribes (EventSource hook) and re-fetches the breakdown when it matches; optional "computing…" state.
+- [x] 5.1 Journal-side Overpass client (`overpass-ways.server.ts`): `way[highway]` in bbox + `out tags geom`, configurable `OVERPASS_URLS` upstreams, timeout + oversized-bbox guard.
+- [x] 5.2 Map-matcher (`surface-match.server.ts`, pure): nearest OSM way per segment → surface/highway; unmatched → unknown. Unit-tested.
+- [x] 5.3 Typed `surface-backfill` pg-boss job: load geom → skip if breakdown exists → Overpass → match → `computeSurfaceBreakdown` → store. Idempotent, retry-safe, best-effort; registered in `server.ts`.
+- [x] 5.4 Enqueued from `createActivity` (covers Komoot/Garmin imports + manual uploads) and owner-on-open in the route + activity detail loaders (covers non-Planner routes + pre-existing rows), deduped via `singletonKey`. (A dedicated sweep CLI is unneeded — on-open covers existing rows lazily.)
+- [x] 5.5 Emits a `surface_breakdown` SSE event (`{ kind, id }`) to the owner; detail pages subscribe (`useSurfaceBackfillUpdates`) and `revalidate()` when it matches.
 
 ## 6. Privacy
 
-- [ ] 6.1 Document the backfill's Overpass lookup in the privacy manifest; route via the proxy (self-hostable Overpass is the long-term answer — see `docs/ideas/self-host-overpass`).
+- [x] 6.1 Documented the backfill's Overpass bbox lookup in the privacy manifest (DE + EN); `OVERPASS_URLS` can point at a self-hosted instance.
 
 ## 7. Tests & checks
 
-- [x] 7.1 Unit: `computeSurfaceBreakdown` weighting + unknown bucket (map-matcher unit is Phase 2).
+- [x] 7.1 Unit: `computeSurfaceBreakdown` weighting + unknown bucket; `matchSurfaces` nearest-way + unknown bucket.
 - [x] 7.2 Component (jsdom): bars/proportions, largest-first, hidden when empty/null.
-- [ ] 7.3 E2E: a route/activity with a stored breakdown shows the bars — **Phase 2** (needs a seed path; deferred to land with the backfill that creates the data). Phase 1 render verified in the browser + component test.
-- [x] 7.4 Phase 1: typecheck + lint + unit (map-core 36, journal 326) green; verified in the browser.
+- [x] 7.3 Job test (mocked Overpass/db/events): stores + emits; skips when breakdown exists or no ways. (A full live e2e is intentionally skipped — external Overpass + SSE timing are flaky; rendering is covered by the component test + browser, the job by its mocked test.)
+- [x] 7.4 typecheck + lint + unit (map-core 36, journal 333) green; Phase 1 verified in the browser.

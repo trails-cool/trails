@@ -26,6 +26,7 @@ export interface JobPayloads {
   "poll-remote-actor": { actorIri: string };
   "poll-remote-outboxes": void;
   "send-welcome-email": { email: string; username: string };
+  "surface-backfill": { kind: "route" | "activity"; id: string };
 }
 
 export type JobName = keyof JobPayloads;

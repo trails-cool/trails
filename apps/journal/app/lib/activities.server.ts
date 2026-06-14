@@ -119,6 +119,18 @@ export async function createActivity(ownerId: string, input: ActivityInput) {
     await enqueueActivityDeliveries(ownerId, id, "create");
   }
 
+  // Activities arrive without surface waytags (bare GPX); kick off the async
+  // Overpass backfill (route-surface-breakdown Path 2). Skipped for synthetic
+  // demo content. Best-effort — never blocks creation.
+  if (input.gpx && !input.synthetic) {
+    await enqueueOptional(
+      "surface-backfill",
+      { kind: "activity", id },
+      { source: "createActivity" },
+      { singletonKey: `surface:activity:${id}` },
+    );
+  }
+
   return id;
 }
 
