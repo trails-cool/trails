@@ -68,6 +68,8 @@ When adding a new spec, slot it into the most relevant group below and update th
 - [`activity-sport-type`](specs/activity-sport-type/spec.md) — sport/activity-type enum on activities (set on create or normalized on import), shown as a badge + feed verb, federated as a Note PropertyValue.
 - [`activity-stats`](specs/activity-stats/spec.md) — the canonical headline metric set + reusable stat row (sport-aware avg pace/speed, moving-vs-elapsed time) across feed, detail, and profile.
 - [`journal-elevation-profile`](specs/journal-elevation-profile/spec.md) — read-only elevation profile chart + chart↔map "active distance" hover/click sync on the route & activity detail pages.
+- [`profile-stats`](specs/profile-stats/spec.md) — profile roll-up header (lifetime totals + last-4-weeks count), viewer-scoped, computed on the fly (no cache table).
+- [`profile-weekly-distance`](specs/profile-weekly-distance/spec.md) — weekly distance bar chart on the profile (12-week axis, gridlines, hover readout), SQL gap-filled.
 - [`legal-disclaimers`](specs/legal-disclaimers/spec.md) — Terms / Privacy / Imprint pages.
 - [`transactional-emails`](specs/transactional-emails/spec.md) — magic-link, welcome, etc. email templates.
 - [`demo-activity-bot`](specs/demo-activity-bot/spec.md) — synthetic-content bot (Bruno by default) seeded for demo instances; configurable persona, retention, and seed region.
