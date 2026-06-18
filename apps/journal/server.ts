@@ -6,7 +6,7 @@ import { createReadStream, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import { logger, requestContext } from "./app/lib/logger.server.ts";
 import { randomUUID } from "node:crypto";
-import { httpRequestDuration, registry } from "./app/lib/metrics.server.ts";
+import { httpRequestDuration, normalizeRoute, registry } from "./app/lib/metrics.server.ts";
 import { createBoss, startWorker } from "@trails-cool/jobs";
 import { getDatabaseUrl } from "@trails-cool/db";
 import postgres, { type Sql } from "postgres";
@@ -117,7 +117,7 @@ const server = createServer((req, res) => {
         const duration = Date.now() - start;
         logger.info({ method: req.method, path: url, status: res.statusCode, duration }, "request");
         httpRequestDuration.observe(
-          { method: req.method ?? "GET", route: url.split("?")[0]!, status: String(res.statusCode) },
+          { method: req.method ?? "GET", route: normalizeRoute(url), status: String(res.statusCode) },
           duration / 1000,
         );
       });
