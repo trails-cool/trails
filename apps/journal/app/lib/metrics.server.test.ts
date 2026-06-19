@@ -1,11 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { normalizeRoute, _resetRouteNormalizationForTest } from "./metrics.server.ts";
+import { describe, it, expect } from "vitest";
+import { normalizeRoute, ROUTE_TEMPLATES } from "./metrics.server.ts";
+import routesConfig from "../routes.ts";
 
 describe("normalizeRoute", () => {
-  beforeEach(() => {
-    _resetRouteNormalizationForTest();
-  });
-
   it("passes static routes through unchanged", () => {
     expect(normalizeRoute("/")).toBe("/");
     expect(normalizeRoute("/feed")).toBe("/feed");
@@ -15,25 +12,19 @@ describe("normalizeRoute", () => {
     expect(normalizeRoute("/legal/terms")).toBe("/legal/terms");
   });
 
-  it("collapses UUID segments to :id", () => {
+  it("maps dynamic id segments to the :id template", () => {
     expect(
       normalizeRoute("/activities/0257f241-d880-4ca6-b073-c8706f07a293"),
     ).toBe("/activities/:id");
     expect(
       normalizeRoute("/routes/0257f241-d880-4ca6-b073-c8706f07a293/edit"),
     ).toBe("/routes/:id/edit");
-    expect(
-      normalizeRoute("/api/v1/activities/0257F241-D880-4CA6-B073-C8706F07A293"),
-    ).toBe("/api/v1/activities/:id");
-  });
-
-  it("collapses purely-numeric segments to :id", () => {
     expect(normalizeRoute("/api/notifications/12345/read")).toBe(
       "/api/notifications/:id/read",
     );
   });
 
-  it("collapses usernames to :username after a `users` segment", () => {
+  it("maps usernames to the :username template", () => {
     expect(normalizeRoute("/users/alice")).toBe("/users/:username");
     expect(normalizeRoute("/users/bob/followers")).toBe(
       "/users/:username/followers",
@@ -43,47 +34,84 @@ describe("normalizeRoute", () => {
     );
   });
 
-  it("collapses sync providers to :provider", () => {
+  it("maps sync providers to the :provider template", () => {
     expect(normalizeRoute("/api/sync/connect/wahoo")).toBe(
       "/api/sync/connect/:provider",
-    );
-    expect(normalizeRoute("/api/sync/callback/garmin")).toBe(
-      "/api/sync/callback/:provider",
     );
     expect(
       normalizeRoute(
         "/api/sync/push/komoot/0257f241-d880-4ca6-b073-c8706f07a293",
       ),
-    ).toBe("/api/sync/push/:provider/:id");
+    ).toBe("/api/sync/push/:provider/:routeId");
   });
 
-  it("strips query strings and fragments before normalizing", () => {
+  it("prefers a literal template over a parametric one", () => {
+    // /routes/new must NOT be swallowed by /routes/:id
+    expect(normalizeRoute("/routes/new")).toBe("/routes/new");
+    expect(normalizeRoute("/activities/new")).toBe("/activities/new");
+    // a known provider literal wins over /sync/import/:provider
+    expect(normalizeRoute("/sync/import/komoot")).toBe("/sync/import/komoot");
+    expect(normalizeRoute("/sync/import/strava")).toBe("/sync/import/:provider");
+  });
+
+  it("collapses anything matching no template to /other", () => {
+    expect(normalizeRoute("/.ssh/id_rsa")).toBe("/other");
+    expect(normalizeRoute("/wp-login.php")).toBe("/other");
+    expect(normalizeRoute("/.aws/credentials")).toBe("/other");
+    // right prefix, wrong arity also falls through
+    expect(normalizeRoute("/routes/abc/def/ghi")).toBe("/other");
+    // a username-shaped path under an unknown collection
+    expect(normalizeRoute("/profile/alice")).toBe("/other");
+  });
+
+  it("strips query strings and fragments and trailing slashes", () => {
     expect(
-      normalizeRoute("/activities/0257f241-d880-4ca6-b073-c8706f07a293?foo=bar"),
+      normalizeRoute("/activities/0257f241-d880-4ca6-b073-c8706f07a293?foo=1"),
     ).toBe("/activities/:id");
     expect(normalizeRoute("/feed#section")).toBe("/feed");
+    expect(normalizeRoute("/feed/")).toBe("/feed");
   });
 
-  it("preserves a dotted version segment (does not treat 2.1 as numeric)", () => {
-    expect(normalizeRoute("/nodeinfo/2.1")).toBe("/nodeinfo/2.1");
-  });
-
-  it("returns the same template for two different ids (bounded cardinality)", () => {
-    const a = normalizeRoute("/activities/0257f241-d880-4ca6-b073-c8706f07a293");
-    const b = normalizeRoute("/activities/ffffffff-d880-4ca6-b073-c8706f07a293");
-    expect(a).toBe(b);
-    expect(a).toBe("/activities/:id");
-  });
-
-  it("collapses unbounded junk to /other once the cap is exceeded", () => {
-    // Fill the tracking set with distinct unmatched paths up to the cap.
-    for (let i = 0; i < 200; i++) {
-      expect(normalizeRoute(`/scan-${i}`)).toBe(`/scan-${i}`);
+  it("bounds cardinality: distinct outputs are limited to templates + /other", () => {
+    const outputs = new Set<string>();
+    for (let i = 0; i < 500; i++) {
+      outputs.add(normalizeRoute(`/activities/id-${i}`));
+      outputs.add(normalizeRoute(`/scanner-junk-${i}`));
+      outputs.add(normalizeRoute(`/users/user${i}`));
     }
-    // The next novel path can't be tracked, so it collapses to /other.
-    expect(normalizeRoute("/scan-200")).toBe("/other");
-    expect(normalizeRoute("/another-novel-path")).toBe("/other");
-    // Already-tracked paths are still returned verbatim.
-    expect(normalizeRoute("/scan-0")).toBe("/scan-0");
+    // All 1500 distinct paths collapse to just 3 labels.
+    expect([...outputs].sort()).toEqual([
+      "/activities/:id",
+      "/other",
+      "/users/:username",
+    ]);
+  });
+});
+
+describe("ROUTE_TEMPLATES drift guard", () => {
+  // Flatten the real route config to full path templates. If a route is
+  // added/removed/renamed in app/routes.ts without updating ROUTE_TEMPLATES,
+  // this fails — keeping the metric label set honest.
+  type Entry = { path?: string; index?: boolean; children?: Entry[] };
+  function flatten(entries: Entry[], prefix: string): string[] {
+    const out: string[] = [];
+    for (const e of entries) {
+      if (e.index) {
+        out.push(prefix === "" ? "/" : `/${prefix}`);
+        continue;
+      }
+      const full = prefix === "" ? e.path ?? "" : `${prefix}/${e.path ?? ""}`;
+      if (e.children && e.children.length > 0) {
+        out.push(...flatten(e.children, full));
+      } else {
+        out.push(`/${full}`);
+      }
+    }
+    return out;
+  }
+
+  it("matches every full path declared in app/routes.ts", () => {
+    const fromConfig = flatten(routesConfig as unknown as Entry[], "").sort();
+    expect(fromConfig).toEqual([...ROUTE_TEMPLATES].sort());
   });
 });
