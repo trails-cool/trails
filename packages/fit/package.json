@@ -13,7 +13,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@garmin/fitsdk": "^21.205.0",
+    "@garmin/fitsdk": "^21.208.0",
     "@trails-cool/gpx": "workspace:*"
   },
   "devDependencies": {
