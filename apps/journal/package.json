@@ -14,7 +14,7 @@
   "dependencies": {
     "@fedify/fedify": "2.2.5",
     "@js-temporal/polyfill": "^0.5.1",
-    "@logtape/logtape": "^2.1.4",
+    "@logtape/logtape": "^2.1.5",
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
     "@sentry/node": "catalog:",
@@ -31,7 +31,7 @@
     "@trails-cool/sentry-config": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "drizzle-orm": "catalog:",
-    "isbot": "^5.1.42",
+    "isbot": "^5.1.43",
     "jose": "^6.2.3",
     "nodemailer": "^8.0.11",
     "pino": "^10.3.1",

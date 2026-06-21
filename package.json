@@ -46,7 +46,7 @@
     "@eslint/js": "^10.0.1",
     "@expo/fingerprint": "^0.19.4",
     "@fission-ai/openspec": "^1.4.1",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.0",
     "@react-router/dev": "catalog:",
     "@react-router/node": "catalog:",
     "@react-router/serve": "catalog:",
@@ -70,7 +70,7 @@
     "jsdom": "^29.1.1",
     "leaflet": "^1.9.4",
     "linkedom": "^0.18.12",
-    "playwright": "^1.60.0",
+    "playwright": "^1.61.0",
     "postgres": "catalog:",
     "prettier": "^3.8.4",
     "react": "catalog:",
@@ -81,9 +81,9 @@
     "tailwindcss": "catalog:",
     "turbo": "^2.9.18",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.61.0",
+    "typescript-eslint": "^8.61.1",
     "vite": "catalog:",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "version": "1.0.0"
 }
