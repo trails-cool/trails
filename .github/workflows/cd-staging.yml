@@ -57,7 +57,7 @@ jobs:
       tag_primary: ${{ steps.tags.outputs.primary }}
       tag_sha: ${{ steps.tags.outputs.sha }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - id: tags
         name: Compute image tags
@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Decrypt secrets
         run: |
@@ -218,7 +218,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - id: ports
         name: Compute preview ports + project name
@@ -424,7 +424,7 @@ jobs:
           echo "project=trails-pr-$PR" >> "$GITHUB_OUTPUT"
           echo "database=trails_pr_$PR" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Decrypt secrets (needed to satisfy compose env vars during down)
         run: |
