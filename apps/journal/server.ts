@@ -2,8 +2,7 @@ import * as Sentry from "@sentry/node";
 import { nodeSentryConfig, drop404s } from "@trails-cool/sentry-config";
 import { createRequestListener } from "@react-router/node";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { createReadStream, statSync } from "node:fs";
-import { join, extname, resolve } from "node:path";
+import { serveStatic } from "./serve-static.ts";
 import { logger, requestContext } from "./app/lib/logger.server.ts";
 import { randomUUID } from "node:crypto";
 import { httpRequestDuration, normalizeRoute, registry } from "./app/lib/metrics.server.ts";
@@ -26,42 +25,6 @@ if (process.env.SENTRY_DISABLED !== "true" && sentryDsn) {
 }
 
 const port = Number(process.env.PORT ?? 3000);
-const CLIENT_DIR = resolve(import.meta.dirname, "build", "client");
-
-const MIME: Record<string, string> = {
-  ".js": "application/javascript",
-  ".css": "text/css",
-  ".html": "text/html",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-};
-
-function serveStatic(req: IncomingMessage, res: ServerResponse): boolean {
-  if (req.method !== "GET" && req.method !== "HEAD") return false;
-
-  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
-  const filePath = resolve(join(CLIENT_DIR, url.pathname));
-
-  if (!filePath.startsWith(CLIENT_DIR)) return false;
-
-  try {
-    if (!statSync(filePath).isFile()) return false;
-  } catch {
-    return false;
-  }
-
-  res.setHeader("Content-Type", MIME[extname(filePath)] ?? "application/octet-stream");
-  if (url.pathname.startsWith("/assets/")) {
-    res.setHeader("Cache-Control", "public, immutable, max-age=31536000");
-  }
-  createReadStream(filePath).pipe(res);
-  return true;
-}
 
 const listener = createRequestListener({
   build: () => import("./build/server/index.js" as string) as never,
