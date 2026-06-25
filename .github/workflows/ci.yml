@@ -316,3 +316,87 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+  journal-image-smoke:
+    # Build the journal's *production* Docker image (the `runtime` stage)
+    # and actually boot it. Nothing else in CI does this: typecheck /
+    # lint / test / build all run against the source tree, and the e2e
+    # job boots the journal via `react-router-serve`, not the production
+    # `node server.ts` entrypoint. The runtime stage copies source files
+    # in by name (server.ts, app/lib, serve-static.ts, ...), so a refactor
+    # that adds a file `server.ts` imports — without a matching COPY —
+    # builds green everywhere and only crash-loops once deployed
+    # (ERR_MODULE_NOT_FOUND). That has taken prod down more than once
+    # (app/lib, app/jobs, serve-static.ts). Booting the real image and
+    # hitting /api/health closes that gap: a missing static OR dynamic
+    # import never reaches a healthy 200.
+    name: Journal Image Smoke Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: imresamu/postgis:16-3.4
+        env:
+          POSTGRES_USER: trails
+          POSTGRES_PASSWORD: trails
+          POSTGRES_DB: trails
+        ports:
+          - 5432:5432
+        # The postgis image restarts mid-init while it creates the
+        # extension; the health check only passes once the final server
+        # is up, so dependents don't race the init restart.
+        options: >-
+          --health-cmd "pg_isready -U trails"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://trails:trails@localhost:5432/trails
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # seedOAuthClient + the demo/notifications job worker run on boot
+      # and write to real tables, so the image needs a schema to come up
+      # healthy. The postgis extension is auto-created by the image.
+      - name: Push database schema
+        run: pnpm db:push
+
+      - name: Build journal runtime image
+        run: docker build --target runtime -f apps/journal/Dockerfile -t journal-smoke .
+
+      - name: Boot image and wait for healthy
+        run: |
+          # --network host: reach the service Postgres at localhost:5432
+          # and publish the server on localhost:3000 in one shot.
+          # E2E=true is the documented opt-out from the fail-loud
+          # getDatabaseUrl() prod guard (CI points at a local Postgres).
+          docker run -d --name journal-smoke --network host \
+            -e NODE_ENV=production -e E2E=true \
+            -e DATABASE_URL="$DATABASE_URL" \
+            journal-smoke
+          code=000
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/api/health || echo 000)
+            echo "attempt $i: /api/health -> $code"
+            [ "$code" = "200" ] && break
+            if [ "$(docker inspect -f '{{.State.Running}}' journal-smoke 2>/dev/null)" != "true" ]; then
+              echo "::error::journal container exited during boot"
+              break
+            fi
+            sleep 2
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::journal production image failed to boot healthy (see logs below)"
+            docker logs journal-smoke 2>&1 || true
+            exit 1
+          fi
+          echo "journal production image booted healthy"
+
+      - name: Container logs
+        if: always()
+        run: docker logs journal-smoke 2>&1 | tail -40 || true
