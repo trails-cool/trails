@@ -22,7 +22,8 @@ These principles inform key architectural and product decisions:
   visualizations and tools around their data.
 - **Open source (MIT)**: The code is MIT licensed — both because of the
   commitment to the open web, and out of respect for the open-source projects
-  that inspire trails.cool (BRouter, bikerouter.de, brouter-web).
+  that inspire trails.cool (BRouter, bikerouter.de, brouter-web, Organic Maps,
+  Endurain, wanderer).
 - **AI-assisted development**: AI (Claude Code) and spec-driven development
   (OpenSpec) are core to how this project is built. Human contributions are
   very welcome. This is also an experiment in how far AI-assisted development

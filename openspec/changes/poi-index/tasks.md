@@ -1,0 +1,51 @@
+## 1. Category selectors (single source of truth)
+
+- [ ] 1.1 Refactor `packages/map-core/src/poi.ts`: replace Overpass QL `query` strings with structured `selectors: Array<{key, value}>` per category; update `poi.test.ts`
+- [ ] 1.2 Add a helper that renders the selectors as an osmium tag-filter expression list (used by the pipeline; unit-tested against the nine categories)
+
+## 2. Schema
+
+- [ ] 2.1 Add `planner.pois` to `packages/db` (osm_type, osm_id, category, name, geom Point 4326, tags jsonb, imported_at; PK (osm_type, osm_id, category); GiST on geom, btree on category) + migration
+- [ ] 2.2 `pnpm db:push` locally and verify bbox+category query plans use the indexes
+
+## 3. Extract pipeline (BRouter host)
+
+- [ ] 3.1 Create `infrastructure/brouter-host/poi-extract/`: script that downloads the configured PBF (`POI_PBF_URL`, planet by default), runs `osmium tag-filter` + `osmium export` (centroids) into gzipped NDJSON `{osm_type, osm_id, categories, name, lat, lon, tags}`, writes a manifest (sha256 + timestamp + row count), and cleans up working files
+- [ ] 3.2 Publish artifact + manifest via the existing Caddy sidecar at a vSwitch-only address; verify it is unreachable from the public internet
+- [ ] 3.3 Add a monthly systemd timer under the `trails` user; document disk/bandwidth footprint in `infrastructure/brouter-host/poi-extract/README.md`
+- [ ] 3.4 Dry-run on a small Geofabrik extract first; then a full planet run — record row counts per category and artifact size
+
+## 4. Import job (flagship)
+
+- [ ] 4.1 Create the import script: fetch manifest + artifact over the vSwitch, verify checksum, COPY into `planner.pois_staging`, build indexes, atomic rename swap in one transaction
+- [ ] 4.2 Implement the 70% row-count guard with a `--bootstrap` override; abort loudly (log + metric) when tripped
+- [ ] 4.3 Schedule via systemd timer offset from the extract job; wire into `cd-infra.yml` deploy sources (note: config-file-only changes need `--force-recreate` where applicable)
+- [ ] 4.4 First production import with `--bootstrap`; spot-check several viewports against live Overpass results for category parity
+
+## 5. Serving route
+
+- [ ] 5.1 Create `apps/planner/app/routes/api.pois.ts` (GET bbox + categories): same-origin + session checks, 120/IP/min rate limit (no DB query on rejection), 100-result cap, short Cache-Control; register in `apps/planner/app/routes.ts`
+- [ ] 5.2 Unit tests: happy path, invalid bbox/categories 400, 429 path, empty-table graceful response
+
+## 6. Client switch
+
+- [ ] 6.1 Rewrite `apps/planner/app/lib/overpass.ts` as the `/api/pois` client (keep `Poi` shape, `quantizeBbox`, error mapping; drop QL building); rename file to `pois.ts` and update imports (`use-pois`, `use-nearby-pois`, snap-to-poi)
+- [ ] 6.2 Update client tests; verify the existing rate-limit banner and unavailable message fire on 429/5xx from `/api/pois`
+- [ ] 6.3 Delete `apps/planner/app/routes/api.overpass.ts` and its tests; remove the route registration and the private.coffee configuration
+
+## 7. Observability
+
+- [ ] 7.1 Add `poi_index_rows{category}`, `poi_index_age_seconds`, import outcome, and `poi_api_requests_total{status}` metrics; remove `overpass_upstream_*` metrics from `metrics.server.ts`
+- [ ] 7.2 Update the Grafana planner dashboard: replace Overpass upstream panels with index freshness + serving panels; add the stale-index alert (~6 weeks)
+
+## 8. Docs & cleanup
+
+- [ ] 8.1 Update `docs/architecture.md` (POI data flow) and the privacy documentation (no third-party POI requests)
+- [ ] 8.2 Document the self-hoster story: optional pipeline, regional extract URL, graceful behavior with an empty index
+- [ ] 8.3 Update `docs/ideas/self-host-overpass/README.md`: superseded by `poi-index`, with the revive-criteria note kept for the QL-compatibility case
+
+## 9. Verification
+
+- [ ] 9.1 E2E: POI overlay flow against a seeded local `planner.pois` table (enable category → markers appear; popup shows name/hours/OSM link)
+- [ ] 9.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e`
+- [ ] 9.3 Post-cutover production check: enable each of the nine categories on a busy viewport and a rural viewport; confirm results and dashboard metrics

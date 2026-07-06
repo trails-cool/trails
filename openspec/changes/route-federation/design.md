@@ -83,6 +83,39 @@ Daily job on the *mirror-holding* instance: for each mirror whose
 on the canonical object), re-fetch and reconcile. Covers the
 "instance down > 72h, Update lost" case in arch #16.
 
+## Prior art: wanderer (reviewed 2026-07-06)
+
+Full analysis in `docs/inspirations.md`. wanderer is the only other
+shipped ActivityPub-for-trails implementation; three findings bear on
+this design:
+
+- **Object model contrast.** wanderer federates trails as plain `Note`s
+  — metrics as bespoke `tag[]` entries, GPX as a `Document` attachment.
+  That validates our GPX-as-Document choice but is otherwise the
+  opposite of the `trails:Route` decision above. Their model is lossy
+  (stringified metrics, 3-photo cap) and needs string parsing to
+  consume; ours is structured but renders as nothing on non-trails
+  platforms. **Consideration for the vocabulary decision:** emit a
+  Note-compatible fallback alongside `trails:Route` (readable `content`
+  HTML + image/GPX attachments on the same object). wanderer proves the
+  Note shape renders well in Mastodon; carrying it costs little and
+  keeps the "Mastodon rendering" non-goal a presentation choice rather
+  than an architectural wall.
+- **wanderer interop is an adapter, not an allowlist tweak.** The §6
+  gating note ("widen the allowlist") understates it: accepting
+  wanderer content means parsing metric-tags out of `Note`s and
+  emitting shapes they parse back. Feasible — their social layer
+  (WebFinger, per-user keys, authorized fetch, Follow/Accept) matches
+  ours — but it's a dedicated compatibility layer. Stays out of scope;
+  now with an accurate size estimate.
+- **Operational prerequisite.** wanderer's fire-and-forget delivery
+  (no queue/retry) is the cautionary tale for mirror consistency: this
+  change's Update fan-out and sync-healing assume durable delivery.
+  The `federation-hardening` change (durable Fedify queue, replay
+  dedup, instance blocklist) should land **before** route mirrors;
+  mirror sync must also respect the blocklist (don't re-fetch origins
+  on blocked domains).
+
 ## Risks / Trade-offs
 
 - **Custom vocabulary is an interop commitment** — version the
