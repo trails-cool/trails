@@ -159,6 +159,35 @@ Implementation order: route-sharing schema changes (route-features section 1)
 must be completed first. The explore page can be built in parallel but only
 tested after visibility exists and at least one route is set to public.
 
+## Prior art: wanderer (reviewed 2026-07-06)
+
+Full analysis in `docs/inspirations.md`. wanderer runs trail discovery at
+real scale (Meilisearch over PocketBase); their patterns don't change this
+change's v1 scope but pre-answer its scaling questions:
+
+- **Access control lives in the query layer, always.** They mint
+  per-session Meilisearch tenant tokens so the index itself enforces
+  `public OR author OR shared-with` — a client can't bypass it. Our
+  PostGIS equivalent: the `visibility = 'public'` predicate (D6) must be
+  part of the shared bbox-query helper, never a caller responsibility.
+  Worth an explicit regression test.
+- **Clustering (currently a non-goal):** when dense areas force it,
+  their shape is proven — a server endpoint running `supercluster`
+  returning only `{id, point, bbox_diagonal}`, with a dynamic threshold
+  where the N largest-bounding-box routes render as actual polylines and
+  the rest cluster as points. A direct answer to the 50-result-limit
+  risk below when v1 outgrows it.
+- **Recommendations without ML:** random-offset sampling over the
+  filtered result count ("surprise me") — cheap and effective.
+- **Cross-instance discovery** (also a non-goal here): they index
+  federated-in remote trails as local stub records, searchable with
+  `is_federated`/`domain` facets — the likely shape for trails once
+  `route-federation` mirrors exist, rather than live fan-out search.
+- Robustness details worth copying at implementation time:
+  antimeridian-aware bbox handling, a request-race guard on viewport
+  queries (stale responses discarded by request id), and a
+  payload-too-large fallback that shrinks page size.
+
 ## Risks / Trade-offs
 
 - **50-result limit may frustrate users**: In dense areas (Alps, popular hiking

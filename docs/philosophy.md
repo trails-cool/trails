@@ -37,11 +37,22 @@ trails.cool is MIT licensed. The entire codebase — Planner, Journal, shared
 packages, infrastructure — is open source.
 
 This is both a commitment to the open web and an acknowledgment of the
-projects that made trails.cool possible:
+projects that made trails.cool possible (what we learned from each is
+recorded in [docs/inspirations.md](inspirations.md); keep the two lists in
+sync):
 
 - [BRouter](https://github.com/abrensch/brouter) — the routing engine
 - [bikerouter.de](https://bikerouter.de) — inspiration for the Planner
 - [brouter-web](https://github.com/nrenner/brouter-web) — the web client
+- [Organic Maps](https://github.com/organicmaps/organicmaps) — inspiration for
+  outdoor-focused map presentation, elevation handling, hiking-time estimation
+  (Tobler), GPX robustness, and privacy-as-proof practices
+- [Endurain](https://codeberg.org/endurain-project/endurain) — inspiration for
+  the Journal's activity privacy controls, account export, duplicate handling,
+  and self-hosting operator experience
+- [wanderer](https://wanderer.to) — a self-hosted, federated trail database;
+  the closest neighbor to the Journal's federated route sharing and proof the
+  ActivityPub-for-trails idea works
 
 We benefit from open source. We contribute back to it.
 

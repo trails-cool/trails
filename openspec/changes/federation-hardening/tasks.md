@@ -1,0 +1,27 @@
+## 1. Durable queue
+
+- [ ] 1.1 Implement `federation-queue.server.ts`: Fedify `MessageQueue` over pg-boss (enqueue with delay, listen loop), mirroring the `PostgresKvStore` adapter pattern
+- [ ] 1.2 Swap `InProcessMessageQueue` for it in `federation.server.ts`; document the two-layer queueing (fan-out jobs + Fedify queue) in a code comment
+- [ ] 1.3 Tests: enqueue/delay/consume roundtrip; simulated restart (new listener picks up previously enqueued messages)
+
+## 2. Replay defense
+
+- [ ] 2.1 Add `federation_processed_activities` table (activity IRI PK, received_at) + migration; insert-or-drop check in inbox handlers before side effects
+- [ ] 2.2 30-day TTL sweep in the jobs worker
+- [ ] 2.3 Tests: duplicate Like/Delete/Update dropped as no-ops; Create double-delivery still covered by remoteOriginIri constraint
+
+## 3. Blocklist
+
+- [ ] 3.1 Add `federation_blocked_instances` table + migration; exact-host check helper
+- [ ] 3.2 Enforce at inbox (silent 202 drop + counter), delivery enqueue (filter recipients), and outbox poll/actor fetch (refuse)
+- [ ] 3.3 Document the operator procedure (SQL insert/delete) in the ops docs; tests for all three boundaries
+
+## 4. Protocol doc & observability
+
+- [ ] 4.1 Write `FEDERATION.md` (repo root): NodeInfo, actors/WebFinger, object + activity types with JSON examples, addressing, signatures + dedup expectations, retry policy, moderation semantics; link from README and docs
+- [ ] 4.2 Add `federation_delivery_total{outcome}`, `federation_queue_depth`, `federation_inbox_dropped_total{reason}` metrics + journal dashboard row
+
+## 5. Verification
+
+- [ ] 5.1 Staging check: queue a fan-out, restart the journal container, confirm deliveries complete; block a test domain and verify both directions
+- [ ] 5.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e`
