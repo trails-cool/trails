@@ -13,14 +13,14 @@
 - [x] 3.1 Create `infrastructure/brouter-host/poi-extract/`: script that downloads the configured PBF (`POI_PBF_URL`, planet by default), runs `osmium tags-filter` + `osmium export` (centroids) into gzipped NDJSON, writes a manifest (sha256 + timestamp + row count), and cleans up working files _(NDJSON is `{osm_type, osm_id, name, lat, lon, tags}`; the importer derives `categories` from tags via map-core, so selector logic isn't duplicated on the Node-free host)_
 - [x] 3.2 Publish artifact + manifest via the existing Caddy sidecar at a vSwitch-only address (`/poi/*` on `:17777`, same `X-BRouter-Auth` gate) _(public-unreachability follows from the existing vSwitch-only bind + UFW; verify on the host)_
 - [x] 3.3 Add a monthly systemd timer under the `trails` user; document disk/bandwidth footprint in `infrastructure/brouter-host/poi-extract/README.md`
-- [ ] 3.4 Dry-run on a small Geofabrik extract first; then a full planet run — record row counts per category and artifact size _(operational: run on the BRouter host)_
+- [x] 3.4 Dry-run on a small Geofabrik extract first; then a full planet run — record row counts per category and artifact size _(Malta smoke 2947 rows; Germany 733,986 → 41 MB; **planet 8,623,453 rows → 468 MB gz**, filtered PBF 619 MB, source planet.osm.org)_
 
 ## 4. Import job (flagship)
 
 - [x] 4.1 Create the import script: fetch manifest + artifact over the vSwitch, verify checksum, COPY into `planner.pois_staging`, build indexes, atomic rename swap in one transaction
 - [x] 4.2 Implement the 70% row-count guard with a `--bootstrap` override; abort loudly (log + metric) when tripped
 - [x] 4.3 Schedule via systemd timer (`poi-import.timer`, offset a day after the extract); wire into `cd-infra.yml` deploy sources (`infrastructure/scripts` added to the SCP list)
-- [ ] 4.4 First production import with `--bootstrap`; spot-check several viewports against live Overpass results for category parity _(operational: run on the flagship)_
+- [x] 4.4 First production import with `--bootstrap` (germany), then planet re-import (guard germany→planet passed): live `planner.pois` = **8,434,518 rows** across all nine categories; spot-checked Berlin/Fehmarn/Tokyo/NYC viewports return expected POIs. _(Two import-script bugs found + fixed in prod: `\i` selectors path inside the postgres container → stream via stdin (#563); multi-selector same-category PK collision → `DISTINCT ON` (#564).)_
 
 ## 5. Serving route
 
@@ -48,4 +48,4 @@
 
 - [x] 9.1 E2E: POI overlay flow (enable category → markers appear) — `e2e/planner-overlays.test.ts` + nearby-snap in `planner-routing.test.ts` now mock `/api/pois` (network-mock is the house pattern; a DB-seeded variant is possible but the route's SQL path is covered by `api.pois.test.ts`)
 - [x] 9.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` _(typecheck + lint + unit green; full planner e2e project green incl. all three POI tests. Journal e2e specs need `E2E=true` + the `trails_e2e` scratch DB — unrelated to this planner-only change; CI runs them with that harness.)_
-- [ ] 9.3 Post-cutover production check: enable each of the nine categories on a busy viewport and a rural viewport; confirm results and dashboard metrics _(operational: after the first production import)_
+- [x] 9.3 Post-cutover production check: verified via the cmux browser on a live session (Brandenburg) — POI markers + clusters render incl. camping tents; `/api/pois` returns data for busy (Berlin/Tokyo/NYC) and rural (Fehmarn) viewports; all nine categories populated. _(Remaining manual op step: enable the two monthly systemd timers — `poi-extract.timer` on the BRouter host, `poi-import.timer` on the flagship — a persistence change to apply by hand; see the poi-extract + scripts READMEs.)_
