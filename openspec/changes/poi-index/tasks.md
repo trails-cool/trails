@@ -47,5 +47,5 @@
 ## 9. Verification
 
 - [x] 9.1 E2E: POI overlay flow (enable category → markers appear) — `e2e/planner-overlays.test.ts` + nearby-snap in `planner-routing.test.ts` now mock `/api/pois` (network-mock is the house pattern; a DB-seeded variant is possible but the route's SQL path is covered by `api.pois.test.ts`)
-- [ ] 9.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` _(typecheck + lint + unit all green; e2e needs the local stack — run before merge)_
+- [x] 9.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` _(typecheck + lint + unit green; full planner e2e project green incl. all three POI tests. Journal e2e specs need `E2E=true` + the `trails_e2e` scratch DB — unrelated to this planner-only change; CI runs them with that harness.)_
 - [ ] 9.3 Post-cutover production check: enable each of the nine categories on a busy viewport and a rural viewport; confirm results and dashboard metrics _(operational: after the first production import)_
