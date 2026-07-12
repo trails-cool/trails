@@ -8,10 +8,11 @@ import { test as base, expect } from "@playwright/test";
  *
  * The trigger for this safety net was #282 — a POI test that silently
  * relied on live Overpass data for months because its `page.route`
- * was pointing at a URL the browser no longer hit after `/api/overpass`
- * was introduced. With this fixture in place, a request to
- * `overpass.private.coffee` (or any other unlisted host) would abort
- * and the test would surface the missing mock immediately.
+ * was pointing at a URL the browser no longer hit after the POI proxy
+ * was introduced. With this fixture in place, a request to any unlisted
+ * host would abort and the test would surface the missing mock
+ * immediately. (POIs are now served from the same-origin `/api/pois`
+ * index endpoint, so the map makes no third-party POI requests at all.)
  */
 const EXTERNAL_ALLOWLIST: RegExp[] = [
   // App origins served by Playwright's webServer

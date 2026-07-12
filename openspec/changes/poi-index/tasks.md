@@ -10,17 +10,17 @@
 
 ## 3. Extract pipeline (BRouter host)
 
-- [ ] 3.1 Create `infrastructure/brouter-host/poi-extract/`: script that downloads the configured PBF (`POI_PBF_URL`, planet by default), runs `osmium tag-filter` + `osmium export` (centroids) into gzipped NDJSON `{osm_type, osm_id, categories, name, lat, lon, tags}`, writes a manifest (sha256 + timestamp + row count), and cleans up working files
-- [ ] 3.2 Publish artifact + manifest via the existing Caddy sidecar at a vSwitch-only address; verify it is unreachable from the public internet
-- [ ] 3.3 Add a monthly systemd timer under the `trails` user; document disk/bandwidth footprint in `infrastructure/brouter-host/poi-extract/README.md`
-- [ ] 3.4 Dry-run on a small Geofabrik extract first; then a full planet run — record row counts per category and artifact size
+- [x] 3.1 Create `infrastructure/brouter-host/poi-extract/`: script that downloads the configured PBF (`POI_PBF_URL`, planet by default), runs `osmium tags-filter` + `osmium export` (centroids) into gzipped NDJSON, writes a manifest (sha256 + timestamp + row count), and cleans up working files _(NDJSON is `{osm_type, osm_id, name, lat, lon, tags}`; the importer derives `categories` from tags via map-core, so selector logic isn't duplicated on the Node-free host)_
+- [x] 3.2 Publish artifact + manifest via the existing Caddy sidecar at a vSwitch-only address (`/poi/*` on `:17777`, same `X-BRouter-Auth` gate) _(public-unreachability follows from the existing vSwitch-only bind + UFW; verify on the host)_
+- [x] 3.3 Add a monthly systemd timer under the `trails` user; document disk/bandwidth footprint in `infrastructure/brouter-host/poi-extract/README.md`
+- [ ] 3.4 Dry-run on a small Geofabrik extract first; then a full planet run — record row counts per category and artifact size _(operational: run on the BRouter host)_
 
 ## 4. Import job (flagship)
 
-- [ ] 4.1 Create the import script: fetch manifest + artifact over the vSwitch, verify checksum, COPY into `planner.pois_staging`, build indexes, atomic rename swap in one transaction
-- [ ] 4.2 Implement the 70% row-count guard with a `--bootstrap` override; abort loudly (log + metric) when tripped
-- [ ] 4.3 Schedule via systemd timer offset from the extract job; wire into `cd-infra.yml` deploy sources (note: config-file-only changes need `--force-recreate` where applicable)
-- [ ] 4.4 First production import with `--bootstrap`; spot-check several viewports against live Overpass results for category parity
+- [x] 4.1 Create the import script: fetch manifest + artifact over the vSwitch, verify checksum, COPY into `planner.pois_staging`, build indexes, atomic rename swap in one transaction
+- [x] 4.2 Implement the 70% row-count guard with a `--bootstrap` override; abort loudly (log + metric) when tripped
+- [x] 4.3 Schedule via systemd timer (`poi-import.timer`, offset a day after the extract); wire into `cd-infra.yml` deploy sources (`infrastructure/scripts` added to the SCP list)
+- [ ] 4.4 First production import with `--bootstrap`; spot-check several viewports against live Overpass results for category parity _(operational: run on the flagship)_
 
 ## 5. Serving route
 

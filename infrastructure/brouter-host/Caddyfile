@@ -24,11 +24,23 @@
 	@authed header X-BRouter-Auth {$BROUTER_AUTH_TOKEN}
 
 	handle @authed {
-		reverse_proxy brouter:17777 {
-			# Don't forward the auth header upstream — BRouter doesn't
-			# use it, and it's cleaner to contain the credential at
-			# the proxy boundary.
-			header_up -X-BRouter-Auth
+		# POI index artifact + manifest published by poi-extract.sh. Served
+		# read-only from the mounted publish dir; the flagship import job
+		# pulls /poi/manifest.json and /poi/pois.ndjson.gz over the vSwitch.
+		# Same auth + vSwitch-only binding as BRouter, so it's unreachable
+		# from the public internet.
+		handle_path /poi/* {
+			root * /srv/poi
+			file_server
+		}
+
+		handle {
+			reverse_proxy brouter:17777 {
+				# Don't forward the auth header upstream — BRouter doesn't
+				# use it, and it's cleaner to contain the credential at
+				# the proxy boundary.
+				header_up -X-BRouter-Auth
+			}
 		}
 	}
 

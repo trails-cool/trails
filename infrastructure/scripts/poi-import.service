@@ -1,0 +1,19 @@
+# POI import — one-shot unit driven by poi-import.timer. Runs on the flagship
+# as root (the deploy user), pulling the artifact the BRouter host published and
+# swapping it into planner.pois. Install: copy to /etc/systemd/system/, then
+# `systemctl enable --now poi-import.timer`. See infrastructure/scripts/README
+# / the poi-index change docs. Requires BROUTER_AUTH_TOKEN in the environment
+# file below (reuse the deployed /opt/trails-cool/.env).
+[Unit]
+Description=Import the trails.cool POI index artifact into planner.pois
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/trails-cool
+EnvironmentFile=/opt/trails-cool/.env
+# Optional: expose import-outcome metrics to node_exporter's textfile collector.
+Environment=NODE_EXPORTER_TEXTFILE_DIR=/var/lib/node_exporter/textfile_collector
+ExecStart=/opt/trails-cool/scripts/poi-import.sh
+TimeoutStartSec=2h

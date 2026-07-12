@@ -1,0 +1,23 @@
+# POI extract — one-shot unit driven by poi-extract.timer. Runs as the
+# non-root `trails` user (docker-group, scoped to ~trails/brouter/). Install as
+# a user unit: `systemctl --user enable --now poi-extract.timer` with lingering
+# enabled (`loginctl enable-linger trails`), or as a system unit with
+# User=trails. See README.md.
+[Unit]
+Description=Filter an OSM PBF to trails.cool POI categories and publish the artifact
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Adjust WorkingDirectory to the deployed path (e.g. /home/trails/brouter/poi-extract).
+WorkingDirectory=%h/brouter/poi-extract
+ExecStart=%h/brouter/poi-extract/poi-extract.sh
+# The planet download + filter is long-running and IO-heavy; give it room and
+# keep it off the box's foreground priority.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=6h
+
+[Install]
+WantedBy=default.target

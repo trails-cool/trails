@@ -30,17 +30,18 @@ test.describe("Planner – overlays", () => {
   test("enable POI category shows markers on map", async ({ page, request }) => {
     const url = await createSession(request);
 
-    await page.route("**/api/overpass", async (route) => {
+    await page.route("**/api/pois*", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          elements: [
+          pois: [
             {
-              type: "node",
               id: 12345,
               lat: 52.52,
               lon: 13.405,
+              name: "Test Brunnen",
+              category: "drinking_water",
               tags: { amenity: "drinking_water", name: "Test Brunnen" },
             },
           ],

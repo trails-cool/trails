@@ -1,0 +1,14 @@
+# Monthly POI extract. POIs of these categories churn slowly, so monthly data
+# is plenty (Organic Maps ships roughly monthly too). Runs early on the 1st;
+# the flagship import timer is offset a day later to pull the fresh artifact.
+[Unit]
+Description=Monthly trails.cool POI extract
+
+[Timer]
+OnCalendar=*-*-01 02:00:00
+# If the box was down at the scheduled time, run once it's back.
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

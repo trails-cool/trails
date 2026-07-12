@@ -108,17 +108,18 @@ test.describe("Planner – routing", () => {
   test("nearby POI snap moves waypoint and prepends note prefix", async ({ page, request }) => {
     const url = await createSession(request);
 
-    await page.route("**/api/overpass", async (route) => {
+    await page.route("**/api/pois*", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          elements: [
+          pois: [
             {
-              type: "node",
               id: 99001,
               lat: 52.521,
               lon: 13.406,
+              name: "Stadtbrunnen",
+              category: "drinking_water",
               tags: { amenity: "drinking_water", name: "Stadtbrunnen" },
             },
           ],

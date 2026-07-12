@@ -58,6 +58,9 @@ services:
       BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # POI index artifact published by poi-extract.sh, served read-only under
+      # /poi/* on the same vSwitch-only listener as BRouter.
+      - ./poi-extract/publish:/srv/poi:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:
