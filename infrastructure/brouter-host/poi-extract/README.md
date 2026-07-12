@@ -5,9 +5,9 @@ Monthly job that turns an OSM PBF into the compact POI artifact the flagship's
 half of the [`poi-index`](../../../openspec/changes/poi-index/) change — it
 replaces the third-party Overpass dependency for the Planner's POI overlays.
 
-Runs on the dedicated BRouter host (`ullrich.is`, the box with 1.8 TB free)
-under the non-root `trails` user. The flagship import job
-(`infrastructure/scripts/poi-import.sh`) pulls the result over the vSwitch.
+Runs on the BRouter host as a non-root user (docker-group rights, no sudo). The
+flagship import job (`infrastructure/scripts/poi-import.sh`) pulls the result
+over the vSwitch.
 
 ## Files
 
@@ -49,18 +49,18 @@ artifact is unreachable from the public internet.
 ## Prerequisites
 
 - **Docker** — osmium runs in a container (`osmium.Dockerfile`, built on first
-  use as `trails-osmium:local`). The BRouter host's `trails` user is non-root
-  with no sudo, so osmium can't be apt-installed; docker-group rights cover it.
-  On Linux this adds no meaningful overhead — big files are bind-mounted, so I/O
-  is native.
+  use as `trails-osmium:local`). The pipeline's user is non-root with no sudo,
+  so osmium can't be apt-installed; docker-group rights cover it. On Linux this
+  adds no meaningful overhead — big files are bind-mounted, so I/O is native.
 - **On the host** (already present): `python3`, `curl`, `gzip`, `sha256sum`.
 
 ## Install the timer
 
-Deployed under `~trails/brouter/poi-extract/`. As a user unit with lingering:
+Deployed under the pipeline user's `~/brouter/poi-extract/`. As a user unit with
+lingering (so the timer runs even when nobody is logged in):
 
 ```bash
-loginctl enable-linger trails
+loginctl enable-linger "$USER"
 mkdir -p ~/.config/systemd/user
 cp poi-extract.service poi-extract.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
