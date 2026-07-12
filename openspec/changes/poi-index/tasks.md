@@ -6,7 +6,7 @@
 ## 2. Schema
 
 - [x] 2.1 Add `planner.pois` to `packages/db` (osm_type, osm_id, category, name, geom Point 4326, tags jsonb, imported_at; PK (osm_type, osm_id, category); GiST on geom, btree on category) + migration
-- [ ] 2.2 `pnpm db:push` locally and verify bbox+category query plans use the indexes _(needs a local PostGIS; run `pnpm dev:services && pnpm db:push`)_
+- [x] 2.2 `pnpm db:push` locally and verify bbox+category query plans use the indexes _(verified: serving query drives off `pois_geom_idx` for the bbox; `pois_category_idx` used for category filter; PK created as `pois_pkey`)_
 
 ## 3. Extract pipeline (BRouter host)
 
