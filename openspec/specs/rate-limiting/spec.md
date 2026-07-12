@@ -18,9 +18,10 @@ The Planner SHALL limit route computations to 300 per session per hour (the `DEF
 - **WHEN** a session exceeds 300 BRouter calls in one hour
 - **THEN** the server responds with 429 and the client shows a "slow down" message
 
-### Requirement: Overpass API rate limit
-The Planner SHALL limit Overpass API calls to 120 per IP per minute to protect the upstream service.
+### Requirement: POI API rate limit
+The Planner SHALL limit `/api/pois` requests to 120 per IP per minute to protect the instance's database from abusive clients.
 
-#### Scenario: Overpass rate limit exceeded
-- **WHEN** a single IP exceeds 120 Overpass requests in one minute
-- **THEN** the `/api/overpass` proxy responds with 429 Too Many Requests
+#### Scenario: POI rate limit exceeded
+- **WHEN** a single IP exceeds 120 POI requests in one minute
+- **THEN** `/api/pois` responds with 429 Too Many Requests
+- **AND** no database query is executed for rejected requests

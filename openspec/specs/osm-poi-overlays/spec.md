@@ -16,11 +16,11 @@ The Planner SHALL provide a collapsible panel for toggling POI categories on the
 - **THEN** the panel collapses and POI markers remain visible on the map
 
 ### Requirement: POI categories
-The Planner SHALL support the following POI categories queried from OpenStreetMap via Overpass API: drinking water, shelter, camping, food & drink, groceries, bike infrastructure, accommodation, viewpoints, and toilets.
+The Planner SHALL support the following POI categories served from the instance's own POI index (`/api/pois`): drinking water, shelter, camping, food & drink, groceries, bike infrastructure, accommodation, viewpoints, and toilets.
 
 #### Scenario: Enable a POI category
 - **WHEN** a user enables the "Drinking water" category in the POI panel
-- **THEN** drinking water POIs within the current map viewport are fetched from Overpass and rendered as markers
+- **THEN** drinking water POIs within the current map viewport are fetched from the instance's POI index and rendered as markers
 
 #### Scenario: Disable a POI category
 - **WHEN** a user disables a previously enabled POI category
@@ -58,19 +58,17 @@ The Planner SHALL load POIs only within the current map viewport, refreshing whe
 
 #### Scenario: Cached results
 - **WHEN** the user pans back to a previously viewed area within 10 minutes
-- **THEN** cached POI results are displayed without a new Overpass query
+- **THEN** cached POI results are displayed without a new POI request
 
-### Requirement: Overpass rate limit handling
-The Planner SHALL handle Overpass API rate limits gracefully.
+### Requirement: POI service degradation handling
+The Planner SHALL handle POI endpoint failures gracefully.
 
 #### Scenario: Rate limited response
-- **WHEN** the Overpass API returns a 429 status
+- **WHEN** `/api/pois` returns a 429 status
 - **THEN** the Planner shows a temporary "POI data unavailable — try again shortly" message and sets a backoff delay before the next request
 
-Note: automatic retry is not implemented. The next request fires only on the next user viewport change or category toggle after the backoff delay has elapsed.
-
-#### Scenario: Overpass unavailable
-- **WHEN** the Overpass API is unreachable
+#### Scenario: POI service unavailable
+- **WHEN** `/api/pois` is unreachable or returns a server error
 - **THEN** the Planner shows a message and tile overlays continue to function normally
 
 ### Requirement: Profile-aware POI defaults
