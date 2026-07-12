@@ -117,8 +117,14 @@ log "building classified staging table"
   cat <<'SQL'
 DROP TABLE IF EXISTS planner.pois_staging;
 CREATE TABLE planner.pois_staging (LIKE planner.pois INCLUDING DEFAULTS);
+-- DISTINCT ON collapses an element that matches a category through more than
+-- one selector (e.g. shelter = amenity=shelter OR tourism=wilderness_hut; an
+-- element tagged with both would otherwise produce two identical rows and
+-- violate the (osm_type, osm_id, category) PK). This mirrors
+-- matchingCategoryIds: one row per (element, category).
 INSERT INTO planner.pois_staging (osm_type, osm_id, category, name, geom, tags, imported_at)
-SELECT r.doc->>'osm_type',
+SELECT DISTINCT ON (r.doc->>'osm_type', r.doc->>'osm_id', s.category)
+       r.doc->>'osm_type',
        r.doc->>'osm_id',
        s.category,
        r.doc->>'name',
@@ -126,7 +132,8 @@ SELECT r.doc->>'osm_type',
        COALESCE(r.doc->'tags', '{}'::jsonb),
        now()
 FROM planner.pois_raw_import r
-JOIN poi_selector s ON r.doc->'tags'->>s.key = s.value;
+JOIN poi_selector s ON r.doc->'tags'->>s.key = s.value
+ORDER BY r.doc->>'osm_type', r.doc->>'osm_id', s.category;
 ALTER TABLE planner.pois_staging
   ADD CONSTRAINT pois_staging_pkey PRIMARY KEY (osm_type, osm_id, category);
 CREATE INDEX pois_staging_geom_idx ON planner.pois_staging USING gist (geom);
