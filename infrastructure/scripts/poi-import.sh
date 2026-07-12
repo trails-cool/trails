@@ -151,7 +151,7 @@ ALTER TABLE planner.pois_staging RENAME TO pois;
 -- `db:push` sees no drift. pois_old still holds the old canonical names until
 -- it's dropped, so free them first.
 DROP TABLE planner.pois_old;
-ALTER TABLE planner.pois RENAME CONSTRAINT pois_staging_pkey TO pois_osm_type_osm_id_category_pk;
+ALTER TABLE planner.pois RENAME CONSTRAINT pois_staging_pkey TO pois_pkey;
 ALTER INDEX planner.pois_staging_geom_idx RENAME TO pois_geom_idx;
 ALTER INDEX planner.pois_staging_category_idx RENAME TO pois_category_idx;
 COMMIT;

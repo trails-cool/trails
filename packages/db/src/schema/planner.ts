@@ -52,7 +52,9 @@ export const pois = plannerSchema.table("pois", {
   tags: jsonb("tags").$type<Record<string, string>>().notNull(),
   importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  pk: primaryKey({ columns: [t.osmType, t.osmId, t.category] }),
+  // Named explicitly so the import job's atomic swap can rename the staging
+  // table's PK to this exact name — keeping `db:push` drift-free post-swap.
+  pk: primaryKey({ name: "pois_pkey", columns: [t.osmType, t.osmId, t.category] }),
   // GiST spatial index for the bbox intersection in the serving query.
   geomIdx: index("pois_geom_idx").using("gist", t.geom),
   // btree on category so `category = ANY($cats)` is index-driven.
