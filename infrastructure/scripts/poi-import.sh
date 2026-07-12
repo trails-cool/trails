@@ -105,10 +105,16 @@ gunzip -c "$ARTIFACT" | psql -c \
 # One transaction: temp selector table (from map-core) → pois_staging built
 # LIKE the live table so structure/defaults match the Drizzle schema exactly →
 # classified insert → indexes. The 70% guard + swap run in step 5.
+#
+# The selector SQL is streamed from the host into psql's stdin (not `\i`, which
+# would look for the file inside the postgres container, where it doesn't
+# exist). BEGIN + selectors + the build statements are concatenated into one
+# session so the ON COMMIT DROP temp table lives for the whole transaction.
 log "building classified staging table"
-psql <<SQL || fail "staging build failed"
-BEGIN;
-\\i $SELECTORS_SQL
+{
+  echo "BEGIN;"
+  cat "$SELECTORS_SQL"
+  cat <<'SQL'
 DROP TABLE IF EXISTS planner.pois_staging;
 CREATE TABLE planner.pois_staging (LIKE planner.pois INCLUDING DEFAULTS);
 INSERT INTO planner.pois_staging (osm_type, osm_id, category, name, geom, tags, imported_at)
@@ -127,6 +133,7 @@ CREATE INDEX pois_staging_geom_idx ON planner.pois_staging USING gist (geom);
 CREATE INDEX pois_staging_category_idx ON planner.pois_staging (category);
 COMMIT;
 SQL
+} | psql || fail "staging build failed"
 
 STAGING_ROWS="$(psql -tA -c "SELECT count(*) FROM planner.pois_staging;")"
 LIVE_ROWS="$(psql -tA -c "SELECT count(*) FROM planner.pois;")"
