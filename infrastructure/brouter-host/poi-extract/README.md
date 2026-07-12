@@ -48,8 +48,12 @@ artifact is unreachable from the public internet.
 
 ## Prerequisites
 
-Install on the host: `osmium-tool`, `python3`, `curl`, `gzip`, `coreutils`
-(`sha256sum`). On Debian/Ubuntu: `apt install osmium-tool python3`.
+- **Docker** — osmium runs in a container (`osmium.Dockerfile`, built on first
+  use as `trails-osmium:local`). The BRouter host's `trails` user is non-root
+  with no sudo, so osmium can't be apt-installed; docker-group rights cover it.
+  On Linux this adds no meaningful overhead — big files are bind-mounted, so I/O
+  is native.
+- **On the host** (already present): `python3`, `curl`, `gzip`, `sha256sum`.
 
 ## Install the timer
 
@@ -75,7 +79,8 @@ poi-extract.service` then `journalctl --user -u poi-extract.service -f`.
   (~4 GB) for a smaller instance.
 - **Disk**: the planet PBF + filtered PBF live transiently in `./work` and are
   removed on exit (even on failure) via a trap. Peak transient usage ≈ size of
-  the PBF. The published artifact is a few hundred MB gzipped.
+  the PBF. The `trails` user's `/home` has ~595 GB free (as of 2026-07) — ample
+  for an ~80 GB planet run. The published artifact is a few hundred MB gzipped.
 - **CPU/time**: a full planet filter is IO-bound and can take a few hours; the
   unit runs at `Nice=10` / idle IO priority so it doesn't disturb BRouter.
 
