@@ -78,9 +78,9 @@ poi-extract.service` then `journalctl --user -u poi-extract.service -f`.
   this — e.g. `europe-latest.osm.pbf` (~30 GB) or `germany-latest.osm.pbf`
   (~4 GB) for a smaller instance.
 - **Disk**: the planet PBF + filtered PBF live transiently in `./work` and are
-  removed on exit (even on failure) via a trap. Peak transient usage ≈ size of
-  the PBF. The `trails` user's `/home` has ~595 GB free (as of 2026-07) — ample
-  for an ~80 GB planet run. The published artifact is a few hundred MB gzipped.
+  removed on exit (even on failure) via a trap, so peak usage ≈ the PBF size
+  (tens of GB for planet). The published artifact is a few hundred MB gzipped.
+  Check the host has room for one PBF before a planet run (`df -h ~`).
 - **CPU/time**: a full planet filter is IO-bound and can take a few hours; the
   unit runs at `Nice=10` / idle IO priority so it doesn't disturb BRouter.
 
