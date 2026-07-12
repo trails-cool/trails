@@ -94,7 +94,6 @@ services:
     environment:
       BROUTER_URL: ${BROUTER_URL:?BROUTER_URL must be set}
       BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set}
-      OVERPASS_URLS: ${OVERPASS_URLS:-https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter}
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/${STAGING_DATABASE}
       NODE_ENV: production
       PORT: 3001

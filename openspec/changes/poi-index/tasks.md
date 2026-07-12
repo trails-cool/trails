@@ -1,12 +1,12 @@
 ## 1. Category selectors (single source of truth)
 
-- [ ] 1.1 Refactor `packages/map-core/src/poi.ts`: replace Overpass QL `query` strings with structured `selectors: Array<{key, value}>` per category; update `poi.test.ts`
-- [ ] 1.2 Add a helper that renders the selectors as an osmium tag-filter expression list (used by the pipeline; unit-tested against the nine categories)
+- [x] 1.1 Refactor `packages/map-core/src/poi.ts`: replace Overpass QL `query` strings with structured `selectors: Array<{key, value}>` per category; update `poi.test.ts`
+- [x] 1.2 Add a helper that renders the selectors as an osmium tag-filter expression list (used by the pipeline; unit-tested against the nine categories)
 
 ## 2. Schema
 
-- [ ] 2.1 Add `planner.pois` to `packages/db` (osm_type, osm_id, category, name, geom Point 4326, tags jsonb, imported_at; PK (osm_type, osm_id, category); GiST on geom, btree on category) + migration
-- [ ] 2.2 `pnpm db:push` locally and verify bbox+category query plans use the indexes
+- [x] 2.1 Add `planner.pois` to `packages/db` (osm_type, osm_id, category, name, geom Point 4326, tags jsonb, imported_at; PK (osm_type, osm_id, category); GiST on geom, btree on category) + migration
+- [ ] 2.2 `pnpm db:push` locally and verify bbox+category query plans use the indexes _(needs a local PostGIS; run `pnpm dev:services && pnpm db:push`)_
 
 ## 3. Extract pipeline (BRouter host)
 
@@ -24,18 +24,18 @@
 
 ## 5. Serving route
 
-- [ ] 5.1 Create `apps/planner/app/routes/api.pois.ts` (GET bbox + categories): same-origin + session checks, 120/IP/min rate limit (no DB query on rejection), 100-result cap, short Cache-Control; register in `apps/planner/app/routes.ts`
-- [ ] 5.2 Unit tests: happy path, invalid bbox/categories 400, 429 path, empty-table graceful response
+- [x] 5.1 Create `apps/planner/app/routes/api.pois.ts` (GET bbox + categories): same-origin + session checks, 120/IP/min rate limit (no DB query on rejection), 100-result cap, short Cache-Control; register in `apps/planner/app/routes.ts`
+- [x] 5.2 Unit tests: happy path, invalid bbox/categories 400, 429 path, empty-table graceful response
 
 ## 6. Client switch
 
-- [ ] 6.1 Rewrite `apps/planner/app/lib/overpass.ts` as the `/api/pois` client (keep `Poi` shape, `quantizeBbox`, error mapping; drop QL building); rename file to `pois.ts` and update imports (`use-pois`, `use-nearby-pois`, snap-to-poi)
-- [ ] 6.2 Update client tests; verify the existing rate-limit banner and unavailable message fire on 429/5xx from `/api/pois`
-- [ ] 6.3 Delete `apps/planner/app/routes/api.overpass.ts` and its tests; remove the route registration and the private.coffee configuration
+- [x] 6.1 Rewrite `apps/planner/app/lib/overpass.ts` as the `/api/pois` client (keep `Poi` shape, `quantizeBbox`, error mapping; drop QL building); rename file to `pois.ts` and update imports (`use-pois`, `use-nearby-pois`, snap-to-poi)
+- [x] 6.2 Update client tests; verify the existing rate-limit banner and unavailable message fire on 429/5xx from `/api/pois`
+- [x] 6.3 Delete `apps/planner/app/routes/api.overpass.ts` and its tests; remove the route registration and the private.coffee configuration (`OVERPASS_URLS` kept for the Journal surface backfill; removed from the planner service in both compose files)
 
 ## 7. Observability
 
-- [ ] 7.1 Add `poi_index_rows{category}`, `poi_index_age_seconds`, import outcome, and `poi_api_requests_total{status}` metrics; remove `overpass_upstream_*` metrics from `metrics.server.ts`
+- [x] 7.1 Add `poi_index_rows{category}`, `poi_index_age_seconds`, import outcome, and `poi_api_requests_total{status}` metrics; remove `overpass_upstream_*` metrics from `metrics.server.ts` (planner exposes rows/age via scrape-time DB collect + `poi_api_requests_total`; import outcome is emitted by the import job via node_exporter textfile — see Task 4)
 - [ ] 7.2 Update the Grafana planner dashboard: replace Overpass upstream panels with index freshness + serving panels; add the stale-index alert (~6 weeks)
 
 ## 8. Docs & cleanup

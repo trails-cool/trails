@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchNearbyPois, OverpassRateLimitError, type Poi } from "./overpass.ts";
+import { fetchNearbyPois, PoiRateLimitError, type Poi } from "./pois.ts";
 import { poiCategories } from "@trails-cool/map-core";
 
 const NEARBY_RADIUS_METERS = 500;
@@ -53,7 +53,7 @@ export function useNearbyPois(
         }
       } catch (err) {
         if (controller.signal.aborted) return;
-        if (err instanceof OverpassRateLimitError) {
+        if (err instanceof PoiRateLimitError) {
           rateLimitedUntilRef.current = Date.now() + RATE_LIMIT_SUPPRESS_MS;
           setState({ pois: [], status: "rate_limited" });
         } else {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { quantize, getCellKeys, getCached, setCached, clearCache } from "./poi-cache.ts";
-import type { Poi } from "./overpass.ts";
+import type { Poi } from "./pois.ts";
 
 beforeEach(() => {
   clearCache();

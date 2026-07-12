@@ -103,12 +103,6 @@ services:
       # BRouter request. The Caddy sidecar on the dedicated host
       # enforces this header. Set in SOPS secrets.app.env.
       BROUTER_AUTH_TOKEN: ${BROUTER_AUTH_TOKEN:?BROUTER_AUTH_TOKEN must be set in SOPS secrets.app.env}
-      # Ordered failover list for the Overpass proxy. The code defaults
-      # to the same pair if unset; declaring it here makes the prod
-      # upstream explicit and easy to reshuffle via env when a
-      # community instance misbehaves. Override per-env with
-      # OVERPASS_URLS in the SOPS file.
-      OVERPASS_URLS: ${OVERPASS_URLS:-https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter}
       DATABASE_URL: postgres://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/trails
       NODE_ENV: production
       PORT: 3001

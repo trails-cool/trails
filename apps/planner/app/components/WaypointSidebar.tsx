@@ -6,7 +6,7 @@ import { setOvernight } from "~/lib/overnight";
 import { DayBreakdown } from "./DayBreakdown";
 import { useNearbyPois } from "~/lib/use-nearby-pois";
 import { poiCategories } from "@trails-cool/map-core";
-import type { Poi } from "~/lib/overpass";
+import type { Poi } from "~/lib/pois";
 import {
   extractWaypointData,
   waypointFromYMap,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { queryPois, OverpassRateLimitError, type Poi, type BBox } from "./overpass.ts";
+import { queryPois, PoiRateLimitError, type Poi, type BBox } from "./pois.ts";
 import { getCached, setCached } from "./poi-cache.ts";
 import { poiCategories } from "@trails-cool/map-core";
 
@@ -86,7 +86,7 @@ export function usePois(sessionId: string): PoiState {
         } catch (err) {
           if (controller.signal.aborted) return;
 
-          if (err instanceof OverpassRateLimitError) {
+          if (err instanceof PoiRateLimitError) {
             setStatus("rate_limited");
             backoffRef.current = Math.min(
               (backoffRef.current || BACKOFF_BASE_MS) * 2,

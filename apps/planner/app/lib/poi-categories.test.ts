@@ -40,7 +40,7 @@ describe("poiCategories", () => {
       expect(cat.name).toBeTruthy();
       expect(cat.icon).toBeTruthy();
       expect(cat.color).toMatch(/^#/);
-      expect(cat.query).toContain("nwr");
+      expect(cat.selectors.length).toBeGreaterThan(0);
     }
   });
 });

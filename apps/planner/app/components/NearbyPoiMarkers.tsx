@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { Marker, Tooltip } from "react-leaflet";
-import type { Poi } from "~/lib/overpass";
+import type { Poi } from "~/lib/pois";
 import type { PoiCategory } from "@trails-cool/map-core";
 
 interface NearbyPoiMarkersProps {
