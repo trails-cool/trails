@@ -6,8 +6,7 @@ half of the [`poi-index`](../../../openspec/changes/poi-index/) change — it
 replaces the third-party Overpass dependency for the Planner's POI overlays.
 
 Runs on the BRouter host as a non-root user (docker-group rights, no sudo). The
-flagship import job (`infrastructure/scripts/poi-import.sh`) pulls the result
-over the vSwitch.
+flagship import job (`infrastructure/scripts/poi-import.sh`) pulls the result.
 
 ## Files
 
@@ -42,9 +41,9 @@ the Caddy sidecar at `/srv/poi`):
   map-core selectors (so the selector logic is never duplicated on this host).
 - `manifest.json` — `{artifact, sha256, row_count, generated_at, source}`.
 
-Caddy serves both under `/poi/*` on the existing vSwitch-only `:17777`
-listener, gated by the same `X-BRouter-Auth` shared secret as BRouter — so the
-artifact is unreachable from the public internet.
+Caddy serves both under `/poi/*` on the existing BRouter listener, gated by the
+same `X-BRouter-Auth` shared secret — so the artifact is reachable only by the
+importer, not the public internet.
 
 ## Prerequisites
 
@@ -107,7 +106,7 @@ POI_ARTIFACT_BASE_URL=file-or-vswitch-url \
 
 On a single-host instance, publish the artifact however is convenient (local
 path, a static file server) and set `POI_ARTIFACT_BASE_URL` accordingly; the
-two-host vSwitch topology is a flagship detail, not a requirement.
+two-host split is a flagship detail, not a requirement.
 
 ## Dry run first
 
