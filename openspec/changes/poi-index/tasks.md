@@ -36,16 +36,16 @@
 ## 7. Observability
 
 - [x] 7.1 Add `poi_index_rows{category}`, `poi_index_age_seconds`, import outcome, and `poi_api_requests_total{status}` metrics; remove `overpass_upstream_*` metrics from `metrics.server.ts` (planner exposes rows/age via scrape-time DB collect + `poi_api_requests_total`; import outcome is emitted by the import job via node_exporter textfile — see Task 4)
-- [ ] 7.2 Update the Grafana planner dashboard: replace Overpass upstream panels with index freshness + serving panels; add the stale-index alert (~6 weeks)
+- [x] 7.2 Update the Grafana planner dashboard: replace Overpass upstream panels with index freshness + serving panels; add the stale-index alert (~6 weeks) (`poi-index-stale` in alerts.yml)
 
 ## 8. Docs & cleanup
 
-- [ ] 8.1 Update `docs/architecture.md` (POI data flow) and the privacy documentation (no third-party POI requests)
-- [ ] 8.2 Document the self-hoster story: optional pipeline, regional extract URL, graceful behavior with an empty index
-- [ ] 8.3 Update `docs/ideas/self-host-overpass/README.md`: superseded by `poi-index`, with the revive-criteria note kept for the QL-compatibility case
+- [x] 8.1 Update `docs/architecture.md` (POI data flow) and the privacy documentation (Overpass now Journal-surface-backfill-only; Planner POIs served same-origin)
+- [x] 8.2 Document the self-hoster story: optional pipeline, regional extract URL, graceful behavior with an empty index (poi-extract README)
+- [x] 8.3 Update `docs/ideas/self-host-overpass/README.md`: superseded by `poi-index`, with the revive-criteria note kept for the QL-compatibility case (+ roadmap pointer)
 
 ## 9. Verification
 
-- [ ] 9.1 E2E: POI overlay flow against a seeded local `planner.pois` table (enable category → markers appear; popup shows name/hours/OSM link)
-- [ ] 9.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e`
-- [ ] 9.3 Post-cutover production check: enable each of the nine categories on a busy viewport and a rural viewport; confirm results and dashboard metrics
+- [x] 9.1 E2E: POI overlay flow (enable category → markers appear) — `e2e/planner-overlays.test.ts` + nearby-snap in `planner-routing.test.ts` now mock `/api/pois` (network-mock is the house pattern; a DB-seeded variant is possible but the route's SQL path is covered by `api.pois.test.ts`)
+- [ ] 9.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` _(typecheck + lint + unit all green; e2e needs the local stack — run before merge)_
+- [ ] 9.3 Post-cutover production check: enable each of the nine categories on a busy viewport and a rural viewport; confirm results and dashboard metrics _(operational: after the first production import)_

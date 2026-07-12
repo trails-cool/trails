@@ -79,6 +79,31 @@ poi-extract.service` then `journalctl --user -u poi-extract.service -f`.
 - **CPU/time**: a full planet filter is IO-bound and can take a few hours; the
   unit runs at `Nice=10` / idle IO priority so it doesn't disturb BRouter.
 
+## Self-hosting
+
+The pipeline is **optional**. A fresh instance works with an empty or absent
+`planner.pois` table: `/api/pois` returns an empty result / 503 and the map's
+POI panel shows "unavailable" while every other overlay and tile keeps working
+— nothing breaks.
+
+When you do want POIs, you don't need a second host or the planet. Both halves
+run on one box, and `POI_PBF_URL` can point at any Geofabrik extract sized to
+your region:
+
+```bash
+# Extract just your region (much smaller download, seconds not hours):
+POI_PBF_URL=https://download.geofabrik.de/europe/germany-latest.osm.pbf \
+  ./poi-extract.sh
+
+# Then import it (first time: --bootstrap, since the live table is empty):
+POI_ARTIFACT_BASE_URL=file-or-vswitch-url \
+  ../../scripts/poi-import.sh --bootstrap
+```
+
+On a single-host instance, publish the artifact however is convenient (local
+path, a static file server) and set `POI_ARTIFACT_BASE_URL` accordingly; the
+two-host vSwitch topology is a flagship detail, not a requirement.
+
 ## Dry run first
 
 Before the first planet run, validate the whole chain on a small extract:

@@ -253,16 +253,16 @@ export default function PrivacyPage() {
             .
           </li>
           <li>
-            <strong>Overpass API</strong> (POI- und Wegbelag-Daten) –
-            POI-Abfragen laufen serverseitig über unsere eigene Route{" "}
-            <code>/api/overpass</code>. Für die Oberflächen-/Wegtyp-Auswertung
-            importierter Aktivitäten und Routen fragt ein Hintergrund-Job das
-            Begrenzungsrechteck (Bounding Box) der Route bei Overpass ab, um sie
-            den OpenStreetMap-Wegen zuzuordnen. In beiden Fällen sieht der
-            Upstream nur unsere Server-IP, nicht die Ihrer Nutzer:innen.
-            Aktueller Upstream: <code>overpass.private.coffee</code> bzw. die
-            öffentlichen Overpass-Instanzen, die ohne Query-Logs arbeiten. Eine
-            selbst gehostete Instanz ist geplant.
+            <strong>Overpass API</strong> (Wegbelag-Daten) – Für die
+            Oberflächen-/Wegtyp-Auswertung importierter Aktivitäten und Routen
+            fragt ein Hintergrund-Job das Begrenzungsrechteck (Bounding Box) der
+            Route bei Overpass ab, um sie den OpenStreetMap-Wegen zuzuordnen.
+            Der Upstream sieht nur unsere Server-IP, nicht die Ihrer
+            Nutzer:innen; verwendet werden öffentliche Overpass-Instanzen, die
+            ohne Query-Logs arbeiten. Die POI-Overlays des Planners nutzen
+            Overpass <em>nicht</em> mehr – sie werden aus unserem eigenen,
+            selbst gehosteten POI-Index (<code>/api/pois</code>) bedient, sodass
+            dabei keine Daten an Dritte gehen.
           </li>
           <li>
             <strong>Föderation (ActivityPub)</strong> – Wenn Ihr Profil auf{" "}
@@ -339,9 +339,11 @@ export default function PrivacyPage() {
           details, no IPs/cookies); OpenStreetMap tile servers
           (your IP and user-agent, directly from your browser, to load map
           tiles); Overpass (via our server, so upstream only sees our server —
-          for POI lookups and, for the surface/waytype breakdown of imported
-          activities and routes, a background job that sends the route&rsquo;s
-          bounding box to match it against OpenStreetMap ways); BRouter
+          for the surface/waytype breakdown of imported activities and routes, a
+          background job that sends the route&rsquo;s bounding box to match it
+          against OpenStreetMap ways; the Planner&rsquo;s POI overlays no longer
+          use Overpass — they are served from our own self-hosted POI index at{" "}
+          <code>/api/pois</code>); BRouter
           (self-hosted, no third party involved); SMTP
           provider (your email address for magic link / welcome mail);
           Wahoo (only when you opt in: OAuth tokens for sync, plus route

@@ -83,7 +83,7 @@ See `docs/ideas/` for pre-spec explorations:
 
 - `mobile-activity-recording/` — GPS tracking and activity logging from a native app
 - `mobile-nearby-sync/` — BLE-based proximity discovery
-- `self-host-overpass/` — Self-hosted Overpass API for POI overlays
+- `self-host-overpass/` — Self-hosted Overpass API (superseded for POI overlays by the shipped `poi-index`; revive only if we need Overpass QL or to own the surface-backfill upstream)
 - `instance-administration.md` — admin role, registration toggle, suspend/ban, federation blocklists, reports
 - `social-interactions.md` — local likes + comments (the foundation the federated kudos/comments attach to)
 - `activity-participants.md` — tag co-riders on shared activities, confirm/decline, federated mentions

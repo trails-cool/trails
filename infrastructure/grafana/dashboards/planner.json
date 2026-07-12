@@ -99,7 +99,7 @@
       ]
     },
     {
-      "title": "Overpass Upstream Health (5m success rate)",
+      "title": "POI Index Age",
       "type": "stat",
       "gridPos": {
         "h": 5,
@@ -109,8 +109,83 @@
       },
       "targets": [
         {
-          "expr": "(sum(rate(overpass_upstream_requests_total{status=~\"2..\"}[5m])) or vector(0)) / sum(rate(overpass_upstream_requests_total[5m]))",
-          "legendFormat": "success"
+          "expr": "poi_index_age_seconds",
+          "legendFormat": "age"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 3024000 },
+              { "color": "red", "value": 3628800 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "POI Index Rows (total)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 14
+      },
+      "targets": [
+        {
+          "expr": "sum(poi_index_rows)",
+          "legendFormat": "rows"
+        }
+      ]
+    },
+    {
+      "title": "Last Import Status",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 14
+      },
+      "targets": [
+        {
+          "expr": "poi_import_last_status",
+          "legendFormat": "status"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "FAIL", "color": "red" }, "1": { "text": "OK", "color": "green" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "POI API Error Rate (5m)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 14
+      },
+      "targets": [
+        {
+          "expr": "(sum(rate(poi_api_requests_total{status=~\"rate_limited|error\"}[5m])) or vector(0)) / clamp_min(sum(rate(poi_api_requests_total[5m])), 0.001)",
+          "legendFormat": "error ratio"
         }
       ],
       "fieldConfig": {
@@ -121,76 +196,16 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 0.9 },
-              { "color": "green", "value": 0.99 }
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.05 },
+              { "color": "red", "value": 0.2 }
             ]
           }
         }
       }
     },
     {
-      "title": "Overpass Cache Hit Ratio (5m)",
-      "type": "stat",
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 6,
-        "y": 14
-      },
-      "targets": [
-        {
-          "expr": "(sum(rate(overpass_cache_events_total{result=\"hit\"}[5m])) or vector(0)) / sum(rate(overpass_cache_events_total[5m]))",
-          "legendFormat": "hit ratio"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1
-        }
-      }
-    },
-    {
-      "title": "Overpass Cache Size",
-      "type": "stat",
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 12,
-        "y": 14
-      },
-      "targets": [
-        {
-          "expr": "overpass_cache_size",
-          "legendFormat": "entries"
-        }
-      ]
-    },
-    {
-      "title": "Overpass Upstream p95",
-      "type": "stat",
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 18,
-        "y": 14
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(overpass_upstream_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p95"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        }
-      }
-    },
-    {
-      "title": "Overpass Cache Events",
+      "title": "POI API Requests (5m by status)",
       "type": "timeseries",
       "gridPos": {
         "h": 7,
@@ -200,28 +215,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (result) (rate(overpass_cache_events_total[5m]))",
-          "legendFormat": "{{result}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        }
-      }
-    },
-    {
-      "title": "Overpass Upstream Status",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 19
-      },
-      "targets": [
-        {
-          "expr": "sum by (status) (rate(overpass_upstream_requests_total[5m]))",
+          "expr": "sum by (status) (rate(poi_api_requests_total[5m]))",
           "legendFormat": "{{status}}"
         }
       ],
@@ -232,33 +226,20 @@
       }
     },
     {
-      "title": "Overpass Upstream Latency",
+      "title": "POI Index Rows by Category",
       "type": "timeseries",
       "gridPos": {
         "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 26
+        "w": 12,
+        "x": 12,
+        "y": 19
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(overpass_upstream_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p50"
-        },
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(overpass_upstream_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p95"
-        },
-        {
-          "expr": "histogram_quantile(0.99, sum(rate(overpass_upstream_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p99"
+          "expr": "poi_index_rows",
+          "legendFormat": "{{category}}"
         }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        }
-      }
+      ]
     }
   ]
 }

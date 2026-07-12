@@ -265,16 +265,16 @@ groups:
         annotations:
           summary: "Prometheus TSDB compaction or WAL is failing — metric retention is at risk. Check the WAL for a corrupt segment (this silently capped retention to ~2h before)."
 
-      # Overpass upstream health. The public Overpass servers the Planner
-      # proxies to (overpass-api.de / lz4) flake — rate-limiting (429) and
-      # stalls. This alerts on a *sustained* upstream failure rate (>20%
-      # over 10m), distinct from the Caddy-502 alert which only sees the
-      # symptom. Brief blips (e.g. the ~30s stall on 2026-06-08) won't
-      # page; sustained degradation will. client-abort is excluded (that's
-      # the caller giving up, not the upstream failing). Per-status detail
-      # lives on the Planner dashboard.
-      - uid: overpass-upstream-unhealthy
-        title: Overpass upstream failure rate high
+      # POI index freshness. POIs are served from the self-hosted
+      # `planner.pois` index, refreshed by a monthly extract+import. If the
+      # index age exceeds ~6 weeks the monthly refresh has missed a cycle
+      # (extract job, vSwitch transfer, checksum, guard, or import failed) and
+      # the data is going stale. `poi_index_age_seconds` is published by the
+      # Planner from its own DB; a growing value also covers a silently-failing
+      # import (the guard refuses to swap, so age keeps climbing). Import-run
+      # detail lives on the Planner dashboard (poi_import_last_status).
+      - uid: poi-index-stale
+        title: POI index is stale
         condition: B
         noDataState: OK
         data:
@@ -282,7 +282,7 @@ groups:
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: prometheus
             model:
-              expr: (sum(rate(overpass_upstream_requests_total{status!~"2..|client-abort"}[10m])) or vector(0)) / clamp_min(sum(rate(overpass_upstream_requests_total[10m])), 0.001) * 100
+              expr: max(poi_index_age_seconds)
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -290,12 +290,13 @@ groups:
               type: threshold
               expression: A
               conditions:
-                - evaluator: { params: [20], type: gt }
+                # 6 weeks = 3628800s — one missed monthly refresh.
+                - evaluator: { params: [3628800], type: gt }
                   operator: { type: and }
                   reducer: { type: last }
-        for: 10m
+        for: 1h
         annotations:
-          summary: "Overpass upstream failure rate above 20% over 10m — public Overpass servers are degraded or rate-limiting. See the Planner dashboard; weigh self-hosting Overpass."
+          summary: "POI index age exceeds 6 weeks — the monthly refresh has missed a cycle. Check the poi-extract timer on the BRouter host and poi-import on the flagship (Planner dashboard: Last Import Status)."
 
 contactPoints:
   # Single "default" contact point with multiple integrations: every alert
