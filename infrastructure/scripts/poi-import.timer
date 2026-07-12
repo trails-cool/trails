@@ -1,0 +1,12 @@
+# Monthly POI import, offset a day after the BRouter host's extract (which runs
+# on the 1st) so the fresh artifact is already published when this pulls it.
+[Unit]
+Description=Monthly trails.cool POI index import
+
+[Timer]
+OnCalendar=*-*-02 04:00:00
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

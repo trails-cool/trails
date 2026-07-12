@@ -1,4 +1,4 @@
-import type { Poi, BBox } from "./overpass.ts";
+import type { Poi, BBox } from "./pois.ts";
 
 const CELL_SIZE = 0.1; // degrees
 const TTL = 10 * 60 * 1000; // 10 minutes

@@ -790,8 +790,12 @@ Base layers:
 
 Overlays (toggleable):
 - **OpenCampingMap** (campsites, shelters — essential for bikepacking)
-- **POI overlay**: Water points, shelters, bike repair stations
-  (sourced from OSM Overpass API or pre-cached)
+- **POI overlay**: Water points, shelters, bike repair stations, etc. Served
+  from the instance's own `planner.pois` index via `/api/pois` — a PostGIS
+  table built monthly from an OSM extract (osmium filter on the BRouter host →
+  guarded atomic import on the flagship). No third-party POI service is
+  contacted; viewport coordinates never leave trails.cool. See the
+  `poi-index` change and `infrastructure/brouter-host/poi-extract/`.
 - **Waymarked Trails** (hiking/cycling trail networks)
 
 Implementation: Leaflet layer switcher with tile URLs. No API keys needed

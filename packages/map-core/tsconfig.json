@@ -4,5 +4,11 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // *.sync.test.ts use node:fs to compare committed generated files
+  // (osmium-filters.txt, poi-selectors.sql) against the selectors. They run
+  // under vitest (node builtins provided) but are excluded from `tsc` so
+  // map-core keeps its zero-dependency, node-free type surface. All other
+  // tests are still typechecked.
+  "exclude": ["node_modules", "build", "dist", "src/**/*.sync.test.ts"]
 }

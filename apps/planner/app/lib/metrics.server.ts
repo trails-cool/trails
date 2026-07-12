@@ -1,4 +1,7 @@
 import client from "prom-client";
+import { sql } from "drizzle-orm";
+import { pois } from "@trails-cool/db/schema/planner";
+import { getDb } from "./db.ts";
 
 // Guard all metric registration — Vite's dev server can re-evaluate
 // this module, causing "already registered" errors.
@@ -41,39 +44,58 @@ export const brouterRequestDuration = getOrCreate("brouter_request_duration_seco
   }),
 );
 
-export const overpassCacheEvents = getOrCreate("overpass_cache_events_total", () =>
+// POI serving endpoint (`/api/pois`) request counter. `status` is the
+// outcome class: ok | rate_limited | bad_request | forbidden | unauthorized
+// | error. Replaces the former Overpass proxy/upstream metrics now that POIs
+// are served from the local index.
+export const poiApiRequests = getOrCreate("poi_api_requests_total", () =>
   new client.Counter({
-    name: "overpass_cache_events_total",
-    help: "Overpass proxy cache events",
-    labelNames: ["result"] as const, // hit | miss | coalesced
+    name: "poi_api_requests_total",
+    help: "POI serving endpoint requests by outcome status",
+    labelNames: ["status"] as const,
   }),
 );
 
-export const overpassCacheSize = getOrCreate("overpass_cache_size", () =>
+// Index size per category, computed from the planner's own DB at scrape time
+// (prom-client binds `this` to the gauge inside `collect`).
+export const poiIndexRows = getOrCreate("poi_index_rows", () =>
   new client.Gauge({
-    name: "overpass_cache_size",
-    help: "Current number of entries in the Overpass proxy cache",
+    name: "poi_index_rows",
+    help: "Number of POIs in the local index per category",
+    labelNames: ["category"] as const,
+    async collect() {
+      try {
+        const rows = await getDb()
+          .select({ category: pois.category, count: sql<number>`count(*)::int` })
+          .from(pois)
+          .groupBy(pois.category);
+        this.reset();
+        for (const r of rows) this.set({ category: r.category }, r.count);
+      } catch {
+        // DB unavailable or table not yet created — leave last known values.
+      }
+    },
   }),
 );
 
-export const overpassUpstreamDuration = getOrCreate("overpass_upstream_duration_seconds", () =>
-  new client.Histogram({
-    name: "overpass_upstream_duration_seconds",
-    help: "Duration of upstream Overpass API requests in seconds",
-    labelNames: ["upstream"] as const,
-    // Buckets go to 30s because our per-upstream timeout is 10s; a bit
-    // of headroom catches slow-but-not-timed-out tails without overly
-    // coarse resolution at the fast end where lz4 typically lands
-    // (~100–500ms).
-    buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 30],
-  }),
-);
-
-export const overpassUpstreamRequests = getOrCreate("overpass_upstream_requests_total", () =>
-  new client.Counter({
-    name: "overpass_upstream_requests_total",
-    help: "Upstream Overpass API requests by upstream host and status",
-    labelNames: ["upstream", "status"] as const,
+// Age of the freshest imported POI row, in seconds. Drives the stale-index
+// alert (~6 weeks = one missed monthly refresh).
+export const poiIndexAgeSeconds = getOrCreate("poi_index_age_seconds", () =>
+  new client.Gauge({
+    name: "poi_index_age_seconds",
+    help: "Seconds since the most recent POI index import",
+    async collect() {
+      try {
+        const [row] = await getDb()
+          .select({
+            age: sql<number | null>`extract(epoch from (now() - max(${pois.importedAt})))::float`,
+          })
+          .from(pois);
+        if (row?.age != null) this.set(row.age);
+      } catch {
+        // DB unavailable or empty index — leave last known value.
+      }
+    },
   }),
 );
 

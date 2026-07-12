@@ -328,14 +328,15 @@ test.describe("Integration: BRouter routing", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("rejects /api/overpass without an X-Trails-Session header", async ({ request }) => {
-    const response = await request.post(`${PLANNER}/api/overpass`, {
-      data: "data=[out:json];node[amenity=drinking_water](52.52,13.4,52.53,13.41);out;",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Origin: PLANNER,
+  test("rejects /api/pois without an X-Trails-Session header", async ({ request }) => {
+    const response = await request.get(
+      `${PLANNER}/api/pois?bbox=52.52,13.40,52.53,13.41&categories=drinking_water`,
+      {
+        headers: {
+          Origin: PLANNER,
+        },
       },
-    });
+    );
     expect(response.status()).toBe(401);
   });
 });

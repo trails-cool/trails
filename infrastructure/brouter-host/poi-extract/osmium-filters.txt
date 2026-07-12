@@ -1,0 +1,3 @@
+nwr/amenity=drinking_water,water_point,shelter,restaurant,cafe,fast_food,pub,biergarten,bicycle_parking,bicycle_repair_station,bicycle_rental,toilets
+nwr/tourism=wilderness_hut,camp_site,caravan_site,hotel,hostel,guest_house,viewpoint
+nwr/shop=supermarket,convenience,bakery

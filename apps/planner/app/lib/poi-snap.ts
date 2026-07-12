@@ -1,4 +1,4 @@
-import type { Poi } from "./overpass.ts";
+import type { Poi } from "./pois.ts";
 import { SNAP_DISTANCE_METERS } from "@trails-cool/map-core";
 
 export interface SnapResult {

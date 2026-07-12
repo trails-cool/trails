@@ -12,8 +12,14 @@ export {
   maxspeedColor,
 } from "./colors/index.ts";
 
-export type { PoiCategory } from "./poi.ts";
-export { poiCategories, getCategoriesForProfile, profileOverlayDefaults } from "./poi.ts";
+export type { PoiCategory, PoiSelector } from "./poi.ts";
+export {
+  poiCategories,
+  getCategoriesForProfile,
+  matchingCategoryIds,
+  osmiumTagFilters,
+  profileOverlayDefaults,
+} from "./poi.ts";
 
 export {
   Z_CURSOR, Z_GHOST_WAYPOINT, Z_WAYPOINT,

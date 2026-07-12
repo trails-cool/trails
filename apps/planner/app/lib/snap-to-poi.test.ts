@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as Y from "yjs";
 import { poiCategories } from "@trails-cool/map-core";
-import type { Poi } from "./overpass.ts";
+import type { Poi } from "./pois.ts";
 
 // Mirrors the snapToPoi logic from WaypointSidebar / PlannerMap
 function snapToPoi(

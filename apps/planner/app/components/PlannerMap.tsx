@@ -29,7 +29,7 @@ import { useGpxDrop } from "~/lib/use-gpx-drop";
 import { useNearbyPois } from "~/lib/use-nearby-pois";
 import { NearbyPoiMarkers } from "./NearbyPoiMarkers";
 import { poiCategories } from "@trails-cool/map-core";
-import type { Poi } from "~/lib/overpass";
+import type { Poi } from "~/lib/pois";
 import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean, hasNote?: boolean): L.DivIcon {

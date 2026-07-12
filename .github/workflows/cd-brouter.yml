@@ -87,6 +87,7 @@ jobs:
           TARBALL_B64=$(tar -C infrastructure/brouter-host -czf - \
             docker-compose.yml Caddyfile promtail-config.yml \
             download-segments.sh .env \
+            poi-extract \
             | base64 -w0)
 
           # One SSH session: untar, (re)start containers, report status
@@ -99,7 +100,7 @@ jobs:
           set -euo pipefail
           mkdir -p ~/brouter && cd ~/brouter
           echo "$TARBALL_B64" | base64 -d | tar -xzf -
-          chmod +x download-segments.sh
+          chmod +x download-segments.sh poi-extract/poi-extract.sh poi-extract/to-ndjson.py
 
           # Segment seeding is a one-shot operator task (~10 GB, a few
           # minutes). CD must not rerun it on every deploy.
