@@ -18,18 +18,40 @@
 import { logger } from "./logger.server.ts";
 import type { JobName, JobPayloads } from "../jobs/payloads.ts";
 
-// Structurally typed (we only need `send`) so we don't have to pull
-// pg-boss into the journal app's dep graph just for the typedef.
+// Structurally typed so we don't have to pull pg-boss into the journal
+// app's dep graph just for the typedef. Kept to the subset feature code
+// actually uses: `send` for enqueues, plus `work`/`offWork`/`createQueue`/
+// `getQueue` for the Fedify message-queue adapter (federation-queue.server.ts).
 export interface BossSendOptions {
   retryLimit?: number;
   retryBackoff?: boolean;
   retryDelay?: number;
+  /** Seconds to defer the job (pg-boss `startAfter`). */
+  startAfter?: number;
   /** pg-boss dedup: collapses enqueues sharing a key into one active job. */
   singletonKey?: string;
 }
 
+/** A pg-boss job as our handlers see it (subset of pg-boss's `Job`). */
+export interface BossJob<T = unknown> {
+  id: string;
+  name: string;
+  data: T;
+}
+
+/** Queue depth counters (subset of pg-boss's `QueueResult`). */
+export interface BossQueueDepth {
+  queuedCount: number;
+  readyCount: number;
+  deferredCount: number;
+}
+
 interface BossLike {
   send(queueName: string, data: unknown, options?: BossSendOptions): Promise<string | null>;
+  work(queueName: string, handler: (jobs: BossJob[]) => Promise<unknown>): Promise<string>;
+  offWork(queueName: string): Promise<void>;
+  createQueue(queueName: string, options?: unknown): Promise<void>;
+  getQueue(queueName: string): Promise<BossQueueDepth | null>;
 }
 
 const BOSS_KEY = Symbol.for("trails-cool.journal.pg-boss");

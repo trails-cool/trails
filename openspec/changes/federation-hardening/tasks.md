@@ -1,8 +1,8 @@
 ## 1. Durable queue
 
-- [ ] 1.1 Implement `federation-queue.server.ts`: Fedify `MessageQueue` over pg-boss (enqueue with delay, listen loop), mirroring the `PostgresKvStore` adapter pattern
-- [ ] 1.2 Swap `InProcessMessageQueue` for it in `federation.server.ts`; document the two-layer queueing (fan-out jobs + Fedify queue) in a code comment
-- [ ] 1.3 Tests: enqueue/delay/consume roundtrip; simulated restart (new listener picks up previously enqueued messages)
+- [x] 1.1 Implement `federation-queue.server.ts`: Fedify `MessageQueue` over pg-boss (enqueue with delay, listen loop), mirroring the `PostgresKvStore` adapter pattern
+- [x] 1.2 Swap `InProcessMessageQueue` for it in `federation.server.ts`; document the two-layer queueing (fan-out jobs + Fedify queue) in a code comment
+- [x] 1.3 Tests: enqueue/delay/consume roundtrip; simulated restart (new listener picks up previously enqueued messages)
 
 ## 2. Replay defense
 
