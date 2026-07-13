@@ -7,8 +7,8 @@
 
 ## 2. Wire into existing computations
 
-- [ ] 2.1 Update `computeElevation` in `packages/gpx/src/parse.ts` to despike per segment, then use `filteredTotals`; keep `gain`/`loss`/`profile` shape and expose `gainRaw`/`lossRaw` as additional fields (profile built from despiked data)
-- [ ] 2.2 Update `elevationSeries` in `packages/gpx/src/elevation-series.ts` to build from despiked points (despike per segment before flattening)
+- [x] 2.1 Update `computeElevation` in `packages/gpx/src/parse.ts` to despike per segment, then use `filteredTotals`; keep `gain`/`loss`/`profile` shape and expose `gainRaw`/`lossRaw` as additional fields (profile built from despiked data)
+- [x] 2.2 Update `elevationSeries` in `packages/gpx/src/elevation-series.ts` to build from despiked points (despike per segment before flattening)
 - [ ] 2.3 Update `compute-days.ts` to build its cumulative ascent/descent arrays via `cumulativeFilteredTotals` over the despiked track
 - [ ] 2.4 Update/extend existing tests (`parse.test.ts`, `elevation-series.test.ts`, `compute-days.test.ts`) with a shared noisy-track fixture; assert chart series, totals, and day sums agree
 

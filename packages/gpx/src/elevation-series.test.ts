@@ -40,4 +40,24 @@ describe("elevationSeries", () => {
     expect(s[0]!.e).toBe(100);
     expect(s[s.length - 1]!.e).toBe(1099);
   });
+
+  it("despikes so the chart agrees with the cleaned stats (no spike survives)", () => {
+    // Same shape as parse.test.ts's noisy track: a 300 m single-point spike
+    // between two ~110 m points must be interpolated out of the chart series.
+    const eles = [100, 104, 101, 110, 300, 112, 118, 115, 122, 130];
+    const seg = eles.map((e, i) => pt(47 + i * 0.001, 8.5, e));
+    const s = elevationSeries([seg]);
+    expect(s).toHaveLength(eles.length);
+    expect(Math.max(...s.map((x) => x.e))).toBeLessThan(200); // spike gone
+    expect(s[0]!.e).toBe(100); // endpoints untouched
+    expect(s[s.length - 1]!.e).toBe(130);
+  });
+
+  it("does not interpolate a spike across a segment boundary", () => {
+    // A lone point that would look like a spike only if joined to the next
+    // segment must be left alone — despiking is per segment.
+    const s = elevationSeries([[pt(47, 8.5, 100), pt(47.001, 8.5, 500)], [pt(47.002, 8.5, 100), pt(47.003, 8.5, 110)]]);
+    // The 500 m point is an endpoint of its own segment → never despiked.
+    expect(s.some((x) => x.e === 500)).toBe(true);
+  });
 });

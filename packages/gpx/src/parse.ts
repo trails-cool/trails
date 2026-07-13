@@ -1,6 +1,7 @@
 import type { Waypoint } from "@trails-cool/types";
 import type { GpxData, TrackPoint, ElevationProfile, NoGoArea } from "./types.ts";
 import { repairTimestamps } from "./timestamp-repair.ts";
+import { despike, filteredTotals, type ElevPoint } from "./elevation-clean.ts";
 
 /**
  * Parse a GPX XML string into structured data.
@@ -173,31 +174,43 @@ function parseNoGoAreas(doc: Document): NoGoArea[] {
 function computeElevation(tracks: TrackPoint[][]): GpxData["elevation"] & { totalDistance: number } {
   let gain = 0;
   let loss = 0;
+  let gainRaw = 0;
+  let lossRaw = 0;
   const profile: ElevationProfile[] = [];
   let totalDistance = 0;
 
+  // Per segment: despike the elevation sequence (isolated GPS/barometer
+  // spikes interpolated out), then take noise-filtered ascent/descent via
+  // hysteresis — so a few metres of jitter per point no longer inflate gain
+  // by 20–50%, and the profile chart is built from the same cleaned data as
+  // the headline totals (spec: elevation-profile-hardening).
   for (const track of tracks) {
+    const eleSeq: ElevPoint[] = [];
     for (let i = 0; i < track.length; i++) {
       const pt = track[i]!;
-
       if (i > 0) {
-        const prev = track[i - 1]!;
-        totalDistance += haversineDistance(prev.lat, prev.lon, pt.lat, pt.lon);
-
-        if (pt.ele !== undefined && prev.ele !== undefined) {
-          const diff = pt.ele - prev.ele;
-          if (diff > 0) gain += diff;
-          else loss += Math.abs(diff);
-        }
+        totalDistance += haversineDistance(track[i - 1]!.lat, track[i - 1]!.lon, pt.lat, pt.lon);
       }
-
-      if (pt.ele !== undefined) {
-        profile.push({ distance: totalDistance, elevation: pt.ele });
-      }
+      if (pt.ele !== undefined) eleSeq.push({ distance: totalDistance, elevation: pt.ele });
     }
+    if (eleSeq.length === 0) continue;
+    const cleaned = despike(eleSeq);
+    const totals = filteredTotals(cleaned);
+    gain += totals.gain;
+    loss += totals.loss;
+    gainRaw += totals.gainRaw;
+    lossRaw += totals.lossRaw;
+    for (const p of cleaned) profile.push({ distance: p.distance, elevation: p.elevation });
   }
 
-  return { totalDistance: Math.round(totalDistance), gain: Math.round(gain), loss: Math.round(loss), profile };
+  return {
+    totalDistance: Math.round(totalDistance),
+    gain: Math.round(gain),
+    loss: Math.round(loss),
+    gainRaw: Math.round(gainRaw),
+    lossRaw: Math.round(lossRaw),
+    profile,
+  };
 }
 
 /** Haversine distance between two points in meters */
