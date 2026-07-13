@@ -7,10 +7,10 @@ catalog:
   "@react-router/dev": ^7.17.0
   "@react-router/node": ^7.17.0
   "@react-router/serve": ^7.17.0
-  "@sentry/node": ^10.59.0
-  "@sentry/react": ^10.59.0
-  "@tailwindcss/vite": ^4.3.1
-  "@types/node": ^22.20.0
+  "@sentry/node": ^10.65.0
+  "@sentry/react": ^10.65.0
+  "@tailwindcss/vite": ^4.3.2
+  "@types/node": ^22.20.1
   "@types/react": ^19.2.17
   "@types/react-dom": ^19.2.3
   drizzle-kit: ^0.31.10
@@ -20,6 +20,6 @@ catalog:
   react: ^19.2.5
   react-dom: ^19.2.7
   react-router: ^7.17.0
-  tailwindcss: ^4.3.1
+  tailwindcss: ^4.3.2
   typescript: ~6.0.3
   vite: ^8.1.0
