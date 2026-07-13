@@ -127,7 +127,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
@@ -193,7 +193,7 @@ jobs:
 
       - name: Cache BRouter segment
         id: segment-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: /tmp/brouter-segments
           key: brouter-segment-E10_N50-v1.7.9
@@ -251,7 +251,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
