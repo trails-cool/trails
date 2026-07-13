@@ -198,6 +198,28 @@ describe("parseGpxAsync — route (<rte>) support", () => {
   });
 });
 
+// A ~30 m real climb (100 → 130) carrying a few metres of per-point jitter
+// plus one 300 m single-point spike — shared with elevation-series.test.ts.
+export const NOISY_ELEVATIONS = [100, 104, 101, 110, 300, 112, 118, 115, 122, 130];
+export const noisyTrackGpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>
+${NOISY_ELEVATIONS.map((e, i) => `<trkpt lat="${(47 + i * 0.001).toFixed(3)}" lon="8.5"><ele>${e}</ele></trkpt>`).join("\n")}
+</trkseg></trk></gpx>`;
+
+describe("parseGpxAsync — noisy elevation cleaning", () => {
+  it("filters jitter (gain well below raw) and despikes the profile", async () => {
+    const r = await parseGpxAsync(noisyTrackGpx);
+    // Filtering removes jitter, so gain is far below the raw sum-of-deltas.
+    expect(r.elevation.gainRaw).toBeGreaterThan(r.elevation.gain);
+    // The real climb is ~30 m; filtered gain should reflect that, not the
+    // ~200 m the raw spike+jitter would produce.
+    expect(r.elevation.gain).toBeLessThanOrEqual(45);
+    expect(r.elevation.gain).toBeGreaterThan(20);
+    // The 300 m spike is interpolated out of the profile.
+    expect(Math.max(...r.elevation.profile.map((p) => p.elevation))).toBeLessThan(200);
+  });
+});
+
 describe("parseGpxAsync — metadata fallback", () => {
   const gpx = (body: string) =>
     `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">${body}</gpx>`;

@@ -1,4 +1,5 @@
 import type { TrackPoint } from "./types.ts";
+import { despike } from "./elevation-clean.ts";
 
 export interface ElevationSample {
   /** Cumulative distance from start, metres */
@@ -29,22 +30,46 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
  * keeping the first and last sample.
  */
 export function elevationSeries(tracks: TrackPoint[][], maxPoints = 400): ElevationSample[] {
-  const withEle: TrackPoint[] = [];
-  for (const seg of tracks) {
-    for (const p of seg) {
-      if (typeof p.ele === "number") withEle.push(p);
-    }
-  }
+  // Elevation-bearing points, tagged with their segment so despiking never
+  // interpolates across a trkseg gap.
+  const withEle: Array<{ p: TrackPoint; seg: number }> = [];
+  tracks.forEach((seg, si) => {
+    for (const p of seg) if (typeof p.ele === "number") withEle.push({ p, seg: si });
+  });
   if (withEle.length < 2) return [];
 
-  const full: ElevationSample[] = [];
+  // Cumulative distance across consecutive elevation points (chart x-axis).
+  const dists: number[] = [];
   let cum = 0;
-  let prev: TrackPoint | null = null;
-  for (const p of withEle) {
-    if (prev) cum += haversineMeters(prev.lat, prev.lon, p.lat, p.lon);
-    full.push({ d: cum, e: p.ele as number, lat: p.lat, lng: p.lon });
-    prev = p;
+  for (let i = 0; i < withEle.length; i++) {
+    if (i > 0) {
+      cum += haversineMeters(
+        withEle[i - 1]!.p.lat, withEle[i - 1]!.p.lon, withEle[i]!.p.lat, withEle[i]!.p.lon,
+      );
+    }
+    dists.push(cum);
   }
+
+  // Despike each segment's slice so the chart matches the headline stats
+  // (spec: elevation-profile-hardening). Only elevation is cleaned; distance
+  // and position are untouched.
+  const cleanE = new Array<number>(withEle.length);
+  for (let start = 0; start < withEle.length; ) {
+    let end = start;
+    while (end + 1 < withEle.length && withEle[end + 1]!.seg === withEle[start]!.seg) end++;
+    const cleaned = despike(
+      withEle.slice(start, end + 1).map((x, i) => ({ distance: dists[start + i]!, elevation: x.p.ele as number })),
+    );
+    for (let i = 0; i < cleaned.length; i++) cleanE[start + i] = cleaned[i]!.elevation;
+    start = end + 1;
+  }
+
+  const full: ElevationSample[] = withEle.map((x, i) => ({
+    d: dists[i]!,
+    e: cleanE[i]!,
+    lat: x.p.lat,
+    lng: x.p.lon,
+  }));
 
   if (full.length <= maxPoints) return full;
 
