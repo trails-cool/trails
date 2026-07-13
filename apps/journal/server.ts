@@ -165,6 +165,12 @@ server.listen(port, async () => {
   // users get keys before any federation traffic). Each run only
   // touches users whose public_key IS NULL, so repeats are no-ops.
   if (process.env.FEDERATION_ENABLED === "true") {
+    // Create the durable queue backing Fedify's message queue before any
+    // federation traffic can enqueue/consume on it. pg-boss requires queues
+    // to exist explicitly (v10+); createQueue is idempotent.
+    const { FEDERATION_QUEUE_NAME } = await import("./app/lib/federation-queue.server.ts");
+    await boss.createQueue(FEDERATION_QUEUE_NAME);
+
     await enqueue("backfill-user-keypairs", {});
     logger.info("federation keypair backfill enqueued");
   }

@@ -27,7 +27,7 @@
 // exactly the "acknowledge and drop" the spec wants; the same applies
 // to wrapped types we inspect and ignore (e.g. Undo(Like)).
 import { configure, getConsoleSink } from "@logtape/logtape";
-import { createFederation, InProcessMessageQueue, type Federation } from "@fedify/fedify";
+import { createFederation, type Federation } from "@fedify/fedify";
 import { Accept, Follow, Note, Person, PropertyValue, Reject, Undo } from "@fedify/fedify/vocab";
 import { and, eq } from "drizzle-orm";
 import { activities, users } from "@trails-cool/db/schema/journal";
@@ -35,6 +35,7 @@ import { getDb } from "./db.ts";
 import { getOrigin } from "./config.server.ts";
 import { localActorIri } from "./actor-iri.ts";
 import { PostgresKvStore } from "./federation-kv.server.ts";
+import { PgBossMessageQueue } from "./federation-queue.server.ts";
 import { ensureUserKeypair, loadUserKeypair } from "./federation-keys.server.ts";
 import { activityToCreate, activityToNote } from "./federation-objects.server.ts";
 import {
@@ -148,12 +149,17 @@ function buildFederation(): Federation<void> {
     // (e.g. the Accept we push back after a Follow) happen asynchronously
     // with Fedify's own retry policy, instead of inside the inbound HTTP
     // request — Mastodon gives deliveries a 10s read timeout, and a slow
-    // remote must never make us blow it. In-process is acceptable for
-    // the single-process journal: queued work is lost on restart, but
-    // every message type we enqueue is recoverable (remotes retry
-    // Follows; our own pg-boss jobs own activity delivery). Revisit with
-    // a Postgres-backed MessageQueue if that stops being true.
-    queue: new InProcessMessageQueue(),
+    // remote must never make us blow it.
+    //
+    // Two queueing layers coexist by design: our fan-out jobs
+    // (federation-delivery.server.ts enqueues one deliverActivity pg-boss
+    // job per follower) feed Fedify, and Fedify's own send/retry
+    // scheduling now runs on THIS durable pg-boss-backed queue instead of
+    // in-process. Before, in-process meant a deploy or crash dropped every
+    // queued delivery and pending retry (spec: fan-out survives a deploy);
+    // PgBossMessageQueue closes that. Collapsing the two layers into one
+    // is a refactor with no user-visible payoff, so they stay separate.
+    queue: new PgBossMessageQueue(),
     // Started explicitly below — keeps vitest runs (which build this
     // instance via handleFederationRequest) free of dangling timers.
     manuallyStartQueue: true,
