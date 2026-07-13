@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Garmin Connect" xmlns="http://www.topografix.com/GPX/1/1">
+
+  <rte>
+    <name>Harz Ridge Course</name>
+    <desc>A route-only export (no trk)</desc>
+    <rtept lat="51.7990" lon="10.6180"><ele>820</ele></rtept>
+    <rtept lat="51.8020" lon="10.6240"><ele>860</ele></rtept>
+    <rtept lat="51.8055" lon="10.6300"><ele>910</ele></rtept>
+    <rtept lat="51.8090" lon="10.6350"><ele>890</ele></rtept>
+  </rte>
+</gpx>

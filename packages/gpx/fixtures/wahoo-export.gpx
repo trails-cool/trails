@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Wahoo Fitness" xmlns="http://www.topografix.com/GPX/1/1">
+
+  <metadata><name>Sunday Loop</name><time>2026-05-10T06:30:00Z</time></metadata>
+  <trk><trkseg>
+    <trkpt lat="52.0800" lon="8.5300"><ele>118</ele><time>2026-05-10T06:30:00Z</time></trkpt>
+    <trkpt lat="52.0840" lon="8.5360"><ele>121</ele><time>2026-05-10T06:31:00Z</time></trkpt>
+    <trkpt lat="52.0880" lon="8.5420"><ele>119</ele><time>2026-05-10T06:32:00Z</time></trkpt>
+  </trkseg></trk>
+</gpx>
