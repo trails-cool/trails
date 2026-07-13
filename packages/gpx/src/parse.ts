@@ -1,5 +1,6 @@
 import type { Waypoint } from "@trails-cool/types";
 import type { GpxData, TrackPoint, ElevationProfile, NoGoArea } from "./types.ts";
+import { repairTimestamps } from "./timestamp-repair.ts";
 
 /**
  * Parse a GPX XML string into structured data.
@@ -31,7 +32,7 @@ function parseGpxWithParser(parser: DOMParser, xml: string): GpxData {
   const name = doc.querySelector("metadata > name")?.textContent ?? undefined;
   const description = doc.querySelector("metadata > desc")?.textContent ?? undefined;
   const waypoints = parseWaypoints(doc);
-  const tracks = parseTracks(doc);
+  const tracks = repairTimestamps(parseTracks(doc));
   const noGoAreas = parseNoGoAreas(doc);
   const { totalDistance, ...elevation } = computeElevation(tracks);
 
@@ -69,28 +70,54 @@ function parseWaypoints(doc: Document): Waypoint[] {
   });
 }
 
-function parseTracks(doc: Document): TrackPoint[][] {
-  const tracks: TrackPoint[][] = [];
-  const trksegs = doc.querySelectorAll("trk > trkseg");
+/**
+ * Parse one `trkpt`/`rtept` element into a TrackPoint, or null if it is
+ * unusable. Parsing stays `parseFloat`-lenient (accepts leading `+`,
+ * tolerates trailing junk like `471.0m` that real exporters emit), but a
+ * point whose `lat`/`lon` is missing or does not parse to a finite number
+ * is skipped rather than defaulted to `0,0` (which would land on Null
+ * Island and pass range validation) — spec: gpx-parser-robustness
+ * "Invalid point handling". A non-finite `<ele>` becomes `undefined` (the
+ * existing "no elevation" representation) so it never poisons gain/loss
+ * totals with `NaN`.
+ */
+function parsePoint(pt: Element): TrackPoint | null {
+  const lat = parseFloat(pt.getAttribute("lat") ?? "");
+  const lon = parseFloat(pt.getAttribute("lon") ?? "");
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const eleText = pt.querySelector("ele")?.textContent;
+  const ele = eleText != null ? parseFloat(eleText) : NaN;
+  const time = pt.querySelector("time")?.textContent ?? undefined;
+  return { lat, lon, ele: Number.isFinite(ele) ? ele : undefined, time };
+}
 
-  for (const seg of trksegs) {
-    const points: TrackPoint[] = [];
-    for (const pt of seg.querySelectorAll("trkpt")) {
-      const lat = parseFloat(pt.getAttribute("lat") ?? "0");
-      const lon = parseFloat(pt.getAttribute("lon") ?? "0");
-      const eleText = pt.querySelector("ele")?.textContent;
-      const time = pt.querySelector("time")?.textContent ?? undefined;
-      points.push({
-        lat,
-        lon,
-        ele: eleText ? parseFloat(eleText) : undefined,
-        time,
-      });
-    }
-    tracks.push(points);
+function parseSegmentPoints(pts: ArrayLike<Element>): TrackPoint[] {
+  const points: TrackPoint[] = [];
+  for (const pt of Array.from(pts)) {
+    const parsed = parsePoint(pt);
+    if (parsed) points.push(parsed);
+  }
+  return points;
+}
+
+function parseTracks(doc: Document): TrackPoint[][] {
+  const segments: TrackPoint[][] = [];
+
+  // Standard tracks: <trk><trkseg><trkpt>.
+  for (const seg of Array.from(doc.querySelectorAll("trk > trkseg"))) {
+    segments.push(parseSegmentPoints(seg.querySelectorAll("trkpt")));
+  }
+  // Routes: <rte><rtept>. Many exporters (Garmin Connect courses,
+  // gpx.studio, planner exports) emit only routes; each becomes one
+  // segment appended after the track segments, with rtept handled
+  // identically to trkpt — spec: gpx-parser-robustness "Route support".
+  for (const rte of Array.from(doc.querySelectorAll("rte"))) {
+    segments.push(parseSegmentPoints(rte.querySelectorAll("rtept")));
   }
 
-  return tracks;
+  // Drop empty or single-point segments: they render nothing and break
+  // distance-math assumptions (spec: "Invalid point handling").
+  return segments.filter((seg) => seg.length >= 2);
 }
 
 function parseNoGoAreas(doc: Document): NoGoArea[] {

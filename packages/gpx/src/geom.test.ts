@@ -56,7 +56,10 @@ describe("GPX to geometry coordinates", () => {
     const gpxData = await parseGpxAsync(singlePointGpx);
     const coords = gpxData.tracks.flat().map((p) => [p.lon, p.lat] as [number, number]);
 
-    expect(coords).toHaveLength(1);
-    // Caller should check coords.length >= 2 before creating LineString
+    // The parser now drops segments left with fewer than 2 points
+    // (gpx-parser-robustness "Invalid point handling"), so a lone point
+    // yields no track segment at all — the "insufficient for LineString"
+    // guard is enforced at the parser boundary rather than left to callers.
+    expect(coords).toHaveLength(0);
   });
 });
