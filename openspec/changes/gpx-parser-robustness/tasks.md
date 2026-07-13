@@ -11,9 +11,9 @@
 
 ## 3. Timestamp repair
 
-- [ ] 3.1 Create `packages/gpx/src/timestamp-repair.ts`: per-segment pass — >50% invalid → drop all; else linear interpolation between valid neighbors with leading/trailing clamp; output ISO 8601 strings
-- [ ] 3.2 Wire the repair pass into `parseTracks` output in `parse.ts`
-- [ ] 3.3 Unit tests (`timestamp-repair.test.ts`): sparse invalid interpolated, >50% invalid dropped (and `movingTime` returns null), leading/trailing clamp, all-valid untouched, no-timestamps untouched
+- [x] 3.1 Create `packages/gpx/src/timestamp-repair.ts`: per-segment pass — >50% invalid → drop all; else linear interpolation between valid neighbors with leading/trailing clamp; output ISO 8601 strings
+- [x] 3.2 Wire the repair pass into `parseTracks` output in `parse.ts`
+- [x] 3.3 Unit tests (`timestamp-repair.test.ts`): sparse invalid interpolated, >50% invalid dropped (and `movingTime` returns null), leading/trailing clamp, all-valid untouched, no-timestamps untouched
 
 ## 4. Metadata fallback
 

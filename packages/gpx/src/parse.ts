@@ -1,5 +1,6 @@
 import type { Waypoint } from "@trails-cool/types";
 import type { GpxData, TrackPoint, ElevationProfile, NoGoArea } from "./types.ts";
+import { repairTimestamps } from "./timestamp-repair.ts";
 
 /**
  * Parse a GPX XML string into structured data.
@@ -31,7 +32,7 @@ function parseGpxWithParser(parser: DOMParser, xml: string): GpxData {
   const name = doc.querySelector("metadata > name")?.textContent ?? undefined;
   const description = doc.querySelector("metadata > desc")?.textContent ?? undefined;
   const waypoints = parseWaypoints(doc);
-  const tracks = parseTracks(doc);
+  const tracks = repairTimestamps(parseTracks(doc));
   const noGoAreas = parseNoGoAreas(doc);
   const { totalDistance, ...elevation } = computeElevation(tracks);
 
