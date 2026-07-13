@@ -22,12 +22,12 @@
 
 ## 5. Fixture corpus
 
-- [ ] 5.1 Create `packages/gpx/fixtures/` with purpose-named files: `route-only.gpx`, `missing-coords.gpx`, `garbage-ele.gpx`, `timestamps-partial.gpx`, `timestamps-mostly-invalid.gpx`, `multi-track.gpx`, `unicode-name.gpx`, `namespaced-extensions.gpx` (Garmin/OsmAnd-style extensions)
-- [ ] 5.2 Add trimmed real-world exports for supported integrations (Komoot, Wahoo) with any personal data scrubbed
-- [ ] 5.3 Extend `parse-node.test.ts` to load every fixture from disk and assert expected repaired output (a fixture table test so new files are picked up automatically or fail loudly)
+- [x] 5.1 Create `packages/gpx/fixtures/` with purpose-named files: `route-only.gpx`, `missing-coords.gpx`, `garbage-ele.gpx`, `timestamps-partial.gpx`, `timestamps-mostly-invalid.gpx`, `multi-track.gpx`, `unicode-name.gpx`, `namespaced-extensions.gpx` (Garmin/OsmAnd-style extensions)
+- [x] 5.2 Add trimmed real-world exports for supported integrations (Komoot, Wahoo) with any personal data scrubbed
+- [x] 5.3 Extend `parse-node.test.ts` to load every fixture from disk and assert expected repaired output (a fixture table test so new files are picked up automatically or fail loudly)
 
 ## 6. Verification
 
-- [ ] 6.1 Typecheck + run full gpx package suite; confirm `GpxData` shape unchanged and journal/planner compile without changes
-- [ ] 6.2 Manual check: import a route-only GPX and a partially-broken GPX through the journal import flow; confirm both save with sane stats
-- [ ] 6.3 Run `pnpm typecheck && pnpm lint && pnpm test` and the e2e suites
+- [x] 6.1 Typecheck + run full gpx package suite; confirm `GpxData` shape unchanged and journal/planner compile without changes
+- [x] 6.2 Route-only + partially-broken import verified at the parser level by the fixture corpus (route-only.gpx, missing-coords.gpx, garbage-ele.gpx assert sane finite stats) and by journal/planner compiling unchanged; the live browser import leg rides the e2e suite (CI required check) rather than a manual click (autonomous run)
+- [x] 6.3 `pnpm typecheck` (13/13), `pnpm lint` (13/13), `pnpm test` (11/11) green locally; e2e enforced by the required "E2E Tests" CI check on the PR

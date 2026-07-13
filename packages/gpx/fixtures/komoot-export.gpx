@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="https://www.komoot.de" xmlns="http://www.topografix.com/GPX/1/1">
+
+  <metadata><name>Rheinsteig Sampler</name><author><link href="https://www.komoot.de"><text>komoot</text></link></author></metadata>
+  <trk><name>Rheinsteig Sampler</name><trkseg>
+    <trkpt lat="50.3600" lon="7.5900"><ele>75</ele></trkpt>
+    <trkpt lat="50.3620" lon="7.5950"><ele>120</ele></trkpt>
+    <trkpt lat="50.3650" lon="7.6010"><ele>210</ele></trkpt>
+    <trkpt lat="50.3680" lon="7.6080"><ele>260</ele></trkpt>
+  </trkseg></trk>
+</gpx>

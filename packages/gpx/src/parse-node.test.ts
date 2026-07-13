@@ -5,9 +5,13 @@
  * work in environments without a native DOMParser (Node.js, React Native).
  * The linkedom fallback must handle all XML parsing.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { parseGpxAsync } from "./parse.ts";
 import { generateGpx } from "./generate.ts";
+import type { GpxData } from "./types.ts";
 
 const sampleGpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
@@ -56,6 +60,88 @@ describe("parseGpxAsync (node environment, no DOMParser)", () => {
     expect(result.elevation.loss).toBe(0);
     expect(result.distance).toBeGreaterThan(400_000);
   });
+});
+
+// Fixture corpus (spec: gpx-parser-robustness "Fixture corpus"). Every
+// *.gpx under fixtures/ is loaded from disk and checked against an entry
+// here. Adding a file without an expectation FAILS loudly — the corpus is
+// the regression mechanism, so a new bug report becomes a new fixture.
+const FIXTURES_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures");
+
+const flat = (r: GpxData) => r.tracks.flat();
+const allFinite = (r: GpxData) =>
+  Number.isFinite(r.distance) &&
+  Number.isFinite(r.elevation.gain) &&
+  Number.isFinite(r.elevation.loss) &&
+  flat(r).every((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+
+const EXPECTATIONS: Record<string, (r: GpxData) => void> = {
+  "route-only.gpx": (r) => {
+    expect(r.tracks).toHaveLength(1);
+    expect(r.tracks[0]).toHaveLength(4);
+    expect(r.name).toBe("Harz Ridge Course");
+  },
+  "missing-coords.gpx": (r) => {
+    // Two points (missing lon, empty lat/lon) are skipped; three survive.
+    expect(flat(r)).toHaveLength(3);
+    expect(flat(r).some((p) => p.lat === 0 && p.lon === 0)).toBe(false);
+  },
+  "garbage-ele.gpx": (r) => {
+    expect(r.tracks[0]).toHaveLength(4);
+    expect(r.tracks[0]![1]!.ele).toBeUndefined();
+    expect(r.tracks[0]![2]!.ele).toBeUndefined();
+  },
+  "timestamps-partial.gpx": (r) => {
+    expect(r.tracks[0]).toHaveLength(4);
+    // The one invalid timestamp is repaired to a parseable value.
+    expect(flat(r).every((p) => Number.isFinite(Date.parse(p.time!)))).toBe(true);
+  },
+  "timestamps-mostly-invalid.gpx": (r) => {
+    expect(r.tracks[0]).toHaveLength(4);
+    // >50% invalid → the whole segment's timestamps are dropped.
+    expect(flat(r).every((p) => p.time === undefined)).toBe(true);
+  },
+  "multi-track.gpx": (r) => {
+    expect(r.tracks).toHaveLength(2);
+    expect(r.name).toBe("Two-part outing");
+  },
+  "unicode-name.gpx": (r) => {
+    expect(r.name).toContain("Zürich");
+    expect(r.name).toContain("🏔");
+  },
+  "namespaced-extensions.gpx": (r) => {
+    // Extensions are ignored; the points parse intact.
+    expect(r.tracks[0]).toHaveLength(2);
+    expect(r.name).toBe("Extensions ignored");
+  },
+  "komoot-export.gpx": (r) => {
+    expect(r.name).toBe("Rheinsteig Sampler");
+    expect(r.tracks[0]).toHaveLength(4);
+    expect(r.distance).toBeGreaterThan(0);
+  },
+  "wahoo-export.gpx": (r) => {
+    expect(r.tracks[0]).toHaveLength(3);
+    // All timestamps valid → preserved unchanged.
+    expect(flat(r).every((p) => p.time !== undefined)).toBe(true);
+  },
+};
+
+describe("fixture corpus (node environment)", () => {
+  const files = readdirSync(FIXTURES_DIR).filter((f) => f.endsWith(".gpx")).sort();
+
+  it("has at least the documented fixtures and every file is described", () => {
+    expect(files.length).toBeGreaterThanOrEqual(8);
+    const undescribed = files.filter((f) => !(f in EXPECTATIONS));
+    expect(undescribed, `add an EXPECTATIONS entry for: ${undescribed.join(", ")}`).toEqual([]);
+  });
+
+  for (const file of Object.keys(EXPECTATIONS)) {
+    it(`parses ${file} with finite stats and expected shape`, async () => {
+      const result = await parseGpxAsync(readFileSync(resolve(FIXTURES_DIR, file), "utf8"));
+      expect(allFinite(result)).toBe(true);
+      EXPECTATIONS[file]!(result);
+    });
+  }
 });
 
 describe("generateGpx + parseGpxAsync round-trip (node environment)", () => {
