@@ -23,5 +23,5 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Staging check: queue a fan-out, restart the journal container, confirm deliveries complete; block a test domain and verify both directions — **post-deploy step**, run once the change is on staging (see PR description for the exact commands)
+- [x] 5.1 Staging check (verified on staging.trails.cool 2026-07-13): queued a real delivery, restarted the journal container mid-flight — the job survived the restart in Postgres (the old in-process queue would have lost it) and completed after, "Successfully sent activity … to social.ullrich.is/users/ullrich/inbox" (`federation_delivery_total{outcome="delivered"} 1`, queue drained to 0). Blocklist **outbound** verified: a `poll-remote-actor` for a blocked domain logged `result: {skipped: "blocked instance"}` (no fetch). Operator block/unblock procedure works against the live DB. The blocklist **inbound** drop is covered by the group-2/3 real-Postgres integration tests + the two-instance `e2e/federation/` harness (firing it live needs a peer-initiated signed request).
 - [x] 5.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` — typecheck/lint/test green locally; `test:e2e` enforced by the required "E2E Tests" CI check on every PR
