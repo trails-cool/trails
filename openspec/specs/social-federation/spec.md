@@ -2,7 +2,6 @@
 
 ## Purpose
 ActivityPub federation for the Journal, scoped to the follow graph between trails.cool instances: per-user actor objects with WebFinger discovery, per-user signing keypairs, a narrow follow-only inbox, an outbox of public activities, push delivery to remote followers on local activity create, outbound follows restricted to other trails instances, outbox-poll ingestion of remote trails activities, and audience-aware feed filtering. Local follow lifecycle and the feed surface itself live in `social-follows`; profile pages live in `public-profiles`.
-
 ## Requirements
 ### Requirement: Per-user actor objects with WebFinger discovery
 The Journal SHALL serve an ActivityPub `Person` actor object at the user's canonical URL for any user with `profile_visibility = 'public'`, and SHALL serve a WebFinger endpoint at `/.well-known/webfinger` resolving `acct:user@domain` to that actor IRI.
@@ -61,7 +60,7 @@ The Journal SHALL serve a paginated outbox at `https://{DOMAIN}/users/:username/
 - **THEN** the response includes only activities with `visibility = 'public'`; `unlisted` and `private` activities never appear
 
 ### Requirement: Push delivery on local activity create
-The Journal SHALL deliver a `Create(Note)` activity to every accepted remote follower's inbox when a local user with `profile_visibility = 'public'` creates a new `public` activity.
+The Journal SHALL deliver a `Create(Note)` activity to every accepted remote follower's inbox when a local user with `profile_visibility = 'public'` creates a new `public` activity. Delivery queueing and retry state SHALL be persistent: queued deliveries and scheduled retries survive process restarts.
 
 #### Scenario: New public activity fans out
 - **WHEN** a local user with N accepted remote followers creates a new public activity
@@ -70,6 +69,10 @@ The Journal SHALL deliver a `Create(Note)` activity to every accepted remote fol
 #### Scenario: Rate-limited per remote host
 - **WHEN** multiple deliveries target the same remote host
 - **THEN** they are rate-limited so we never exceed 1 request per second per remote host (configurable; chosen for safety, not throughput)
+
+#### Scenario: Fan-out survives a deploy
+- **WHEN** a deploy restarts the journal while fan-out deliveries are queued or awaiting retry
+- **THEN** the deliveries complete after the restart without loss
 
 ### Requirement: Outbound follows restricted to other trails instances
 The Journal SHALL accept outbound follow requests against remote actor IRIs only when the target host self-identifies as a trails.cool instance. Follows targeting Mastodon, Pleroma, or other non-trails ActivityPub servers SHALL be refused at the API layer with a clear error and a link to the documented v1 limitation.
@@ -107,3 +110,4 @@ Activities cached from remote trails actors SHALL be tagged with their audience 
 #### Scenario: Followers-only remote content reaches only the right viewer
 - **WHEN** a remote actor publishes a followers-only activity, two local users A and B both have rows in the activity cache for that actor, but only A holds an accepted follow against the actor
 - **THEN** A sees the activity in `/feed` and B does not, even though the row exists in our database
+
