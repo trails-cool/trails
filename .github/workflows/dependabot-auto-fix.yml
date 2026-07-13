@@ -44,7 +44,7 @@ jobs:
           if [ -z "$TOKEN" ]; then
             echo "::error::DEPENDABOT_DEDUPE_TOKEN is not set. This workflow"
             echo "::error::requires a PAT so the fixup commit re-triggers CI."
-            echo "::error::See .github/workflows/dependabot-dedupe.yml header."
+            echo "::error::See .github/workflows/dependabot-auto-fix.yml header."
             exit 1
           fi
       - uses: actions/checkout@v7
