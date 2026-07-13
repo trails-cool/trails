@@ -6,9 +6,9 @@
 
 ## 2. Replay defense
 
-- [ ] 2.1 Add `federation_processed_activities` table (activity IRI PK, received_at) + migration; insert-or-drop check in inbox handlers before side effects
-- [ ] 2.2 30-day TTL sweep in the jobs worker
-- [ ] 2.3 Tests: duplicate Like/Delete/Update dropped as no-ops; Create double-delivery still covered by remoteOriginIri constraint
+- [x] 2.1 Add `federation_processed_activities` table (activity IRI PK, received_at) + migration; insert-or-drop check in inbox handlers before side effects
+- [x] 2.2 30-day TTL sweep in the jobs worker
+- [x] 2.3 Tests: duplicate Like/Delete/Update dropped as no-ops; Create double-delivery still covered by remoteOriginIri constraint
 
 ## 3. Blocklist
 

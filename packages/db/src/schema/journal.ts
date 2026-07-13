@@ -424,6 +424,21 @@ export const federationKv = journalSchema.table("federation_kv", {
   expiresAtIdx: index("federation_kv_expires_at_idx").on(t.expiresAt),
 }));
 
+// Inbound-activity replay defense (spec: federation-operations "Inbound
+// replay defense"). One row per processed inbound activity IRI; inbox
+// handlers insert-or-drop before side effects so a redelivered activity
+// is a no-op. Rows older than 30 days are swept by the
+// `federation-dedup-sweep` job — HTTP-signature date freshness already
+// rejects older replays — so this never grows unbounded. Create(Note)
+// keeps its own idempotency via activities.remote_origin_iri; this table
+// covers the follow-graph activities (Follow/Undo/Accept/Reject).
+export const federationProcessedActivities = journalSchema.table("federation_processed_activities", {
+  activityIri: text("activity_iri").primaryKey(),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  receivedAtIdx: index("federation_processed_activities_received_at_idx").on(t.receivedAt),
+}));
+
 // Cache of remote ActivityPub actors we interact with (spec:
 // social-federation). One row per actor IRI: display fields for feed
 // cards, inbox/outbox URLs for delivery and polling, the public key for

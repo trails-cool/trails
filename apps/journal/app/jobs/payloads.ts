@@ -17,6 +17,7 @@ export interface JobPayloads {
   "deliver-activity": DeliveryPayload;
   "demo-bot-generate": void;
   "demo-bot-prune": void;
+  "federation-dedup-sweep": void;
   "federation-kv-sweep": void;
   "garmin-import-activity": GarminImportData;
   "import-batches-sweep": void;

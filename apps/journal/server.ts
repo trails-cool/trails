@@ -147,10 +147,11 @@ server.listen(port, async () => {
   if (process.env.FEDERATION_ENABLED === "true") {
     const { backfillUserKeypairsJob } = await import("./app/jobs/backfill-user-keypairs.ts");
     const { federationKvSweepJob } = await import("./app/jobs/federation-kv-sweep.ts");
+    const { federationDedupSweepJob } = await import("./app/jobs/federation-dedup-sweep.ts");
     const { deliverActivityJob } = await import("./app/jobs/deliver-activity.ts");
     const { pollRemoteActorJob } = await import("./app/jobs/poll-remote-actor.ts");
     const { pollRemoteOutboxesJob } = await import("./app/jobs/poll-remote-outboxes.ts");
-    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, deliverActivityJob, pollRemoteActorJob, pollRemoteOutboxesJob);
+    jobs.push(backfillUserKeypairsJob, federationKvSweepJob, federationDedupSweepJob, deliverActivityJob, pollRemoteActorJob, pollRemoteOutboxesJob);
   }
 
   const boss = createBoss(getDatabaseUrl());
