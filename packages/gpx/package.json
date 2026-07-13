@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@trails-cool/types": "workspace:*",
-    "linkedom": "^0.18.12"
+    "linkedom": "^0.18.13"
   },
   "devDependencies": {
     "@types/node": "catalog:"
