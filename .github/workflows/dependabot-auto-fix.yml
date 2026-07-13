@@ -1,0 +1,94 @@
+name: Dependabot auto-fix
+
+# Post-processing that runs on every dependabot PR and pushes the result
+# back to the PR branch. Two fixups, in one workflow so there is a single
+# checkout / commit / push (two workflows racing to push the same branch
+# would collide on a non-fast-forward):
+#
+# 1. pnpm dedupe — `pnpm install` alone doesn't dedupe peer copies of a
+#    package (e.g. two versions of i18next, each holding their own
+#    singleton state). That split caused a hydration mismatch on #272
+#    until a manual `pnpm dedupe` collapsed them.
+#
+# 2. openspec update — the OpenSpec agent skills (.agents/skills/openspec-*)
+#    and opsx slash commands (.claude/commands/opsx/*) are generated files
+#    stamped with the CLI version that produced them. When dependabot bumps
+#    @fission-ai/openspec they go stale until regenerated (see PR #567,
+#    which did the 1.2.0 -> 1.6.0 regen by hand). `openspec update --force`
+#    rewrites them to match the freshly-installed CLI.
+#
+# Requires `DEPENDABOT_DEDUPE_TOKEN` — a repo secret holding a
+# fine-grained PAT (or GitHub App token) with `contents: write` on
+# this repo. The default `GITHUB_TOKEN` would work for the push but
+# would NOT trigger a subsequent CI run on that push (GitHub's
+# anti-loop safeguard), leaving the PR with stale green CI from
+# before the fixup commit. A PAT re-triggers CI so the reviewer
+# sees test results for the state they'd actually be merging.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  autofix:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require DEPENDABOT_DEDUPE_TOKEN
+        env:
+          TOKEN: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::DEPENDABOT_DEDUPE_TOKEN is not set. This workflow"
+            echo "::error::requires a PAT so the fixup commit re-triggers CI."
+            echo "::error::See .github/workflows/dependabot-auto-fix.yml header."
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          # With `persist-credentials: true`, this PAT is stashed by the
+          # action (under $RUNNER_TEMP in recent versions) and made
+          # available to subsequent git operations in this workspace —
+          # so the later `git push` authenticates as the PAT, which is
+          # what gets CI to re-trigger on the fixup commit. `true` is
+          # the checkout default; pinned explicitly here because it's
+          # load-bearing for this workflow.
+          token: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile=false
+      - name: Dedupe lockfile
+        run: pnpm dedupe
+      - name: Regenerate OpenSpec tool files
+        # --force so the generated files always match the installed CLI,
+        # even if `update` would otherwise consider them up to date. No-op
+        # (no diff) when @fission-ai/openspec wasn't bumped in this PR.
+        run: pnpm exec openspec update --force
+      - name: Commit fixups
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_DEDUPE_TOKEN }}
+        run: |
+          git add pnpm-lock.yaml .agents/skills/openspec-* .claude/commands/opsx
+          if git diff --cached --quiet; then
+            echo "Nothing to fix up — lockfile deduped and OpenSpec files current."
+            exit 0
+          fi
+          # Build a message naming only the parts that actually changed.
+          parts=""
+          git diff --cached --name-only | grep -q '^pnpm-lock.yaml$' && parts="pnpm dedupe"
+          if git diff --cached --name-only | grep -qE '^(\.agents/skills/openspec-|\.claude/commands/opsx)'; then
+            parts="${parts:+$parts + }openspec update"
+          fi
+          git config user.name "dependabot[bot]"
+          git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+          git commit -m "[github-actions] $parts"
+          git push
+          echo "Pushed fixups: $parts"
