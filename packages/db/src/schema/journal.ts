@@ -439,6 +439,18 @@ export const federationProcessedActivities = journalSchema.table("federation_pro
   receivedAtIdx: index("federation_processed_activities_received_at_idx").on(t.receivedAt),
 }));
 
+// Instance blocklist (spec: federation-operations "Instance blocklist").
+// One row per blocked domain, matched exactly by host. Enforced at three
+// boundaries: inbox (activities silently dropped), delivery enqueue
+// (recipients filtered), and outbox poll / actor fetch (refused). v1
+// management is a documented SQL insert/delete (see FEDERATION.md); the
+// table is the API a future admin UI can sit on.
+export const federationBlockedInstances = journalSchema.table("federation_blocked_instances", {
+  domain: text("domain").primaryKey(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Cache of remote ActivityPub actors we interact with (spec:
 // social-federation). One row per actor IRI: display fields for feed
 // cards, inbox/outbox URLs for delivery and polling, the public key for

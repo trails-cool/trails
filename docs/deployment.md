@@ -140,9 +140,35 @@ document; deliveries signed with the old key fail until then).
   (`federationSourceHost`); 429s show in journal logs.
 - Outbound is paced (1 req/s delivery, 1 req/5 s polling per host).
 - Watch `docker logs <journal>` for `fedify·federation` lines; Loki
-  picks them up. No per-instance blocklist yet — see
-  `docs/ideas/instance-administration.md` (manual emergency lever:
-  block the source IP/host in Caddy).
+  picks them up.
+
+### Blocking an instance
+
+Blocking a domain makes it inert in **both** directions: its inbound
+activities are silently dropped (a 202, no error oracle), we send it no
+deliveries, and we never fetch its actors/outboxes. Matching is
+exact-host. v1 management is a SQL insert/delete against
+`journal.federation_blocked_instances` (the table is the seam a future
+admin UI can sit on); protocol/moderation semantics are in
+[`FEDERATION.md`](../FEDERATION.md).
+
+```sql
+-- Block a hostile instance (exact host, no scheme, no path):
+INSERT INTO journal.federation_blocked_instances (domain, reason)
+VALUES ('bad.example', 'spam / harassment')
+ON CONFLICT (domain) DO NOTHING;
+
+-- List current blocks:
+SELECT domain, reason, created_at FROM journal.federation_blocked_instances ORDER BY created_at DESC;
+
+-- Unblock:
+DELETE FROM journal.federation_blocked_instances WHERE domain = 'bad.example';
+```
+
+The block takes effect immediately (checked per-request/per-job, no
+cache). Already-queued deliveries to the domain drain from Fedify's
+queue; new fan-outs filter it out. An IP/host block in Caddy remains the
+harder emergency lever for a flood that shouldn't reach the app at all.
 
 ### Troubleshooting deliveries
 
