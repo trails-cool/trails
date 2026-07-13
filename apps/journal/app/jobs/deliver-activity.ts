@@ -15,6 +15,7 @@ import {
   type DeliveryPayload,
 } from "../lib/federation-delivery.server.ts";
 import { logger } from "../lib/logger.server.ts";
+import { federationDeliveryTotal } from "../lib/metrics.server.ts";
 
 /**
  * Outbound pacing (spec 5.5): never exceed 1 request/second per remote
@@ -46,8 +47,10 @@ export const deliverActivityJob = defineJournalJob({
     for (const job of jobs) {
       const p = job.data;
       try {
-        await deliverOne(p);
+        const outcome = await deliverOne(p);
+        federationDeliveryTotal.inc({ outcome });
       } catch (err) {
+        federationDeliveryTotal.inc({ outcome: "failed" });
         logger.warn(
           { err, action: p.action, objectIri: p.objectIri, recipient: p.recipientActorIri },
           "deliver-activity attempt failed (pg-boss will retry until budget exhausted)",
@@ -58,7 +61,7 @@ export const deliverActivityJob = defineJournalJob({
   },
 });
 
-async function deliverOne(p: DeliveryPayload): Promise<void> {
+async function deliverOne(p: DeliveryPayload): Promise<"delivered" | "skipped"> {
   const federation = getFederation();
   const ctx = federation.createContext(new URL(getOrigin()), undefined);
 
@@ -75,7 +78,7 @@ async function deliverOne(p: DeliveryPayload): Promise<void> {
       .limit(1);
     if (!row) {
       logger.info({ objectIri: p.objectIri }, "deliver-activity: activity gone or non-public; skipping");
-      return;
+      return "skipped";
     }
     // Spec 9.3: flipping the profile to private stops federation — also
     // for deliveries already enqueued when the flip happened.
@@ -86,7 +89,7 @@ async function deliverOne(p: DeliveryPayload): Promise<void> {
       .limit(1);
     if (!owner || owner.profileVisibility !== "public") {
       logger.info({ objectIri: p.objectIri }, "deliver-activity: owner no longer public; skipping");
-      return;
+      return "skipped";
     }
     activity = activityToCreate(row as FederatableActivity, p.ownerUsername);
   } else {
@@ -127,4 +130,5 @@ async function deliverOne(p: DeliveryPayload): Promise<void> {
     { action: p.action, objectIri: p.objectIri, recipient: p.recipientActorIri },
     "deliver-activity: delivered",
   );
+  return "delivered";
 }

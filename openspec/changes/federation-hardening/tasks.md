@@ -18,10 +18,10 @@
 
 ## 4. Protocol doc & observability
 
-- [ ] 4.1 Write `FEDERATION.md` (repo root): NodeInfo, actors/WebFinger, object + activity types with JSON examples, addressing, signatures + dedup expectations, retry policy, moderation semantics; link from README and docs
-- [ ] 4.2 Add `federation_delivery_total{outcome}`, `federation_queue_depth`, `federation_inbox_dropped_total{reason}` metrics + journal dashboard row
+- [x] 4.1 Write `FEDERATION.md` (repo root): NodeInfo, actors/WebFinger, object + activity types with JSON examples, addressing, signatures + dedup expectations, retry policy, moderation semantics; link from README and docs
+- [x] 4.2 Add `federation_delivery_total{outcome}`, `federation_queue_depth`, `federation_inbox_dropped_total{reason}` metrics + journal dashboard row
 
 ## 5. Verification
 
-- [ ] 5.1 Staging check: queue a fan-out, restart the journal container, confirm deliveries complete; block a test domain and verify both directions
-- [ ] 5.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e`
+- [ ] 5.1 Staging check: queue a fan-out, restart the journal container, confirm deliveries complete; block a test domain and verify both directions — **post-deploy step**, run once the change is on staging (see PR description for the exact commands)
+- [x] 5.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` — typecheck/lint/test green locally; `test:e2e` enforced by the required "E2E Tests" CI check on every PR
