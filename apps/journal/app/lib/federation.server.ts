@@ -36,6 +36,7 @@ import { getOrigin } from "./config.server.ts";
 import { localActorIri } from "./actor-iri.ts";
 import { PostgresKvStore } from "./federation-kv.server.ts";
 import { PgBossMessageQueue } from "./federation-queue.server.ts";
+import { markInboundActivityProcessed } from "./federation-replay.server.ts";
 import { ensureUserKeypair, loadUserKeypair } from "./federation-keys.server.ts";
 import { activityToCreate, activityToNote } from "./federation-objects.server.ts";
 import {
@@ -271,6 +272,7 @@ function buildFederation(): Federation<void> {
       // when the local target is public; otherwise drop (the actor
       // already 404s for private users).
       if (follow.id == null || follow.actorId == null || follow.objectId == null) return;
+      if (!(await markInboundActivityProcessed(follow.id.href)).fresh) return; // replay: drop
       const parsed = ctx.parseUri(follow.objectId);
       if (parsed?.type !== "actor") return;
       const { outcome } = await recordRemoteFollow(follow.actorId.href, parsed.identifier);
@@ -291,6 +293,7 @@ function buildFederation(): Federation<void> {
       // Spec 4.3: Undo(Follow) removes the follow row. Other Undos are
       // acknowledged and dropped.
       if (undo.actorId == null) return;
+      if (undo.id != null && !(await markInboundActivityProcessed(undo.id.href)).fresh) return; // replay: drop
       const undoObjectId = undo.objectId; // capture before dereference (see Accept)
       const object = await undo.getObject(ctx);
       if (object instanceof Follow && object.objectId != null) {
@@ -319,6 +322,7 @@ function buildFederation(): Federation<void> {
       // Spec 4.4: a remote accepted our outgoing Follow — settle the
       // Pending row and trigger the first outbox poll for that actor.
       if (accept.actorId == null) return;
+      if (accept.id != null && !(await markInboundActivityProcessed(accept.id.href)).fresh) return; // replay: drop
       // Capture the raw object reference BEFORE dereferencing:
       // getObject() memoizes the fetched document, after which objectId
       // reports the fetched object's id (fragment stripped) instead of
@@ -358,6 +362,7 @@ function buildFederation(): Federation<void> {
     .on(Reject, async (ctx, reject) => {
       // Spec 4.5: remote refused our Follow — drop the Pending row.
       if (reject.actorId == null) return;
+      if (reject.id != null && !(await markInboundActivityProcessed(reject.id.href)).fresh) return; // replay: drop
       const objectId = reject.objectId; // capture before dereference (see Accept)
       const object = await reject.getObject(ctx);
       let localUser: Awaited<ReturnType<typeof findLocalPublicUserByIri>> = null;
