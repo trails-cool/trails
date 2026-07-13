@@ -33,7 +33,11 @@ function decode(bytes: Uint8Array): Promise<ParsedFit> {
   });
 }
 
-const FIXTURES = ["short-flat.gpx", "alpine.gpx", "multi-day.gpx", "single-point.gpx"] as const;
+// single-point.gpx is intentionally excluded from the round-trip loop: the
+// GPX parser now drops segments left with fewer than 2 points
+// (gpx-parser-robustness), so a lone point yields zero track points and
+// can't round-trip. That degenerate case is covered on its own below.
+const FIXTURES = ["short-flat.gpx", "alpine.gpx", "multi-day.gpx"] as const;
 
 describe("gpxToFitCourse", () => {
   for (const fixture of FIXTURES) {
@@ -65,6 +69,14 @@ describe("gpxToFitCourse", () => {
   it("throws on a GPX with zero track points", async () => {
     const gpx = await loadFixture("empty.gpx");
     await expect(gpxToFitCourse({ gpx, name: "Empty" })).rejects.toThrow(/zero track points/);
+  });
+
+  it("drops a single-point GPX to zero points, so it is refused", async () => {
+    // The parser discards <2-point segments (gpx-parser-robustness), so a
+    // lone point can't form a FIT course — the zero-points guard fires.
+    const gpx = await loadFixture("single-point.gpx");
+    expect((await parseGpxAsync(gpx)).tracks.flat()).toHaveLength(0);
+    await expect(gpxToFitCourse({ gpx, name: "Single" })).rejects.toThrow(/zero track points/);
   });
 
   it("advertises position+distance course capabilities (not time-only)", async () => {
