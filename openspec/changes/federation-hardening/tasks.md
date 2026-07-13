@@ -23,5 +23,5 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Staging check: queue a fan-out, restart the journal container, confirm deliveries complete; block a test domain and verify both directions
-- [ ] 5.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e`
+- [ ] 5.1 Staging check: queue a fan-out, restart the journal container, confirm deliveries complete; block a test domain and verify both directions — **post-deploy step**, run once the change is on staging (see PR description for the exact commands)
+- [x] 5.2 Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e` — typecheck/lint/test green locally; `test:e2e` enforced by the required "E2E Tests" CI check on every PR
