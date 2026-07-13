@@ -1,13 +1,13 @@
 ## 1. Parser lenience
 
-- [ ] 1.1 Add a finite-number coordinate gate in `packages/gpx/src/parse.ts`: skip `trkpt`/`rtept` with missing or non-finite `lat`/`lon`; treat non-finite `<ele>` as undefined
-- [ ] 1.2 Drop segments with fewer than 2 surviving points
-- [ ] 1.3 Unit tests: missing-lat point skipped, garbage lat skipped with finite stats, garbage ele → undefined with finite gain/loss, single-point segment dropped, well-formed files byte-identical output to before
+- [x] 1.1 Add a finite-number coordinate gate in `packages/gpx/src/parse.ts`: skip `trkpt`/`rtept` with missing or non-finite `lat`/`lon`; treat non-finite `<ele>` as undefined
+- [x] 1.2 Drop segments with fewer than 2 surviving points
+- [x] 1.3 Unit tests: missing-lat point skipped, garbage lat skipped with finite stats, garbage ele → undefined with finite gain/loss, single-point segment dropped, well-formed files byte-identical output to before
 
 ## 2. Route (`<rte>`) support
 
-- [ ] 2.1 Parse `<rte>`/`rtept` as track segments (appended after `<trk>` segments), reusing the same point parsing and lenience
-- [ ] 2.2 Unit tests: route-only file yields one segment and passes `validateGpx`; mixed trk+rte ordering; rtept with ele/time preserved
+- [x] 2.1 Parse `<rte>`/`rtept` as track segments (appended after `<trk>` segments), reusing the same point parsing and lenience
+- [x] 2.2 Unit tests: route-only file yields one segment and passes `validateGpx`; mixed trk+rte ordering; rtept with ele/time preserved
 
 ## 3. Timestamp repair
 
