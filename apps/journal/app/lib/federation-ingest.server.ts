@@ -16,6 +16,7 @@ import { getDb } from "./db.ts";
 import { getOrigin } from "./config.server.ts";
 import { getFederation } from "./federation.server.ts";
 import { upsertRemoteActor } from "./federation-delivery.server.ts";
+import { isBlockedDomain } from "./federation-blocklist.server.ts";
 import { logger } from "./logger.server.ts";
 
 /** Spec: fetch at most the 50 most recent items per remote actor. */
@@ -268,6 +269,9 @@ export async function pollRemoteActor(
   // 7.4: respect an active 429 backoff before doing any work.
   const host = new URL(actorIri).host;
   if (isHostBackingOff(host)) return { skipped: "host rate-limited (backing off)" };
+  // Blocklist boundary: never fetch a blocked instance's actor/outbox
+  // (spec: federation-operations "Instance blocklist").
+  if (await isBlockedDomain(host)) return { skipped: "blocked instance" };
 
   const db = getDb();
 

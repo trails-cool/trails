@@ -12,9 +12,9 @@
 
 ## 3. Blocklist
 
-- [ ] 3.1 Add `federation_blocked_instances` table + migration; exact-host check helper
-- [ ] 3.2 Enforce at inbox (silent 202 drop + counter), delivery enqueue (filter recipients), and outbox poll/actor fetch (refuse)
-- [ ] 3.3 Document the operator procedure (SQL insert/delete) in the ops docs; tests for all three boundaries
+- [x] 3.1 Add `federation_blocked_instances` table + migration; exact-host check helper
+- [x] 3.2 Enforce at inbox (silent 202 drop + counter), delivery enqueue (filter recipients), and outbox poll/actor fetch (refuse)
+- [x] 3.3 Document the operator procedure (SQL insert/delete) in the ops docs; tests for all three boundaries
 
 ## 4. Protocol doc & observability
 

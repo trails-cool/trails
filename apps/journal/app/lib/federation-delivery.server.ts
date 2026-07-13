@@ -9,6 +9,7 @@ import { getDb } from "./db.ts";
 import { federationEnabled } from "./federation.server.ts";
 import { enqueueOptional } from "./boss.server.ts";
 import { activityObjectIri } from "./federation-objects.server.ts";
+import { filterBlockedDomains, hostOfIri } from "./federation-blocklist.server.ts";
 
 export type DeliveryAction = "create" | "delete";
 
@@ -76,7 +77,19 @@ export async function enqueueActivityDeliveries(
   action: DeliveryAction,
 ): Promise<void> {
   if (!federationEnabled()) return;
-  const recipients = await listAcceptedRemoteFollowers(ownerId);
+  const allRecipients = await listAcceptedRemoteFollowers(ownerId);
+  if (allRecipients.length === 0) return;
+
+  // Blocklist boundary: never enqueue a delivery to a blocked instance
+  // (spec: federation-operations "Instance blocklist"). Resolve the
+  // blocked set once, then drop recipients whose host is on it.
+  const blocked = await filterBlockedDomains(
+    allRecipients.map(hostOfIri).filter((h): h is string => h !== null),
+  );
+  const recipients = allRecipients.filter((iri) => {
+    const host = hostOfIri(iri);
+    return host !== null && !blocked.has(host);
+  });
   if (recipients.length === 0) return;
 
   const db = getDb();
