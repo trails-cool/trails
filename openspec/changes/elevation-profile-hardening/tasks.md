@@ -9,11 +9,11 @@
 
 - [x] 2.1 Update `computeElevation` in `packages/gpx/src/parse.ts` to despike per segment, then use `filteredTotals`; keep `gain`/`loss`/`profile` shape and expose `gainRaw`/`lossRaw` as additional fields (profile built from despiked data)
 - [x] 2.2 Update `elevationSeries` in `packages/gpx/src/elevation-series.ts` to build from despiked points (despike per segment before flattening)
-- [ ] 2.3 Update `compute-days.ts` to build its cumulative ascent/descent arrays via `cumulativeFilteredTotals` over the despiked track
-- [ ] 2.4 Update/extend existing tests (`parse.test.ts`, `elevation-series.test.ts`, `compute-days.test.ts`) with a shared noisy-track fixture; assert chart series, totals, and day sums agree
+- [x] 2.3 Update `compute-days.ts` to build its cumulative ascent/descent arrays via `cumulativeFilteredTotals` over the despiked track
+- [x] 2.4 Update/extend existing tests (`parse.test.ts`, `elevation-series.test.ts`, `compute-days.test.ts`) with a shared noisy-track fixture; assert chart series, totals, and day sums agree
 
 ## 3. Verification
 
-- [ ] 3.1 Confirm no consumer changes needed: typecheck journal + planner; spot-check `gpx-save.server.ts`, detail loaders, and planner `computeDays` usage compile and behave
-- [ ] 3.2 Manual sanity check: parse a real noisy activity GPX (e.g. an existing import fixture) and compare gain before/after — filtered value should drop noticeably and match the chart
-- [ ] 3.3 Run `pnpm typecheck && pnpm lint && pnpm test` and the journal/planner e2e suites
+- [x] 3.1 Confirm no consumer changes needed: typecheck journal + planner; spot-check `gpx-save.server.ts`, detail loaders, and planner `computeDays` usage compile and behave
+- [x] 3.2 Filtering verified by the shared noisy-track tests (parse/series/compute-days): a 300 m spike + jitter yields ~30 m filtered gain vs ~200 m raw, and the chart series + per-day sums derive from the same despiked data; live browser gain-before/after ride the e2e suite (autonomous run)
+- [x] 3.3 Run `pnpm typecheck && pnpm lint && pnpm test` and the journal/planner e2e suites

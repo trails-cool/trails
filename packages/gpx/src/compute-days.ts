@@ -1,5 +1,6 @@
 import type { Waypoint } from "@trails-cool/types";
 import type { TrackPoint } from "./types.ts";
+import { despike, cumulativeFilteredTotals, type ElevPoint } from "./elevation-clean.ts";
 
 export interface DayStage {
   dayNumber: number;
@@ -66,24 +67,57 @@ export function computeDays(
     return bestIdx;
   });
 
-  // Precompute cumulative distances and elevation changes
+  // Cumulative distance per flat point index.
   const cumDist: number[] = [0];
-  const cumAscent: number[] = [0];
-  const cumDescent: number[] = [0];
-
   for (let i = 1; i < allPoints.length; i++) {
     const prev = allPoints[i - 1]!;
     const curr = allPoints[i]!;
     cumDist.push(cumDist[i - 1]! + haversine(prev.lat, prev.lon, curr.lat, curr.lon));
+  }
 
-    if (prev.ele !== undefined && curr.ele !== undefined) {
-      const diff = curr.ele - prev.ele;
-      cumAscent.push(cumAscent[i - 1]! + (diff > 0 ? diff : 0));
-      cumDescent.push(cumDescent[i - 1]! + (diff < 0 ? -diff : 0));
-    } else {
-      cumAscent.push(cumAscent[i - 1]!);
-      cumDescent.push(cumDescent[i - 1]!);
+  // Cumulative ascent/descent via the shared cleaning path (spec:
+  // elevation-profile-hardening) instead of summing every raw delta: despike
+  // each segment, then run the hysteresis accumulator once over the despiked
+  // track. Day totals (cumulative[end] − cumulative[start]) therefore match
+  // the filtered route total and won't overstate by 20–50%.
+  const eleSeq: ElevPoint[] = [];
+  const eleFlatIdx: number[] = [];
+  let flat = 0;
+  for (const seg of tracks) {
+    let segCum = 0;
+    const segPts: ElevPoint[] = [];
+    const segIdx: number[] = [];
+    for (let i = 0; i < seg.length; i++) {
+      const p = seg[i]!;
+      if (i > 0) segCum += haversine(seg[i - 1]!.lat, seg[i - 1]!.lon, p.lat, p.lon);
+      if (p.ele !== undefined) {
+        segPts.push({ distance: segCum, elevation: p.ele });
+        segIdx.push(flat);
+      }
+      flat++;
     }
+    const cleaned = despike(segPts);
+    for (let i = 0; i < cleaned.length; i++) {
+      eleSeq.push(cleaned[i]!);
+      eleFlatIdx.push(segIdx[i]!);
+    }
+  }
+  const { ascent, descent } = cumulativeFilteredTotals(eleSeq);
+  // Map running totals onto every flat point index, carrying the last value
+  // forward across points that carry no elevation.
+  const cumAscent: number[] = new Array(allPoints.length);
+  const cumDescent: number[] = new Array(allPoints.length);
+  let sp = 0;
+  let curA = 0;
+  let curD = 0;
+  for (let i = 0; i < allPoints.length; i++) {
+    while (sp < eleFlatIdx.length && eleFlatIdx[sp] === i) {
+      curA = ascent[sp]!;
+      curD = descent[sp]!;
+      sp++;
+    }
+    cumAscent[i] = curA;
+    cumDescent[i] = curD;
   }
 
   // Build day stages

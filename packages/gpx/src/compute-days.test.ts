@@ -136,4 +136,30 @@ describe("computeDays", () => {
     // Single waypoint can't form a meaningful day with distance
     expect(days).toHaveLength(0);
   });
+
+  it("reports filtered (not raw-inflated) per-day ascent, and day sums equal the route total", () => {
+    // A ~30 m real climb carrying jitter + one 300 m spike, split into two
+    // days at the midpoint (elevation-profile-hardening: cleaning is shared,
+    // so day totals are filtered and sum to the whole-route filtered total).
+    const eles = [100, 104, 101, 110, 300, 112, 118, 115, 122, 130];
+    const track = makeTrack(eles.map((e, i) => [47 + i * 0.001, 8.5, e]));
+    const waypoints: Waypoint[] = [
+      { lat: 47.0, lon: 8.5, name: "Start" },
+      { lat: 47.004, lon: 8.5, name: "Camp", isDayBreak: true },
+      { lat: 47.009, lon: 8.5, name: "End" },
+    ];
+    const days = computeDays(waypoints, [track]);
+    expect(days).toHaveLength(2);
+
+    // Neither day inflates to the ~200 m the raw spike+jitter would produce.
+    for (const day of days) expect(day.ascent).toBeLessThanOrEqual(45);
+
+    // Day ascents sum to the whole-route filtered ascent.
+    const whole = computeDays(
+      [waypoints[0]!, waypoints[2]!],
+      [track],
+    );
+    const daySum = days.reduce((s, d) => s + d.ascent, 0);
+    expect(daySum).toBe(whole[0]!.ascent);
+  });
 });
