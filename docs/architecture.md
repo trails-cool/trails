@@ -179,6 +179,11 @@ Tech stack:
 
 ## ActivityPub Integration
 
+The concrete wire protocol — actor discovery, object/activity types with
+JSON examples, addressing, signatures, deduplication, delivery retry, and
+moderation — is documented in [FEDERATION.md](../FEDERATION.md) at the repo
+root. This section is the higher-level design intent.
+
 ### Federated Activities
 
 - `Create` Route - Publishing a new route

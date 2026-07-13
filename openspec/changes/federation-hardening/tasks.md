@@ -18,8 +18,8 @@
 
 ## 4. Protocol doc & observability
 
-- [ ] 4.1 Write `FEDERATION.md` (repo root): NodeInfo, actors/WebFinger, object + activity types with JSON examples, addressing, signatures + dedup expectations, retry policy, moderation semantics; link from README and docs
-- [ ] 4.2 Add `federation_delivery_total{outcome}`, `federation_queue_depth`, `federation_inbox_dropped_total{reason}` metrics + journal dashboard row
+- [x] 4.1 Write `FEDERATION.md` (repo root): NodeInfo, actors/WebFinger, object + activity types with JSON examples, addressing, signatures + dedup expectations, retry policy, moderation semantics; link from README and docs
+- [x] 4.2 Add `federation_delivery_total{outcome}`, `federation_queue_depth`, `federation_inbox_dropped_total{reason}` metrics + journal dashboard row
 
 ## 5. Verification
 

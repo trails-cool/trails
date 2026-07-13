@@ -48,6 +48,42 @@ export const demoBotSyntheticActivitiesTotal = getOrCreate(
     }),
 );
 
+// --- Federation metrics (spec: federation-operations "Federation delivery
+// observability") ---------------------------------------------------------
+
+/** Outbound delivery attempts by outcome (delivered | skipped | failed). */
+export const federationDeliveryTotal = getOrCreate(
+  "federation_delivery_total",
+  () =>
+    new client.Counter({
+      name: "federation_delivery_total",
+      help: "Outbound federation delivery attempts by outcome",
+      labelNames: ["outcome"] as const,
+    }),
+);
+
+/** Inbound activities dropped, by reason (duplicate | blocked). */
+export const federationInboxDroppedTotal = getOrCreate(
+  "federation_inbox_dropped_total",
+  () =>
+    new client.Counter({
+      name: "federation_inbox_dropped_total",
+      help: "Inbound federation activities dropped before side effects, by reason",
+      labelNames: ["reason"] as const,
+    }),
+);
+
+/** Messages waiting in the durable Fedify queue. Set at scrape time by the
+ * metrics route (the restart-loss regression detector). */
+export const federationQueueDepth = getOrCreate(
+  "federation_queue_depth",
+  () =>
+    new client.Gauge({
+      name: "federation_queue_depth",
+      help: "Messages waiting in the durable Fedify (pg-boss) message queue",
+    }),
+);
+
 export const registry = client.register;
 
 // --- Route label normalization -------------------------------------------

@@ -96,6 +96,14 @@ docker compose up -d
 See [docs/architecture.md](docs/architecture.md) for details on self-hosting
 configuration.
 
+## Federation
+
+The Journal federates over ActivityPub. The wire protocol — actor
+discovery, object/activity types with JSON examples, addressing,
+signatures, deduplication, delivery retry, and moderation — is documented
+in [FEDERATION.md](FEDERATION.md), which is precise enough for another
+implementation to interoperate against.
+
 ## Philosophy
 
 - **Privacy by design** — The Planner collects zero user data
