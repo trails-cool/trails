@@ -29,14 +29,47 @@ function parseGpxWithParser(parser: DOMParser, xml: string): GpxData {
     throw new Error(`Invalid GPX XML: ${parserError.textContent}`);
   }
 
-  const name = doc.querySelector("metadata > name")?.textContent ?? undefined;
-  const description = doc.querySelector("metadata > desc")?.textContent ?? undefined;
+  const { name, description } = parseMetadata(doc);
   const waypoints = parseWaypoints(doc);
   const tracks = repairTimestamps(parseTracks(doc));
   const noGoAreas = parseNoGoAreas(doc);
   const { totalDistance, ...elevation } = computeElevation(tracks);
 
   return { name, description, waypoints, tracks, noGoAreas, distance: totalDistance, elevation };
+}
+
+/** Text of the first direct child of `el` with the given (lowercased) tag. */
+function directChildText(el: Element | null, tag: string): string | undefined {
+  if (!el) return undefined;
+  for (const child of Array.from(el.children)) {
+    if (child.tagName.toLowerCase() === tag) return child.textContent ?? undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve name/description with fallback (spec: gpx-parser-robustness
+ * "Metadata fallback"). Order: `<metadata>` first, else the first
+ * `<trk>`/`<rte>`'s `<name>`/`<desc>` — many apps put the only
+ * human-readable title on the track. That track/route's `<cmt>` is
+ * appended to the description (blank-line separated) when present and not
+ * already identical (OM's BuildDescription dedup).
+ */
+function parseMetadata(doc: Document): { name?: string; description?: string } {
+  const firstTrack = doc.querySelector("trk, rte");
+  const name =
+    doc.querySelector("metadata > name")?.textContent ??
+    directChildText(firstTrack, "name") ??
+    undefined;
+  let description =
+    doc.querySelector("metadata > desc")?.textContent ??
+    directChildText(firstTrack, "desc") ??
+    undefined;
+  const cmt = directChildText(firstTrack, "cmt");
+  if (cmt && cmt !== description) {
+    description = description ? `${description}\n\n${cmt}` : cmt;
+  }
+  return { name, description };
 }
 
 function parseWaypoints(doc: Document): Waypoint[] {

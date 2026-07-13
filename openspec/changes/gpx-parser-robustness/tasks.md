@@ -17,8 +17,8 @@
 
 ## 4. Metadata fallback
 
-- [ ] 4.1 Fall back to first `<trk>`/`<rte>` `<name>`/`<desc>` when `<metadata>` lacks them; merge distinct `<cmt>` into description with blank-line separator, dedup identical
-- [ ] 4.2 Unit tests: track-name fallback, metadata precedence, cmt merge, identical cmt deduped
+- [x] 4.1 Fall back to first `<trk>`/`<rte>` `<name>`/`<desc>` when `<metadata>` lacks them; merge distinct `<cmt>` into description with blank-line separator, dedup identical
+- [x] 4.2 Unit tests: track-name fallback, metadata precedence, cmt merge, identical cmt deduped
 
 ## 5. Fixture corpus
 

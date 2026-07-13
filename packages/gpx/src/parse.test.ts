@@ -197,3 +197,49 @@ describe("parseGpxAsync — route (<rte>) support", () => {
     expect(result.tracks[1]![0]!.lat).toBe(10.0);
   });
 });
+
+describe("parseGpxAsync — metadata fallback", () => {
+  const gpx = (body: string) =>
+    `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">${body}</gpx>`;
+  const seg = `<trkseg><trkpt lat="52.52" lon="13.405"></trkpt><trkpt lat="48.137" lon="11.576"></trkpt></trkseg>`;
+
+  it("falls back to the first track's name/desc when metadata lacks them", async () => {
+    const result = await parseGpxAsync(gpx(`<trk><name>Track Title</name><desc>Track note</desc>${seg}</trk>`));
+    expect(result.name).toBe("Track Title");
+    expect(result.description).toBe("Track note");
+  });
+
+  it("falls back to a route's name when there is no track", async () => {
+    const result = await parseGpxAsync(
+      gpx(`<rte><name>Route Title</name><rtept lat="52.52" lon="13.405"></rtept><rtept lat="48.137" lon="11.576"></rtept></rte>`),
+    );
+    expect(result.name).toBe("Route Title");
+  });
+
+  it("prefers <metadata> over the track name/desc", async () => {
+    const result = await parseGpxAsync(
+      gpx(`<metadata><name>Meta Name</name><desc>Meta desc</desc></metadata><trk><name>Track Name</name><desc>Track desc</desc>${seg}</trk>`),
+    );
+    expect(result.name).toBe("Meta Name");
+    expect(result.description).toBe("Meta desc");
+  });
+
+  it("merges a distinct <cmt> into the description, blank-line separated", async () => {
+    const result = await parseGpxAsync(
+      gpx(`<trk><desc>The description</desc><cmt>An extra comment</cmt>${seg}</trk>`),
+    );
+    expect(result.description).toBe("The description\n\nAn extra comment");
+  });
+
+  it("does not duplicate a <cmt> identical to the description", async () => {
+    const result = await parseGpxAsync(
+      gpx(`<trk><desc>Same text</desc><cmt>Same text</cmt>${seg}</trk>`),
+    );
+    expect(result.description).toBe("Same text");
+  });
+
+  it("uses <cmt> as the description when there is no desc", async () => {
+    const result = await parseGpxAsync(gpx(`<trk><cmt>Only a comment</cmt>${seg}</trk>`));
+    expect(result.description).toBe("Only a comment");
+  });
+});
