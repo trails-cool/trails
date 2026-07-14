@@ -17,7 +17,9 @@ on:
       - "infrastructure/docker-compose.staging.yml"
       - ".github/workflows/cd-staging.yml"
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    # `labeled`/`unlabeled` so toggling the `preview` label on an existing PR
+    # starts / tears down its preview (see the opt-in gate on the jobs below).
+    types: [opened, synchronize, reopened, closed, labeled, unlabeled]
     paths:
       - "apps/**"
       - "packages/**"
@@ -44,7 +46,15 @@ jobs:
   # Skipped entirely on PR close (teardown doesn't need new images).
   build-images:
     name: Build & Push Docker Images
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    # PR previews are opt-in to keep flagship disk in check (each preview is a
+    # journal container + database): build a PR's images only when it carries
+    # the `preview` label or a `<!-- preview -->` marker in its description.
+    # Main-push / dispatch always build.
+    if: >
+      github.event_name != 'pull_request' ||
+      (github.event.action != 'closed' &&
+       (contains(github.event.pull_request.labels.*.name, 'preview') ||
+        contains(github.event.pull_request.body, '<!-- preview -->')))
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -207,11 +217,15 @@ jobs:
   # ── PR preview deploy ────────────────────────────────────────────────
   deploy-preview:
     name: Deploy PR Preview
-    # Skip GH-Actions-only Dependabot PRs — there is no app image to preview.
+    # Opt-in only (see build-images): the `preview` label or a `<!-- preview -->`
+    # marker in the PR body. Also skips GH-Actions-only Dependabot PRs — there
+    # is no app image to preview.
     if: >
       github.event_name == 'pull_request' &&
       github.event.action != 'closed' &&
-      !startsWith(github.head_ref, 'dependabot/github_actions/')
+      !startsWith(github.head_ref, 'dependabot/github_actions/') &&
+      (contains(github.event.pull_request.labels.*.name, 'preview') ||
+       contains(github.event.pull_request.body, '<!-- preview -->'))
     needs: [build-images]
     runs-on: ubuntu-latest
     environment: production
@@ -410,7 +424,15 @@ jobs:
   # ── PR preview teardown ──────────────────────────────────────────────
   teardown-preview:
     name: Tear Down PR Preview
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    # Tear down on close, or when the `preview` opt-in is removed (label pulled
+    # and no `<!-- preview -->` marker left) so a de-flagged PR doesn't orphan
+    # its preview stack on the flagship.
+    if: >
+      github.event_name == 'pull_request' &&
+      (github.event.action == 'closed' ||
+       (github.event.action == 'unlabeled' &&
+        !(contains(github.event.pull_request.labels.*.name, 'preview') ||
+          contains(github.event.pull_request.body, '<!-- preview -->'))))
     runs-on: ubuntu-latest
     environment: production
     permissions:
