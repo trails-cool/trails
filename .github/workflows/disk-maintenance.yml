@@ -39,7 +39,11 @@ jobs:
             echo "before: $(df -h / | tail -1)"
             # 12h filter: never touch layers a same-day deploy may still
             # be assembling; running containers' images are never pruned.
-            docker image prune -af --filter "until=12h"
+            # `|| true`: a concurrent deploy's prune can make this collide
+            # with "a prune operation is already running" — that's benign
+            # (the other prune is freeing space too), and the disk-% gate
+            # below is the real assertion, so don't fail on the collision.
+            docker image prune -af --filter "until=12h" || true
             echo "after:  $(df -h / | tail -1)"
 
             PCT=$(df --output=pcent / | tail -1 | tr -dc '0-9')
