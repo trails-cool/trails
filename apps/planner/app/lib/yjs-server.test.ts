@@ -52,9 +52,12 @@ describe("countActiveSessions", () => {
 });
 
 describe("doc-size caps", () => {
-  it("MAX_MESSAGE_BYTES + MAX_DOC_BYTES are positive and ordered sanely", () => {
-    expect(MAX_MESSAGE_BYTES).toBeGreaterThan(0);
-    expect(MAX_DOC_BYTES).toBeGreaterThan(MAX_MESSAGE_BYTES);
+  it("the per-frame cap can carry a full-doc sync (message cap >= doc cap)", () => {
+    expect(MAX_DOC_BYTES).toBeGreaterThan(0);
+    // A full-state sync frame contains the entire doc, so a per-frame cap
+    // below the doc cap makes docs between the two sizes unsyncable (reconnect
+    // loop). The frame cap must be at least the doc cap, plus protocol room.
+    expect(MAX_MESSAGE_BYTES).toBeGreaterThanOrEqual(MAX_DOC_BYTES);
   });
 
   it("docByteSize returns 0 for an unknown session", () => {
