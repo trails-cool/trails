@@ -11,13 +11,19 @@ import { plannerActiveSessions, plannerConnectedClients } from "./metrics.server
 const messageSync = 0;
 const messageAwareness = 1;
 
-// Bound the per-WebSocket-message size and per-session doc size. Both
-// guards exist to stop a single connected client from filling memory
-// (or the persisted `yjs_state` blob) without limit. Picked generously
-// — a multi-day route with hundreds of waypoints is well under 100 KB
-// of serialized Yjs state — but small enough to refuse abuse.
-export const MAX_MESSAGE_BYTES = 256 * 1024; // 256 KB per WS frame
+// Bound the per-session doc size — the real abuse guard, stopping a client
+// from filling memory or the persisted `yjs_state` blob without limit. A
+// route with hundreds of waypoints is well under this once its BRouter
+// geometry is stored in the doc, which is what actually drives the size.
 export const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5 MB per session doc
+// Per-WebSocket-frame cap. It MUST exceed the doc cap: a full-state sync
+// (initial load, or any reconnect) puts the entire doc into a single frame,
+// so a frame limit below MAX_DOC_BYTES makes any legal-but-larger-than-the-
+// -frame doc permanently unsyncable — the client's sync frame is rejected,
+// it reconnects, resends the same frame, and loops forever (observed at the
+// old 256 KB cap: a 305 KB / 4-waypoint route froze in a reconnect storm).
+// The doc cap remains the size limit; this just leaves room to transmit it.
+export const MAX_MESSAGE_BYTES = MAX_DOC_BYTES + 256 * 1024; // doc + protocol overhead
 // WebSocket close code for policy-violation responses (1008 is the
 // standard RFC 6455 code for "received a message that violates policy").
 const POLICY_VIOLATION = 1008;
