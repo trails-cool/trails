@@ -67,6 +67,31 @@ gh workflow run cd-infra.yml -f restart_all=true
 
 Restarts every flagship service. Does NOT touch the BRouter host.
 
+## Flagship disk pressure
+
+The flagship root fs is ~38 GB. When it hits 100%, Postgres can't write and
+every app 500s; deploys fail at the SCP step ("error copy file to dest").
+Two independent guards keep it in check:
+
+- **Image churn** — `disk-maintenance.yml` prunes unused images daily (04:30
+  UTC, `until=12h`); the deploy workflows also prune after each run.
+- **Container logs** — every compose service caps its `json-file` logs at
+  30 MB (`x-logging` anchor in `docker-compose.yml`). Before that cap a
+  single service logging in a loop grew a 2.6 GB log (2026-07-14 outage).
+
+Emergency (disk already full, service down):
+
+```bash
+ssh -i ~/.ssh/trails-cool-deploy root@trails.cool
+df -h /                                  # confirm 100%
+docker image prune -af                   # safe — never removes volumes/data
+docker builder prune -f                  # build cache
+docker system df                         # what's left; du -xhd1 /var to hunt
+# containers self-recover once space frees; re-run the failed deploy after.
+```
+
+Never `docker system prune --volumes` — that deletes the Postgres data volume.
+
 ## Network-changing deploys (flagship)
 
 Changing options on an existing Docker network (`enable_ipv6`, subnets,

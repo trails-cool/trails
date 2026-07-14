@@ -1,7 +1,18 @@
+# Cap every container's json-file logs so a service logging in a loop can't
+# fill the flagship disk. 10 MB x 3 rotated files = 30 MB max per container.
+# (2026-07-14: an unbounded 2.6 GB container log helped push / to 100% and
+# took production down — see docs/deployment.md.)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"
@@ -35,6 +46,7 @@ services:
   journal:
     image: ghcr.io/trails-cool/journal:latest
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DOMAIN: ${DOMAIN:-trails.cool}
       ORIGIN: https://${DOMAIN:-trails.cool}
@@ -93,6 +105,7 @@ services:
   planner:
     image: ghcr.io/trails-cool/planner:latest
     restart: unless-stopped
+    logging: *default-logging
     environment:
       # Required: points the Planner at the dedicated BRouter host over
       # vSwitch. Set in SOPS `secrets.app.env` (BROUTER_URL line). Using
@@ -120,6 +133,7 @@ services:
   postgres:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
+    logging: *default-logging
     # Joined to the shared network so the staging compose project can reach
     # this instance by hostname `postgres`. Production services keep using
     # the default network as before.
@@ -148,6 +162,7 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATA_SOURCE_NAME: postgresql://trails:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in SOPS secrets.app.env}@postgres:5432/trails?sslmode=disable
       PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yml
@@ -160,6 +175,7 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     restart: unless-stopped
+    logging: *default-logging
     pid: host
     volumes:
       - /proc:/host/proc:ro
@@ -174,6 +190,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     restart: unless-stopped
+    logging: *default-logging
     privileged: true
     volumes:
       - /:/rootfs:ro
@@ -185,6 +202,7 @@ services:
   promtail:
     image: grafana/promtail:latest
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -198,6 +216,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       # Directory mount (not the file) so config changes are seen live and a
       # SIGHUP reload applies them without recreating the container — see the
@@ -212,6 +231,7 @@ services:
   loki:
     image: grafana/loki:latest
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       # Directory mount (not the file) so a replaced config is seen live —
       # see the caddy note above. Loki only reloads its main config on
@@ -229,6 +249,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     restart: unless-stopped
+    logging: *default-logging
     environment:
       GF_SERVER_ROOT_URL: https://grafana.internal.${DOMAIN:-trails.cool}
       GF_AUTH_GITHUB_ENABLED: "true"
