@@ -177,8 +177,13 @@ jobs:
             # deploy from failing if Caddy itself is unhealthy.
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
 
-            # Clean up
-            docker image prune -af
+            # Clean up (best-effort). This runs AFTER the containers are
+            # swapped + Caddy reloaded, so the deploy already succeeded —
+            # a transient "a prune operation is already running" collision
+            # with a concurrent deploy/disk-maintenance prune must NOT fail
+            # an otherwise-green deploy. disk-maintenance.yml is the real
+            # image-prune safety net.
+            docker image prune -af || true
             docker compose ps
 
             # Annotate deploy in Grafana. GRAFANA_SERVICE_TOKEN lives
