@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { Select } from "@trails-cool/ui";
 import type { YjsState } from "~/lib/use-yjs";
 import { DEFAULT_PROFILE, getProfile, setProfile as setYjsProfile } from "~/lib/route-data";
 
@@ -34,21 +35,21 @@ export function ProfileSelector({ yjs }: ProfileSelectorProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="profile" className="text-sm text-gray-600">
+      <label htmlFor="profile" className="hidden text-sm text-text-md sm:block">
         {t("profile")}:
       </label>
-      <select
+      <Select
         id="profile"
+        size="sm"
         value={profile}
         onChange={handleChange}
-        className="rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
         {PROFILE_IDS.map((id) => (
           <option key={id} value={id}>
             {t(`profiles.${id}`)}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

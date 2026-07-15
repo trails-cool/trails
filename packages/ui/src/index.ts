@@ -7,6 +7,8 @@ export { Card } from "./Card.tsx";
 export type { CardProps } from "./Card.tsx";
 export { Input } from "./Input.tsx";
 export type { InputProps } from "./Input.tsx";
+export { Select } from "./Select.tsx";
+export type { SelectProps, SelectSize } from "./Select.tsx";
 export { IconButton } from "./IconButton.tsx";
 export type {
   IconButtonProps,
