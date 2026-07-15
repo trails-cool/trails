@@ -35,6 +35,24 @@ function gradeColor(grade: number): string {
 
 export const PADDING = { top: 10, right: 10, bottom: 25, left: 40 };
 
+// Chart chrome palette — mirrors the @trails-cool/ui theme tokens (keep in
+// sync with packages/ui/src/theme.css). Canvas can't read CSS vars cheaply,
+// so the stable brand values live here. Per-mode data-viz palettes (grade,
+// surface, …) stay in map-core.
+const CHROME = {
+  accent: "#4a6b40", // --color-accent
+  accentFill: "rgba(74, 107, 64, 0.18)", // soft area under the line
+  axis: "#9a9484", // --color-text-lo
+  divider: "#cac6bc", // --color-border-md
+  hoverLine: "rgba(26, 25, 22, 0.35)", // --color-text-hi @ 35%
+  hoverText: "#1a1916", // --color-text-hi
+  ring: "#faf8f4", // --color-bg-raised (dot ring)
+  selectFill: "rgba(74, 107, 64, 0.12)",
+  selectStroke: "rgba(74, 107, 64, 0.5)",
+};
+const MONO = '600 10px "Geist Mono Variable", ui-monospace, monospace';
+const MONO_SM = '9px "Geist Mono Variable", ui-monospace, monospace';
+
 export interface DrawChartParams {
   points: ElevationPoint[];
   colorMode: ColorMode;
@@ -179,7 +197,10 @@ export function drawElevationChart(
     }
     ctx.lineTo(PADDING.left + chartW, PADDING.top + chartH);
     ctx.closePath();
-    ctx.fillStyle = "rgba(37, 99, 235, 0.15)";
+    const grad = ctx.createLinearGradient(0, PADDING.top, 0, PADDING.top + chartH);
+    grad.addColorStop(0, CHROME.accentFill);
+    grad.addColorStop(1, "rgba(74, 107, 64, 0.02)");
+    ctx.fillStyle = grad;
     ctx.fill();
 
     ctx.beginPath();
@@ -188,14 +209,14 @@ export function drawElevationChart(
       if (i === 0) ctx.moveTo(toX(p.distance), toY(p.elevation));
       else ctx.lineTo(toX(p.distance), toY(p.elevation));
     }
-    ctx.strokeStyle = "#2563eb";
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = CHROME.accent;
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 
   // Axis labels
-  ctx.fillStyle = "#6b7280";
-  ctx.font = "10px sans-serif";
+  ctx.fillStyle = CHROME.axis;
+  ctx.font = MONO;
   ctx.textAlign = "right";
   ctx.fillText(`${Math.round(maxEle)}m`, PADDING.left - 4, PADDING.top + 10);
   ctx.fillText(`${Math.round(minEle)}m`, PADDING.left - 4, PADDING.top + chartH);
@@ -213,13 +234,13 @@ export function drawElevationChart(
       ctx.setLineDash([4, 3]);
       ctx.moveTo(bx, PADDING.top);
       ctx.lineTo(bx, PADDING.top + chartH);
-      ctx.strokeStyle = "#9A9484";
+      ctx.strokeStyle = CHROME.divider;
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.setLineDash([]);
 
-      ctx.fillStyle = "#9A9484";
-      ctx.font = "9px sans-serif";
+      ctx.fillStyle = CHROME.axis;
+      ctx.font = MONO_SM;
       ctx.textAlign = "center";
       ctx.fillText(`${(boundaryDist / 1000).toFixed(0)} km`, bx, h - 4);
     }
@@ -234,20 +255,20 @@ export function drawElevationChart(
     ctx.beginPath();
     ctx.moveTo(hx, PADDING.top);
     ctx.lineTo(hx, PADDING.top + chartH);
-    ctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
+    ctx.strokeStyle = CHROME.hoverLine;
     ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.beginPath();
     ctx.arc(hx, hy, 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#ef4444";
+    ctx.fillStyle = CHROME.accent;
     ctx.fill();
-    ctx.strokeStyle = "white";
+    ctx.strokeStyle = CHROME.ring;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.fillStyle = "#1f2937";
-    ctx.font = "bold 10px sans-serif";
+    ctx.fillStyle = CHROME.hoverText;
+    ctx.font = MONO;
     ctx.textAlign = "left";
     let label = `${Math.round(p.elevation)}m · ${(p.distance / 1000).toFixed(1)}km`;
     if (colorMode === "grade" && hoverIdx > 0) {
@@ -280,9 +301,9 @@ export function drawElevationChart(
     const x2 = Math.max(PADDING.left, Math.min(dragCurrentX, PADDING.left + chartW));
     const selLeft = Math.min(x1, x2);
     const selRight = Math.max(x1, x2);
-    ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
+    ctx.fillStyle = CHROME.selectFill;
     ctx.fillRect(selLeft, PADDING.top, selRight - selLeft, chartH);
-    ctx.strokeStyle = "rgba(59, 130, 246, 0.5)";
+    ctx.strokeStyle = CHROME.selectStroke;
     ctx.lineWidth = 1;
     ctx.strokeRect(selLeft, PADDING.top, selRight - selLeft, chartH);
   }
