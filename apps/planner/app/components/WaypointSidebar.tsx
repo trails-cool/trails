@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { Badge } from "@trails-cool/ui";
 import type { YjsState } from "~/lib/use-yjs";
 import type { DayStage } from "@trails-cool/gpx";
 import { setOvernight } from "~/lib/overnight";
@@ -140,16 +141,16 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
   const renderWaypointRow = (wp: WaypointData, i: number) => (
     <li
       key={i}
-      className={`group flex items-start gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer ${selectedIndex === i ? "bg-blue-50" : ""}`}
+      className={`group flex items-start gap-2 px-4 py-2 cursor-pointer transition-colors ${selectedIndex === i ? "bg-accent-bg" : "hover:bg-bg-subtle"}`}
       onClick={() => selectWaypoint(selectedIndex === i ? null : i)}
       onMouseEnter={() => onWaypointHover?.(i)}
       onMouseLeave={() => onWaypointHover?.(null)}
     >
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-bg text-xs font-medium text-accent">
         {i + 1}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-gray-700">
+        <p className="truncate text-sm text-text-hi">
           {wp.name ?? `${wp.lat.toFixed(4)}, ${wp.lon.toFixed(4)}`}
         </p>
         {/* Note display / editor */}
@@ -159,7 +160,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
               ref={textareaRef}
               value={noteEditValue}
               maxLength={NOTE_MAX}
-              className="mt-1 w-full resize-none rounded border border-blue-300 bg-white px-2 py-1 text-xs italic text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="mt-1 w-full resize-none rounded-md border border-accent bg-bg-raised px-2 py-1 text-xs italic text-text-md focus:outline-none focus:ring-2 focus:ring-accent-border"
               rows={2}
               onChange={(e) => {
                 setNoteEditValue(e.target.value);
@@ -177,13 +178,13 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
                 }
               }}
             />
-            <p className="mt-0.5 text-right text-[10px] text-gray-400">
+            <p className="mt-0.5 text-right text-[10px] text-text-lo">
               {noteEditValue.length} / {NOTE_MAX}
             </p>
           </div>
         ) : (
           <p
-            className="mt-0.5 line-clamp-2 cursor-text text-xs italic text-gray-400 hover:text-gray-600"
+            className="mt-0.5 line-clamp-2 cursor-text text-xs italic text-text-lo hover:text-text-md"
             onClick={(e) => {
               e.stopPropagation();
               openNoteEditor(i);
@@ -194,16 +195,16 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
         )}
       </div>
       {wp.overnight && (
-        <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200">
+        <Badge tone="stop" className="shrink-0">
           {t("multiDay.overnight")}
-        </span>
+        </Badge>
       )}
       <div className="flex gap-1 opacity-0 group-hover:opacity-100">
         {/* Overnight toggle — not on first or last waypoint */}
         {i > 0 && i < waypoints.length - 1 && (
           <button
             onClick={() => toggleOvernight(i)}
-            className={`rounded p-1 ${wp.overnight ? "text-amber-600 hover:bg-amber-100" : "text-gray-400 hover:bg-gray-200 hover:text-gray-600"}`}
+            className={`rounded p-1 transition-colors ${wp.overnight ? "text-stop hover:bg-stop-bg" : "text-text-lo hover:bg-bg-subtle hover:text-text-hi"}`}
             title={wp.overnight ? t("multiDay.removeOvernight") : t("multiDay.markOvernight")}
           >
             ☾
@@ -212,7 +213,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
         {i > 0 && (
           <button
             onClick={() => moveWaypoint(i, i - 1)}
-            className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+            className="rounded p-1 text-text-lo transition-colors hover:bg-bg-subtle hover:text-text-hi"
             title="Move up"
           >
             ↑
@@ -221,7 +222,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
         {i < waypoints.length - 1 && (
           <button
             onClick={() => moveWaypoint(i, i + 1)}
-            className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+            className="rounded p-1 text-text-lo transition-colors hover:bg-bg-subtle hover:text-text-hi"
             title="Move down"
           >
             ↓
@@ -229,7 +230,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
         )}
         <button
           onClick={() => deleteWaypoint(i)}
-          className="rounded p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
+          className="rounded p-1 text-text-lo transition-colors hover:bg-nogo hover:text-text-hi"
           title="Delete"
         >
           ×
@@ -241,12 +242,12 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
   return (
     <div className="flex h-full flex-col">
       {/* Header with route summary */}
-      <div className="border-b border-gray-200 px-4 py-3">
-        <h2 className="text-sm font-medium text-gray-900">
+      <div className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-medium text-text-hi">
           {t("sidebar.waypoints")} ({waypoints.length})
         </h2>
         {routeStats && routeStats.distance !== undefined && (
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className="mt-0.5 font-mono text-xs text-text-md">
             {(routeStats.distance / 1000).toFixed(1)} km
             {routeStats.elevationGain !== undefined && ` · ↑${routeStats.elevationGain} m`}
             {hasMultipleDays && ` · ${t("multiDay.dayCount", { count: days.length })}`}
@@ -257,19 +258,19 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
       {/* Waypoint list */}
       <div className="flex-1 overflow-y-auto">
         {waypoints.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-gray-500">
-            Click on the map to add waypoints
+          <p className="px-4 py-6 text-center text-sm text-text-md">
+            {t("waypoint.emptyState", "Click on the map to add waypoints")}
           </p>
         ) : hasMultipleDays ? (
           <DayBreakdown days={days}>
             {(_day, { start, end }) => (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-border">
                 {waypoints.slice(start, end + 1).map((wp, offset) => renderWaypointRow(wp, start + offset))}
               </ul>
             )}
           </DayBreakdown>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-border">
             {waypoints.map((wp, i) => renderWaypointRow(wp, i))}
           </ul>
         )}
@@ -277,16 +278,16 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
 
       {/* Nearby POIs for selected waypoint */}
       {selectedIndex !== null && (
-        <div className="border-t border-gray-200 px-4 py-3">
-          <p className="mb-2 text-xs font-medium text-gray-700">{t("nearbyPoi.heading")}</p>
+        <div className="border-t border-border px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-text-hi">{t("nearbyPoi.heading")}</p>
           {nearbyPoisState.status === "loading" && (
-            <p className="text-xs text-gray-400">{t("nearbyPoi.loading")}</p>
+            <p className="text-xs text-text-lo">{t("nearbyPoi.loading")}</p>
           )}
           {nearbyPoisState.status === "rate_limited" && (
-            <p className="text-xs text-gray-400">{t("nearbyPoi.rateLimited")}</p>
+            <p className="text-xs text-text-lo">{t("nearbyPoi.rateLimited")}</p>
           )}
           {(nearbyPoisState.status === "done" || nearbyPoisState.status === "error") && nearbyPoisState.pois.length === 0 && (
-            <p className="text-xs text-gray-400">{t("nearbyPoi.empty")}</p>
+            <p className="text-xs text-text-lo">{t("nearbyPoi.empty")}</p>
           )}
           {nearbyPoisState.pois.length > 0 && (
             <>
@@ -296,12 +297,12 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
                   return (
                     <li key={poi.id} className="flex items-center gap-2">
                       <span className="shrink-0 text-sm">{cat?.icon ?? "📍"}</span>
-                      <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
+                      <span className="min-w-0 flex-1 truncate text-xs text-text-hi">
                         {poi.name ?? cat?.id ?? poi.category}
                       </span>
                       <button
                         onClick={() => snapToPoi(poi)}
-                        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50"
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-accent transition-colors hover:bg-accent-bg"
                       >
                         {t("nearbyPoi.snap")}
                       </button>
@@ -312,7 +313,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
               {nearbyPoisState.pois.length > 5 && !showAllNearby && (
                 <button
                   onClick={() => setShowAllNearby(true)}
-                  className="mt-1 text-[11px] text-blue-500 hover:underline"
+                  className="mt-1 text-[11px] text-accent hover:underline"
                 >
                   {t("nearbyPoi.showMore")}
                 </button>
@@ -324,28 +325,28 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
 
       {/* Stats footer — only shown for single-day view (multi-day shows per-day stats inline) */}
       {!hasMultipleDays && routeStats && routeStats.distance !== undefined && (
-        <div className="border-t border-gray-200 px-4 py-3">
+        <div className="border-t border-border px-4 py-3">
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
             <div>
-              <p className="font-medium text-gray-900">
+              <p className="font-mono font-medium text-text-hi">
                 {(routeStats.distance / 1000).toFixed(1)} km
               </p>
-              <p className="text-gray-500">{t("multiDay.distance")}</p>
+              <p className="text-text-md">{t("multiDay.distance")}</p>
             </div>
             {routeStats.elevationGain !== undefined && (
               <div>
-                <p className="font-medium text-gray-900">
+                <p className="font-mono font-medium text-text-hi">
                   ↑ {routeStats.elevationGain} m
                 </p>
-                <p className="text-gray-500">{t("multiDay.ascent")}</p>
+                <p className="text-text-md">{t("multiDay.ascent")}</p>
               </div>
             )}
             {routeStats.elevationLoss !== undefined && (
               <div>
-                <p className="font-medium text-gray-900">
+                <p className="font-mono font-medium text-text-hi">
                   ↓ {routeStats.elevationLoss} m
                 </p>
-                <p className="text-gray-500">{t("multiDay.descent")}</p>
+                <p className="text-text-md">{t("multiDay.descent")}</p>
               </div>
             )}
           </div>

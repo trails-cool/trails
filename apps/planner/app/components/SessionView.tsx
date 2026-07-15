@@ -119,17 +119,17 @@ function SidebarTabs({ yjs, routeStats, days, onWaypointHover, onWaypointSelect 
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
 
   return (
-    <aside className="hidden w-72 border-l border-gray-200 bg-white md:flex md:flex-col">
-      <div className="flex border-b border-gray-200">
+    <aside className="hidden w-72 border-l border-border bg-bg-raised md:flex md:flex-col">
+      <div className="flex border-b border-border">
         <button
           onClick={() => setTab("waypoints")}
-          className={`flex-1 px-3 py-2 text-xs font-medium ${tab === "waypoints" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${tab === "waypoints" ? "border-b-2 border-accent text-accent" : "text-text-md hover:text-text-hi"}`}
         >
           {t("sidebar.waypoints", "Waypoints")}
         </button>
         <button
           onClick={() => setTab("notes")}
-          className={`flex-1 px-3 py-2 text-xs font-medium ${tab === "notes" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${tab === "notes" ? "border-b-2 border-accent text-accent" : "text-text-md hover:text-text-hi"}`}
         >
           {t("sidebar.notes", "Notes")}
         </button>
