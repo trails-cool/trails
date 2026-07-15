@@ -18,6 +18,7 @@ export default {
     newSession: "New Session",
     saveRoute: "Save Route",
     exportGpx: "Export GPX",
+    exportOptions: "Export options",
     exportRoute: "Export Route",
     exportRouteDesc: "Clean GPX track for any app",
     exportPlan: "Export Plan",

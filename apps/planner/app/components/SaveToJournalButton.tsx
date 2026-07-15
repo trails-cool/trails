@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@trails-cool/ui";
 import { computeSurfaceBreakdown } from "@trails-cool/map-core";
 import type { YjsState } from "~/lib/use-yjs";
 import { buildPlanGpx } from "~/lib/gpx-export";
@@ -64,17 +65,16 @@ export function SaveToJournalButton({ yjs, sessionId, returnUrl }: SaveToJournal
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-      >
+      <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
         {saving ? t("saving") : t("saveToJournal")}
-      </button>
-      {saved && <span className="text-xs text-green-600">{t("saved")}</span>}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      </Button>
+      {saved && <span className="text-xs text-accent">{t("saved")}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
       {saved && returnUrl && (
-        <a href={returnUrl} className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200">
+        <a
+          href={returnUrl}
+          className="inline-flex h-7 items-center rounded-md border border-border bg-bg-raised px-2.5 text-xs font-medium text-text-hi transition-colors hover:bg-bg-subtle"
+        >
           {t("returnToJournal")}
         </a>
       )}

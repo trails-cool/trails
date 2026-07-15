@@ -91,7 +91,7 @@ test.describe("Planner – routing", () => {
     const sidebar = page.locator("aside");
     await expect(sidebar.getByText("Refill water here")).toBeVisible({ timeout: 5000 });
 
-    await page.getByRole("button", { name: "▾" }).click();
+    await page.getByRole("button", { name: "Export options" }).click();
     await expect(page.getByText("Export Plan")).toBeVisible({ timeout: 3000 });
     const downloadPromise = page.waitForEvent("download");
     await page.getByText("Export Plan").first().click();
