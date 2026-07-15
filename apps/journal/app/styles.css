@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@trails-cool/ui/theme.css";
 
+/* Scan the shared UI package so its token utility classes are generated. */
+@source "../../../packages/ui/src";
+
 @keyframes slide {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
