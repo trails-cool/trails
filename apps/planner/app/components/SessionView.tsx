@@ -284,7 +284,7 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
               {isZoomedByChart && (
                 <button
                   onClick={handleResetZoom}
-                  className="absolute right-3 top-1 z-10 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow ring-1 ring-gray-200 hover:bg-gray-50"
+                  className="absolute bottom-7 right-3 z-10 rounded-md bg-bg-raised px-2 py-0.5 text-[11px] font-medium text-text-md shadow-sm ring-1 ring-border transition-colors hover:bg-bg-subtle"
                 >
                   {t("elevation.resetZoom", "Reset zoom")}
                 </button>
