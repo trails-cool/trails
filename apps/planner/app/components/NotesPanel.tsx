@@ -94,8 +94,8 @@ export function NotesPanel({ yjs }: NotesPanelProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-gray-200 px-4 py-3">
-        <h2 className="text-sm font-medium text-gray-900">
+      <div className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-medium text-text-hi">
           {t("sidebar.notes")}
         </h2>
       </div>
