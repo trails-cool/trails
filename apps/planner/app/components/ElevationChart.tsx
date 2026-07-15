@@ -14,6 +14,7 @@ import {
 } from "@trails-cool/map-core";
 import { drawElevationChart, PADDING } from "~/lib/elevation-chart-draw";
 import { useElevationData } from "~/lib/use-elevation-data";
+import { Select } from "@trails-cool/ui";
 import { setColorMode, type ColorMode } from "~/lib/route-data";
 
 interface ElevationChartProps {
@@ -378,7 +379,7 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
   if (points.length < 2) return null;
 
   return (
-    <div className="border-t border-gray-200 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <div className="border-t border-border px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="mb-1 flex items-center gap-2 px-2">
         {(() => {
           const osmLinks: Record<string, string> = {
@@ -402,14 +403,14 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
           const title = titles[colorMode] ?? t("elevation.profile");
           const link = osmLinks[colorMode];
           return link ? (
-            <a href={link} target="_blank" rel="noopener" className="shrink-0 text-xs font-medium text-gray-500 hover:text-blue-600 hover:underline">
+            <a href={link} target="_blank" rel="noopener" className="shrink-0 text-xs font-medium text-text-md hover:text-accent hover:underline">
               {title}
             </a>
           ) : (
-            <p className="shrink-0 text-xs font-medium text-gray-500">{title}</p>
+            <p className="shrink-0 text-xs font-medium text-text-md">{title}</p>
           );
         })()}
-        <div className="flex flex-1 items-center justify-center gap-1.5 text-[10px] text-gray-400">
+        <div className="flex flex-1 items-center justify-center gap-1.5 text-[10px] text-text-lo">
           {colorMode === "grade" && (<>
             <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} />{"<3%"}</span>
             <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#eab308" }} />{"<6%"}</span>
@@ -480,10 +481,12 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
             <span className="flex items-center gap-0.5"><span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ background: "#d4d4d8" }} />None</span>
           </>)}
         </div>
-        <select
+        <Select
+          size="sm"
           value={colorMode}
           onChange={(e) => setMode(e.target.value)}
-          className="shrink-0 rounded border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-500"
+          aria-label={t("elevation.profile")}
+          className="shrink-0"
         >
           <option value="plain">{t("colorMode.plain")}</option>
           <option value="elevation">{t("colorMode.elevation")}</option>
@@ -495,7 +498,7 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
           <option value="tracktype">{t("colorMode.tracktype")}</option>
           <option value="cycleway">{t("colorMode.cycleway")}</option>
           <option value="bikeroute">{t("colorMode.bikeroute")}</option>
-        </select>
+        </Select>
       </div>
       <canvas
         ref={canvasRef}
