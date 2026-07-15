@@ -1,5 +1,32 @@
-import type { ReactNode } from "react";
-import { Badge, Button, Card, Input } from "@trails-cool/ui";
+import { useState, type ReactNode } from "react";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  IconButton,
+  Input,
+  SegmentedControl,
+} from "@trails-cool/ui";
+
+const UndoIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="1 4 1 10 7 10" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </svg>
+);
+const RedoIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10" />
+    <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10" />
+  </svg>
+);
+
+const COLOR_MODES = [
+  { value: "plain", label: "Plain" },
+  { value: "elevation", label: "Elevation" },
+  { value: "surface", label: "Surface" },
+] as const;
 
 /**
  * Dev-only gallery for the shared UI primitives. Renders every primitive in
@@ -19,6 +46,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function DevUi() {
+  const [colorMode, setColorMode] =
+    useState<(typeof COLOR_MODES)[number]["value"]>("elevation");
+
   return (
     <main className="mx-auto max-w-3xl space-y-10 p-10">
       <header className="space-y-1">
@@ -56,6 +86,45 @@ export default function DevUi() {
         <div className="w-72">
           <Input value="Alpenüberquerung" readOnly />
         </div>
+      </Section>
+
+      <Section title="IconButton">
+        <IconButton label="Undo">
+          <UndoIcon />
+        </IconButton>
+        <IconButton label="Redo">
+          <RedoIcon />
+        </IconButton>
+        <IconButton label="Undo (disabled)" disabled>
+          <UndoIcon />
+        </IconButton>
+        <IconButton label="Undo" variant="secondary">
+          <UndoIcon />
+        </IconButton>
+      </Section>
+
+      <Section title="SegmentedControl · color mode">
+        <SegmentedControl
+          options={COLOR_MODES}
+          value={colorMode}
+          onChange={setColorMode}
+          label="Color mode"
+        />
+        <span className="text-sm text-text-md">
+          selected: <code className="font-mono">{colorMode}</code>
+        </span>
+      </Section>
+
+      <Section title="Avatar · participants">
+        <Avatar name="ulle" color="#4A6B40" />
+        <Avatar name="Mara" color="#8B6D3A" />
+        <Avatar name="Sam" color="#C46040" />
+        <Avatar name="ulle" color="#4A6B40" size="sm" />
+        <span className="inline-flex items-center gap-1.5 text-sm text-text-hi">
+          <Avatar name="ulle" color="#4A6B40" size="sm" />
+          ulle
+          <Badge tone="accent">Host</Badge>
+        </span>
       </Section>
 
       <Section title="Card">
