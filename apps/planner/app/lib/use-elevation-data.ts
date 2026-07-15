@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import type { ElevationPoint } from "~/lib/elevation-chart-draw";
 import {
   getColorMode,
-  getGeojson,
+  readGeojson,
   readRoadMetadata,
   type ColorMode,
   type RoadMetadata,
@@ -70,7 +70,7 @@ export function useElevationData(routeData: Y.Map<unknown>): ElevationData {
 
   useEffect(() => {
     const update = () => {
-      const geojson = getGeojson(routeData);
+      const geojson = readGeojson(routeData);
       setData({
         points: geojson ? extractElevation(geojson) : [],
         colorMode: getColorMode(routeData),
