@@ -14,7 +14,6 @@ interface TopbarProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  computing?: boolean;
   /** App-specific interactive slot (profile selector). */
   profileSlot?: ReactNode;
   /** Right-aligned action slot (save-to-journal, export). */
@@ -43,7 +42,6 @@ export function Topbar({
   canRedo,
   onUndo,
   onRedo,
-  computing = false,
   profileSlot,
   actions,
 }: TopbarProps) {
@@ -86,11 +84,6 @@ export function Topbar({
       </div>
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {actions}
-        {computing && (
-          <span className="hidden text-xs text-accent sm:inline">
-            {t("computingRoute")}
-          </span>
-        )}
         <span className="hidden items-center gap-1.5 text-sm text-text-md sm:inline-flex">
           <span
             className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-accent" : "bg-text-lo"}`}

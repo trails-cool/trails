@@ -236,7 +236,6 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
-        computing={computing}
         profileSlot={<ProfileSelector yjs={yjs} />}
         actions={
           <>
@@ -255,11 +254,19 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
         <main className="flex-1 flex flex-col">
           <div className="relative flex-1">
             {computing && (
-              <div className="absolute inset-x-0 top-0 z-[1000]">
-                <div className="h-1 w-full overflow-hidden bg-blue-100">
-                  <div className="h-full w-1/3 animate-[slide_1s_ease-in-out_infinite] bg-blue-500" />
+              <>
+                {/* Ambient indeterminate progress along the top edge */}
+                <div className="absolute inset-x-0 top-0 z-[1000]">
+                  <div className="h-0.5 w-full overflow-hidden bg-accent-bg">
+                    <div className="h-full w-1/3 animate-[slide_1s_ease-in-out_infinite] bg-accent" />
+                  </div>
                 </div>
-              </div>
+                {/* Floating status pill — overlays the map without shifting layout */}
+                <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-bg-raised px-3 py-1 text-xs font-medium text-text-md shadow-md">
+                  <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden />
+                  {t("computingRoute")}
+                </div>
+              </>
             )}
             <Suspense
               fallback={
