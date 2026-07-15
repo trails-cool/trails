@@ -84,7 +84,8 @@ export default function DevUi() {
     useState<(typeof COLOR_MODES)[number]["value"]>("elevation");
 
   return (
-    <main className="mx-auto max-w-3xl space-y-10 p-10">
+    <main className="h-dvh overflow-y-auto">
+      <div className="mx-auto max-w-3xl space-y-10 p-10">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-text-hi">UI primitives</h1>
         <p className="text-sm text-text-md">
@@ -217,6 +218,7 @@ export default function DevUi() {
           <p className="mt-1 text-sm text-text-md">Elevated with a soft shadow.</p>
         </Card>
       </Section>
+      </div>
     </main>
   );
 }
