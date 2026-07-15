@@ -6,6 +6,7 @@ import {
   Card,
   IconButton,
   Input,
+  Select,
   SegmentedControl,
 } from "@trails-cool/ui";
 import { Topbar } from "~/components/Topbar";
@@ -121,6 +122,19 @@ export default function DevUi() {
         <div className="w-72">
           <Input value="Alpenüberquerung" readOnly />
         </div>
+      </Section>
+
+      <Section title="Select">
+        <Select defaultValue="fastbike" size="sm" aria-label="Profile (sm)">
+          <option value="fastbike">Radfahren (schnell)</option>
+          <option value="trekking">Trekking</option>
+          <option value="car">Auto</option>
+        </Select>
+        <Select defaultValue="trekking" aria-label="Profile (md)">
+          <option value="fastbike">Radfahren (schnell)</option>
+          <option value="trekking">Trekking</option>
+          <option value="car">Auto</option>
+        </Select>
       </Section>
 
       <Section title="IconButton">
