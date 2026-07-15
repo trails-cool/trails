@@ -19,27 +19,27 @@ export function DayBreakdown({ days, children }: DayBreakdownProps) {
           <div key={day.dayNumber}>
             <button
               onClick={() => setExpandedDay(isExpanded ? -1 : day.dayNumber)}
-              className="flex w-full items-center gap-2 border-b border-gray-100 px-4 py-2 text-left hover:bg-gray-50"
+              className="flex w-full items-center gap-2 border-b border-border px-4 py-2 text-left transition-colors hover:bg-bg-subtle"
             >
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-text-md">
                 {t("multiDay.dayLabel", { n: day.dayNumber })}
               </span>
-              <span className="min-w-0 flex-1 truncate text-xs text-gray-600">
+              <span className="min-w-0 flex-1 truncate text-xs text-text-md">
                 {day.startName && day.endName
                   ? `${day.startName} → ${day.endName}`
                   : day.startName || day.endName || ""}
               </span>
-              <span className="shrink-0 text-xs tabular-nums text-gray-500">
+              <span className="shrink-0 font-mono text-xs tabular-nums text-text-md">
                 {(day.distance / 1000).toFixed(1)} km
               </span>
-              <span className="shrink-0 text-xs text-gray-400">
+              <span className="shrink-0 text-xs text-text-lo">
                 {isExpanded ? "▾" : "▸"}
               </span>
             </button>
 
             {isExpanded && (
               <>
-                <div className="flex gap-3 border-b border-gray-100 bg-gray-50 px-4 py-1.5 text-[10px] text-gray-500">
+                <div className="flex gap-3 border-b border-border bg-bg-subtle px-4 py-1.5 font-mono text-[10px] text-text-md">
                   <span>↑ {day.ascent} m</span>
                   <span>↓ {day.descent} m</span>
                 </div>

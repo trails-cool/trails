@@ -91,6 +91,7 @@ export default {
     waypoint: {
       notePlaceholder: "Notiz hinzufügen…",
       noteCounter: "{{count}} / {{max}}",
+      emptyState: "Klicke auf die Karte, um Wegpunkte hinzuzufügen",
     },
     nearbyPoi: {
       heading: "In der Nähe",
