@@ -7,3 +7,17 @@ export { Card } from "./Card.tsx";
 export type { CardProps } from "./Card.tsx";
 export { Input } from "./Input.tsx";
 export type { InputProps } from "./Input.tsx";
+export { IconButton } from "./IconButton.tsx";
+export type {
+  IconButtonProps,
+  IconButtonVariant,
+  IconButtonSize,
+} from "./IconButton.tsx";
+export { SegmentedControl } from "./SegmentedControl.tsx";
+export type {
+  SegmentedControlProps,
+  SegmentedOption,
+  SegmentedSize,
+} from "./SegmentedControl.tsx";
+export { Avatar } from "./Avatar.tsx";
+export type { AvatarProps, AvatarSize } from "./Avatar.tsx";
