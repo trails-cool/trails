@@ -1,9 +1,9 @@
 ## 1. Design Tokens & Typography
 
-- [ ] 1.1 Add CSS custom properties (`:root` vars) for colors, shadows, borders
-- [ ] 1.2 Extend Tailwind config with project color tokens and font families
-- [ ] 1.3 Add Outfit + Geist Mono fonts (Google Fonts or self-hosted)
-- [ ] 1.4 Update base styles: body background, default text color, font-family
+- [x] 1.1 Add CSS custom properties (`:root` vars) for colors, shadows, borders
+- [x] 1.2 Extend Tailwind config with project color tokens and font families
+- [x] 1.3 Add Outfit + Geist Mono fonts (Google Fonts or self-hosted)
+- [x] 1.4 Update base styles: body background, default text color, font-family
 - [ ] 1.5 Update elevation gradient colors in ColoredRoute + ElevationChart to use tokens
 
 ## 2. Topbar Redesign

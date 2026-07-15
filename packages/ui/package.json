@@ -1,0 +1,12 @@
+{
+  "name": "@trails-cool/ui",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./theme.css": "./src/theme.css"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist-mono": "catalog:",
+    "@fontsource-variable/outfit": "catalog:"
+  }
+}
