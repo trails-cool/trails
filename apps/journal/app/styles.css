@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@trails-cool/ui/theme.css";
 
 @keyframes slide {
   0% { transform: translateX(-100%); }

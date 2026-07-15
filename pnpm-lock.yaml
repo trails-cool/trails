@@ -6,6 +6,12 @@ settings:
 
 catalogs:
   default:
+    '@fontsource-variable/geist-mono':
+      specifier: ^5.2.6
+      version: 5.2.8
+    '@fontsource-variable/outfit':
+      specifier: ^5.2.7
+      version: 5.2.8
     '@react-router/dev':
       specifier: ^7.17.0
       version: 7.17.0
@@ -257,6 +263,9 @@ importers:
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@trails-cool/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(expo-sqlite@56.0.5(expo@56.0.12)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.7))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7))(pg@8.22.0)(postgres@3.4.9)
@@ -508,6 +517,9 @@ importers:
       '@trails-cool/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@trails-cool/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       codemirror:
         specifier: ^6.0.2
         version: 6.0.2
@@ -670,6 +682,15 @@ importers:
         version: 22.20.1
 
   packages/types: {}
+
+  packages/ui:
+    dependencies:
+      '@fontsource-variable/geist-mono':
+        specifier: 'catalog:'
+        version: 5.2.8
+      '@fontsource-variable/outfit':
+        specifier: 'catalog:'
+        version: 5.2.8
 
   scripts:
     devDependencies:
@@ -1988,6 +2009,12 @@ packages:
     resolution: {integrity: sha512-7yFTQ3hrrk11mQ2ACClNv2gtAN0o116vCgwoiQKmreoB6ambSnrZh7wf2FNFoSDBXHBi9iiCQ7G16fG71ZNppA==}
     engines: {node: '>=20.19.0'}
     hasBin: true
+
+  '@fontsource-variable/geist-mono@5.2.8':
+    resolution: {integrity: sha512-KI5bj+hkkRiHttYHmccotUZ80ZuZyai+RwI1d7UId0clkx/jXxlo8qYK8j54WzmpBjtMoEMPyllV7faDcj+6RA==}
+
+  '@fontsource-variable/outfit@5.2.8':
+    resolution: {integrity: sha512-4oUDCZx/Tcz6HZP423w/niqEH31Gks5IsqHV2ZZz1qKHaVIZdj2f0/S1IK2n8jl6Xo0o3N+3RjNHlV9R73ozQA==}
 
   '@garmin/fitsdk@21.208.0':
     resolution: {integrity: sha512-mEmPHyzqaS3bb8n+yaOmgmBo/0CUrsLsN5J4viAUN5Kh6+YiwdvPh5OAzb2Jgy2IaI23q7mGtNr/8WRJC1+HoA==}
@@ -9544,6 +9571,10 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
       - rxjs
+
+  '@fontsource-variable/geist-mono@5.2.8': {}
+
+  '@fontsource-variable/outfit@5.2.8': {}
 
   '@garmin/fitsdk@21.208.0': {}
 

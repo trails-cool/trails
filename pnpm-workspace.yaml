@@ -4,6 +4,8 @@ packages:
   - "scripts"
 
 catalog:
+  "@fontsource-variable/geist-mono": ^5.2.6
+  "@fontsource-variable/outfit": ^5.2.7
   "@react-router/dev": ^7.17.0
   "@react-router/node": ^7.17.0
   "@react-router/serve": ^7.17.0
