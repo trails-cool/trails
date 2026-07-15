@@ -8,6 +8,40 @@ import {
   Input,
   SegmentedControl,
 } from "@trails-cool/ui";
+import { Topbar } from "~/components/Topbar";
+import type { Participant } from "~/lib/use-participants";
+
+const SOLO: Participant[] = [
+  { clientId: 1, name: "ulle", color: "#4A6B40", isHost: true, isLocal: true },
+];
+const PARTY: Participant[] = [
+  { clientId: 1, name: "ulle", color: "#4A6B40", isHost: true, isLocal: true },
+  { clientId: 2, name: "Mara", color: "#8B6D3A", isHost: false, isLocal: false },
+  { clientId: 3, name: "Sam", color: "#C46040", isHost: false, isLocal: false },
+];
+
+const noop = () => {};
+const profilePlaceholder = (
+  <Button variant="ghost" size="sm">
+    🚴 Cycling
+  </Button>
+);
+const actionsPlaceholder = (
+  <Button variant="secondary" size="sm">
+    Export GPX
+  </Button>
+);
+
+function TopbarConfig({ caption, children }: { caption: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-text-md">{caption}</p>
+      <div className="overflow-hidden rounded-lg border border-border">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const UndoIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -126,6 +160,52 @@ export default function DevUi() {
           <Badge tone="accent">Host</Badge>
         </span>
       </Section>
+
+      <section className="space-y-4">
+        <h2 className="font-mono text-xs uppercase tracking-wider text-text-lo">
+          Topbar · configurations
+        </h2>
+        <TopbarConfig caption="Solo · connected · host">
+          <Topbar
+            participants={SOLO}
+            connected
+            sessionShortId="a83eddb4"
+            canUndo={false}
+            canRedo={false}
+            onUndo={noop}
+            onRedo={noop}
+            profileSlot={profilePlaceholder}
+            actions={actionsPlaceholder}
+          />
+        </TopbarConfig>
+        <TopbarConfig caption="Multiplayer · connected · computing route · undo available">
+          <Topbar
+            participants={PARTY}
+            connected
+            sessionShortId="a83eddb4"
+            canUndo
+            canRedo={false}
+            onUndo={noop}
+            onRedo={noop}
+            computing
+            profileSlot={profilePlaceholder}
+            actions={actionsPlaceholder}
+          />
+        </TopbarConfig>
+        <TopbarConfig caption="Guest · connecting (offline dot)">
+          <Topbar
+            participants={PARTY.slice(1)}
+            connected={false}
+            sessionShortId="a83eddb4"
+            canUndo={false}
+            canRedo={false}
+            onUndo={noop}
+            onRedo={noop}
+            profileSlot={profilePlaceholder}
+            actions={actionsPlaceholder}
+          />
+        </TopbarConfig>
+      </section>
 
       <Section title="Card">
         <Card className="w-64">
