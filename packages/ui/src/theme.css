@@ -41,6 +41,7 @@
   --color-stop-border: rgba(139, 109, 58, 0.25);
 
   /* ── Danger / no-go ── */
+  --color-danger: #a03c3c; /* solid danger — error text, matches the no-go hue */
   --color-nogo: rgba(160, 60, 60, 0.12);
   --color-nogo-border: rgba(160, 60, 60, 0.3);
 

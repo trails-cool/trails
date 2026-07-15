@@ -18,6 +18,7 @@ export default {
     newSession: "Neue Sitzung",
     saveRoute: "Route speichern",
     exportGpx: "GPX exportieren",
+    exportOptions: "Export-Optionen",
     exportRoute: "Route exportieren",
     exportRouteDesc: "GPX-Track für jede App",
     exportPlan: "Plan exportieren",
