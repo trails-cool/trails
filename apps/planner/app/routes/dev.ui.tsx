@@ -193,7 +193,7 @@ export default function DevUi() {
             actions={actionsPlaceholder}
           />
         </TopbarConfig>
-        <TopbarConfig caption="Multiplayer · connected · computing route · undo available">
+        <TopbarConfig caption="Multiplayer · connected · undo available">
           <Topbar
             participants={PARTY}
             connected
@@ -202,7 +202,6 @@ export default function DevUi() {
             canRedo={false}
             onUndo={noop}
             onRedo={noop}
-            computing
             profileSlot={profilePlaceholder}
             actions={actionsPlaceholder}
           />
