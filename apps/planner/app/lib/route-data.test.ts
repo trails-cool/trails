@@ -10,7 +10,7 @@ import {
   getBaseLayer,
   getColorMode,
   getCoordinates,
-  getGeojson,
+  readGeojson,
   getOverlays,
   getPoiCategories,
   getProfile,
@@ -94,7 +94,12 @@ describe("computed route round-trip", () => {
     for (const key of ROAD_METADATA_KEYS) {
       expect(computed[key]).toEqual(enriched[key]);
     }
-    expect(getGeojson(routeData)).toBe(JSON.stringify(enriched.geojson));
+    // Geometry is stored compact-encoded, not as a redundant geojson copy.
+    expect(routeData.get("geojson")).toBeUndefined();
+    expect((routeData.get("coordinates") as string).startsWith("p1:")).toBe(true);
+    // readGeojson assembles an equivalent GeoJSON from the encoded coords.
+    const gj = JSON.parse(readGeojson(routeData)!);
+    expect(gj.features[0].geometry.coordinates).toEqual(enriched.coordinates);
   });
 
   it("keeps previous metadata when a recompute yields empty arrays", () => {
@@ -160,6 +165,47 @@ describe("getCoordinates", () => {
   });
 });
 
+describe("backward compatibility (legacy JSON format)", () => {
+  it("reads a route persisted in the legacy JSON encoding", () => {
+    const { routeData } = createDoc();
+    const enriched = enrichedFixture();
+    // Simulate a document written before this change: raw JSON keys.
+    routeData.set("geojson", JSON.stringify(enriched.geojson));
+    routeData.set("coordinates", JSON.stringify(enriched.coordinates));
+    routeData.set("segmentBoundaries", JSON.stringify(enriched.segmentBoundaries));
+    for (const key of ROAD_METADATA_KEYS) routeData.set(key, JSON.stringify(enriched[key]));
+
+    const computed = readComputedRoute(routeData);
+    expect(computed.coordinates).toEqual(enriched.coordinates);
+    for (const key of ROAD_METADATA_KEYS) expect(computed[key]).toEqual(enriched[key]);
+    // readGeojson returns the stored legacy geojson verbatim.
+    expect(readGeojson(routeData)).toBe(JSON.stringify(enriched.geojson));
+  });
+});
+
+describe("encoding size", () => {
+  it("stores a long route far smaller than the legacy JSON encoding", () => {
+    const { doc, routeData } = createDoc();
+    const coordinates: [number, number, number][] = [];
+    const surfaces: string[] = [];
+    for (let i = 0; i < 4000; i++) {
+      coordinates.push([Number((13.4 + i * 0.0002).toFixed(5)), Number((52.5 + i * 0.00005).toFixed(5)), 100 + (i % 50)]);
+      surfaces.push(i < 3000 ? "asphalt" : "gravel");
+    }
+    const enriched = enrichedFixture({ coordinates, surfaces, geojson: { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } }] } });
+
+    writeComputedRoute(doc, routeData, enriched);
+    const encodedBytes = Y.encodeStateAsUpdate(doc).byteLength;
+
+    // The legacy encoding stored geojson + coordinates (both full) + JSON metadata.
+    const legacyBytes = JSON.stringify(enriched.geojson).length + JSON.stringify(coordinates).length + JSON.stringify(surfaces).length;
+    expect(encodedBytes).toBeLessThan(legacyBytes / 4); // >4x smaller
+    // And it round-trips.
+    expect(getCoordinates(routeData)).toHaveLength(4000);
+    expect(readRoadMetadata(routeData).surfaces).toHaveLength(4000);
+  });
+});
+
 describe("profile and view preferences", () => {
   it("round-trips the profile", () => {
     const { routeData } = createDoc();
@@ -212,7 +258,7 @@ describe("clearRouteData", () => {
     clearRouteData(doc, routeData);
 
     expect(getCoordinates(routeData)).toBeNull();
-    expect(getGeojson(routeData)).toBeUndefined();
+    expect(readGeojson(routeData)).toBeUndefined();
     expect(getProfile(routeData)).toBeUndefined();
     expect(readRoadMetadata(routeData).surfaces).toEqual([]);
     expect(getColorMode(routeData)).toBe("surface");

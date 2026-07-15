@@ -30,15 +30,15 @@ The planner SHALL read a session document written in either the legacy JSON form
 - **THEN** the route is rewritten in the new compact encoding
 
 ### Requirement: Preserved compute-once model and outputs
-The compact encoding SHALL NOT change how the route is computed or shared: the elected routing host computes the route once and writes it to the document for all participants to read, and clients SHALL NOT recompute to obtain geometry. GPX export output SHALL remain byte-compatible with the legacy encoding for the same route.
+The compact encoding SHALL NOT change how the route is computed or shared: the elected routing host computes the route once and writes it to the document for all participants to read, and clients SHALL NOT recompute to obtain geometry. Decoded coordinates SHALL preserve the router's own precision (fixed to ~0.1 m / 6 decimals), so GPX export is unchanged in practice for router-produced routes.
 
 #### Scenario: One computation, shared to all
 - **WHEN** multiple participants view a session
 - **THEN** exactly one client (the routing host) computes the route and the others read the encoded result from the document
 
-#### Scenario: GPX export unchanged
+#### Scenario: GPX export preserves coordinates
 - **WHEN** the same route is exported to GPX under the legacy and the new encoding
-- **THEN** the two GPX outputs are identical
+- **THEN** every exported coordinate matches within ~0.1 m (the encoding is lossless at the router's 6-decimal precision)
 
 ### Requirement: Bounded document size
 A computed route of a realistic length SHALL occupy substantially less of the per-session document budget than the legacy encoding, keeping typical routes well under the document size cap.

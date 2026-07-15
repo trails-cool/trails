@@ -33,5 +33,6 @@ export type { SurfaceBreakdown } from "./surface-breakdown.ts";
 
 export {
   encodePolyline, decodePolyline, encodeRuns, decodeRuns,
-  isEncodedPolyline, isEncodedRuns,
+  encodeElevations, decodeElevations,
+  isEncodedPolyline, isEncodedRuns, isEncodedElevations,
 } from "./route-codec.ts";

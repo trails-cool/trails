@@ -4,8 +4,11 @@ import {
   decodePolyline,
   encodeRuns,
   decodeRuns,
+  encodeElevations,
+  decodeElevations,
   isEncodedPolyline,
   isEncodedRuns,
+  isEncodedElevations,
 } from "./route-codec.ts";
 
 describe("polyline codec", () => {
@@ -52,6 +55,26 @@ describe("polyline codec", () => {
   it("tags encoded values so they are distinguishable from legacy JSON", () => {
     expect(isEncodedPolyline(encodePolyline([[13.4, 52.5], [13.5, 52.6]]))).toBe(true);
     expect(isEncodedPolyline("[[13.4,52.5]]")).toBe(false); // legacy JSON
+  });
+});
+
+describe("elevation codec", () => {
+  it("round-trips elevations within decimetre precision", () => {
+    const eles = [34, 34.2, 80.5, 519, 518.9, 200, 0, -5.3];
+    const decoded = decodeElevations(encodeElevations(eles));
+    expect(decoded).toHaveLength(eles.length);
+    for (let i = 0; i < eles.length; i++) {
+      expect(Math.abs(decoded[i]! - eles[i]!)).toBeLessThanOrEqual(0.05);
+    }
+  });
+
+  it("handles empty and is much smaller than JSON for a long climb", () => {
+    expect(decodeElevations(encodeElevations([]))).toEqual([]);
+    const eles = Array.from({ length: 4000 }, (_, i) => 100 + i * 0.1);
+    const enc = encodeElevations(eles);
+    expect(isEncodedElevations(enc)).toBe(true);
+    expect(enc.length).toBeLessThan(JSON.stringify(eles).length / 2);
+    expect(decodeElevations(enc)).toHaveLength(4000);
   });
 });
 

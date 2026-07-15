@@ -5,9 +5,15 @@
 // path can tell them apart from the legacy JSON encoding (which is a bare
 // `[` … `]`), enabling transparent backward compatibility.
 
-const PRECISION = 100_000; // 1e5 ≈ 1.1 m; below BRouter/OSM working resolution
+// 1e6 ≈ 0.11 m: matches the 6-decimal precision BRouter/GPX emit, so a
+// round-trip preserves the router's own coordinates (GPX export is
+// unchanged in practice). Values stay well within 32-bit for real
+// lon/lat ranges (±180e6 → ~29 bits after zig-zag).
+const PRECISION = 1_000_000;
+const ELEV_PRECISION = 10; // decimetre — finer than any real elevation source
 const POLYLINE_PREFIX = "p1:";
 const RUNS_PREFIX = "r1:";
+const ELEV_PREFIX = "e1:";
 
 // --- base64 via the global btoa/atob (present in browsers and Node 18+),
 // so this stays framework-free with no @types/node dependency ---
@@ -57,6 +63,38 @@ export function isEncodedPolyline(s: string): boolean {
 }
 export function isEncodedRuns(s: string): boolean {
   return s.startsWith(RUNS_PREFIX);
+}
+export function isEncodedElevations(s: string): boolean {
+  return s.startsWith(ELEV_PREFIX);
+}
+
+/**
+ * Encode a per-coordinate elevation channel (metres) as delta + zig-zag
+ * varint over decimetre-precision integers. Elevation is the third
+ * coordinate dimension; the horizontal [lon,lat] pairs go through
+ * {@link encodePolyline}, so the two together carry the full [lon,lat,ele].
+ */
+export function encodeElevations(eles: readonly number[]): string {
+  const bytes: number[] = [];
+  let prev = 0;
+  for (const e of eles) {
+    const iv = Math.round(e * ELEV_PRECISION);
+    writeVarint(bytes, zigzag(iv - prev));
+    prev = iv;
+  }
+  return ELEV_PREFIX + bytesToBase64(Uint8Array.from(bytes));
+}
+
+export function decodeElevations(s: string): number[] {
+  if (!isEncodedElevations(s)) throw new Error("not encoded elevations");
+  const nums = readVarints(base64ToBytes(s.slice(ELEV_PREFIX.length)));
+  const out: number[] = [];
+  let e = 0;
+  for (const n of nums) {
+    e += unzigzag(n);
+    out.push(e / ELEV_PRECISION);
+  }
+  return out;
 }
 
 /**
