@@ -218,7 +218,7 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
           >
             {wp.note && (
               <Tooltip direction="top" offset={[0, -14]} opacity={0.95}>
-                <span style={{ maxWidth: 220, display: "block", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                <span style={{ maxWidth: 220, display: "inline-block", whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>
                   {wp.note.length > 120 ? wp.note.slice(0, 120) + "…" : wp.note}
                 </span>
               </Tooltip>
