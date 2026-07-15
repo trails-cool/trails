@@ -139,6 +139,8 @@ export default {
       bikeroute: "Radroutenprofil",
       low: "Tief",
       high: "Hoch",
+      collapse: "Höhenprofil einklappen",
+      expand: "Höhenprofil ausklappen",
     },
     landing: {
       startPlanning: "Planung starten",
