@@ -30,3 +30,8 @@ export { SNAP_DISTANCE_METERS } from "./snap.ts";
 
 export { computeSurfaceBreakdown } from "./surface-breakdown.ts";
 export type { SurfaceBreakdown } from "./surface-breakdown.ts";
+
+export {
+  encodePolyline, decodePolyline, encodeRuns, decodeRuns,
+  isEncodedPolyline, isEncodedRuns,
+} from "./route-codec.ts";
