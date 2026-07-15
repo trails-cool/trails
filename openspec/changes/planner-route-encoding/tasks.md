@@ -1,8 +1,8 @@
 ## 1. Codec primitives
 
-- [ ] 1.1 Add a framework-free codec in `@trails-cool/map-core` (e.g. `route-codec.ts`): `encodePolyline(coords: [lon,lat][]) -> string` / `decodePolyline(str) -> [lon,lat][]` using fixed-precision (1e5) delta + zig-zag varint + base64, with a version tag
-- [ ] 1.2 Add `encodeRuns(values: string[]) -> string` / `decodeRuns(str, length?) -> string[]` run-length codec for the road-metadata channels
-- [ ] 1.3 Unit tests: polyline round-trip within ~1 m over random + real fixtures; empty/single-point; RLE round-trip incl. all-same, all-distinct, and a realistic run pattern
+- [x] 1.1 Add a framework-free codec in `@trails-cool/map-core` (e.g. `route-codec.ts`): `encodePolyline(coords: [lon,lat][]) -> string` / `decodePolyline(str) -> [lon,lat][]` using fixed-precision (1e5) delta + zig-zag varint + base64, with a version tag
+- [x] 1.2 Add `encodeRuns(values: string[]) -> string` / `decodeRuns(str, length?) -> string[]` run-length codec for the road-metadata channels
+- [x] 1.3 Unit tests: polyline round-trip within ~1 m over random + real fixtures; empty/single-point; RLE round-trip incl. all-same, all-distinct, and a realistic run pattern
 
 ## 2. Write path (new encoding)
 
