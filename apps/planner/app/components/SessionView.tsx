@@ -1,6 +1,5 @@
 import { Suspense, lazy, useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 import L from "leaflet";
 import type { TFunction } from "i18next";
 import * as Sentry from "@sentry/react";
@@ -13,7 +12,8 @@ import { ProfileSelector } from "~/components/ProfileSelector";
 import { ExportButton } from "~/components/ExportButton";
 import { SaveToJournalButton } from "~/components/SaveToJournalButton";
 import { YjsDebugPanel } from "~/components/YjsDebugPanel";
-import { ParticipantList } from "~/components/ParticipantList";
+import { Topbar } from "~/components/Topbar";
+import { useParticipants } from "~/lib/use-participants";
 import { NotesPanel } from "~/components/NotesPanel";
 
 const PlannerMap = lazy(() =>
@@ -169,6 +169,7 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
   const { computing, routeError, routeStats, requestRoute } = useRouting(yjs, sessionId);
   const { canUndo, canRedo, undo, redo } = useUndo(yjs?.undoManager ?? null);
   useUndoShortcuts(yjs?.undoManager ?? null);
+  const { participants, renameLocal } = useParticipants(yjs);
   const days = useDays(yjs);
   const [highlightPosition, setHighlightPosition] = useState<[number, number] | null>(null);
   const [highlightedWaypoint, setHighlightedWaypoint] = useState<number | null>(null);
@@ -226,51 +227,30 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
 
   return (
     <>
-      <header className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-4 sm:py-2">
-        <div className="flex items-center gap-1.5 sm:gap-4 min-w-0">
-          <Link to="/" className="hidden text-lg font-semibold text-gray-900 hover:text-blue-600 sm:block">
-            {t("title")}
-          </Link>
-          <ProfileSelector yjs={yjs} />
-          <div className="hidden sm:block">
-            <ParticipantList yjs={yjs} />
-          </div>
-          <div className="hidden sm:flex gap-1">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              title={t("undo.tooltip")}
-              className="rounded px-1.5 py-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              title={t("redo.tooltip")}
-              className="rounded px-1.5 py-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {hasJournalCallback && (
-            <SaveToJournalButton
-              yjs={yjs}
-              sessionId={sessionId}
-              returnUrl={returnUrl}
-            />
-          )}
-          <ExportButton yjs={yjs} />
-          {computing && (
-            <span className="hidden text-xs text-blue-600 sm:inline">{t("computingRoute")}</span>
-          )}
-          <span className="hidden text-sm text-gray-500 sm:inline">
-            {yjs.connected ? t("connected") : t("connecting")} · {sessionId.slice(0, 8)}
-          </span>
-        </div>
-      </header>
+      <Topbar
+        participants={participants}
+        onRenameLocal={renameLocal}
+        connected={yjs.connected}
+        sessionShortId={sessionId.slice(0, 8)}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        computing={computing}
+        profileSlot={<ProfileSelector yjs={yjs} />}
+        actions={
+          <>
+            {hasJournalCallback && (
+              <SaveToJournalButton
+                yjs={yjs}
+                sessionId={sessionId}
+                returnUrl={returnUrl}
+              />
+            )}
+            <ExportButton yjs={yjs} />
+          </>
+        }
+      />
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex flex-col">
           <div className="relative flex-1">
