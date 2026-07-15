@@ -36,6 +36,10 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
   const dragStartClientX = useRef<number | null>(null);
   const isDragging = useRef(false);
   const dragCurrentX = useRef<number | null>(null);
+  const dragCleanup = useRef<(() => void) | null>(null);
+
+  // Detach any dangling window drag listeners on unmount.
+  useEffect(() => () => dragCleanup.current?.(), []);
 
   // External highlight from map hover: find closest point by distance
   useEffect(() => {
@@ -104,20 +108,14 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const canvas = canvasRef.current;
       if (!canvas || points.length < 2) return;
 
+      // Drag is tracked via window listeners (see handleMouseDown); ignore
+      // canvas moves while a press/drag gesture is active.
+      if (dragStartClientX.current != null) return;
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const chartW = rect.width - PADDING.left - PADDING.right;
       const ratio = (mouseX - PADDING.left) / chartW;
-
-      if (dragStartClientX.current != null) {
-        const dx = Math.abs(e.clientX - dragStartClientX.current);
-        if (dx > 5) {
-          isDragging.current = true;
-          dragCurrentX.current = mouseX;
-          draw(hoverIdx);
-          return;
-        }
-      }
 
       if (ratio < 0 || ratio > 1) {
         setHoverIdx(null);
@@ -143,92 +141,98 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
       const p = points[closest]!;
       onHover?.([p.lat, p.lon]);
     },
-    [points, onHover, hoverIdx, draw],
+    [points, onHover],
   );
 
   const handleMouseLeave = useCallback(() => {
+    // Keep an in-progress drag alive when the pointer leaves the canvas —
+    // the window listeners keep tracking it.
+    if (dragStartClientX.current != null) return;
     setHoverIdx(null);
     onHover?.(null);
-    dragStartX.current = null;
-    dragStartClientX.current = null;
-    isDragging.current = false;
-    dragCurrentX.current = null;
   }, [onHover]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    dragStartX.current = e.clientX - rect.left;
-    dragStartClientX.current = e.clientX;
-    isDragging.current = false;
-    dragCurrentX.current = null;
-  }, []);
-
-  const handleMouseUp = useCallback(
+  const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
-      if (!canvas || points.length < 2) {
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const chartW = rect.width - PADDING.left - PADDING.right;
+
+      dragStartX.current = e.clientX - rect.left;
+      dragStartClientX.current = e.clientX;
+      isDragging.current = false;
+      dragCurrentX.current = null;
+      setHoverIdx(null);
+      onHover?.(null);
+
+      const clampX = (clientX: number) =>
+        Math.max(PADDING.left, Math.min(clientX - rect.left, PADDING.left + chartW));
+
+      // Track the drag on the window so it survives the pointer leaving the
+      // canvas and still completes if the button is released outside it.
+      const onWindowMove = (ev: MouseEvent) => {
+        if (dragStartClientX.current == null) return;
+        if (Math.abs(ev.clientX - dragStartClientX.current) > 5) {
+          isDragging.current = true;
+          dragCurrentX.current = clampX(ev.clientX);
+          draw(null);
+        }
+      };
+
+      const detach = () => {
+        window.removeEventListener("mousemove", onWindowMove);
+        window.removeEventListener("mouseup", onWindowUp);
+        dragCleanup.current = null;
+      };
+
+      function onWindowUp(ev: MouseEvent) {
+        detach();
+        if (points.length >= 2) {
+          const maxDist = points[points.length - 1]!.distance;
+          if (isDragging.current && dragStartX.current != null) {
+            const startRatio = Math.max(0, Math.min(1, (dragStartX.current - PADDING.left) / chartW));
+            const endRatio = Math.max(0, Math.min(1, (clampX(ev.clientX) - PADDING.left) / chartW));
+            const startDist = Math.min(startRatio, endRatio) * maxDist;
+            const endDist = Math.max(startRatio, endRatio) * maxDist;
+            let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+            let found = false;
+            for (const p of points) {
+              if (p.distance >= startDist && p.distance <= endDist) {
+                minLat = Math.min(minLat, p.lat);
+                maxLat = Math.max(maxLat, p.lat);
+                minLon = Math.min(minLon, p.lon);
+                maxLon = Math.max(maxLon, p.lon);
+                found = true;
+              }
+            }
+            if (found && onDragSelect) onDragSelect([[minLat, minLon], [maxLat, maxLon]]);
+          } else if (onClickPosition) {
+            const ratio = (ev.clientX - rect.left - PADDING.left) / chartW;
+            if (ratio >= 0 && ratio <= 1) {
+              const targetDist = ratio * maxDist;
+              let closest = 0;
+              let minDiff = Infinity;
+              for (let i = 0; i < points.length; i++) {
+                const diff = Math.abs(points[i]!.distance - targetDist);
+                if (diff < minDiff) { minDiff = diff; closest = i; }
+              }
+              onClickPosition([points[closest]!.lat, points[closest]!.lon]);
+            }
+          }
+        }
         dragStartX.current = null;
         dragStartClientX.current = null;
         isDragging.current = false;
         dragCurrentX.current = null;
-        return;
+        draw(null);
       }
 
-      const rect = canvas.getBoundingClientRect();
-      const chartW = rect.width - PADDING.left - PADDING.right;
-      const maxDist = points[points.length - 1]!.distance;
-
-      if (isDragging.current && dragStartX.current != null) {
-        const endX = e.clientX - rect.left;
-        const startRatio = Math.max(0, Math.min(1, (dragStartX.current - PADDING.left) / chartW));
-        const endRatio = Math.max(0, Math.min(1, (endX - PADDING.left) / chartW));
-        const startDist = Math.min(startRatio, endRatio) * maxDist;
-        const endDist = Math.max(startRatio, endRatio) * maxDist;
-
-        let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-        let found = false;
-        for (const p of points) {
-          if (p.distance >= startDist && p.distance <= endDist) {
-            minLat = Math.min(minLat, p.lat);
-            maxLat = Math.max(maxLat, p.lat);
-            minLon = Math.min(minLon, p.lon);
-            maxLon = Math.max(maxLon, p.lon);
-            found = true;
-          }
-        }
-        if (found && onDragSelect) {
-          onDragSelect([[minLat, minLon], [maxLat, maxLon]]);
-        }
-      } else if (dragStartClientX.current != null) {
-        const dx = Math.abs(e.clientX - dragStartClientX.current);
-        if (dx <= 5 && onClickPosition) {
-          const mouseX = e.clientX - rect.left;
-          const ratio = (mouseX - PADDING.left) / chartW;
-          if (ratio >= 0 && ratio <= 1) {
-            const targetDist = ratio * maxDist;
-            let closest = 0;
-            let minDiff = Infinity;
-            for (let i = 0; i < points.length; i++) {
-              const diff = Math.abs(points[i]!.distance - targetDist);
-              if (diff < minDiff) {
-                minDiff = diff;
-                closest = i;
-              }
-            }
-            onClickPosition([points[closest]!.lat, points[closest]!.lon]);
-          }
-        }
-      }
-
-      dragStartX.current = null;
-      dragStartClientX.current = null;
-      isDragging.current = false;
-      dragCurrentX.current = null;
-      draw(hoverIdx);
+      dragCleanup.current = detach;
+      window.addEventListener("mousemove", onWindowMove);
+      window.addEventListener("mouseup", onWindowUp);
     },
-    [points, onClickPosition, onDragSelect, hoverIdx, draw],
+    [points, onHover, onDragSelect, onClickPosition, draw],
   );
 
   const handleTouchStart = useCallback(
@@ -506,7 +510,6 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
