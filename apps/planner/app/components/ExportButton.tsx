@@ -68,7 +68,7 @@ export function ExportButton({ yjs }: { yjs: YjsState }) {
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-          aria-label={t("exportGpx")}
+          aria-label={t("exportOptions")}
           aria-expanded={open}
           className={`${split} rounded-r-md px-2 text-text-md`}
         >
