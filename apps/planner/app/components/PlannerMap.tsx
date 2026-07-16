@@ -195,6 +195,11 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
             zIndexOffset={highlightedWaypoint === i ? Z_WAYPOINT_HIGHLIGHTED : Z_WAYPOINT}
             icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i, !!wp.note)}
             eventHandlers={{
+              // Consume the click on the marker. Without a click listener,
+              // Leaflet routes the click to the map (which adds a duplicate
+              // waypoint on top of this one). Registering it makes Leaflet
+              // treat the marker as the event target instead.
+              click: (e) => { e.originalEvent.stopPropagation(); },
               mouseover: () => { routeInteractionSuspendedRef.current = true; },
               mouseout: () => {
                 if (!waypointDraggingRef.current) routeInteractionSuspendedRef.current = false;
