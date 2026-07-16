@@ -18,7 +18,7 @@ const ghostIcon = L.divIcon({
   className: "route-ghost-marker",
   html: `<div style="
     width:14px;height:14px;border-radius:50%;
-    background:white;border:3px solid #2563eb;
+    background:white;border:3px solid #4a6b40;
     box-shadow:0 1px 4px rgba(0,0,0,0.3);
     transform:translate(-7px,-7px);
     cursor:grab;

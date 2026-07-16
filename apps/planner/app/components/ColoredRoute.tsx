@@ -210,7 +210,7 @@ export function ColoredRoute({ coordinates, colorMode, surfaces, highways, maxsp
     return (
       <Polyline
         positions={plainPositions}
-        pathOptions={{ color: "#2563eb", weight: 4, opacity: 0.8 }}
+        pathOptions={{ color: "#4a6b40", weight: 4, opacity: 0.85 }}
         interactive={false}
       />
     );
