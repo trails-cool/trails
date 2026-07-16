@@ -33,10 +33,11 @@ import type { Poi } from "~/lib/pois";
 import "leaflet/dist/leaflet.css";
 
 function waypointIcon(index: number, overnight?: boolean, highlighted?: boolean, hasNote?: boolean): L.DivIcon {
-  const bg = overnight ? "#8B6D3A" : "#2563eb";
+  // token colors: --color-accent / --color-stop (overnight). Note dot: --color-eg-mid.
+  const bg = overnight ? "#8b6d3a" : "#4a6b40";
   const scale = highlighted ? "scale(1.17)" : "scale(1)";
   const noteIndicator = hasNote
-    ? `<span style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:1.5px solid white;font-size:7px;display:flex;align-items:center;justify-content:center;line-height:1;">✎</span>`
+    ? `<span style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#c4a840;border:1.5px solid white;font-size:7px;display:flex;align-items:center;justify-content:center;line-height:1;">✎</span>`
     : "";
   return L.divIcon({
     className: "",
@@ -59,7 +60,7 @@ function dayLabelIcon(dayNumber: number, distanceKm: string): L.DivIcon {
     className: "",
     html: `<div style="position:absolute;left:50%;transform:translate(-50%,-40px);">
       <div style="
-        background:white;color:#1f2937;
+        background:#faf8f4;color:#1a1916;
         padding:1px 6px;border-radius:8px;
         font-size:10px;font-weight:600;white-space:nowrap;
         box-shadow:0 1px 3px rgba(0,0,0,0.15);
@@ -148,8 +149,8 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
       onDrop={handleDrop}
     >
       {draggingOver && (
-        <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-blue-500/20 backdrop-blur-sm">
-          <div className="rounded-xl bg-white px-8 py-6 text-lg font-medium text-blue-600 shadow-lg">
+        <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-accent/15 backdrop-blur-sm">
+          <div className="rounded-xl bg-bg-raised px-8 py-6 text-lg font-medium text-accent shadow-md">
             {t("dropGpxHere")}
           </div>
         </div>
@@ -280,7 +281,7 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
             interactive={false}
             icon={L.divIcon({
               className: "",
-              html: '<div style="width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3);transform:translate(-6px,-6px)"></div>',
+              html: '<div style="width:12px;height:12px;border-radius:50%;background:#4a6b40;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3);transform:translate(-6px,-6px)"></div>',
               iconSize: [0, 0],
             })}
           />

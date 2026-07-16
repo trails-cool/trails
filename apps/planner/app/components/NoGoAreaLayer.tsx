@@ -12,10 +12,11 @@ interface NoGoAreaLayerProps {
   onToggle: () => void;
 }
 
+// --color-danger (the no-go hue at full strength)
 const NO_GO_STYLE: L.PathOptions = {
-  color: "#ef4444",
-  fillColor: "#ef4444",
-  fillOpacity: 0.2,
+  color: "#a03c3c",
+  fillColor: "#a03c3c",
+  fillOpacity: 0.15,
   weight: 2,
 };
 
