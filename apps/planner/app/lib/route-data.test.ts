@@ -6,6 +6,8 @@ import {
   PROFILE_KEY,
   ROAD_METADATA_KEYS,
   clearRouteData,
+  clearComputedRoute,
+  hasComputedRoute,
   extractNoGoAreas,
   getBaseLayer,
   getColorMode,
@@ -263,6 +265,28 @@ describe("clearRouteData", () => {
     expect(readRoadMetadata(routeData).surfaces).toEqual([]);
     expect(getColorMode(routeData)).toBe("surface");
     expect(getOverlays(routeData)).toEqual(["hiking"]);
+  });
+});
+
+describe("clearComputedRoute / hasComputedRoute", () => {
+  it("detects computed geometry and clears it while keeping the profile", () => {
+    const { doc, routeData } = createDoc();
+    expect(hasComputedRoute(routeData)).toBe(false);
+
+    writeComputedRoute(doc, routeData, enrichedFixture());
+    setProfile(routeData, "trekking");
+    setColorMode(routeData, "surface");
+    expect(hasComputedRoute(routeData)).toBe(true);
+
+    clearComputedRoute(doc, routeData);
+
+    expect(hasComputedRoute(routeData)).toBe(false);
+    expect(getCoordinates(routeData)).toBeNull();
+    expect(readGeojson(routeData)).toBeUndefined();
+    expect(readRoadMetadata(routeData).surfaces).toEqual([]);
+    // profile (and other prefs) survive — unlike clearRouteData
+    expect(getProfile(routeData)).toBe("trekking");
+    expect(getColorMode(routeData)).toBe("surface");
   });
 });
 

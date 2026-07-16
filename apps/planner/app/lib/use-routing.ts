@@ -15,6 +15,8 @@ import {
   extractNoGoAreas,
   getProfile,
   writeComputedRoute,
+  clearComputedRoute,
+  hasComputedRoute,
 } from "./route-data.ts";
 import { extractWaypoints } from "./waypoint-ymap.ts";
 
@@ -210,11 +212,22 @@ export function useRouting(yjs: YjsState | null, sessionId: string) {
       triggerRecompute();
     };
 
+    // When waypoints drop below two, no route can exist — drop the stale
+    // geometry so the line stops rendering. (Recompute for >=2 is triggered by
+    // the add/move/delete handlers themselves.)
+    const waypointsObserver = () => {
+      if (getWaypointsFromYjs(yjs.waypoints).length < 2 && hasComputedRoute(yjs.routeData)) {
+        clearComputedRoute(yjs.doc, yjs.routeData);
+      }
+    };
+
     yjs.routeData.observe(profileObserver);
     yjs.noGoAreas.observeDeep(noGoObserver);
+    yjs.waypoints.observeDeep(waypointsObserver);
     return () => {
       yjs.routeData.unobserve(profileObserver);
       yjs.noGoAreas.unobserveDeep(noGoObserver);
+      yjs.waypoints.unobserveDeep(waypointsObserver);
     };
   }, [yjs, isHost, requestRoute]);
 

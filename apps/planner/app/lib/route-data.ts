@@ -189,7 +189,12 @@ export function setGeojson(routeData: Y.Map<unknown>, geojson: unknown): void {
 }
 
 /** Removes the computed route and profile (view preferences are kept). */
-export function clearRouteData(doc: Y.Doc, routeData: Y.Map<unknown>): void {
+/**
+ * Clear the computed route geometry + per-coordinate road metadata, but keep
+ * the routing profile. Used when the route can no longer exist (fewer than two
+ * waypoints) so the stale line stops rendering without resetting the profile.
+ */
+export function clearComputedRoute(doc: Y.Doc, routeData: Y.Map<unknown>): void {
   doc.transact(() => {
     routeData.delete("geojson");
     routeData.delete("coordinates");
@@ -198,6 +203,17 @@ export function clearRouteData(doc: Y.Doc, routeData: Y.Map<unknown>): void {
     for (const key of ROAD_METADATA_KEYS) {
       routeData.delete(key);
     }
+  });
+}
+
+/** True if the route data currently holds computed geometry. */
+export function hasComputedRoute(routeData: Y.Map<unknown>): boolean {
+  return routeData.get("coordinates") !== undefined || routeData.get("geojson") !== undefined;
+}
+
+export function clearRouteData(doc: Y.Doc, routeData: Y.Map<unknown>): void {
+  doc.transact(() => {
+    clearComputedRoute(doc, routeData);
     routeData.delete(PROFILE_KEY);
   });
 }
