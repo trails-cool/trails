@@ -4,7 +4,7 @@
 // the user's token), convert to GPX, create the activity, record the
 // dedupe row. Stats-only when there is no file.
 
-import { fitToGpx } from "../../fit.ts";
+import { fitToGpx, type FitConversion } from "../../fit.ts";
 import { fetchWithTimeout } from "../../../http.server.ts";
 import { isAlreadyImported, importActivity } from "../../../sync/imports.server.ts";
 import { getServiceById, withFreshCredentials } from "../../manager.ts";
@@ -48,6 +48,7 @@ export async function runGarminActivityImport(data: GarminImportData): Promise<v
   if (await isAlreadyImported(data.userId, "garmin", data.externalId)) return;
 
   let gpx: string | undefined;
+  let sport: FitConversion["sport"] = null;
   if (data.callbackUrl && isAllowedGarminCallback(data.callbackUrl)) {
     const buffer = await withFreshCredentials(service.id, async (credentials) => {
       const creds = credentials as OAuthCredentials;
@@ -64,7 +65,9 @@ export async function runGarminActivityImport(data: GarminImportData): Promise<v
       gpx = buffer.toString("utf8");
     } else {
       // FIT (default) — shared provider-agnostic converter.
-      gpx = (await fitToGpx(buffer, data.name ?? "Garmin activity")) ?? undefined;
+      const conversion = await fitToGpx(buffer, data.name ?? "Garmin activity");
+      gpx = conversion.gpx ?? undefined;
+      sport = conversion.sport;
     }
   }
 
@@ -74,6 +77,8 @@ export async function runGarminActivityImport(data: GarminImportData): Promise<v
     distance: data.distance,
     duration: data.duration,
     startedAt: data.startedAt ? new Date(data.startedAt) : null,
+    // FIT session sport (GPX imports carry none); provider-explicit would win.
+    sportType: sport ?? undefined,
   });
   logger.info(
     { externalId: data.externalId, hadFile: !!gpx },

@@ -105,7 +105,7 @@ describe("wahooImporter.importOne pagination", () => {
   function fitToGpxMock() {
     // The importer calls fitToGpx — short-circuit it so the test focuses
     // on pagination, not FIT parsing.
-    return Promise.resolve("<gpx></gpx>");
+    return Promise.resolve({ gpx: "<gpx></gpx>", sport: null });
   }
 
   it("paginates past page 1 until it finds the target workout", async () => {
