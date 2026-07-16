@@ -139,6 +139,8 @@ export default {
       bikeroute: "Bike Route Profile",
       low: "Low",
       high: "High",
+      collapse: "Collapse elevation profile",
+      expand: "Expand elevation profile",
     },
     landing: {
       startPlanning: "Start Planning",

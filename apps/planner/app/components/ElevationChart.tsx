@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { IconButton } from "@trails-cool/ui";
 import type { DayStage } from "@trails-cool/gpx";
 import type { YjsState } from "~/lib/use-yjs";
 import {
@@ -24,11 +25,68 @@ interface ElevationChartProps {
   onClickPosition?: (position: [number, number]) => void;
   onDragSelect?: (bounds: [[number, number], [number, number]]) => void;
   days?: DayStage[];
+  /** Authoritative route stats (same source as the sidebar) for the summary. */
+  routeStats?: { distance?: number; elevationGain?: number; elevationLoss?: number };
 }
 
-export function ElevationChart({ yjs, onHover, highlightDistance, onClickPosition, onDragSelect, days }: ElevationChartProps) {
+const COLLAPSE_KEY = "planner:elevationCollapsed";
+
+const ChevronDown = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+const ChevronUp = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
+);
+
+/** Tiny inline elevation sparkline for the collapsed summary bar. */
+function Sparkline({ points }: { points: Array<{ distance: number; elevation: number }> }) {
+  if (points.length < 2) return null;
+  const W = 72;
+  const H = 18;
+  const eles = points.map((p) => p.elevation);
+  const min = Math.min(...eles);
+  const range = Math.max(...eles) - min || 1;
+  const maxD = points[points.length - 1]!.distance || 1;
+  const d = points
+    .map((p) => `${((p.distance / maxD) * W).toFixed(1)},${(H - ((p.elevation - min) / range) * H).toFixed(1)}`)
+    .join(" ");
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 text-accent" aria-hidden>
+      <polyline points={d} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ElevationChart({ yjs, onHover, highlightDistance, onClickPosition, onDragSelect, days, routeStats }: ElevationChartProps) {
   const { t } = useTranslation("planner");
   const { points, colorMode, surfaces, highways, maxspeeds, smoothnesses, tracktypes, cycleways, bikeroutes } = useElevationData(yjs.routeData);
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(COLLAPSE_KEY) === "1",
+  );
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
+
+  // Collapsed-bar summary. Uses the authoritative routeStats (same source as
+  // the sidebar) so the figures match; falls back to the chart's own distance
+  // only when stats aren't available yet.
+  const distanceMeters = routeStats?.distance ?? (points.length ? points[points.length - 1]!.distance : 0);
+  const distanceKm = (distanceMeters / 1000).toFixed(1);
+  const ascent = routeStats?.elevationGain;
+  const descent = routeStats?.elevationLoss;
+
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isExternalHover = useRef(false);
@@ -382,6 +440,32 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
 
   if (points.length < 2) return null;
 
+  if (collapsed) {
+    return (
+      <div className="flex items-center gap-3 border-t border-border px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <Sparkline points={points} />
+        <span className="font-mono text-xs text-text-md">
+          {distanceKm} km
+          {ascent !== undefined && (
+            <>
+              <span className="mx-1.5 text-text-lo">·</span>↑ {ascent} m
+            </>
+          )}
+          {descent !== undefined && (
+            <>
+              <span className="mx-1.5 text-text-lo">·</span>↓ {descent} m
+            </>
+          )}
+        </span>
+        <div className="ml-auto">
+          <IconButton size="sm" label={t("elevation.expand", "Expand elevation profile")} onClick={toggleCollapsed}>
+            <ChevronUp />
+          </IconButton>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="border-t border-border px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="mb-1 flex items-center gap-2 px-2">
@@ -503,6 +587,14 @@ export function ElevationChart({ yjs, onHover, highlightDistance, onClickPositio
           <option value="cycleway">{t("colorMode.cycleway")}</option>
           <option value="bikeroute">{t("colorMode.bikeroute")}</option>
         </Select>
+        <IconButton
+          size="sm"
+          label={t("elevation.collapse", "Collapse elevation profile")}
+          onClick={toggleCollapsed}
+          className="shrink-0"
+        >
+          <ChevronDown />
+        </IconButton>
       </div>
       <canvas
         ref={canvasRef}

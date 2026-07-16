@@ -280,7 +280,7 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
           </div>
           <Suspense fallback={null}>
             <div className="relative">
-              <ElevationChart yjs={yjs} onHover={handleElevationHover} highlightDistance={highlightChartDistance} onClickPosition={handleChartClick} onDragSelect={handleChartDragSelect} days={days} />
+              <ElevationChart yjs={yjs} onHover={handleElevationHover} highlightDistance={highlightChartDistance} onClickPosition={handleChartClick} onDragSelect={handleChartDragSelect} days={days} routeStats={routeStats} />
               {isZoomedByChart && (
                 <button
                   onClick={handleResetZoom}
