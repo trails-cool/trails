@@ -5,7 +5,7 @@
 // provider_user_id, deduplicate via sync_imports, then download + convert
 // the FIT file (if present) and create an activity.
 
-import { fitToGpx } from "../../fit.ts";
+import { fitToGpx, type FitConversion } from "../../fit.ts";
 import { fetchWithTimeout } from "../../../http.server.ts";
 import { isAlreadyImported, importActivity } from "../../../sync/imports.server.ts";
 import { getServiceByProviderUser, withFreshCredentials } from "../../manager.ts";
@@ -48,6 +48,7 @@ export const wahooWebhook: WebhookReceiver = {
     if (await isAlreadyImported(service.userId, "wahoo", event.workoutId)) return;
 
     let gpx: string | null = null;
+    let sport: FitConversion["sport"] = null;
     if (event.fileUrl) {
       // Wahoo CDN URLs are pre-signed; no auth header needed. We still go
       // through withFreshCredentials so the manager has a chance to refresh
@@ -58,12 +59,13 @@ export const wahooWebhook: WebhookReceiver = {
         if (!resp.ok) throw new Error(`Wahoo file download failed: ${resp.status}`);
         return Buffer.from(await resp.arrayBuffer());
       });
-      gpx = await fitToGpx(buffer, "Wahoo workout");
+      ({ gpx, sport } = await fitToGpx(buffer, "Wahoo workout"));
     }
 
     await importActivity(service.userId, "wahoo", event.workoutId, {
       name: "Wahoo workout",
       gpx: gpx ?? undefined,
+      sportType: sport ?? undefined,
     });
   },
 };

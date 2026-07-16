@@ -4,7 +4,7 @@
 // Credentials always flow through ctx.withFreshCredentials — this module
 // never reads the connected_services credentials JSONB directly.
 
-import { fitToGpx } from "../../fit.ts";
+import { fitToGpx, type FitConversion } from "../../fit.ts";
 import { fetchWithTimeout } from "../../../http.server.ts";
 import { importActivity, isAlreadyImported } from "../../../sync/imports.server.ts";
 import { getServiceById } from "../../manager.ts";
@@ -141,14 +141,18 @@ export const wahooImporter: Importer = {
     }
 
     let gpx: string | null = null;
+    let sport: FitConversion["sport"] = null;
     if (workout.workout_summary?.file?.url) {
       const buffer = await downloadFit(workout.workout_summary.file.url);
-      gpx = await fitToGpx(buffer, workout.name || "Wahoo workout");
+      ({ gpx, sport } = await fitToGpx(buffer, workout.name || "Wahoo workout"));
     }
 
     const { activityId } = await importActivity(userId, "wahoo", workoutId, {
       name: workout.name || `Wahoo workout ${workoutId}`,
       gpx: gpx ?? undefined,
+      // Wahoo's list API sends no explicit sport type, so the FIT session
+      // sport is our best signal (provider-explicit would take precedence).
+      sportType: sport ?? undefined,
     });
 
     return { activityId, hadGeometry: gpx !== null };
