@@ -185,7 +185,7 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
   const { draggingOver, handleDragEnter, handleDragLeave, handleDragOver, handleDrop } = useGpxDrop(yjs, onImportError);
 
   const selectedWp = selectedWaypointIndex != null ? waypoints[selectedWaypointIndex] : undefined;
-  const nearbyPoisState = useNearbyPois(selectedWp?.lat, selectedWp?.lon);
+  const nearbyPoisState = useNearbyPois(selectedWp?.lat, selectedWp?.lon, sessionId);
 
   const handleSnapToPoi = useCallback((poi: Poi) => {
     if (selectedWaypointIndex == null) return;

@@ -19,6 +19,7 @@ const rateLimitedUntilRef = { current: 0 };
 export function useNearbyPois(
   lat: number | undefined,
   lon: number | undefined,
+  sessionId: string,
 ): NearbyPoisState {
   const [state, setState] = useState<NearbyPoisState>({ pois: [], status: "idle" });
   const abortRef = useRef<AbortController | null>(null);
@@ -47,7 +48,7 @@ export function useNearbyPois(
       setState((prev) => ({ ...prev, status: "loading" }));
 
       try {
-        const pois = await fetchNearbyPois(lat, lon, NEARBY_RADIUS_METERS, poiCategories, controller.signal);
+        const pois = await fetchNearbyPois(lat, lon, NEARBY_RADIUS_METERS, poiCategories, sessionId, controller.signal);
         if (!controller.signal.aborted) {
           setState({ pois, status: "done" });
         }
@@ -68,7 +69,7 @@ export function useNearbyPois(
       if (timerRef.current) clearTimeout(timerRef.current);
       abortRef.current?.abort();
     };
-  }, [lat, lon]);
+  }, [lat, lon, sessionId]);
 
   return state;
 }
