@@ -144,7 +144,7 @@ describe("fetchNearbyPois", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("builds a bbox around the point and calls /api/pois", async () => {
-    await fetchNearbyPois(50.0, 10.0, 500, drinkingWater);
+    await fetchNearbyPois(50.0, 10.0, 500, drinkingWater, "sess");
     expect(fetch).toHaveBeenCalledOnce();
     const [url] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string];
     expect(url).toMatch(/\/api\/pois\?bbox=\d+\.\d+,\d+\.\d+,\d+\.\d+,\d+\.\d+/);
@@ -153,7 +153,7 @@ describe("fetchNearbyPois", () => {
 
   it("forwards the AbortSignal to fetch", async () => {
     const controller = new AbortController();
-    await fetchNearbyPois(50.0, 10.0, 500, drinkingWater, controller.signal);
+    await fetchNearbyPois(50.0, 10.0, 500, drinkingWater, "sess", controller.signal);
     const [, opts] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect(opts.signal).toBe(controller.signal);
   });

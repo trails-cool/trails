@@ -114,7 +114,7 @@ function useAwarenessToasts(yjs: YjsState | null, t: TFunction, addToast: (messa
 }
 
 
-function SidebarTabs({ yjs, routeStats, days, onWaypointHover, onWaypointSelect }: { yjs: YjsState; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (index: number | null) => void; onWaypointSelect: (index: number | null) => void }) {
+function SidebarTabs({ yjs, sessionId, routeStats, days, onWaypointHover, onWaypointSelect }: { yjs: YjsState; sessionId: string; routeStats: ReturnType<typeof useRouting>["routeStats"]; days: ReturnType<typeof useDays>; onWaypointHover: (index: number | null) => void; onWaypointSelect: (index: number | null) => void }) {
   const { t } = useTranslation("planner");
   const [tab, setTab] = useState<"waypoints" | "notes">("waypoints");
 
@@ -137,7 +137,7 @@ function SidebarTabs({ yjs, routeStats, days, onWaypointHover, onWaypointSelect 
       <div className="flex-1 overflow-hidden">
         {tab === "waypoints" ? (
           <Suspense fallback={null}>
-            <WaypointSidebar yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={onWaypointHover} onWaypointSelect={onWaypointSelect} />
+            <WaypointSidebar yjs={yjs} sessionId={sessionId} routeStats={routeStats} days={days} onWaypointHover={onWaypointHover} onWaypointSelect={onWaypointSelect} />
           </Suspense>
         ) : (
           <NotesPanel yjs={yjs} />
@@ -292,7 +292,7 @@ export function SessionView({ sessionId, hasJournalCallback, returnUrl, initialW
             </div>
           </Suspense>
         </main>
-        <SidebarTabs yjs={yjs} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} onWaypointSelect={setSelectedWaypointIndex} />
+        <SidebarTabs yjs={yjs} sessionId={sessionId} routeStats={routeStats} days={days} onWaypointHover={setHighlightedWaypoint} onWaypointSelect={setSelectedWaypointIndex} />
       </div>
       <YjsDebugPanel yjs={yjs} sessionId={sessionId} />
       {toasts.length > 0 && (

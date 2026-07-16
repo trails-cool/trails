@@ -133,8 +133,8 @@ export async function fetchNearbyPois(
   lon: number,
   radiusMeters: number,
   categories: PoiCategory[],
+  sessionId: string,
   signal?: AbortSignal,
-  sessionId = "nearby",
 ): Promise<Poi[]> {
   const dLat = radiusMeters * DEG_PER_METER_LAT;
   const dLon = dLat / Math.cos((lat * Math.PI) / 180);

@@ -19,6 +19,7 @@ const NOTE_MAX = 500;
 
 interface WaypointSidebarProps {
   yjs: YjsState;
+  sessionId: string;
   routeStats?: {
     distance?: number;
     elevationGain?: number;
@@ -29,7 +30,7 @@ interface WaypointSidebarProps {
   onWaypointSelect?: (index: number | null) => void;
 }
 
-export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWaypointSelect }: WaypointSidebarProps) {
+export function WaypointSidebar({ yjs, sessionId, routeStats, days, onWaypointHover, onWaypointSelect }: WaypointSidebarProps) {
   const { t } = useTranslation("planner");
   const [waypoints, setWaypoints] = useState<WaypointData[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -133,7 +134,7 @@ export function WaypointSidebar({ yjs, routeStats, days, onWaypointHover, onWayp
   );
 
   const selectedWp = selectedIndex !== null ? waypoints[selectedIndex] : undefined;
-  const nearbyPoisState = useNearbyPois(selectedWp?.lat, selectedWp?.lon);
+  const nearbyPoisState = useNearbyPois(selectedWp?.lat, selectedWp?.lon, sessionId);
   const [showAllNearby, setShowAllNearby] = useState(false);
 
   const hasMultipleDays = days.length > 1;
