@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, memo, type RefObject } from "react";
 import { MapContainer, TileLayer, LayersControl, Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useTranslation } from "react-i18next";
@@ -70,6 +70,70 @@ function dayLabelIcon(dayNumber: number, distanceKm: string): L.DivIcon {
   });
 }
 
+interface WaypointMarkerProps {
+  index: number;
+  lat: number;
+  lon: number;
+  overnight?: boolean;
+  highlighted: boolean;
+  note?: string;
+  onMove: (index: number, lat: number, lng: number) => void;
+  onContextMenu: (index: number, x: number, y: number) => void;
+  suspendRef: RefObject<boolean>;
+  draggingRef: RefObject<boolean>;
+  undoManager: YjsState["undoManager"];
+}
+
+/**
+ * A single waypoint marker. Memoized so unrelated PlannerMap re-renders (e.g.
+ * route-hover chart sync) don't re-apply `position`/`icon` mid-drag — which
+ * otherwise yanks the pin back to its saved spot and the drag never commits.
+ */
+const WaypointMarker = memo(function WaypointMarker({
+  index, lat, lon, overnight, highlighted, note,
+  onMove, onContextMenu, suspendRef, draggingRef, undoManager,
+}: WaypointMarkerProps) {
+  return (
+    <Marker
+      position={[lat, lon]}
+      draggable
+      zIndexOffset={highlighted ? Z_WAYPOINT_HIGHLIGHTED : Z_WAYPOINT}
+      icon={waypointIcon(index, overnight, highlighted, !!note)}
+      eventHandlers={{
+        // A click listener makes Leaflet route the click to the marker
+        // (otherwise it falls through to the map and adds a duplicate).
+        click: (e) => { e.originalEvent.stopPropagation(); },
+        mouseover: () => { suspendRef.current = true; },
+        mouseout: () => { if (!draggingRef.current) suspendRef.current = false; },
+        dragstart: () => {
+          draggingRef.current = true;
+          undoManager.stopCapturing();
+          suspendRef.current = true;
+        },
+        dragend: (e) => {
+          draggingRef.current = false;
+          suspendRef.current = false;
+          const { lat: dLat, lng } = (e.target as L.Marker).getLatLng();
+          onMove(index, dLat, lng);
+        },
+        contextmenu: (e) => {
+          L.DomEvent.preventDefault(e.originalEvent);
+          const orig = e.originalEvent as MouseEvent;
+          onContextMenu(index, orig.clientX, orig.clientY);
+        },
+      }}
+    >
+      {note && (
+        <Tooltip direction="top" offset={[0, -14]} opacity={0.95}>
+          <span style={{ width: "max-content", maxWidth: 280, display: "inline-block", textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>
+            {note.length > 120 ? note.slice(0, 120) + "…" : note}
+          </span>
+        </Tooltip>
+      )}
+    </Marker>
+  );
+});
+
 interface PlannerMapProps {
   yjs: YjsState;
   sessionId: string;
@@ -93,6 +157,9 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
   const [noGoDrawing, setNoGoDrawing] = useState(false);
   const toggleNoGoDraw = useCallback(() => setNoGoDrawing((v) => !v), []);
   const suppressMapClickRef = useRef(false);
+  const handleContextMenu = useCallback((index: number, x: number, y: number) => {
+    setContextMenu({ x, y, index });
+  }, []);
   const routeInteractionSuspendedRef = useRef(false);
   const waypointDraggingRef = useRef(false);
 
@@ -188,43 +255,20 @@ export function PlannerMap({ yjs, sessionId, onRouteRequest, highlightPosition, 
         )}
 
         {waypoints.map((wp, i) => (
-          <Marker
+          <WaypointMarker
             key={i}
-            position={[wp.lat, wp.lon]}
-            draggable
-            zIndexOffset={highlightedWaypoint === i ? Z_WAYPOINT_HIGHLIGHTED : Z_WAYPOINT}
-            icon={waypointIcon(i, wp.overnight, highlightedWaypoint === i, !!wp.note)}
-            eventHandlers={{
-              mouseover: () => { routeInteractionSuspendedRef.current = true; },
-              mouseout: () => {
-                if (!waypointDraggingRef.current) routeInteractionSuspendedRef.current = false;
-              },
-              dragstart: () => {
-                waypointDraggingRef.current = true;
-                yjs.undoManager.stopCapturing();
-                routeInteractionSuspendedRef.current = true;
-              },
-              dragend: (e) => {
-                waypointDraggingRef.current = false;
-                routeInteractionSuspendedRef.current = false;
-                const { lat, lng } = e.target.getLatLng();
-                moveWaypoint(i, lat, lng);
-              },
-              contextmenu: (e) => {
-                L.DomEvent.preventDefault(e.originalEvent);
-                const orig = e.originalEvent as MouseEvent;
-                setContextMenu({ x: orig.clientX, y: orig.clientY, index: i });
-              },
-            }}
-          >
-            {wp.note && (
-              <Tooltip direction="top" offset={[0, -14]} opacity={0.95}>
-                <span style={{ width: "max-content", maxWidth: 280, display: "inline-block", textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>
-                  {wp.note.length > 120 ? wp.note.slice(0, 120) + "…" : wp.note}
-                </span>
-              </Tooltip>
-            )}
-          </Marker>
+            index={i}
+            lat={wp.lat}
+            lon={wp.lon}
+            overnight={wp.overnight}
+            highlighted={highlightedWaypoint === i}
+            note={wp.note}
+            onMove={moveWaypoint}
+            onContextMenu={handleContextMenu}
+            suspendRef={routeInteractionSuspendedRef}
+            draggingRef={waypointDraggingRef}
+            undoManager={yjs.undoManager}
+          />
         ))}
 
         {days && days.length > 1 && days.map((day) => {
