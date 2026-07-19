@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fedify/fedify": "2.3.1",
+    "@fedify/fedify": "2.3.2",
     "@js-temporal/polyfill": "^0.5.1",
     "@logtape/logtape": "^2.2.4",
     "@react-router/node": "catalog:",
@@ -32,7 +32,7 @@
     "@trails-cool/sentry-config": "workspace:*",
     "@trails-cool/types": "workspace:*",
     "drizzle-orm": "catalog:",
-    "isbot": "^5.2.0",
+    "isbot": "^5.2.1",
     "jose": "^6.2.3",
     "nodemailer": "^9.0.3",
     "pino": "^10.3.1",
