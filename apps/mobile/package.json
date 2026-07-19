@@ -46,7 +46,7 @@
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.20",
     "expo-device": "~56.0.4",
-    "expo-file-system": "~56.0.8",
+    "expo-file-system": "~57.0.1",
     "expo-linking": "~56.0.14",
     "expo-localization": "~56.0.6",
     "expo-location": "~56.0.18",
