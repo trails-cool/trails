@@ -48,7 +48,7 @@
     "expo-device": "~56.0.4",
     "expo-file-system": "~56.0.8",
     "expo-linking": "~56.0.14",
-    "expo-localization": "~56.0.6",
+    "expo-localization": "~57.0.1",
     "expo-location": "~56.0.18",
     "expo-navigation-bar": "~56.0.3",
     "expo-notifications": "~56.0.18",
